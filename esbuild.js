@@ -5,12 +5,12 @@ const path = require('path');
 const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
 
-/** Package version read from package.json at build time, inlined via esbuild `define`. */
+/** Package version read from package.json at build time, inlined as `__APP_VERSION__`. */
 const pkgVersion = JSON.parse(
   fs.readFileSync(path.join(__dirname, 'package.json'), 'utf-8'),
 ).version;
 const versionDefine = {
-  'process.env.PIXEL_AGENTS_VERSION': JSON.stringify(pkgVersion),
+  __APP_VERSION__: JSON.stringify(pkgVersion),
 };
 
 /**
@@ -60,7 +60,8 @@ const cliOptions = {
   sourcemap: !production,
   platform: 'node',
   outfile: 'dist/cli.js',
-  external: ['fastify', '@fastify/websocket', '@fastify/static', '@fastify/cors'],
+  // Everything (fastify included) is bundled so dist/ runs without node_modules —
+  // the installers ship only dist/ next to a Node binary.
   define: versionDefine,
   logLevel: 'silent',
 };

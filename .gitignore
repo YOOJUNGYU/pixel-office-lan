@@ -51,3 +51,7 @@ agent-orchestrator.yaml
 .serena/
 tasks/
 .superpowers/
+
+# Installer staging / output (scripts/package)
+/build/
+/release/

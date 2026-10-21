@@ -1,0 +1,150 @@
+# Installers: PixelOffice-Setup-<ver>.exe, PixelOffice-<ver>-arm64.pkg, PixelOffice-<ver>-x64.pkg.
+# workflow_dispatch → build and upload as run artifacts only.
+# push tag v<ver>    → also publish a GitHub Release (prerelease when the tag has a "-").
+
+name: Package
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build dist/
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - id: version
+        name: Version (tag must equal v<package.json version>)
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if [[ "$GITHUB_REF_TYPE" == tag && "$GITHUB_REF_NAME" != "v$VERSION" ]]; then
+            echo "::error::tag $GITHUB_REF_NAME != v$VERSION (package.json)"
+            exit 1
+          fi
+      - run: npm ci
+      - run: npm run package
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+          include-hidden-files: true
+
+  windows:
+    name: Windows installer
+    needs: build
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      VERSION: ${{ needs.build.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist
+      - name: Stage node.exe + app
+        shell: pwsh
+        run: |
+          node scripts/package/fetch-node.mjs win-x64 build/win
+          Copy-Item scripts/package/launch.vbs build/win/
+          Copy-Item -Recurse dist build/win/app
+          Get-ChildItem build/win/app -Recurse -Filter *.map | Remove-Item
+      - name: Smoke test staged app
+        shell: pwsh
+        run: |
+          $p = Start-Process -PassThru -WindowStyle Hidden build/win/node.exe 'build/win/app/cli.js --port 47899'
+          Start-Sleep -Seconds 5
+          (Invoke-WebRequest -UseBasicParsing http://127.0.0.1:47899/api/ping).Content
+          Stop-Process -Id $p.Id
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          if (-not (Get-Command iscc -ErrorAction SilentlyContinue) -and -not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) {
+            choco install innosetup --no-progress -y
+          }
+      - name: Build installer
+        shell: pwsh
+        run: |
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DAppVersion=$env:VERSION" scripts/package/windows.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v7
+        with:
+          name: PixelOffice-Setup-${{ env.VERSION }}.exe
+          path: release/PixelOffice-Setup-${{ env.VERSION }}.exe
+          if-no-files-found: error
+
+  macos:
+    name: macOS installer (${{ matrix.arch }})
+    needs: build
+    strategy:
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-latest
+          - arch: x64
+            runner: macos-15-intel
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    env:
+      VERSION: ${{ needs.build.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist
+      - run: scripts/package/macos.sh ${{ matrix.arch }} "$VERSION"
+      - name: Smoke test packaged app
+        run: |
+          RES="build/mac-${{ matrix.arch }}/root/Applications/Pixel Office.app/Contents/Resources"
+          "$RES/node" "$RES/app/cli.js" --port 47899 &
+          sleep 5
+          curl -sf http://127.0.0.1:47899/api/ping
+          kill $!
+      - uses: actions/upload-artifact@v7
+        with:
+          name: PixelOffice-${{ env.VERSION }}-${{ matrix.arch }}.pkg
+          path: release/PixelOffice-${{ env.VERSION }}-${{ matrix.arch }}.pkg
+          if-no-files-found: error
+
+  release:
+    name: GitHub Release
+    if: github.ref_type == 'tag'
+    needs: [build, windows, macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: PixelOffice-*
+          path: release
+          merge-multiple: true
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          PRE=()
+          [[ "$TAG" == *-* ]] && PRE=(--prerelease)
+          gh release create "$TAG" release/* --repo "$GITHUB_REPOSITORY" --title "Pixel Office $TAG" --generate-notes "${PRE[@]}"
