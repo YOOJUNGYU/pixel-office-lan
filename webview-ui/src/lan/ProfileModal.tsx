@@ -4,7 +4,8 @@ import type { ProfileMessage } from '../../../core/src/messages.js';
 import { Button } from '../components/ui/Button.js';
 import { Checkbox } from '../components/ui/Checkbox.js';
 import { Modal } from '../components/ui/Modal.js';
-import { MAX_HUE_DEG, PALETTE_COUNT } from '../constants.js';
+import { CHARACTER_SKIN_COLORS, MAX_HUE_DEG, PALETTE_COUNT } from '../constants.js';
+import { adjustSprite } from '../office/colorize.js';
 import { getCharacterSprites } from '../office/sprites/spriteData.js';
 import { Direction } from '../office/types.js';
 
@@ -46,7 +47,9 @@ function CharacterPreview({
   useEffect(() => {
     const canvas = ref.current;
     if (!canvas) return;
-    const sprite = getCharacterSprites(palette, hueShift).walk[Direction.DOWN][1];
+    // Shift just this frame, uncached: slider ticks must not fill the shared sprite cache.
+    const base = getCharacterSprites(palette).walk[Direction.DOWN][1];
+    const sprite = adjustSprite(base, { h: hueShift, s: 0, b: 0, c: 0 }, CHARACTER_SKIN_COLORS);
     canvas.width = sprite[0].length * scale;
     canvas.height = sprite.length * scale;
     const ctx = canvas.getContext('2d')!;

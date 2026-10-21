@@ -1,5 +1,5 @@
 import type { ColorValue } from '../../components/ui/types.js';
-import { PALETTE_COUNT } from '../../constants.js';
+import { CHARACTER_SKIN_COLORS, PALETTE_COUNT } from '../../constants.js';
 import { adjustSprite } from '../colorize.js';
 import type { Direction, SpriteData } from '../types.js';
 import { Direction as Dir } from '../types.js';
@@ -71,7 +71,7 @@ const spriteCache = new Map<string, CharacterSprites>();
 /** Apply hue shift to every sprite in a CharacterSprites set */
 function hueShiftSprites(sprites: CharacterSprites, hueShift: number): CharacterSprites {
   const color: ColorValue = { h: hueShift, s: 0, b: 0, c: 0 };
-  const shift = (s: SpriteData) => adjustSprite(s, color);
+  const shift = (s: SpriteData) => adjustSprite(s, color, CHARACTER_SKIN_COLORS);
   const shiftWalk = (
     arr: [SpriteData, SpriteData, SpriteData, SpriteData],
   ): [SpriteData, SpriteData, SpriteData, SpriteData] => [

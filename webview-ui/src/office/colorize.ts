@@ -205,7 +205,12 @@ export function flatColorizeSprite(sprite: SpriteData, color: ColorValue): Sprit
  * B slider (-100 to 100): shifts lightness
  * C slider (-100 to 100): adjusts contrast around midpoint
  */
-export function adjustSprite(sprite: SpriteData, color: ColorValue): SpriteData {
+export function adjustSprite(
+  sprite: SpriteData,
+  color: ColorValue,
+  /** Uppercase `#RRGGBB` colors copied through unchanged. */
+  skip?: ReadonlySet<string>,
+): SpriteData {
   const { h: hShift, s: sShift, b, c } = color;
   const result: SpriteData = [];
 
@@ -214,6 +219,10 @@ export function adjustSprite(sprite: SpriteData, color: ColorValue): SpriteData 
     for (const pixel of row) {
       if (pixel === '') {
         newRow.push('');
+        continue;
+      }
+      if (skip?.has(pixel.slice(0, 7).toUpperCase())) {
+        newRow.push(pixel);
         continue;
       }
 

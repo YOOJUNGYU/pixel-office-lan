@@ -302,6 +302,25 @@ export const LAN_READING_TOOLS = ['Read'];
 /** Subagents wear their PC's palette, hue-rotated by this much. */
 export const LAN_SUBAGENT_HUE_OFFSET = 120;
 export const MAX_HUE_DEG = 360;
+/** Skin colors of char_0..5.png (measured); exempt from a character's hue shift. */
+export const CHARACTER_SKIN_COLORS: ReadonlySet<string> = new Set([
+  '#E9A384',
+  '#C5896E',
+  '#FBBF97',
+  '#FFD8B2',
+  '#E29878',
+  '#BD8068',
+  '#84523A',
+  '#FFF2EC',
+  '#FCD6C4',
+  '#E1AA91',
+  '#CF9D86',
+  '#BA917E',
+  '#5F4132',
+  '#493227',
+  '#B67352',
+  '#8C583F',
+]);
 /** A parent's ghost, leading its children in a room the parent is not in. */
 export const LAN_GHOST_ALPHA = 0.45;
 /** Shell characters share one fixed look. */
