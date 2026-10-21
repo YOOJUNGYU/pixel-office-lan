@@ -431,7 +431,10 @@ export function EditorToolbar({
 
       {isBackgroundActive && (
         <BackgroundPanel
-          fill={resolveBackground(background)}
+          fill={resolveBackground(background, {
+            floorPatterns: patternCount,
+            carpetVariants: carpetVariantCount,
+          })}
           onChange={onBackgroundChange}
           floorPatterns={floorPatterns}
           carpetVariantCount={carpetVariantCount}

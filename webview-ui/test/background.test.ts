@@ -106,3 +106,18 @@ test('carpet background patch: (tiles+1)² tiles, main-colour margin, rug drawn'
   assert.notEqual(patch[24][24], '');
   assert.equal(getCarpetPatchSprite(5, color, accent, 2), null);
 });
+
+test('pattern index past the loaded assets falls back to the default', () => {
+  const limits = { floorPatterns: 7, carpetVariants: 3 };
+  const f = resolveBackground({ kind: 'floor', pattern: 9 }, limits);
+  assert.equal(f.kind === 'floor' && f.pattern, 1);
+  assert.equal(resolveBackground({ kind: 'floor', pattern: 7 }, limits).kind === 'floor', true);
+  const c = resolveBackground({ kind: 'carpet', pattern: 3 }, limits);
+  assert.equal(c.kind === 'carpet' && c.variant, 0);
+  // Carpets not loaded yet (0): keep the stored index.
+  const c0 = resolveBackground(
+    { kind: 'carpet', pattern: 2 },
+    { floorPatterns: 7, carpetVariants: 0 },
+  );
+  assert.equal(c0.kind === 'carpet' && c0.variant, 2);
+});

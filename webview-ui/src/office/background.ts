@@ -39,11 +39,25 @@ function toColorValue(v: unknown, fallback: ColorValue): ColorValue {
   return fallback;
 }
 
-function toIndex(v: unknown, min: number, fallback: number): number {
-  return typeof v === 'number' && Number.isInteger(v) && v >= min ? v : fallback;
+/** Integer in [min, max], else `fallback`. */
+function toIndex(v: unknown, min: number, max: number, fallback: number): number {
+  return typeof v === 'number' && Number.isInteger(v) && v >= min && v <= max ? v : fallback;
 }
 
-export function resolveBackground(bg: OfficeBackground | undefined | null): BackgroundFill {
+/** How many floor patterns / carpet variants are loaded. An index past them (e.g. an
+ *  imported layout from a PC with more assets) falls back to the default instead of
+ *  drawing an error tile. 0 carpets = not loaded yet: the index is kept. */
+export interface BackgroundLimits {
+  floorPatterns: number;
+  carpetVariants: number;
+}
+
+export function resolveBackground(
+  bg: OfficeBackground | undefined | null,
+  limits?: BackgroundLimits,
+): BackgroundFill {
+  const maxFloor = limits?.floorPatterns ?? Number.MAX_SAFE_INTEGER;
+  const maxCarpet = limits?.carpetVariants ? limits.carpetVariants - 1 : Number.MAX_SAFE_INTEGER;
   if (!bg || typeof bg !== 'object') return { kind: 'none' };
   switch (bg.kind) {
     case BackgroundKind.COLOR:
@@ -57,13 +71,13 @@ export function resolveBackground(bg: OfficeBackground | undefined | null): Back
     case BackgroundKind.FLOOR:
       return {
         kind: 'floor',
-        pattern: toIndex(bg.pattern, 1, BACKGROUND_DEFAULT_FLOOR_PATTERN),
+        pattern: toIndex(bg.pattern, 1, maxFloor, BACKGROUND_DEFAULT_FLOOR_PATTERN),
         color: toColorValue(bg.color, BACKGROUND_DEFAULT_FLOOR_COLOR),
       };
     case BackgroundKind.CARPET:
       return {
         kind: 'carpet',
-        variant: toIndex(bg.pattern, 0, BACKGROUND_DEFAULT_CARPET_VARIANT),
+        variant: toIndex(bg.pattern, 0, maxCarpet, BACKGROUND_DEFAULT_CARPET_VARIANT),
         color: toColorValue(bg.color, CARPET_DEFAULT_COLOR),
         accent: toColorValue(bg.accent, CARPET_DEFAULT_ACCENT_COLOR),
       };

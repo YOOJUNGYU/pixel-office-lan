@@ -52,12 +52,18 @@ import {
 import { areaName } from '../../i18n.js';
 import type { BackgroundFill } from '../background.js';
 import { resolveBackground } from '../background.js';
-import { getColorizedFloorSprite, hasFloorSprites, WALL_COLOR } from '../floorTiles.js';
+import {
+  getColorizedFloorSprite,
+  getFloorPatternCount,
+  hasFloorSprites,
+  WALL_COLOR,
+} from '../floorTiles.js';
 import { mapOffset } from '../projection.js';
 import {
   getCarpetJunctionSprite,
   getCarpetPaletteKey,
   getCarpetPatchSprite,
+  getCarpetSetCount,
   hasCarpetSprites,
 } from '../sprites/carpetTiles.js';
 import { getPetSprites } from '../sprites/petSpriteData.js';
@@ -1000,7 +1006,10 @@ export function renderFrame(
   // Background (outside the office + VOID tiles), then tiles (floor + wall base color)
   renderBackground(
     ctx,
-    resolveBackground(background),
+    resolveBackground(background, {
+      floorPatterns: getFloorPatternCount(),
+      carpetVariants: getCarpetSetCount(),
+    }),
     canvasWidth,
     canvasHeight,
     offsetX,
