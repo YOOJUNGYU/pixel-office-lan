@@ -21,11 +21,12 @@ export function parseWslList(out: Buffer): string[] {
     .filter(Boolean);
 }
 
+/** Running distros only: touching a stopped distro's share boots its VM. */
 function listWslDistros(): Promise<string[]> {
   return new Promise((resolve) => {
     execFile(
       'wsl.exe',
-      ['-l', '-q'],
+      ['-l', '--running', '-q'],
       { encoding: 'buffer', timeout: WSL_LIST_TIMEOUT_MS, windowsHide: true },
       (err, stdout) => resolve(err ? [] : parseWslList(stdout)),
     );
@@ -54,7 +55,8 @@ export async function discoverRoots(
       () => true,
       () => false,
     );
-  for (const distro of await wsl.listDistros().catch(() => [])) {
+  const distros = await wsl.listDistros().catch(() => []);
+  for (const distro of distros.filter((d) => !d.startsWith('docker-desktop'))) {
     const base = `\\\\wsl.localhost\\${distro}`;
     const users = await wsl.readdir(p.join(base, 'home')).catch(() => []);
     for (const h of [...users.map((u) => p.join(base, 'home', u)), p.join(base, 'root')]) {

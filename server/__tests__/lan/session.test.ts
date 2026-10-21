@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { newSession, setActivity, setIdle, tick, toViews } from '../../src/lan/session.js';
+import {
+  newSession,
+  programName,
+  setActivity,
+  setIdle,
+  tick,
+  toViews,
+} from '../../src/lan/session.js';
 
 const mk = () => newSession('claude', 's1', 'main', 0);
 
@@ -25,17 +32,33 @@ describe('session state', () => {
     expect(s.room).toBe('coding');
   });
 
-  it('pending non-exempt tool => permission + immediate lounge', () => {
+  it('silent non-exempt tool => permission in place (no room change)', () => {
     const s = mk();
-    s.room = s.candidate = 'coding';
-    s.pendingTool = { name: 'Edit', since: 0, exempt: false };
+    s.room = s.candidate = 'server';
+    s.pendingTool = { name: 'Bash', since: 0, exempt: false };
     tick(s, 6_999);
     expect(s.permission).toBe(false);
     tick(s, 7_000);
     expect(s.permission).toBe(true);
-    expect(s.room).toBe('lounge');
-    setActivity(s, 'coding', 'edit', 'y', 7_500);
+    tick(s, 30_000);
+    expect(s.room).toBe('server');
+    setActivity(s, 'coding', 'edit', 'y', 30_500);
     expect(s.permission).toBe(false);
+  });
+
+  it('bypassPermissions never guesses a permission prompt', () => {
+    const s = mk();
+    s.bypass = true;
+    s.pendingTool = { name: 'Bash', since: 0, exempt: false };
+    tick(s, 60_000);
+    expect(s.permission).toBe(false);
+  });
+
+  it('programName: first token after env assignments, basename', () => {
+    expect(programName('OPENAI_API_KEY=sk-x /usr/bin/npm test')).toBe('npm');
+    expect(programName('"C:\\tools\\git.exe" status')).toBe('git.exe');
+    expect(programName('ssh dev@db01.acme.local')).toBe('ssh');
+    expect(programName('')).toBe('');
   });
 
   it('exempt tool never sets permission', () => {
@@ -70,7 +93,10 @@ describe('session state', () => {
 
   it('toViews appends shell views in server room', () => {
     const s = mk();
-    s.shells.set('b1', 'npm run dev');
+    s.shells.set('b1', { target: 'npm run dev', brief: 'npm' });
+    s.target = 'ssh dev@db01';
+    s.brief = 'ssh';
+    expect(toViews(s, true).map((x) => x.target)).toEqual(['ssh', 'npm']);
     const v = toViews(s);
     expect(v).toHaveLength(2);
     expect(v[1]).toMatchObject({

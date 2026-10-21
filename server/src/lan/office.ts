@@ -49,7 +49,8 @@ export class LanService {
 
   constructor(
     public profile: Profile,
-    private readonly local: { views(): AgentView[] },
+    /** brief=true: commands as program name / description only (hideDetails) */
+    private readonly local: { views(brief?: boolean): AgentView[] },
     /** profile.json directory; undefined = ~/.pixel-office */
     private readonly dir?: string,
   ) {}
@@ -64,8 +65,9 @@ export class LanService {
   packet(): PeerPacket {
     let views: AgentView[] = [];
     try {
-      views = this.local.views();
-      if (this.profile.hideDetails) views = views.map(redactView);
+      const hide = this.profile.hideDetails;
+      views = this.local.views(hide);
+      if (hide) views = views.map(redactView);
     } catch (err) {
       console.error('[Pixel Office] Building peer packet failed:', err);
       views = [];
@@ -74,7 +76,7 @@ export class LanService {
   }
 
   office(redactLocal: boolean): OfficeAgent[] {
-    return buildOffice(this.self(), this.local.views(), this.net.peers(), redactLocal);
+    return buildOffice(this.self(), this.local.views(redactLocal), this.net.peers(), redactLocal);
   }
 
   /** Persist a validated update and announce it to peers right away. */

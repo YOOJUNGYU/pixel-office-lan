@@ -131,6 +131,36 @@ describe('Scanner', () => {
     ]);
   });
 
+  it('subagents inherit the parent session bypassPermissions mode', async () => {
+    writeFileSync(
+      join(proj, 'm.jsonl'),
+      '{"type":"permission-mode","permissionMode":"bypassPermissions","sessionId":"m"}\n',
+    );
+    mkdirSync(join(proj, 'm', 'subagents'), { recursive: true });
+    writeFileSync(
+      join(proj, 'm', 'subagents', 'agent-x.jsonl'),
+      assistant([{ type: 'tool_use', id: 'b', name: 'Bash', input: { command: 'npm test' } }]),
+    );
+    await scanner.discover();
+    await advance(30_000);
+    const sub = scanner.views().find((v) => v.kind === 'subagent');
+    expect(sub).toMatchObject({ room: 'server', permission: false });
+  });
+
+  it('re-reads roots each discover and drops files under a vanished root', async () => {
+    writeFileSync(join(proj, 'a.jsonl'), edit('a.ts'));
+    let roots = { claude: [join(dir, 'claude')], codex: [] as string[] };
+    const s = new Scanner(
+      async () => roots,
+      () => t,
+    );
+    await s.discover();
+    expect(s.views()).toHaveLength(1);
+    roots = { claude: [], codex: [] };
+    await s.discover();
+    expect(s.views()).toEqual([]);
+  });
+
   it('never throws when a root is missing', async () => {
     const s = new Scanner({ claude: ['/nonexistent/x'], codex: ['/nonexistent/y'] });
     await s.discover();
@@ -166,6 +196,20 @@ describe('discoverRoots', () => {
       ],
       codex: ['C:\\Users\\me\\.codex\\sessions'],
     });
+  });
+
+  it('skips docker-desktop distros (only running distros are listed)', async () => {
+    const seen: string[] = [];
+    const roots = await discoverRoots({}, 'win32', 'C:\\Users\\me', {
+      listDistros: async () => ['docker-desktop', 'docker-desktop-data', 'Ubuntu'],
+      readdir: async (p: string) => {
+        seen.push(p);
+        throw new Error('ENOENT');
+      },
+    });
+    expect(roots.claude).toEqual(['C:\\Users\\me\\.claude\\projects']);
+    expect(seen.some((p) => p.includes('docker-desktop'))).toBe(false);
+    expect(seen.some((p) => p.includes('Ubuntu'))).toBe(true);
   });
 
   it('parses wsl.exe -l -q UTF-16LE output', async () => {

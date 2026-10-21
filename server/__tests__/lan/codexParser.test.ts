@@ -91,8 +91,24 @@ describe('applyCodexLine', () => {
     const s = mk();
     applyCodexLine(s, exec('tools.exec_command({cmd:"pnpm dev"})'), 0);
     applyCodexLine(s, output('{"session_id":7933,"output":""}'), 0);
-    expect(s.shells.get('7933')).toBe('pnpm dev');
+    expect(s.shells.get('7933')).toEqual({ target: 'pnpm dev', brief: 'pnpm' });
     applyCodexLine(s, output('{"session_id":7933,"exit_code":0}'), 0);
+    expect(s.shells.size).toBe(0);
+  });
+
+  it('write_stdin error output never creates a phantom shell', () => {
+    const s = mk();
+    applyCodexLine(s, exec('text(await tools.write_stdin({session_id:42,chars:""}))'), 0);
+    applyCodexLine(s, output('write_stdin failed: Unknown process id 42'), 0);
+    expect(s.shells.size).toBe(0);
+  });
+
+  it('write_stdin exit output removes the shell by its session id', () => {
+    const s = mk();
+    applyCodexLine(s, exec('tools.exec_command({cmd:"pnpm dev"})'), 0);
+    applyCodexLine(s, output('{"session_id":42,"output":""}'), 0);
+    applyCodexLine(s, exec('tools.write_stdin({session_id:42,chars:""})', 'call_y'), 0);
+    applyCodexLine(s, output('Process exited with code 0\n"exit_code": 0', 'call_y'), 0);
     expect(s.shells.size).toBe(0);
   });
 

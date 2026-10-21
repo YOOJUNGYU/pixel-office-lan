@@ -61,6 +61,22 @@ describe('LanService', () => {
     expect(p.views[0].target).toBe('a.ts');
   });
 
+  it('asks for brief (program-name) views only when details are hidden', () => {
+    const asked: Array<boolean | undefined> = [];
+    const local = {
+      views: (brief?: boolean) => {
+        asked.push(brief);
+        return [view({ target: brief ? 'ssh' : 'ssh dev@db01.acme.local' })];
+      },
+    };
+    const lan = new LanService({ ...profile }, local);
+    expect(lan.packet().views[0].target).toBe('ssh');
+    expect(lan.office(false)[0].target).toBe('ssh dev@db01.acme.local');
+    lan.profile = { ...lan.profile, hideDetails: false };
+    expect(lan.packet().views[0].target).toBe('ssh dev@db01.acme.local');
+    expect(asked).toEqual([true, false, false]);
+  });
+
   it('packet() never throws: a failing scan sends no views', () => {
     const err = vi.spyOn(console, 'error').mockImplementation(() => {});
     const lan = new LanService(

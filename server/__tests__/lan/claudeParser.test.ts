@@ -96,12 +96,67 @@ describe('applyClaudeLine', () => {
 
   it('KillShell / TaskStop remove the shell, keep activity', () => {
     const s = mk();
-    s.shells.set('b1', 'x').set('b2', 'y');
+    s.shells.set('b1', { target: 'x', brief: 'x' }).set('b2', { target: 'y', brief: 'y' });
     s.target = 'keep';
     applyClaudeLine(s, assistant(toolUse('KillShell', { shell_id: 'b1' })), 0);
     applyClaudeLine(s, assistant(toolUse('TaskStop', { task_id: 'b2' })), 0);
     expect(s.shells.size).toBe(0);
     expect(s).toMatchObject({ act: 'idle', target: 'keep' });
+  });
+
+  it('Bash brief is the description, else the program name', () => {
+    const s = mk();
+    applyClaudeLine(s, assistant(toolUse('Bash', { command: 'ssh dev@db01.acme.local' })), 0);
+    expect(s).toMatchObject({ target: 'ssh dev@db01.acme.local', brief: 'ssh' });
+    applyClaudeLine(
+      s,
+      assistant(toolUse('Bash', { command: 'npm test', description: '테스트 실행' })),
+      0,
+    );
+    expect(s).toMatchObject({ target: '테스트 실행', brief: '테스트 실행' });
+  });
+
+  it('bypassPermissions (real format): a 30 s Bash stays in 서버실 without ❗', () => {
+    const s = mk();
+    applyClaudeLine(
+      s,
+      '{"type":"permission-mode","permissionMode":"bypassPermissions","sessionId":"s1"}',
+      0,
+    );
+    applyClaudeLine(s, assistant(toolUse('Bash', { command: 'npm test' })), 0);
+    tick(s, 3_000);
+    tick(s, 30_000);
+    expect(s).toMatchObject({ room: 'server', permission: false, act: 'run' });
+  });
+
+  it('default mode: a silent Bash shows ❗ in place', () => {
+    const s = mk();
+    applyClaudeLine(
+      s,
+      JSON.stringify({ type: 'user', permissionMode: 'default', message: { content: 'go' } }),
+      0,
+    );
+    applyClaudeLine(s, assistant(toolUse('Bash', { command: 'npm test' })), 0);
+    tick(s, 3_000);
+    tick(s, 30_000);
+    expect(s).toMatchObject({ room: 'server', permission: true });
+  });
+
+  it('interrupt (Esc) ends the turn', () => {
+    const s = mk();
+    applyClaudeLine(s, assistant(toolUse('Bash', { command: 'npm test' })), 0);
+    applyClaudeLine(
+      s,
+      JSON.stringify({
+        type: 'user',
+        message: {
+          content: [{ type: 'text', text: '[Request interrupted by user for tool use]' }],
+        },
+      }),
+      1,
+    );
+    tick(s, 3_001);
+    expect(s).toMatchObject({ room: 'lounge', act: 'idle', turnEnded: true, pendingTool: null });
   });
 
   it('AskUserQuestion -> immediate permission', () => {

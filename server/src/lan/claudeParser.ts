@@ -1,6 +1,6 @@
 import type { Act, Room } from '../../../core/src/lan.js';
 import type { SessionState } from './session.js';
-import { setActivity, setIdle } from './session.js';
+import { programName, setActivity, setIdle } from './session.js';
 
 type Input = Record<string, unknown>;
 interface Block {
@@ -14,7 +14,7 @@ interface Block {
 }
 
 interface Turn {
-  tools: Map<string, { name: string; input: Input; target: string }>;
+  tools: Map<string, { name: string; input: Input; target: string; brief: string }>;
 }
 /** per-session turn memory (tool_use ids of the current turn) */
 const turns = new WeakMap<SessionState, Turn>();
@@ -38,8 +38,8 @@ const textOf = (c: unknown): string =>
       ? c.map((b: Block) => (b?.type === 'text' ? str(b.text) : '')).join('\n')
       : '';
 
-/** [room (null = keep), act, target, exempt] */
-function describe(name: string, i: Input): [Room | null, Act, string, boolean] {
+/** [room (null = keep), act, target, exempt, brief (default target)] */
+function describe(name: string, i: Input): [Room | null, Act, string, boolean, string?] {
   switch (name) {
     case 'Edit':
     case 'Write':
@@ -58,7 +58,13 @@ function describe(name: string, i: Input): [Room | null, Act, string, boolean] {
       return ['library', 'fetch', str(i.url), false];
     case 'Bash':
     case 'PowerShell':
-      return ['server', 'run', str(i.description) || str(i.command).slice(0, 80), false];
+      return [
+        'server',
+        'run',
+        str(i.description) || str(i.command).slice(0, 80),
+        false,
+        str(i.description) || programName(str(i.command)),
+      ];
     case 'Task':
     case 'Agent':
       return ['lounge', 'delegate', str(i.description), true];
@@ -83,18 +89,20 @@ function onAssistant(s: SessionState, content: Block[], now: number): void {
         s.shells.delete(str(input.shell_id ?? input.task_id));
         continue;
       }
-      const [room, act, target, exempt] = describe(b.name, input);
+      const [room, act, target, exempt, brief = target] = describe(b.name, input);
       const clipped = clip(target, 120);
-      setActivity(s, room, act, clipped, now);
+      const briefClipped = clip(brief, 120);
+      setActivity(s, room, act, clipped, now, briefClipped);
       if (b.name === 'AskUserQuestion' || b.name === 'ExitPlanMode') s.permission = true;
       s.pendingTool = { name: b.name, since: now, exempt };
-      if (b.id) turnOf(s).tools.set(b.id, { name: b.name, input, target: clipped });
+      if (b.id)
+        turnOf(s).tools.set(b.id, { name: b.name, input, target: clipped, brief: briefClipped });
     }
   }
   if (!sawTool && content.some((b) => b?.type === 'text')) s.textOnlyAt = now;
 }
 
-function onUser(s: SessionState, content: unknown): void {
+function onUser(s: SessionState, content: unknown, now: number): void {
   const results = Array.isArray(content)
     ? (content as Block[]).filter((b) => b?.type === 'tool_result')
     : [];
@@ -104,13 +112,17 @@ function onUser(s: SessionState, content: unknown): void {
     for (const r of results) {
       const id = BG_RE.exec(textOf(r.content))?.[1];
       const call = turnOf(s).tools.get(str(r.tool_use_id));
-      if (id && call?.input.run_in_background === true) s.shells.set(id, call.target);
+      if (id && call?.input.run_in_background === true) {
+        s.shells.set(id, { target: call.target, brief: call.brief });
+      }
     }
     return;
   }
   const text = textOf(content);
   const taskId = TASK_ID_RE.exec(text)?.[1];
   if (taskId && DONE_RE.test(text)) s.shells.delete(taskId);
+  // Esc: no turn_duration follows
+  if (text.trimStart().startsWith('[Request interrupted')) return setIdle(s, now);
   // new turn
   s.turnEnded = false;
   s.permission = false;
@@ -121,7 +133,12 @@ function onUser(s: SessionState, content: unknown): void {
 
 /** Apply one line of a Claude Code session JSONL to the session state. */
 export function applyClaudeLine(s: SessionState, line: string, now: number): void {
-  let rec: { type?: string; subtype?: string; message?: { content?: unknown } };
+  let rec: {
+    type?: string;
+    subtype?: string;
+    message?: { content?: unknown };
+    permissionMode?: unknown;
+  };
   try {
     rec = JSON.parse(line);
   } catch {
@@ -129,8 +146,12 @@ export function applyClaudeLine(s: SessionState, line: string, now: number): voi
   }
   if (!rec || typeof rec !== 'object') return;
   s.lastLineAt = now;
+  // `permission-mode` records and user records carry the current mode
+  if (typeof rec.permissionMode === 'string') {
+    s.bypass = rec.permissionMode === 'bypassPermissions';
+  }
   const content = rec.message?.content;
   if (rec.type === 'assistant' && Array.isArray(content)) onAssistant(s, content, now);
-  else if (rec.type === 'user') onUser(s, content);
+  else if (rec.type === 'user') onUser(s, content, now);
   else if (rec.type === 'system' && rec.subtype === 'turn_duration') setIdle(s, now);
 }

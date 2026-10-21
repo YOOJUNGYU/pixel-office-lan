@@ -1,11 +1,14 @@
 import type { Act, Room } from '../../../core/src/lan.js';
 import type { SessionState } from './session.js';
-import { setActivity, setIdle } from './session.js';
+import { programName, setActivity, setIdle } from './session.js';
 
 type Obj = Record<string, unknown>;
 
 /** per-session call_id -> target after the call, and write_stdin's session_id */
-const calls = new WeakMap<SessionState, Map<string, { target: string; stdinId?: string }>>();
+const calls = new WeakMap<
+  SessionState,
+  Map<string, { target: string; brief: string; stdinId?: string }>
+>();
 const callsOf = (s: SessionState) => {
   let m = calls.get(s);
   if (!m) calls.set(s, (m = new Map()));
@@ -35,11 +38,12 @@ export function classifyShell(cmd: string): Room {
   return LIBRARY_CMD.test(cmd.split('|')[0].trim()) ? 'library' : 'server';
 }
 
-type Activity = [Room, Act, string];
+/** [room, act, target, brief (default target)] */
+type Activity = [Room, Act, string, string?];
 
 function shellActivity(cmd: string): Activity {
   const room = classifyShell(cmd);
-  return [room, room === 'library' ? 'read' : 'run', clip(cmd, 80)];
+  return [room, room === 'library' ? 'read' : 'run', clip(cmd, 80), programName(cmd)];
 }
 
 /** [room, act, target] or null = keep room and activity */
@@ -68,11 +72,11 @@ function onToolCall(
   now: number,
   stdinId?: string,
 ): void {
-  if (d) setActivity(s, d[0], d[1], clip(d[2], 120), now);
+  if (d) setActivity(s, d[0], d[1], clip(d[2], 120), now, clip(d[3] ?? d[2], 120));
   if (name.startsWith('request_user_input')) s.permission = true;
   // ponytail: Codex 승인 대기 미감지, 기록에 승인 이벤트가 생기면 추가
   s.pendingTool = { name, since: now, exempt: true };
-  if (callId) callsOf(s).set(callId, { target: s.target, stdinId });
+  if (callId) callsOf(s).set(callId, { target: s.target, brief: s.brief, stdinId });
 }
 
 function onItem(s: SessionState, p: Obj, now: number): void {
@@ -110,10 +114,14 @@ function onItem(s: SessionState, p: Obj, now: number): void {
         ? p.output.map((b) => str(obj(b).text))
         : [textOf(p.output)];
       for (const t of outs) {
-        const id = SID_RE.exec(t)?.[1] ?? call?.stdinId;
-        if (!id) continue;
-        if (EXIT_RE.test(t)) s.shells.delete(id);
-        else if (!s.shells.has(id)) s.shells.set(id, call?.target ?? s.target);
+        const sid = SID_RE.exec(t)?.[1];
+        if (EXIT_RE.test(t)) {
+          const id = sid ?? call?.stdinId;
+          if (id) s.shells.delete(id);
+        } else if (sid && !s.shells.has(sid)) {
+          // only a "still running" exec output starts a shell; write_stdin errors never do
+          s.shells.set(sid, { target: call?.target ?? s.target, brief: call?.brief ?? s.brief });
+        }
       }
       return;
     }

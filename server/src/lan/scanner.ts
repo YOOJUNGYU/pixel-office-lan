@@ -76,12 +76,25 @@ export class Scanner {
   private discovering = false;
   private polling = false;
 
+  private roots: Roots = { claude: [], codex: [] };
+
+  /** A function is re-run every discover cycle (running WSL distros come and go). */
   constructor(
-    private roots: Roots,
+    private readonly rootsSource: Roots | (() => Promise<Roots>),
     private now: () => number = Date.now,
-  ) {}
+  ) {
+    if (typeof rootsSource !== 'function') this.roots = rootsSource;
+  }
 
   async discover(): Promise<void> {
+    if (typeof this.rootsSource === 'function') {
+      this.roots = await this.rootsSource();
+      // stop touching roots that went away (a stopped WSL distro would boot again)
+      const all = [...this.roots.claude, ...this.roots.codex];
+      for (const file of this.files.keys()) {
+        if (!all.some((r) => file.startsWith(r))) this.files.delete(file);
+      }
+    }
     for (const c of await this.candidates()) {
       if (this.files.has(c.file)) continue;
       try {
@@ -94,7 +107,12 @@ export class Scanner {
 
   async poll(): Promise<void> {
     const now = this.now();
+    // Claude subagent transcripts carry no permission mode: inherit the parent's
+    const bypass = new Map([...this.files.values()].map((t) => [t.s.id, t.s.bypass]));
     for (const [file, t] of this.files) {
+      if (t.s.kind === 'subagent' && t.s.parentId !== undefined) {
+        t.s.bypass = bypass.get(t.s.parentId) ?? t.s.bypass;
+      }
       try {
         const st = await stat(file);
         t.mtimeMs = st.mtimeMs;
@@ -118,11 +136,12 @@ export class Scanner {
     }
   }
 
-  views(): AgentView[] {
+  /** brief=true: commands as program name / description only (hideDetails) */
+  views(brief = false): AgentView[] {
     const now = this.now();
     return [...this.files.values()]
       .filter((t) => t.endedAt === null || now - t.endedAt < CHILD_ENDED_HIDE_MS)
-      .flatMap((t) => toViews(t.s));
+      .flatMap((t) => toViews(t.s, brief));
   }
 
   start(): void {
