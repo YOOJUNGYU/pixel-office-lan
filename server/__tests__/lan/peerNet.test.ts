@@ -66,9 +66,25 @@ describe('broadcastAddresses', () => {
   it('computes directed broadcast and skips internal', () => {
     const r = broadcastAddresses({
       eth0: [
-        { family: 'IPv4', address: '192.168.0.10', netmask: '255.255.255.0', internal: false },
+        {
+          family: 'IPv4',
+          address: '192.168.0.10',
+          netmask: '255.255.255.0',
+          mac: '00:00:00:00:00:00',
+          cidr: null,
+          internal: false,
+        },
       ],
-      lo: [{ family: 'IPv4', address: '127.0.0.1', netmask: '255.0.0.0', internal: true }],
+      lo: [
+        {
+          family: 'IPv4',
+          address: '127.0.0.1',
+          netmask: '255.0.0.0',
+          mac: '00:00:00:00:00:00',
+          cidr: null,
+          internal: true,
+        },
+      ],
     } as ReturnType<typeof import('os').networkInterfaces>);
     expect(r).toContain('192.168.0.255');
     expect(r).toContain('255.255.255.255');

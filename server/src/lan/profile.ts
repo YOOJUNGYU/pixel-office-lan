@@ -75,13 +75,14 @@ export function loadProfile(dir: string = defaultDir()): Profile {
     typeof raw.peerId === 'string' && raw.peerId && raw.peerId.length <= MAX_PEER_ID
       ? raw.peerId
       : randomUUID();
+  const nick = typeof raw.nickname === 'string' ? raw.nickname.trim() : '';
   // nickname '' is a valid stored state (not yet chosen), so validate fields individually
   const valid = validateProfileUpdate({
     ...raw,
-    nickname: typeof raw.nickname === 'string' && raw.nickname.trim() ? raw.nickname : 'x',
+    nickname: nick || 'x',
   });
   const profile: Profile =
-    valid && (raw.nickname as string).trim()
+    valid && nick
       ? { peerId, ...valid }
       : {
           peerId,

@@ -26,6 +26,14 @@ describe('loadProfile', () => {
     saveProfile(p, dir);
     expect(loadProfile(dir)).toEqual(p);
   });
+  it('does not throw when nickname is missing', () => {
+    const f = path.join(dir, 'profile.json');
+    fs.writeFileSync(
+      f,
+      JSON.stringify({ peerId: 'k', palette: 1, hueShift: 0, hideDetails: true, manualPeers: [] }),
+    );
+    expect(loadProfile(dir)).toMatchObject({ peerId: 'k', nickname: '', palette: 0 });
+  });
   it('keeps a valid peerId when fields are invalid, falls back on garbage', () => {
     fs.writeFileSync(
       path.join(dir, 'profile.json'),
