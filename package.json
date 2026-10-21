@@ -1,12 +1,12 @@
 {
-  "name": "pixel-agents",
-  "displayName": "Pixel Agents",
+  "name": "pixel-office",
+  "displayName": "Pixel Office",
   "description": "Pixel art office where your Claude Code agents come to life as animated characters",
   "version": "1.5.0",
   "publisher": "pablodelucca",
   "repository": {
     "type": "git",
-    "url": "https://github.com/pixel-agents-hq/pixel-agents"
+    "url": "https://github.com/YOOJUNGYU/pixel-office-lan"
   },
   "workspaces": [
     "server",
@@ -29,7 +29,7 @@
   ],
   "main": "./dist/extension.js",
   "bin": {
-    "pixel-agents": "./dist/cli.js"
+    "pixel-office": "./dist/cli.js"
   },
   "files": [
     "CHANGELOG.md",
