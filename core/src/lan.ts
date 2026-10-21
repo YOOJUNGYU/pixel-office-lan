@@ -64,6 +64,14 @@ export interface OfficeAgent extends AgentView {
   peer: PeerInfo;
 }
 
+const IPV4 = /^(?:\d{1,3}\.){3}\d{1,3}$/;
+const HOSTNAME = /^[a-zA-Z0-9.-]{1,253}$/;
+
+/** A manual peer address: plain IPv4 or hostname (no scheme, port or IPv6). Server and profile form share it. */
+export function isValidManualPeer(s: string): boolean {
+  return IPV4.test(s) ? s.split('.').every((n) => Number(n) <= 255) : HOSTNAME.test(s);
+}
+
 export const LAN_UDP_PORT = 47800;
 export const LAN_HTTP_PORT = 47801;
 export const MAX_PACKET_BYTES = 60_000;

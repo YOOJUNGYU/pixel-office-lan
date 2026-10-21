@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
+import { isValidManualPeer } from '../../../core/src/lan.js';
 import { LAYOUT_FILE_DIR } from '../constants.js';
 
 export interface Profile {
@@ -18,13 +19,10 @@ const PROFILE_FILE_NAME = 'profile.json';
 const MAX_NICKNAME = 20;
 const MAX_MANUAL_PEERS = 20;
 const MAX_PEER_ID = 64;
-const IPV4 = /^(?:\d{1,3}\.){3}\d{1,3}$/;
-const HOSTNAME = /^[a-zA-Z0-9.-]{1,253}$/;
 
 const defaultDir = (): string => path.join(os.homedir(), LAYOUT_FILE_DIR);
 const isInt = (x: unknown, min: number, max: number): x is number =>
   typeof x === 'number' && Number.isInteger(x) && x >= min && x <= max;
-const validIpv4 = (s: string): boolean => s.split('.').every((n) => Number(n) <= 255);
 
 /** Validates a client-supplied update. Returns a fresh object, or null if anything is off. */
 export function validateProfileUpdate(x: unknown): Omit<Profile, 'peerId'> | null {
@@ -40,7 +38,7 @@ export function validateProfileUpdate(x: unknown): Omit<Profile, 'peerId'> | nul
     if (typeof p !== 'string') return null;
     const t = p.trim();
     if (!t) continue;
-    if (IPV4.test(t) ? !validIpv4(t) : !HOSTNAME.test(t)) return null;
+    if (!isValidManualPeer(t)) return null;
     manualPeers.push(t);
   }
   return {

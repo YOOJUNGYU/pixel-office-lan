@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
+import { isValidManualPeer } from '../../../core/src/lan.js';
 import type { ProfileMessage } from '../../../core/src/messages.js';
 import { Button } from '../components/ui/Button.js';
 import { Checkbox } from '../components/ui/Checkbox.js';
@@ -15,6 +16,8 @@ const MAX_MANUAL_PEERS = 20;
 /** Color presets: hueShift degrees. */
 const HUE_PRESETS = [0, 45, 90, 135, 180, 225, 270, 315];
 const PREVIEW_SCALE = 4;
+/** keyCode of a key event the IME is still processing */
+const IME_KEYCODE = 229;
 const SWATCH_SCALE = 2;
 
 /** One standing frame of a character, drawn at an integer scale (pixel-perfect). */
@@ -53,11 +56,13 @@ interface ProfileModalProps {
   profile: ProfileMessage;
   /** No profile yet: the modal cannot be dismissed until a valid one is saved. */
   firstRun: boolean;
+  /** The server rejected the last save; the form keeps the user's input. */
+  saveError: boolean;
   onSave: (profile: ProfileMessage) => void;
   onClose: () => void;
 }
 
-export function ProfileModal({ profile, firstRun, onSave, onClose }: ProfileModalProps) {
+export function ProfileModal({ profile, firstRun, saveError, onSave, onClose }: ProfileModalProps) {
   useLang();
   const [nickname, setNickname] = useState(profile.nickname);
   const [palette, setPalette] = useState(profile.palette);
@@ -71,6 +76,7 @@ export function ProfileModal({ profile, firstRun, onSave, onClose }: ProfileModa
     .split('\n')
     .map((l) => l.trim())
     .filter(Boolean);
+  const badPeers = manualPeers.filter((p) => !isValidManualPeer(p));
   const errors = {
     nickname:
       trimmed === ''
@@ -78,7 +84,12 @@ export function ProfileModal({ profile, firstRun, onSave, onClose }: ProfileModa
         : trimmed.length > MAX_NICKNAME
           ? t('profile.nicknameTooLong')
           : '',
-    peers: manualPeers.length > MAX_MANUAL_PEERS ? t('profile.manualPeersTooMany') : '',
+    peers:
+      manualPeers.length > MAX_MANUAL_PEERS
+        ? t('profile.manualPeersTooMany')
+        : badPeers.length
+          ? t('profile.manualPeersInvalid', { list: badPeers.join(', ') })
+          : '',
   };
   const valid = !errors.nickname && !errors.peers;
 
@@ -109,7 +120,12 @@ export function ProfileModal({ profile, firstRun, onSave, onClose }: ProfileModa
               placeholder={t('profile.nicknamePlaceholder')}
               autoFocus
               onChange={(e) => setNickname(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && save()}
+              onKeyDown={(e) => {
+                // Korean IME: Enter that commits a syllable is not a submit
+                if (e.key === 'Enter' && !e.nativeEvent.isComposing && e.keyCode !== IME_KEYCODE) {
+                  save();
+                }
+              }}
               className="w-full py-2 px-4 bg-bg border-2 border-border rounded-none text-text"
             />
             {(submitted || nickname !== '') && errors.nickname && (
@@ -181,6 +197,7 @@ export function ProfileModal({ profile, firstRun, onSave, onClose }: ProfileModa
         <div className="text-xs text-text-muted">{t('profile.manualPeersHint')}</div>
         {errors.peers && <span className="text-xs text-danger">{errors.peers}</span>}
 
+        {saveError && <span className="text-xs text-danger">{t('profile.saveRejected')}</span>}
         <Button variant="accent" onClick={save} className="self-end">
           {t('profile.save')}
         </Button>

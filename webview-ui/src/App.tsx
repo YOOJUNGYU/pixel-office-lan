@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import type { ProfileMessage } from '../../core/src/messages.js';
 import { BottomToolbar } from './components/BottomToolbar.js';
 import { ConnectionIndicator } from './components/ConnectionIndicator.js';
 import { EditActionBar } from './components/EditActionBar.js';
@@ -84,6 +85,18 @@ function App() {
   useLang();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const firstRun = !!profile?.canEdit && profile.profile.nickname === '';
+  // A save stays open until the server answers (profileLoaded): its echo closes the
+  // modal, an unchanged profile means rejected and the form keeps the user's input.
+  const [profileSave, setProfileSave] = useState<{
+    sent: ProfileMessage;
+    before: typeof profile;
+  } | null>(null);
+  const [profileSaveError, setProfileSaveError] = useState(false);
+  if (profileSave && profile && profile !== profileSave.before) {
+    setProfileSave(null);
+    if (sameProfile(profile.profile, profileSave.sent)) setIsProfileOpen(false);
+    else setProfileSaveError(true);
+  }
 
   // Phones and touch tablets: pinch replaces the zoom buttons and Settings floats.
   const isMobile = useIsMobile();
@@ -397,11 +410,16 @@ function App() {
         <ProfileModal
           profile={profile.profile}
           firstRun={firstRun}
+          saveError={profileSaveError}
           onSave={(p) => {
             transport.send({ type: 'saveProfile', profile: p });
-            setIsProfileOpen(false);
+            setProfileSave({ sent: p, before: profile });
+            setProfileSaveError(false);
           }}
-          onClose={() => setIsProfileOpen(false)}
+          onClose={() => {
+            setIsProfileOpen(false);
+            setProfileSaveError(false);
+          }}
         />
       )}
 
@@ -419,5 +437,13 @@ function App() {
     </div>
   );
 }
+
+/** The server echoes the saved profile; anything else means the save was rejected. */
+const sameProfile = (a: ProfileMessage, b: ProfileMessage): boolean =>
+  a.nickname === b.nickname &&
+  a.palette === b.palette &&
+  a.hueShift === b.hueShift &&
+  a.hideDetails === b.hideDetails &&
+  a.manualPeers.join('\n') === b.manualPeers.join('\n');
 
 export default App;

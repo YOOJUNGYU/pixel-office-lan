@@ -95,6 +95,8 @@ const ko = {
   'profile.manualPeers': '직접 연결할 PC IP',
   'profile.manualPeersHint': '한 줄에 하나씩 입력 (같은 네트워크에서 자동으로 못 찾을 때)',
   'profile.manualPeersTooMany': '직접 연결 PC는 20개까지 입력할 수 있습니다.',
+  'profile.manualPeersInvalid': 'IP 또는 PC 이름만 입력하세요 (포트·http:// 없이): {list}',
+  'profile.saveRejected': '저장하지 못했습니다. 입력을 확인하고 다시 저장하세요.',
   'profile.save': '저장',
 
   'editor.furniture': '가구',
@@ -250,6 +252,8 @@ const en: Record<Key, string> = {
   'profile.manualPeers': 'PC IPs to connect directly',
   'profile.manualPeersHint': "One per line (when a PC on the network isn't found automatically)",
   'profile.manualPeersTooMany': 'You can enter up to 20 PCs.',
+  'profile.manualPeersInvalid': 'Enter only an IP or PC name (no port or http://): {list}',
+  'profile.saveRejected': 'Could not save. Check your input and save again.',
   'profile.save': 'Save',
 
   'editor.furniture': 'Furniture',
