@@ -20,6 +20,7 @@ server/src/
   httpServer.ts          Fastify: GET /api/health, /api/ping, POST /api/quit (loopback), GET /ws (+1 s officeSnapshot), SPA static; isLoopback(req)
   lan/office.ts          buildOffice, checkExisting (single instance), LanService (profile + scanner + peers)
   lan/updater.ts         GitHub Releases check (60 s, then 6 h), installer download to ~/.pixel-office/updates + launch (loopback only)
+  lan/autostart.ts       Per-user start at login (Win Startup .lnk via PowerShell, Mac LaunchAgent plist copy); Settings toggle + `cli.js --autostart on|off|default` (installer)
   clientMessageHandler.ts  ClientMessage dispatch + webviewReady handshake + read-only gate
   assetLoader.ts / assetReload.ts   PNG → SpriteData, external asset directories
   layoutPersistence.ts   ~/.pixel-office/layout.json (atomic tmp+rename)
@@ -40,7 +41,7 @@ VS Code adapter, PTY/xterm terminal, hook providers + consent flow, JSONL transc
 
 ## Handshake (`webviewReady`)
 
-`officeAccess {readOnly}` → asset messages (characters, pets, floor, walls, carpets, furniture) → `settingsLoaded` → `profileLoaded {profile, canEdit}` → `areaMappingsLoaded` → `layoutLoaded` (saved layout, else bundled default) → first `officeSnapshot` → `updateAvailable` (loopback only, when known). After that `officeSnapshot {agents, selfPeerId}` is pushed every second to every socket (this PC's agents redacted for read-only viewers when `hideDetails`).
+`officeAccess {readOnly}` → asset messages (characters, pets, floor, walls, carpets, furniture) → `settingsLoaded` → `profileLoaded {profile, canEdit}` → `areaMappingsLoaded` → `layoutLoaded` (saved layout, else bundled default) → first `officeSnapshot` → `autostartState` (loopback only) → `updateAvailable` (loopback only, when known). After that `officeSnapshot {agents, selfPeerId}` is pushed every second to every socket (this PC's agents redacted for read-only viewers when `hideDetails`).
 
 ## Privilege rule
 
@@ -75,7 +76,7 @@ node dist/cli.js --port 47801   # then open http://localhost:47801
 
 CI (`.github/workflows/ci.yml`): install, lint, asyncapi validate + generate drift check, check-types, build, test:server, test:webview.
 
-Installers (`.github/workflows/package.yml`, `scripts/package/`): official Node (`node-version.txt`, SHA-256 checked by `fetch-node.mjs`) + `dist/` as `app/`. Windows = Inno Setup (`windows.iss`, `launch.vbs`, firewall rule, all-users startup); Mac = `macos.sh` → `/Applications/Pixel Office.app` + LaunchAgent `com.pixeloffice.agent` via pkgbuild. Manual run → artifacts; tag `v<package.json version>` → GitHub Release (`-` in tag = prerelease). User guide: `docs/설치-안내.md`, `docs/INSTALL.en.md`.
+Installers (`.github/workflows/package.yml`, `scripts/package/`): official Node (`node-version.txt`, SHA-256 checked by `fetch-node.mjs`) + `dist/` as `app/`. Windows = Inno Setup (`windows.iss`, `launch.vbs`, firewall rule, desktop-shortcut + start-at-login tasks; the per-user Startup shortcut is written by `cli.js --autostart` run as the original user); Mac = `macos.sh` → `/Applications/Pixel Office.app` + LaunchAgent `com.pixeloffice.agent` via pkgbuild. Manual run → artifacts; tag `v<package.json version>` → GitHub Release (`-` in tag = prerelease). User guide: `docs/설치-안내.md`, `docs/INSTALL.en.md`.
 
 ## Conventions
 
@@ -92,6 +93,6 @@ Installers (`.github/workflows/package.yml`, `scripts/package/`): official Node 
 ## Office UI essentials
 
 - Game state lives in the imperative `OfficeState` (not React). Zoom is a float (0.5–10, wheel = `wheelZoom`); the frame is drawn at the integer `renderScale(zoom).renderZoom` (sprite caches stay per-integer) and blitted scaled — overlays/hit-tests use `mapOffset`/`overlayProjection` with the float zoom. No `ctx.scale(dpr)`, z-sort by Y.
-- Layout model `{ version: 1, cols, rows, tiles, furniture, tileColors?, areas? }`; saved via `saveLayout` from the editor (loopback only).
-- Layout editor: floor/wall/erase/furniture/area tools, 50-level stroke-scoped undo, Esc unwinds in stages; pure ops in `office/editor/editorActions.ts`.
+- Layout model `{ version: 1, cols, rows, tiles, furniture, tileColors?, areas?, background? }` (`background` = map fill outside the office/VOID tiles, `office/background.ts`; missing = page navy); saved via `saveLayout` from the editor (loopback only).
+- Layout editor: floor/wall/erase/furniture/area/background tools, 50-level stroke-scoped undo, Esc unwinds in stages; pure ops in `office/editor/editorActions.ts`.
 - Assets: per-furniture `manifest.json` under `webview-ui/public/assets/furniture/`, characters `char_0..5.png`, floors, walls, carpets, pets.

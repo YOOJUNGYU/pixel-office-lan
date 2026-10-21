@@ -53,7 +53,7 @@ When an agent switches activity, its character walks to the matching room. So th
 
 - Every installed PC announces its agents' state to the network once a second and collects everyone else's to draw the office.
 - **There is no server.** When someone shuts down their PC, only their characters disappear after a few seconds; everyone else is unaffected.
-- If PCs can't see each other automatically (different floors or VLANs), add the other PC's IP under **Settings → My profile → PC IPs to connect directly**.
+- PCs on the same network appear automatically, no IP needed. Only when they can't (different floors or VLANs), add the other PC's IP under **Settings → My profile → Advanced: when a PC isn't found automatically**.
 - People without the app can **watch** by opening `http://<IP>:47801` of any PC that has it.
 
 ### Security and privacy
@@ -66,9 +66,9 @@ When an agent switches activity, its character walks to the matching room. So th
 
 - 👤 **Profile**: on first run pick a nickname, a character (6 kinds) and a color (8 swatches + slider). Skin tone stays; clothes and hair change color.
 - 🌐 **한국어 / English**: each viewer chooses (Settings → Language). Text the agent wrote itself (reasons, file names, commands) is shown as-is.
-- 🖱️ **Map controls**: drag an empty spot to pan; the mouse wheel zooms around the cursor.
+- 🖱️ **Map controls**: drag an empty spot to pan; the mouse wheel (or trackpad pinch) zooms smoothly around the cursor.
 - 🔄 **Updates**: when a new version is published on GitHub Releases, an **Update** button appears; it downloads and runs the installer.
-- 🏗️ **Layout editor** (from the original): paint floors and walls, place furniture, define rooms (Areas).
+- 🏗️ **Layout editor** (from the original): paint floors and walls, place furniture, define rooms (Areas). The **Background** tab fills the area around the office with a solid colour, a floor pattern or a carpet.
 
 ## Supported environments
 
@@ -93,7 +93,14 @@ Claude Code and Codex running inside WSL are read by the Windows app; there is n
 2. Run it. It is a free project without code signing, so you will see a warning:
    - **Windows**: "Windows protected your PC" → **More info** → **Run anyway**, then User Account Control → **Yes**
    - **Mac**: if blocked, **System Settings → Privacy & Security → Open Anyway**; if the firewall is on, "Allow incoming connections"
-3. The office opens in your browser; choose a nickname and a character. From then on it starts automatically at login. To reopen it use **Pixel Office** in the Start menu / Applications, or `http://localhost:47801`.
+3. The office opens in your browser; choose a nickname, a character and a colour.
+
+### How to open
+
+- **Start at login** — on by default. On Windows you can untick it in the installer; anytime, toggle **Settings → Start at login**.
+- **Windows**: the **Pixel Office** desktop shortcut ("Create a desktop shortcut" in the installer) or Start → **Pixel Office 열기**
+- **Mac**: **Pixel Office** in **Applications** or **Launchpad** (no desktop alias, following macOS convention)
+- Anywhere: `http://localhost:47801` in a browser
 
 Details, what to do when other PCs don't show up, and how to uninstall: **[Install guide](docs/INSTALL.en.md)**.
 
@@ -124,7 +131,7 @@ Data is stored only in `~/.pixel-office/` (profile, layout, downloaded updates).
 
 ## Known limitations
 
-- Broadcasts reach **only the same subnet**. Across subnets, use **Settings → My profile → PC IPs to connect directly**.
+- Broadcasts reach **only the same subnet**. Across subnets, add PC IPs under **Settings → My profile → Advanced: when a PC isn't found automatically**.
 - Codex doesn't record approval requests, so ❗ for Codex appears only when it asks you a question. Codex subagents are not yet verified against real transcripts.
 - Hide details filters paths, addresses and token shapes, but may not catch every password fragment an agent writes in prose.
 - Characters whose outfits are near-greyscale barely change with the color setting.

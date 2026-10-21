@@ -19,9 +19,10 @@ Get the file for your PC from [GitHub Releases](https://github.com/YOOJUNGYU/pix
 1. Run `PixelOffice-Setup-<ver>.exe`.
 2. If **"Windows protected your PC"** (SmartScreen) appears, click **More info** → **Run anyway**. The installer is not code-signed.
 3. Approve the **User Account Control** prompt. Admin rights are used only to install into Program Files and add the Windows Firewall rule "Pixel Office".
-4. Finish the wizard; the office opens in your browser.
-
-It then starts at every login without a window. Reopen it from Start → **Pixel Office 열기** or `http://localhost:47801`.
+4. On **Select Additional Tasks** both options are checked by default; untick what you don't want:
+   - **Create a desktop shortcut**
+   - **Start automatically at login** (registered in your own user's Startup folder; you can change it later in the office's **Settings**)
+5. Finish the wizard; the office opens in your browser. Just pick a nickname, character and colour.
 
 ## 3. Mac
 
@@ -30,26 +31,35 @@ It then starts at every login without a window. Reopen it from Start → **Pixel
 3. When asked **Do you want the application "node" to accept incoming network connections?**, click **Allow** — otherwise other PCs cannot see your agents.
 4. Open **Applications → Pixel Office** to open the office (`http://localhost:47801`).
 
-It starts at every login (`~/Library/LaunchAgents/com.pixeloffice.agent.plist`); the log is `~/Library/Logs/PixelOffice.log`.
+It starts at every login (`~/Library/LaunchAgents/com.pixeloffice.agent.plist`, can be turned off in the office's **Settings**); the log is `~/Library/Logs/PixelOffice.log`.
 
-## 4. Other PCs do not show up
+## 4. How to open
 
-- PCs find each other automatically only on the **same network** (same router / subnet). Guest Wi-Fi, VPN or other subnets may block discovery.
-- Then add the other PC's IP under **Settings → My profile → PC IPs to connect directly** (one per line) and save. Doing it on both PCs is the most reliable.
+- **Start at login**: runs in the background without a window. Turn it off or on in the office under **Settings → Start at login** (applies from the next login; the running office keeps running). Installing an update keeps your choice.
+- **Open the office**
+  - Windows: the **Pixel Office** desktop shortcut, or Start → **Pixel Office 열기**
+  - Mac: **Pixel Office** in **Applications** or **Launchpad**. Following macOS convention there is no desktop alias (drag it to the Dock if you like).
+  - On any PC: `http://localhost:47801` in a browser
+- If the office is already running a shortcut just reopens the browser; otherwise it starts it first.
+
+## 5. Other PCs do not show up
+
+- PCs on the same network appear automatically; no IP needs to be entered. They have to be on the **same network** (same router / subnet); guest Wi-Fi, VPN or other subnets may block discovery.
+- Only for PCs on another floor or network: add the other PC's IP under **Settings → My profile → Advanced: when a PC isn't found automatically → PC IPs to connect directly** (one per line) and save. Doing it on both PCs is the most reliable.
 - Make sure UDP 47800 and TCP 47801 are not blocked.
 - If **corporate security software** (antivirus, EDR, AppLocker, company firewall) blocks it, ask IT for an exception rather than working around it: program `C:\Program Files\PixelOffice\node.exe` / `/Applications/Pixel Office.app`, ports UDP 47800 and TCP 47801, LAN only.
 
 Other people's offices are **read-only**: nobody can run or change anything on your PC.
 
-## 5. Uninstall
+## 6. Uninstall
 
-- **Windows**: Settings → Apps → Installed apps → **Pixel Office** → Uninstall (stops the office and removes the firewall rule).
+- **Windows**: Settings → Apps → Installed apps → **Pixel Office** → Uninstall (stops the office and removes the firewall rule, shortcuts and the start-at-login entry).
 - **Mac**:
 
   ```bash
   curl -s -X POST http://127.0.0.1:47801/api/quit
   launchctl bootout gui/$(id -u)/com.pixeloffice.agent
-  rm ~/Library/LaunchAgents/com.pixeloffice.agent.plist
+  rm -f ~/Library/LaunchAgents/com.pixeloffice.agent.plist
   sudo rm -rf "/Applications/Pixel Office.app"
   ```
 
