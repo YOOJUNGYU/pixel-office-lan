@@ -64,6 +64,7 @@ jobs:
         run: |
           node scripts/package/fetch-node.mjs win-x64 build/win
           Copy-Item scripts/package/launch.vbs build/win/
+          Copy-Item LICENSE build/win/LICENSE.txt
           Copy-Item -Recurse dist build/win/app
           Get-ChildItem build/win/app -Recurse -Filter *.map | Remove-Item
       - name: Smoke test staged app
@@ -117,6 +118,8 @@ jobs:
       - name: Smoke test packaged app
         run: |
           RES="build/mac-${{ matrix.arch }}/root/Applications/Pixel Office.app/Contents/Resources"
+          plutil -lint "$RES/com.pixeloffice.agent.plist"
+          test -f "$RES/LICENSE.txt"
           "$RES/node" "$RES/app/cli.js" --port 47899 &
           sleep 5
           curl -sf http://127.0.0.1:47899/api/ping

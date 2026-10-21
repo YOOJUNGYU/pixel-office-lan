@@ -17,6 +17,7 @@ mkdir -p "$APP/Contents/MacOS" "$RES" "$WORK/scripts" "$REPO/release"
 node "$HERE/fetch-node.mjs" "darwin-$ARCH" "$RES"
 rsync -a --exclude '*.map' "$REPO/dist/" "$RES/app/"
 cp "$HERE/com.pixeloffice.agent.plist" "$RES/"
+cp "$REPO/LICENSE" "$RES/LICENSE.txt"
 sips -s format icns "$REPO/icon.png" --out "$RES/AppIcon.icns" >/dev/null
 
 cat > "$APP/Contents/MacOS/PixelOffice" <<'SH'
@@ -55,7 +56,7 @@ if [ -z "$USER_NAME" ] || [ "$USER_NAME" = root ] || [ "$USER_NAME" = _mbsetupus
   exit 0
 fi
 USER_ID=$(id -u "$USER_NAME")
-HOME_DIR=$(dscl . -read "/Users/$USER_NAME" NFSHomeDirectory | awk '{print $2}')
+HOME_DIR=$(dscl . -read "/Users/$USER_NAME" NFSHomeDirectory | sed 's/^NFSHomeDirectory: //')
 AGENTS="$HOME_DIR/Library/LaunchAgents"
 PLIST="$AGENTS/com.pixeloffice.agent.plist"
 
@@ -63,9 +64,9 @@ PLIST="$AGENTS/com.pixeloffice.agent.plist"
 curl -s -m 3 -X POST http://127.0.0.1:47801/api/quit >/dev/null 2>&1 && sleep 2
 launchctl bootout "gui/$USER_ID/com.pixeloffice.agent" 2>/dev/null || true
 
+# Write into the user's tree only AS the user: a root write would follow a planted symlink.
 sudo -u "$USER_NAME" mkdir -p "$AGENTS" "$HOME_DIR/Library/Logs"
-sed "s#__HOME__#$HOME_DIR#g" "/Applications/Pixel Office.app/Contents/Resources/com.pixeloffice.agent.plist" > "$PLIST"
-chown "$USER_NAME" "$PLIST"
+sudo -u "$USER_NAME" cp "/Applications/Pixel Office.app/Contents/Resources/com.pixeloffice.agent.plist" "$PLIST"
 launchctl bootstrap "gui/$USER_ID" "$PLIST"
 exit 0
 SH

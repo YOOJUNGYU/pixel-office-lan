@@ -1,12 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<!-- Login agent: starts the office in the background. __HOME__ is filled in by postinstall. -->
+<!-- Login agent: starts the office in the background. Static file (no per-user substitution):
+     postinstall copies it as the console user. The log goes to $HOME, which launchd sets. -->
 <plist version="1.0">
 <dict>
   <key>Label</key>
   <string>com.pixeloffice.agent</string>
   <key>ProgramArguments</key>
   <array>
+    <string>/bin/sh</string>
+    <string>-c</string>
+    <string>exec "$0" "$1" &gt;&gt;"$HOME/Library/Logs/PixelOffice.log" 2&gt;&amp;1</string>
     <string>/Applications/Pixel Office.app/Contents/Resources/node</string>
     <string>/Applications/Pixel Office.app/Contents/Resources/app/cli.js</string>
   </array>
@@ -18,9 +22,5 @@
     <key>SuccessfulExit</key>
     <false/>
   </dict>
-  <key>StandardOutPath</key>
-  <string>__HOME__/Library/Logs/PixelOffice.log</string>
-  <key>StandardErrorPath</key>
-  <string>__HOME__/Library/Logs/PixelOffice.log</string>
 </dict>
 </plist>
