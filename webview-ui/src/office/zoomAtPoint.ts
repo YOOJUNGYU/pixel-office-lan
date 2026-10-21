@@ -16,3 +16,20 @@ export function zoomAtPoint(
   const uy = cursor.y - viewport.h / 2;
   return { x: ux - (ux - pan.x) * ratio, y: uy - (uy - pan.y) * ratio };
 }
+
+/** Keeps the map from being panned further than `marginFraction` of the viewport past its edge. */
+export function clampPanToMap(
+  pan: { x: number; y: number },
+  zoom: number,
+  mapWorldW: number,
+  mapWorldH: number,
+  viewport: { w: number; h: number },
+  marginFraction: number,
+): { x: number; y: number } {
+  const maxX = (mapWorldW * zoom) / 2 + viewport.w / 2 - viewport.w * marginFraction;
+  const maxY = (mapWorldH * zoom) / 2 + viewport.h / 2 - viewport.h * marginFraction;
+  return {
+    x: Math.max(-maxX, Math.min(maxX, pan.x)),
+    y: Math.max(-maxY, Math.min(maxY, pan.y)),
+  };
+}

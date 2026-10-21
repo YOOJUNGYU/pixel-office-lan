@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { mapOffset } from '../src/office/projection';
-import { zoomAtPoint } from '../src/office/zoomAtPoint';
+import { clampPanToMap, zoomAtPoint } from '../src/office/zoomAtPoint';
 
 const view = { w: 1200, h: 800 };
 const cols = 20;
@@ -33,4 +33,18 @@ describe('zoomAtPoint', () => {
       });
     }
   }
+});
+
+describe('clampPanToMap', () => {
+  it('pan after a corner zoom-in stays within bounds', () => {
+    const mapW = cols * 16;
+    const mapH = rows * 16;
+    const edge = clampPanToMap({ x: -1e6, y: 1e6 }, 2, mapW, mapH, view, 0.25);
+    const cursor = { x: 1199, y: 799 };
+    const zoomed = zoomAtPoint(edge, 2, 3, cursor, view);
+    const out = clampPanToMap(zoomed, 3, mapW, mapH, view, 0.25);
+    const maxX = (mapW * 3) / 2 + view.w / 2 - view.w * 0.25;
+    expect(Math.abs(out.x)).toBeLessThanOrEqual(maxX);
+    expect(Math.abs(zoomed.x)).toBeGreaterThan(maxX); // unclamped overshoots
+  });
 });

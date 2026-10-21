@@ -24,7 +24,7 @@ import type {
 } from '../engine/renderer.js';
 import { renderFrame } from '../engine/renderer.js';
 import { EditTool, TILE_SIZE } from '../types.js';
-import { zoomAtPoint } from '../zoomAtPoint.js';
+import { clampPanToMap, zoomAtPoint } from '../zoomAtPoint.js';
 import { computeNormalModeCursor } from './officeCanvasCursor.js';
 import { useCanvasTouchGestures } from './useCanvasTouchGestures.js';
 
@@ -104,20 +104,18 @@ export function OfficeCanvas({
   const suppressClickRef = useRef(false);
   // Clamp pan so the map edge can't go past a margin inside the viewport
   const clampPan = useCallback(
-    (px: number, py: number): { x: number; y: number } => {
+    (px: number, py: number, atZoom = zoom): { x: number; y: number } => {
       const canvas = canvasRef.current;
       if (!canvas) return { x: px, y: py };
       const layout = officeState.getLayout();
-      const mapW = layout.cols * TILE_SIZE * zoom;
-      const mapH = layout.rows * TILE_SIZE * zoom;
-      const marginX = canvas.width * PAN_MARGIN_FRACTION;
-      const marginY = canvas.height * PAN_MARGIN_FRACTION;
-      const maxPanX = mapW / 2 + canvas.width / 2 - marginX;
-      const maxPanY = mapH / 2 + canvas.height / 2 - marginY;
-      return {
-        x: Math.max(-maxPanX, Math.min(maxPanX, px)),
-        y: Math.max(-maxPanY, Math.min(maxPanY, py)),
-      };
+      return clampPanToMap(
+        { x: px, y: py },
+        atZoom,
+        layout.cols * TILE_SIZE,
+        layout.rows * TILE_SIZE,
+        { w: canvas.width, h: canvas.height },
+        PAN_MARGIN_FRACTION,
+      );
     },
     [officeState, zoom],
   );
@@ -809,14 +807,14 @@ export function OfficeCanvas({
       const newZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoom + delta));
       if (newZoom === zoom) return;
       const rect = canvas.getBoundingClientRect();
-      // clampPan closes over the old zoom; the new bounds apply on the next pan.
-      panRef.current = zoomAtPoint(
+      const zoomed = zoomAtPoint(
         panRef.current,
         zoom,
         newZoom,
         { x: (e.clientX - rect.left) * dpr, y: (e.clientY - rect.top) * dpr },
         { w: canvas.width, h: canvas.height },
       );
+      panRef.current = clampPan(zoomed.x, zoomed.y, newZoom);
       officeState.breakCameraFollow();
       onZoomChange(newZoom);
     },
