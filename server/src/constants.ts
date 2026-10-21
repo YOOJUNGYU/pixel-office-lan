@@ -25,3 +25,18 @@ export const ROOM_DEBOUNCE_MS = 3_000;
 export const PERMISSION_DELAY_MS = 7_000;
 /** Text-only turn with no tool pending this long => idle. */
 export const TEXT_IDLE_DELAY_MS = 5_000;
+
+// ── LAN transcript scanner ─────────────────────────────────
+/** Main session hidden once its transcript is unchanged this long. */
+export const SESSION_TTL_MS = 30 * 60_000;
+/** Subagent transcript unchanged this long => removed. */
+export const CHILD_IDLE_TTL_MS = 120_000;
+/** Subagent hidden this long after its turn ended. */
+export const CHILD_ENDED_HIDE_MS = 10_000;
+/** Bytes replayed from the end of a newly found transcript. */
+export const TAIL_BYTES = 64 * 1024;
+/** Max bytes read to find a Codex rollout's first (session_meta) line. */
+export const CODEX_META_MAX_BYTES = 256 * 1024;
+export const DISCOVER_INTERVAL_MS = 10_000;
+export const POLL_INTERVAL_MS = 1_000;
+export const WSL_LIST_TIMEOUT_MS = 3_000;
