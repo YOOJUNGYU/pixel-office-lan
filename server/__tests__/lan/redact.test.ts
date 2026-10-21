@@ -27,6 +27,18 @@ const cases: Array<[string, string]> = [
     'some_very_long_snake_case_identifier_name_here 호출',
     'some_very_long_snake_case_identifier_name_here 호출',
   ],
+  // fix round 1
+  ['/Users/kim 확인', '~ 확인'],
+  ['C:\\Users\\kim 확인', '~ 확인'],
+  ['cd /home/kim', 'cd ~'],
+  ['/home/kim/ 에서', '~ 에서'],
+  ['/home/kim/proj/ 에서', '[경로] 에서'],
+  ['C:\\Users\\kim lee\\proj\\a.ts 열기', 'a.ts 열기'],
+  ['\\\\wsl.localhost\\Ubuntu\\home\\kim lee\\x.py', 'x.py'],
+  ['localhost:3000/api/users?token=x 호출', 'localhost 호출'],
+  ['api.corp.com/v1/users?token=abc 호출', 'api.corp.com 호출'],
+  ['192.168.0.5:3000/x 호출', '[IP] 호출'],
+  ['a.ts login.ts README.md v1.2.3 읽기', 'a.ts login.ts README.md v1.2.3 읽기'],
 ];
 
 describe('redactText', () => {

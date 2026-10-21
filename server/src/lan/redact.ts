@@ -1,21 +1,33 @@
 import type { AgentView } from '../../../core/src/lan.js';
 
-const base = (p: string): string =>
-  p
-    .split(/[\\/]+/)
-    .filter(Boolean)
-    .pop() ?? p;
+/** File -> basename; home dir -> "~" (username); other directory (trailing separator) -> placeholder. */
+const base = (p: string): string => {
+  if (/(?:^|[\\/])(?:home|Users)[\\/][^\\/]+[\\/]?$/.test(p)) return '~';
+  if (/[\\/]$/.test(p)) return '[경로]';
+  return (
+    p
+      .split(/[\\/]+/)
+      .filter(Boolean)
+      .pop() ?? p
+  );
+};
 const SEG = String.raw`[^\s\\/"'<>|]`;
 
 /** Applied in order. Paths collapse to basename, URLs to host, IPs and tokens to placeholders. */
 const RULES: Array<[RegExp, string | ((m: string, ...g: string[]) => string)]> = [
   // URL (any scheme) -> host only; userinfo, port, path, query dropped
   [/\b[a-z][a-z0-9+.-]*:\/\/(?:[^\s/@]*@)?([^\s/:?#'"<>)]+)(?::\d+)?[^\s'"<>)]*/gi, '$1'],
+  // scheme-less URL (localhost / dotted host with TLD / IPv4, optional port, then "/") -> host only
+  [
+    /(?<![\w.@/-])(localhost|(?:[a-z0-9-]+\.)+[a-z]{2,}|\d{1,3}(?:\.\d{1,3}){3})(?::\d+)?\/[^\s'"<>)]*/gi,
+    '$1',
+  ],
   // quoted Windows/UNC path (may contain spaces)
   [/(["'])(?:[A-Za-z]:|\\\\)[^"'\n]*\1/g, (m) => base(m.slice(1, -1))],
   // UNC, drive, ~ (unquoted)
-  [/\\\\[^\s"'<>|]+/g, base],
-  [/\b[A-Za-z]:[\\/][^\s"'<>|]*/g, base],
+  // segments may contain spaces if followed by a separator; last segment is space-free
+  [/\\\\(?:[^\\/\n"'<>|:]*[\\/])*[^\s\\/"'<>|]*/g, base],
+  [/\b[A-Za-z]:[\\/](?:[^\\/\n"'<>|:]*[\\/])*[^\s\\/"'<>|]*/g, base],
   [/(?<![\w.~])~[\\/][^\s"'<>|]*/g, base],
   // absolute posix, >=2 segments (a lone "/clear" is left alone)
   [new RegExp(String.raw`(?<![\w.:/\\-])(?:/${SEG}+){2,}/?`, 'g'), base],
