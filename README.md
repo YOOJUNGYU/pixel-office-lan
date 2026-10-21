@@ -1,38 +1,165 @@
-# Pixel Office LAN
+<h1 align="center">Pixel Office LAN</h1>
 
-같은 사내망(LAN)에 있는 모든 PC 의 코딩 에이전트(Claude Code · Codex)를 **하나의 픽셀 사무실**에 캐릭터로 보여 주는 앱입니다. 에이전트가 하는 일에 따라 코딩실·자료실·서버실·대기실을 오가고, 이름표와 말풍선으로 누가 무엇을 하는지 한눈에 보입니다. 서버도 계정도 없이 PC 끼리 서로를 찾고, 다른 PC 의 화면은 읽기 전용입니다.
+<p align="center">
+  <b>한국어</b> · <a href="README.en.md">English</a>
+</p>
 
-A pixel-art office where the coding agents (Claude Code, Codex) on every PC of a LAN appear as characters. No server, no accounts — PCs find each other on the local network, and other people's offices are read-only. The UI is Korean and English.
+<p align="center">
+  같은 사내망(LAN)에서 일하는 모든 사람의 AI 코딩 에이전트를<br>
+  <b>하나의 픽셀 사무실</b>에서 함께 보는 앱입니다.
+</p>
 
-<!-- TODO: 스크린샷 (사무실 전체 · 이름표 · 말풍선) -->
+<p align="center">
+  <a href="https://github.com/YOOJUNGYU/pixel-office-lan/releases/latest"><b>⬇️ 설치 파일 받기</b></a> ·
+  <a href="docs/설치-안내.md">설치 안내</a> ·
+  <a href="#동작-방식">동작 방식</a> ·
+  <a href="#개발">개발</a>
+</p>
 
-**설치 / Install:** [설치 안내](docs/설치-안내.md) · [Install guide (English)](docs/INSTALL.en.md) · [Releases](https://github.com/YOOJUNGYU/pixel-office-lan/releases/latest)
+![사무실 전체 화면](docs/images/office-ko.png)
 
-- Windows 10/11 · macOS (Apple silicon, Intel). Node 등 별도 설치 불필요 — 설치 파일에 포함.
-- Claude Code: Windows 네이티브 · WSL · Mac. Codex: 동일.
-- 포트: UDP 47800 (PC 간), HTTP 47801 (브라우저 화면, `http://localhost:47801`). 데이터: `~/.pixel-office/`.
+누가(닉네임) · 어떤 에이전트(Claude Code / Codex)가 · 어느 방에서 · 무엇을 하고 있는지 한눈에 보입니다. 설치 파일 하나로 설치하면 같은 망의 다른 PC를 **서버 없이** 저절로 찾고, 모두의 에이전트가 한 사무실에 모입니다.
 
-## 개발 / Development
+> [pixel-agents](https://github.com/pixel-agents-hq/pixel-agents)(MIT)를 포크해 LAN 공유 기능을 더한 프로젝트입니다. 원작은 내 PC의 에이전트만 보여 줍니다.
+
+## 주요 기능
+
+### 하는 일에 따라 방을 옮겨 다닙니다
+
+에이전트가 하는 일이 바뀌면 캐릭터가 해당 방으로 걸어갑니다. 도구를 몇 초 단위로 바꿔 쓰는 에이전트 때문에 정신없지 않도록, 같은 일이 3초 이상 이어질 때만 이동합니다.
+
+| 방        | 이런 일을 할 때                                        |
+| --------- | ------------------------------------------------------ |
+| 🖥️ 코딩실 | 파일 수정 (Claude `Edit`/`Write`, Codex `apply_patch`) |
+| 📚 자료실 | 파일 읽기, 코드 검색, 웹 검색·웹 페이지 보기           |
+| 🗄️ 서버실 | 명령 실행 (`Bash`, Codex 셸)                           |
+| 🛋️ 대기실 | 입력 대기, 질문에 대한 답 대기, 작업 끝남              |
+
+### 이름표와 말풍선
+
+- 캐릭터 아래에 `닉네임 · Claude #1` / `닉네임 · Codex #1` 이름표가 따라다닙니다.
+- 캐릭터에 마우스를 올리면 **지금 하는 일**이 말풍선으로 나옵니다. 어떤 파일을 어떤 이유로 고치는지, 무엇을 검색하는지, 어떤 명령을 실행하는지가 보입니다.
+- 에이전트가 사람의 확인을 기다리면 머리 위에 ❗가 뜹니다.
+
+![말풍선](docs/images/hover-ko.png)
+
+### 서브에이전트와 셸은 손을 잡고 다닙니다
+
+- 세션 안에서 도는 **서브에이전트**와 **백그라운드 셸**은 각자 캐릭터로 나타납니다.
+- 부모와 **같은 방**에 있으면 부모와 손을 잡고 줄지어 다닙니다.
+- 부모와 **다른 방**에 있으면 그 방에 부모의 **반투명 분신**이 나타나 맨 왼쪽에서 손을 잡습니다. 실제 부모는 자기 방에 그대로 있습니다.
+
+### 서버 없는 LAN 공유
+
+- 설치한 PC마다 자기 에이전트 상태를 같은 망에 1초마다 알리고, 다른 PC의 상태를 모아 사무실을 그립니다.
+- **따로 서버를 두지 않습니다.** 누가 PC를 꺼도 그 사람의 캐릭터만 몇 초 뒤에 사라지고, 나머지는 영향이 없습니다.
+- 층이나 VLAN이 달라 자동으로 안 보이면 **설정 → 내 프로필 → 직접 연결할 PC IP**에 상대 PC의 IP를 넣으면 됩니다.
+- 설치하지 않은 사람도 설치한 아무 PC의 `http://<IP>:47801` 로 **구경만** 할 수 있습니다.
+
+### 보안과 개인정보
+
+- 공유하는 것은 **상태(읽기 전용)뿐**입니다. 다른 사람의 터미널, 에이전트 실행, 설정에는 절대 접근할 수 없습니다. 쓰기 동작은 내 PC의 브라우저에서만 가능합니다.
+- **상세 내용 숨기기**(기본 켜짐)를 켜면 파일 경로, 사용자 이름, IP·호스트명, URL 경로, 토큰·비밀번호처럼 보이는 문자열은 **내 PC 밖으로 나가지 않습니다**. 명령은 프로그램 이름(또는 Claude가 붙인 설명)만 보냅니다. 내 화면에서는 내 에이전트를 원문 그대로 봅니다.
+- Claude Code와 Codex의 설정 파일은 **건드리지 않습니다.** 각 도구가 남기는 대화 기록 파일을 읽기만 합니다.
+
+### 그 밖에
+
+- 👤 **내 프로필**: 처음 실행할 때 닉네임, 캐릭터(6종), 색상(견본 8개 + 슬라이더)을 고릅니다. 피부색은 유지되고 옷과 머리색이 바뀝니다.
+- 🌐 **한국어 / English**: 보는 사람마다 따로 고릅니다(설정 → 언어). 에이전트가 쓴 작업 이유, 파일 이름, 명령은 원문 그대로 보여 줍니다.
+- 🖱️ **지도 조작**: 빈 곳을 끌어서 이동하고, 마우스 휠로 커서 위치를 기준으로 확대·축소합니다.
+- 🔄 **업데이트**: 새 버전이 GitHub Releases에 올라오면 화면에 **업데이트** 버튼이 뜹니다. 누르면 설치 파일을 받아 실행합니다.
+- 🏗️ **레이아웃 에디터**(원작 기능): 바닥, 벽, 가구, 방(Area)을 직접 꾸밀 수 있습니다.
+
+## 지원 환경
+
+|           | 지원                                                                                |
+| --------- | ----------------------------------------------------------------------------------- |
+| 운영체제  | Windows 10/11 (64비트), macOS (Apple 칩, Intel)                                     |
+| 에이전트  | Claude Code: Windows 네이티브 · WSL · Mac / Codex CLI: Windows 네이티브 · WSL · Mac |
+| 필요한 것 | 없음. Node.js 런타임이 설치 파일에 들어 있습니다.                                   |
+
+WSL 안에서 돌리는 Claude Code와 Codex는 Windows에 설치한 앱이 함께 읽습니다. WSL 안에 따로 설치할 필요가 없습니다. 실행 중인 WSL 배포판만 읽기 때문에 쓰지 않는 WSL을 깨우지 않습니다.
+
+## 설치
+
+1. [Releases](https://github.com/YOOJUNGYU/pixel-office-lan/releases/latest)에서 내 PC에 맞는 파일을 받습니다.
+
+   | PC             | 파일                           |
+   | -------------- | ------------------------------ |
+   | Windows        | `PixelOffice-Setup-<버전>.exe` |
+   | Mac (Apple 칩) | `PixelOffice-<버전>-arm64.pkg` |
+   | Mac (Intel)    | `PixelOffice-<버전>-x64.pkg`   |
+
+2. 실행합니다. 코드 서명이 없는 무료 프로젝트라 경고가 뜹니다.
+   - **Windows**: "Windows의 PC 보호" → **추가 정보** → **실행**, 이어서 사용자 계정 컨트롤 → **예**
+   - **Mac**: 막히면 **시스템 설정 → 개인정보 보호 및 보안 → 그래도 열기**. 방화벽이 켜져 있으면 "들어오는 연결 허용"
+3. 브라우저에 사무실이 열리면 닉네임과 캐릭터를 고릅니다. 이후에는 로그인할 때 자동으로 켜집니다. 다시 열 때는 시작 메뉴나 응용 프로그램의 **Pixel Office**, 또는 `http://localhost:47801`
+
+자세한 내용, 다른 PC가 안 보일 때, 제거 방법은 **[설치 안내](docs/설치-안내.md)**를 보세요.
+
+> 회사 보안 프로그램(EDR, AppLocker 등)이 실행을 막으면 IT 담당자에게 예외 등록을 요청하세요.
+
+## 동작 방식
+
+```
+ [내 PC]                                         [동료 PC]
+ Claude / Codex 대화 기록 ─▶ 리포터 ─┐        ┌─ 리포터 ◀─ 대화 기록
+  (~/.claude, ~/.codex, WSL)          │  UDP   │
+                                      ├◀──────▶┤   1초마다 상태 공유 (서버 없음)
+ 브라우저 ◀── WebSocket ── 로컬 서버 ◀┘        └▶ 로컬 서버 ── WebSocket ──▶ 브라우저
+         http://localhost:47801                        http://localhost:47801
+```
+
+- **리포터**는 `~/.claude/projects`, `~/.codex/sessions`(그리고 실행 중인 WSL 배포판의 같은 위치)에서 최근 30분 안에 바뀐 세션만 읽습니다.
+- 각 줄을 해석해 `{방, 동작, 대상, 이유}` 상태를 만들고, 숨기기 규칙을 적용한 뒤 UDP **47800** 포트로 같은 망에 알립니다.
+- **로컬 서버**(HTTP **47801**)는 내 상태와 받은 상태를 합쳐 브라우저로 보냅니다. 문장은 브라우저가 보는 사람의 언어로 만듭니다.
+- 소식이 5초 동안 없는 PC의 캐릭터는 사라집니다.
+
+| 포트      | 용도                                                 |
+| --------- | ---------------------------------------------------- |
+| UDP 47800 | PC끼리 상태 주고받기 (브로드캐스트 + 직접 지정한 IP) |
+| TCP 47801 | 브라우저 화면 (`http://localhost:47801`)             |
+
+데이터는 `~/.pixel-office/`(프로필, 레이아웃, 업데이트 파일)에만 저장합니다.
+
+## 알려진 한계
+
+- 브로드캐스트는 **같은 서브넷 안에서만** 전달됩니다. 망이 갈려 있으면 **설정 → 내 프로필 → 직접 연결할 PC IP**를 쓰세요.
+- Codex는 기록에 승인 요청을 남기지 않아서, ❗는 Codex가 사용자에게 질문할 때만 뜹니다. Codex 서브에이전트는 실제 기록으로 검증하지 못했습니다.
+- 상세 숨기기는 경로, 주소, 토큰 형태를 걸러 냅니다. 에이전트가 문장 속에 직접 적은 비밀번호 조각까지 모두 잡아내지는 못할 수 있습니다.
+- 옷이 무채색인 캐릭터는 색상을 바꿔도 변화가 적습니다.
+
+## 개발
 
 ```bash
 npm install
-npm run build          # dist/ (dist/cli.js 는 의존성까지 번들 — node_modules 없이 실행)
-node dist/cli.js --open
-npm test
+npm run build              # dist/ — cli.js에 의존성까지 번들 (node_modules 없이 실행)
+node dist/cli.js --open    # http://localhost:47801
+npm test                   # server + webview (Vitest)
+npm run check-types && npm run lint
 ```
 
-설치 파일은 `.github/workflows/package.yml` 이 만듭니다 (`scripts/package/`). `v<버전>` 태그를 push 하면 Windows `.exe` 와 Mac `.pkg`(arm64·x64)를 GitHub Release 에 올립니다. 구조와 규칙은 [CLAUDE.md](CLAUDE.md), 설계는 [docs/superpowers/specs](docs/superpowers/specs/).
+| 경로               | 내용                                                                                    |
+| ------------------ | --------------------------------------------------------------------------------------- |
+| `core/`            | 프로토콜(`asyncapi.yaml` → 생성된 `messages.ts`), LAN 공용 타입(`lan.ts`)               |
+| `server/src/lan/`  | 리포터: 대화 기록 스캐너, Claude/Codex 파서, 세션 상태, 숨기기 필터, UDP 피어, 업데이트 |
+| `server/src/`      | Fastify HTTP/WebSocket 서버, CLI, 레이아웃·에셋                                         |
+| `webview-ui/`      | React + Canvas 사무실, 이름표·말풍선, 프로필, i18n                                      |
+| `scripts/package/` | Windows(Inno Setup)·macOS(pkgbuild) 설치 파일                                           |
 
-## 크레딧 / Credits
+- 구조와 규칙은 [CLAUDE.md](CLAUDE.md), 설계와 구현 계획은 [docs/superpowers/](docs/superpowers/)에 있습니다.
+- **릴리스**: `package.json`의 `version`을 올리고 `v<버전>` 태그를 push하면 GitHub Actions가 설치 파일 3종을 빌드해 Release에 올립니다. 태그에 `-`가 있으면 사전 릴리스로 올라갑니다.
 
-- [pixel-agents](https://github.com/pixel-agents-hq/pixel-agents) (MIT) 의 포크입니다 — 오피스 엔진·레이아웃 에디터·에셋은 원작에서 왔습니다.
-- 캐릭터: [JIK-A-4, Metro City](https://jik-a-4.itch.io/metrocity-free-topdown-character-pack).
-- UI 글꼴: [Pretendard](https://github.com/orioncactus/pretendard) (OFL).
+## 크레딧
+
+- 원작: [pixel-agents](https://github.com/pixel-agents-hq/pixel-agents) (MIT). 사무실 엔진, 레이아웃 에디터, 가구 에셋이 원작에서 왔습니다.
+- 캐릭터: [JIK-A-4, Metro City](https://jik-a-4.itch.io/metrocity-free-topdown-character-pack)
+- 글꼴: [Pretendard](https://github.com/orioncactus/pretendard) (SIL OFL 1.1)
 
 <p align="center">
-  <img src="webview-ui/public/characters.png" alt="Characters" width="320" height="72" style="image-rendering: pixelated;">
+  <img src="webview-ui/public/characters.png" alt="캐릭터" width="320" height="72" style="image-rendering: pixelated;">
 </p>
 
-## License
+## 라이선스
 
-[MIT](LICENSE) — 원작 pixel-agents 의 저작권 표기를 유지합니다.
+[MIT](LICENSE). 원작 pixel-agents의 저작권 표기를 유지합니다.

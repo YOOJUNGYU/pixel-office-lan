@@ -66,8 +66,8 @@ const ko = {
   'update.retry': '다시 시도',
   'update.upToDate': '최신 버전입니다.',
 
-  'zoom.in': '확대 (Ctrl+스크롤)',
-  'zoom.out': '축소 (Ctrl+스크롤)',
+  'zoom.in': '확대 (마우스 휠)',
+  'zoom.out': '축소 (마우스 휠)',
 
   'edit.undo': '실행 취소',
   'edit.undoTitle': '실행 취소 (Ctrl+Z)',
@@ -223,8 +223,8 @@ const en: Record<Key, string> = {
   'update.retry': 'Retry',
   'update.upToDate': 'You are up to date.',
 
-  'zoom.in': 'Zoom in (Ctrl+scroll)',
-  'zoom.out': 'Zoom out (Ctrl+scroll)',
+  'zoom.in': 'Zoom in (mouse wheel)',
+  'zoom.out': 'Zoom out (mouse wheel)',
 
   'edit.undo': 'Undo',
   'edit.undoTitle': 'Undo (Ctrl+Z)',
