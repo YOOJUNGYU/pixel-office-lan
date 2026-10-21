@@ -1,7 +1,7 @@
 // webview-ui/src/office/components/officeCanvasCursor.ts
 //
 // Pure cursor resolver for the OfficeCanvas in normal (non-edit) mode.
-// Decision cascade: character hit → pet hit → seat-reassign hit → default.
+// Decision cascade: character hit → pet hit → seat-reassign hit → grab.
 // All callers pass closures over the OfficeState — no direct coupling.
 
 export interface OfficeCursorTile {
@@ -27,7 +27,7 @@ export interface OfficeCursorState {
   getCharacter: (id: number) => OfficeCursorCharacter | undefined;
 }
 
-export type OfficeCursor = 'pointer' | 'default';
+export type OfficeCursor = 'pointer' | 'grab';
 
 export function computeNormalModeCursor(state: OfficeCursorState): OfficeCursor {
   // 1. Direct character hit → pointer.
@@ -55,5 +55,6 @@ export function computeNormalModeCursor(state: OfficeCursorState): OfficeCursor 
     }
   }
 
-  return 'default';
+  // 4. Empty map → grab (left-drag pans).
+  return 'grab';
 }

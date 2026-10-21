@@ -4,6 +4,7 @@ import {
   CAMERA_FOLLOW_LERP,
   CAMERA_FOLLOW_SNAP_THRESHOLD,
   OFFICE_CANVAS_TEST_ID,
+  PAN_DRAG_THRESHOLD_PX,
   PAN_MARGIN_FRACTION,
   ZOOM_MAX,
   ZOOM_MIN,
@@ -23,6 +24,7 @@ import type {
 } from '../engine/renderer.js';
 import { renderFrame } from '../engine/renderer.js';
 import { EditTool, TILE_SIZE } from '../types.js';
+import { zoomAtPoint } from '../zoomAtPoint.js';
 import { computeNormalModeCursor } from './officeCanvasCursor.js';
 import { useCanvasTouchGestures } from './useCanvasTouchGestures.js';
 
@@ -96,6 +98,10 @@ export function OfficeCanvas({
   const isEraseDraggingRef = useRef(false);
   // Zoom scroll accumulator for trackpad pinch sensitivity
   const zoomAccumulatorRef = useRef(0);
+  // Left-button press that may turn into a pan once it moves PAN_DRAG_THRESHOLD_PX
+  const leftDownRef = useRef<{ x: number; y: number } | null>(null);
+  // Set when a left drag panned, so exactly the following click is ignored
+  const suppressClickRef = useRef(false);
   // Clamp pan so the map edge can't go past a margin inside the viewport
   const clampPan = useCallback(
     (px: number, py: number): { x: number; y: number } => {
@@ -305,6 +311,16 @@ export function OfficeCanvas({
   const handleMouseMove = useCallback(
     (e: React.MouseEvent) => {
       // Handle middle-mouse panning
+      if (leftDownRef.current && !isPanningRef.current) {
+        const { x, y } = leftDownRef.current;
+        if (Math.hypot(e.clientX - x, e.clientY - y) >= PAN_DRAG_THRESHOLD_PX) {
+          officeState.breakCameraFollow();
+          isPanningRef.current = true;
+          suppressClickRef.current = true;
+          const canvas = canvasRef.current;
+          if (canvas) canvas.style.cursor = 'grabbing';
+        }
+      }
       if (isPanningRef.current) {
         const dpr = window.devicePixelRatio || 1;
         const dx = (e.clientX - panStartRef.current.mouseX) * dpr;
@@ -467,6 +483,17 @@ export function OfficeCanvas({
         return;
       }
 
+      if (e.button === 0 && !isEditMode) {
+        suppressClickRef.current = false;
+        leftDownRef.current = { x: e.clientX, y: e.clientY };
+        panStartRef.current = {
+          mouseX: e.clientX,
+          mouseY: e.clientY,
+          panX: panRef.current.x,
+          panY: panRef.current.y,
+        };
+      }
+
       // Right-click in edit mode for erasing
       if (e.button === 2 && isEditMode) {
         const tile = screenToTile(e.clientX, e.clientY);
@@ -552,10 +579,19 @@ export function OfficeCanvas({
 
   const handleMouseUp = useCallback(
     (e: React.MouseEvent) => {
+      if (e.button === 0 && leftDownRef.current) {
+        leftDownRef.current = null;
+        if (isPanningRef.current) {
+          isPanningRef.current = false;
+          const canvas = canvasRef.current;
+          if (canvas) canvas.style.cursor = 'grab';
+          return;
+        }
+      }
       if (e.button === 1) {
         isPanningRef.current = false;
         const canvas = canvasRef.current;
-        if (canvas) canvas.style.cursor = isEditMode ? 'crosshair' : 'default';
+        if (canvas) canvas.style.cursor = isEditMode ? 'crosshair' : 'grab';
         return;
       }
       if (e.button === 2) {
@@ -685,6 +721,10 @@ export function OfficeCanvas({
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
       if (isEditMode) return; // handled by mouseDown/mouseUp
+      if (suppressClickRef.current) {
+        suppressClickRef.current = false;
+        return;
+      }
       performTap(e.clientX, e.clientY);
     },
     [isEditMode, performTap],
@@ -692,6 +732,7 @@ export function OfficeCanvas({
 
   const handleMouseLeave = useCallback(() => {
     isPanningRef.current = false;
+    leftDownRef.current = null;
     isEraseDraggingRef.current = false;
     editorState.isDragging = false;
     editorState.endStroke();
@@ -705,7 +746,7 @@ export function OfficeCanvas({
     if (!isEditMode) {
       const canvas = canvasRef.current;
       if (canvas) {
-        canvas.style.cursor = 'default';
+        canvas.style.cursor = 'grab';
       }
     }
   }, [officeState, editorState, isEditMode]);
@@ -745,30 +786,39 @@ export function OfficeCanvas({
     [isEditMode, officeState, screenToTile],
   );
 
-  // Wheel: Ctrl+wheel to zoom, plain wheel/trackpad to pan
+  // Wheel: zoom at the cursor (trackpad pinch arrives as ctrl+wheel); shift+wheel pans
   const handleWheel = useCallback(
     (e: WheelEvent) => {
       e.preventDefault();
-      if (e.ctrlKey || e.metaKey) {
-        // Accumulate scroll delta, step zoom when threshold crossed
-        zoomAccumulatorRef.current += e.deltaY;
-        if (Math.abs(zoomAccumulatorRef.current) >= ZOOM_SCROLL_THRESHOLD) {
-          const delta = zoomAccumulatorRef.current < 0 ? 1 : -1;
-          zoomAccumulatorRef.current = 0;
-          const newZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoom + delta));
-          if (newZoom !== zoom) {
-            onZoomChange(newZoom);
-          }
-        }
-      } else {
-        // Pan via trackpad two-finger scroll or mouse wheel
-        const dpr = window.devicePixelRatio || 1;
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const dpr = window.devicePixelRatio || 1;
+      if (e.shiftKey) {
         officeState.breakCameraFollow();
         panRef.current = clampPan(
-          panRef.current.x - e.deltaX * dpr,
-          panRef.current.y - e.deltaY * dpr,
+          panRef.current.x - (e.deltaX || e.deltaY) * dpr,
+          panRef.current.y,
         );
+        return;
       }
+      // Accumulate scroll delta, step zoom when threshold crossed
+      zoomAccumulatorRef.current += e.deltaY;
+      if (Math.abs(zoomAccumulatorRef.current) < ZOOM_SCROLL_THRESHOLD) return;
+      const delta = zoomAccumulatorRef.current < 0 ? 1 : -1;
+      zoomAccumulatorRef.current = 0;
+      const newZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoom + delta));
+      if (newZoom === zoom) return;
+      const rect = canvas.getBoundingClientRect();
+      // clampPan closes over the old zoom; the new bounds apply on the next pan.
+      panRef.current = zoomAtPoint(
+        panRef.current,
+        zoom,
+        newZoom,
+        { x: (e.clientX - rect.left) * dpr, y: (e.clientY - rect.top) * dpr },
+        { w: canvas.width, h: canvas.height },
+      );
+      officeState.breakCameraFollow();
+      onZoomChange(newZoom);
     },
     [zoom, onZoomChange, officeState, panRef, clampPan],
   );

@@ -5,7 +5,7 @@
  *   1. character hit (hitId !== null)          → pointer
  *   2. pet hit (petId !== null)                → pointer
  *   3. selected agent + seat-reassign hover    → pointer
- *   4. otherwise                               → default
+ *   4. otherwise                               → grab
  *
  * Run with: npm test
  */
@@ -132,7 +132,7 @@ test('seat-reassign returns default when seat is busy with another agent', () =>
     getSeat: (id) => seats[id],
     getCharacter: (id) => chars[id],
   });
-  assert.equal(computeNormalModeCursor(state), 'default');
+  assert.equal(computeNormalModeCursor(state), 'grab');
 });
 
 test('seat-reassign cascade does not run when no agent selected', () => {
@@ -143,7 +143,7 @@ test('seat-reassign cascade does not run when no agent selected', () => {
     getSeatAtTile: () => 's',
     getSeat: (id) => seats[id],
   });
-  assert.equal(computeNormalModeCursor(state), 'default');
+  assert.equal(computeNormalModeCursor(state), 'grab');
 });
 
 test('seat-reassign returns default when no seat at hovered tile', () => {
@@ -154,7 +154,7 @@ test('seat-reassign returns default when no seat at hovered tile', () => {
     getSeatAtTile: () => null,
     getCharacter: (id) => chars[id],
   });
-  assert.equal(computeNormalModeCursor(state), 'default');
+  assert.equal(computeNormalModeCursor(state), 'grab');
 });
 
 test('seat-reassign returns default when tile is null (mouse not on grid)', () => {
@@ -165,14 +165,14 @@ test('seat-reassign returns default when tile is null (mouse not on grid)', () =
     getSeatAtTile: () => 's',
     getCharacter: (id) => chars[id],
   });
-  assert.equal(computeNormalModeCursor(state), 'default');
+  assert.equal(computeNormalModeCursor(state), 'grab');
 });
 
 // ── 4. Default fallthrough ────────────────────────────────────
 
 test('default cursor when no hits and no selection', () => {
   const state = buildState();
-  assert.equal(computeNormalModeCursor(state), 'default');
+  assert.equal(computeNormalModeCursor(state), 'grab');
 });
 
 test('default cursor when getSeat returns undefined for a known seatId', () => {
@@ -185,5 +185,5 @@ test('default cursor when getSeat returns undefined for a known seatId', () => {
     getSeat: () => undefined,
     getCharacter: (id) => chars[id],
   });
-  assert.equal(computeNormalModeCursor(state), 'default');
+  assert.equal(computeNormalModeCursor(state), 'grab');
 });
