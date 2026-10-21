@@ -116,6 +116,16 @@ export const DEFAULT_FLOOR_COLOR: ColorValue = { h: 35, s: 30, b: 15, c: 0 };
 export const DEFAULT_WALL_COLOR: ColorValue = { h: 240, s: 25, b: 0, c: 0 };
 export const DEFAULT_NEUTRAL_COLOR: ColorValue = { h: 0, s: 0, b: 0, c: 0 };
 
+// ── Map background (outside the office + VOID tiles) ─────────
+/** Solid background offered when the Background tab is first used: the page navy (#181828). */
+export const BACKGROUND_DEFAULT_COLOR: ColorValue = { h: 240, s: 25, b: -76, c: 0, colorize: true };
+/** Floor tint offered for a floor background (a dim gray-blue, so the office stands out). */
+export const BACKGROUND_DEFAULT_FLOOR_COLOR: ColorValue = { h: 220, s: 15, b: -45, c: 0 };
+export const BACKGROUND_DEFAULT_FLOOR_PATTERN = 1;
+export const BACKGROUND_DEFAULT_CARPET_VARIANT = 0;
+/** A carpet background repeats one rug of this many tiles square (body + accent trim). */
+export const BACKGROUND_CARPET_PATCH_TILES = 2;
+
 // ── Carpets ──────────────────────────────────────────────────
 /** Main (lowest-luminance) color applied to carpets when no per-tile override is set. */
 export const CARPET_DEFAULT_COLOR: ColorValue = { h: 0, s: 71, b: -32, c: 0, colorize: true };

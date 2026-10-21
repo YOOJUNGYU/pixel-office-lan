@@ -8,6 +8,7 @@ import {
   AREA_LABEL_SHADOW_ALPHA,
   AREA_LABEL_SHADOW_COLOR,
   AREA_OVERLAY_ALPHA,
+  BACKGROUND_CARPET_PATCH_TILES,
   BUBBLE_FADE_DURATION_SEC,
   BUTTON_ICON_COLOR,
   BUTTON_ICON_SIZE_FACTOR,
@@ -49,11 +50,14 @@ import {
   VOID_TILE_OUTLINE_COLOR,
 } from '../../constants.js';
 import { areaName } from '../../i18n.js';
+import type { BackgroundFill } from '../background.js';
+import { resolveBackground } from '../background.js';
 import { getColorizedFloorSprite, hasFloorSprites, WALL_COLOR } from '../floorTiles.js';
 import { mapOffset } from '../projection.js';
 import {
   getCarpetJunctionSprite,
   getCarpetPaletteKey,
+  getCarpetPatchSprite,
   hasCarpetSprites,
 } from '../sprites/carpetTiles.js';
 import { getPetSprites } from '../sprites/petSpriteData.js';
@@ -64,6 +68,7 @@ import type {
   CarpetTile,
   Character,
   FurnitureInstance,
+  OfficeBackground,
   Pet,
   Seat,
   SpriteData,
@@ -342,6 +347,44 @@ export function renderRoomNames(
     ctx.strokeText(name, cx, cy);
     ctx.fillText(name, cx, cy);
   }
+  ctx.restore();
+}
+
+/**
+ * Fill the whole canvas with the map background, grid-aligned so it pans and
+ * zooms with the office. Drawn first; VOID tiles leave it visible. A floor or
+ * carpet background repeats one tile via a canvas pattern (one fillRect, not a
+ * drawImage per tile). Carpet uses the fully-surrounded junction (case 15), so
+ * an endless carpet shows its interior weave.
+ *
+ * @internal
+ */
+export function renderBackground(
+  ctx: CanvasRenderingContext2D,
+  fill: BackgroundFill,
+  canvasWidth: number,
+  canvasHeight: number,
+  offsetX: number,
+  offsetY: number,
+  zoom: number,
+): void {
+  if (fill.kind === 'none') return;
+  if (fill.kind === 'color') {
+    ctx.fillStyle = fill.css;
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+    return;
+  }
+  const sprite =
+    fill.kind === 'floor'
+      ? getColorizedFloorSprite(fill.pattern, fill.color)
+      : getCarpetPatchSprite(fill.variant, fill.color, fill.accent, BACKGROUND_CARPET_PATCH_TILES);
+  if (!sprite) return;
+  const pattern = ctx.createPattern(getCachedSprite(sprite, zoom), 'repeat');
+  if (!pattern) return;
+  ctx.save();
+  ctx.translate(offsetX, offsetY);
+  ctx.fillStyle = pattern;
+  ctx.fillRect(-offsetX, -offsetY, canvasWidth, canvasHeight);
   ctx.restore();
 }
 
@@ -933,6 +976,7 @@ export function renderFrame(
   showAreas?: boolean,
   activeAreaLabel?: string | null,
   pets?: Pet[],
+  background?: OfficeBackground,
 ): { offsetX: number; offsetY: number } {
   // Clear
   ctx.clearRect(0, 0, canvasWidth, canvasHeight);
@@ -945,7 +989,16 @@ export function renderFrame(
   // the DOM overlays so a label lands exactly on the sprite it belongs to.
   const { offsetX, offsetY } = mapOffset(canvasWidth, canvasHeight, cols, rows, zoom, panX, panY);
 
-  // Draw tiles (floor + wall base color)
+  // Background (outside the office + VOID tiles), then tiles (floor + wall base color)
+  renderBackground(
+    ctx,
+    resolveBackground(background),
+    canvasWidth,
+    canvasHeight,
+    offsetX,
+    offsetY,
+    zoom,
+  );
   renderTileGrid(ctx, tileMap, offsetX, offsetY, zoom, tileColors, layoutCols);
 
   // Carpet layer (above floor, below seat indicators / furniture / characters)

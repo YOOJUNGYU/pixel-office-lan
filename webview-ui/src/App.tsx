@@ -360,6 +360,8 @@ function App() {
               onRenameArea={editor.handleRenameArea}
               onAreaColorChange={editor.handleAreaColorChange}
               onAreaMappingChange={handleAreaMappingChange}
+              background={officeState.getLayout().background}
+              onBackgroundChange={editor.handleBackgroundChange}
             />
           );
         })()}

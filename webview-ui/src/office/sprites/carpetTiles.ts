@@ -13,7 +13,7 @@
 
 import type { ColorValue } from '../../components/ui/types.js';
 import { CARPET_DEFAULT_ACCENT_COLOR, CARPET_DEFAULT_COLOR } from '../../constants.js';
-import { flatColorizeSprite } from '../colorize.js';
+import { colorValueToHex, flatColorizeSprite } from '../colorize.js';
 import type { CarpetTile, SpriteData } from '../types.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -43,6 +43,7 @@ const carpetCache: Map<string, SpriteData> = new Map();
 export function setCarpetSprites(sets: SpriteData[][]): void {
   carpetSets = sets;
   carpetCache.clear();
+  patchMemo = null;
   carpetVariantPalettes = sets.map((variantSprites) => classifyCarpetPalette(variantSprites));
 }
 
@@ -294,4 +295,67 @@ function mergeCarpetLayers(base: SpriteData, accent: SpriteData): SpriteData {
     result[r] = out;
   }
   return result;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Background patch
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Single-entry memo: the background asks for the same patch every frame. */
+let patchMemo: { key: string; sprite: SpriteData } | null = null;
+
+/**
+ * One `tiles`×`tiles` rug (main body + accent trim) on a main-colour margin,
+ * as a single SpriteData of (tiles+1)² tiles assembled from the
+ * marching-squares junction sprites. Repeated edge to edge it gives an endless carpet background that
+ * still shows the accent. Null when the variant isn't loaded.
+ */
+export function getCarpetPatchSprite(
+  variant: number,
+  color: ColorValue,
+  accentColor: ColorValue,
+  tiles: number,
+): SpriteData | null {
+  const paletteKey = getCarpetPaletteKey(color, accentColor);
+  const key = `${variant}:${tiles}:${paletteKey}`;
+  if (patchMemo?.key === key) return patchMemo.sprite;
+  if (variant < 0 || variant >= carpetSets.length) return null;
+  const sample = carpetSets[variant]?.find(Boolean);
+  if (!sample) return null;
+  const ts = sample.length; // junction sprite size = tile size
+  // Half a tile of margin all round keeps the trim the edge pieces draw
+  // outside the rug; the margin is filled with the main colour (the same
+  // flat-colorize model the carpet uses) so the repeat has no holes.
+  const size = (tiles + 1) * ts;
+  const base = colorValueToHex(color);
+  const out: SpriteData = Array.from({ length: size }, () => new Array<string>(size).fill(base));
+  const tile: CarpetTile = { variant, color, accentColor };
+  const patch = new Array<CarpetTile | null>(tiles * tiles).fill(tile);
+  for (let jy = 0; jy <= tiles; jy++) {
+    for (let jx = 0; jx <= tiles; jx++) {
+      const sprite = getCarpetJunctionSprite(
+        jx,
+        jy,
+        variant,
+        patch,
+        tiles,
+        tiles,
+        color,
+        accentColor,
+        paletteKey,
+      );
+      if (!sprite) continue;
+      const ox = jx * ts;
+      const oy = jy * ts;
+      sprite.forEach((row, py) =>
+        row.forEach((px, pxIdx) => {
+          const x = ox + pxIdx;
+          const y = oy + py;
+          if (px !== '') out[y][x] = px;
+        }),
+      );
+    }
+  }
+  patchMemo = { key, sprite: out };
+  return out;
 }

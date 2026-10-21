@@ -9,13 +9,22 @@ import type { ColorValue } from '../../components/ui/types.js';
 import { VisualColorPicker } from '../../components/VisualColorPicker.js';
 import {
   AREA_DEFAULT_COLORS,
+  BACKGROUND_CARPET_PATCH_TILES,
+  BACKGROUND_DEFAULT_CARPET_VARIANT,
+  BACKGROUND_DEFAULT_COLOR,
+  BACKGROUND_DEFAULT_FLOOR_COLOR,
+  BACKGROUND_DEFAULT_FLOOR_PATTERN,
   CANVAS_FALLBACK_TILE_COLOR,
+  CARPET_DEFAULT_ACCENT_COLOR,
+  CARPET_DEFAULT_COLOR,
   EMPTY_SPRITE_THUMBNAIL_BG,
   PET_THUMB_SCALE_MARGIN,
   PET_THUMB_ZOOM,
 } from '../../constants.js';
 import { areaName, t, useLang } from '../../i18n.js';
-import { getColorizedSprite } from '../colorize.js';
+import type { BackgroundFill } from '../background.js';
+import { resolveBackground } from '../background.js';
+import { getColorizedSprite, hexToColorValue } from '../colorize.js';
 import { getColorizedFloorSprite, getFloorPatternCount, hasFloorSprites } from '../floorTiles.js';
 import type { FurnitureCategory, LoadedAssetData } from '../layout/furnitureCatalog.js';
 import {
@@ -25,13 +34,21 @@ import {
 } from '../layout/furnitureCatalog.js';
 import {
   getCarpetJunctionSprite,
+  getCarpetPatchSprite,
   getCarpetSetCount,
   hasCarpetSprites,
 } from '../sprites/carpetTiles.js';
 import { getPetName, getPetSprites } from '../sprites/petSpriteData.js';
 import { getCachedSprite } from '../sprites/spriteCache.js';
-import type { AreaDefinition, CarpetTile, SpriteData, TileType as TileTypeVal } from '../types.js';
-import { EditTool } from '../types.js';
+import type {
+  AreaDefinition,
+  BackgroundKind as BackgroundKindVal,
+  CarpetTile,
+  OfficeBackground,
+  SpriteData,
+  TileType as TileTypeVal,
+} from '../types.js';
+import { BackgroundKind, EditTool } from '../types.js';
 import { getWallSetCount, getWallSetPreviewSprite } from '../wallTiles.js';
 
 /** Synthetic category id used to show the carpet sub-panel inside the Furniture tab. */
@@ -84,6 +101,8 @@ interface EditorToolbarProps {
   onRenameArea: (oldLabel: string, newLabel: string) => void;
   onAreaColorChange: (label: string, color: string) => void;
   onAreaMappingChange: (directoryName: string, areaLabel: string, action: 'add' | 'remove') => void;
+  background: OfficeBackground | undefined;
+  onBackgroundChange: (background: OfficeBackground, continuous: boolean) => void;
 }
 
 const THUMB_ZOOM = 2;
@@ -130,6 +149,8 @@ export function EditorToolbar({
   onRenameArea,
   onAreaColorChange,
   onAreaMappingChange,
+  background,
+  onBackgroundChange,
 }: EditorToolbarProps) {
   useLang();
   const [activeCategory, setActiveCategory] = useState<FurniturePanelCategory>('desks');
@@ -190,6 +211,7 @@ export function EditorToolbar({
     (activeTool === EditTool.COLOR_PICK && !selectedFurnitureUid) ||
     isCarpetActive;
   const isPetsActive = activeTool === EditTool.PETS;
+  const isBackgroundActive = activeTool === EditTool.BACKGROUND;
   const isColorPicking = activeTool === EditTool.COLOR_PICK;
   const carpetVariantCount = getCarpetSetCount();
 
@@ -286,6 +308,14 @@ export function EditorToolbar({
             {t('editor.areas')}
           </Button>
         )}
+        <Button
+          variant={isBackgroundActive ? 'active' : 'default'}
+          size="md"
+          onClick={() => onToolChange(EditTool.BACKGROUND)}
+          title={t('editor.backgroundTitle')}
+        >
+          {t('editor.background')}
+        </Button>
         <Button
           variant={isEraseActive ? 'active' : 'default'}
           size="md"
@@ -397,6 +427,15 @@ export function EditorToolbar({
           {/* Color controls (collapsible) — at the top, above the previews. */}
           {showWallColor && <TileColorBox value={wallColor} onChange={onWallColorChange} />}
         </div>
+      )}
+
+      {isBackgroundActive && (
+        <BackgroundPanel
+          fill={resolveBackground(background)}
+          onChange={onBackgroundChange}
+          floorPatterns={floorPatterns}
+          carpetVariantCount={carpetVariantCount}
+        />
       )}
 
       {/* Sub-panel: Pets — thumbnail grid above tool row */}
@@ -661,6 +700,173 @@ export function EditorToolbar({
           copyActive={isColorPicking}
           onReset={() => onSelectedFurnitureColorChange(null)}
         />
+      )}
+    </div>
+  );
+}
+
+/** A starting background for each kind, chosen when the user switches kind. */
+function defaultBackground(kind: BackgroundKindVal): OfficeBackground {
+  switch (kind) {
+    case BackgroundKind.FLOOR:
+      return {
+        kind,
+        pattern: BACKGROUND_DEFAULT_FLOOR_PATTERN,
+        color: BACKGROUND_DEFAULT_FLOOR_COLOR,
+      };
+    case BackgroundKind.CARPET:
+      return {
+        kind,
+        pattern: BACKGROUND_DEFAULT_CARPET_VARIANT,
+        color: CARPET_DEFAULT_COLOR,
+        accent: CARPET_DEFAULT_ACCENT_COLOR,
+      };
+    default:
+      return { kind: BackgroundKind.COLOR, color: BACKGROUND_DEFAULT_COLOR };
+  }
+}
+
+const BACKGROUND_KINDS: BackgroundKindVal[] = [
+  BackgroundKind.COLOR,
+  BackgroundKind.FLOOR,
+  BackgroundKind.CARPET,
+];
+
+/** Fill a thumbnail with the repeating rug a carpet background uses. */
+function drawCarpetBackgroundPreview(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  variant: number,
+  color: ColorValue,
+  accent: ColorValue,
+): void {
+  const sprite = getCarpetPatchSprite(variant, color, accent, BACKGROUND_CARPET_PATCH_TILES);
+  const pattern = sprite ? ctx.createPattern(getCachedSprite(sprite, THUMB_ZOOM), 'repeat') : null;
+  ctx.fillStyle = pattern ?? CANVAS_FALLBACK_TILE_COLOR;
+  ctx.fillRect(0, 0, w, h);
+}
+
+/** Background tab: kind selector, then the controls for that kind. */
+function BackgroundPanel({
+  fill,
+  onChange,
+  floorPatterns,
+  carpetVariantCount,
+}: {
+  fill: BackgroundFill;
+  onChange: (background: OfficeBackground, continuous: boolean) => void;
+  floorPatterns: number[];
+  carpetVariantCount: number;
+}) {
+  return (
+    <div className="flex flex-col-reverse gap-4">
+      <div className="flex gap-4 items-center">
+        {BACKGROUND_KINDS.map((kind) => (
+          <Button
+            key={kind}
+            variant={fill.kind === kind ? 'active' : 'ghost'}
+            size="sm"
+            onClick={() => fill.kind !== kind && onChange(defaultBackground(kind), false)}
+          >
+            {t(`editor.background.${kind}`)}
+          </Button>
+        ))}
+        {fill.kind === 'none' && (
+          <span className="text-xs text-text-muted px-4">{t('editor.backgroundHint')}</span>
+        )}
+      </div>
+
+      {fill.kind === 'color' && (
+        <div className="flex items-center gap-8 ml-2">
+          <span className="text-sm text-text-muted">{t('editor.color')}</span>
+          <VisualColorPicker
+            value={hexToColorValue(fill.css) ?? BACKGROUND_DEFAULT_COLOR}
+            onChange={(color) => onChange({ kind: BackgroundKind.COLOR, color }, true)}
+          />
+        </div>
+      )}
+
+      {fill.kind === 'floor' && (
+        <>
+          <div className="carousel">
+            {floorPatterns.map((patIdx) => (
+              <ItemSelect
+                key={patIdx}
+                width={32}
+                height={32}
+                selected={fill.pattern === patIdx}
+                onClick={() =>
+                  onChange({ ...fill, kind: BackgroundKind.FLOOR, pattern: patIdx }, false)
+                }
+                title={t('editor.floorItem', { t: String(patIdx) })}
+                deps={[patIdx, fill.color]}
+                draw={(ctx) => {
+                  const sprite = getColorizedFloorSprite(patIdx, fill.color);
+                  ctx.drawImage(getCachedSprite(sprite, THUMB_ZOOM), 0, 0);
+                }}
+              />
+            ))}
+          </div>
+          <TileColorBox
+            value={fill.color}
+            onChange={(color) => onChange({ ...fill, kind: BackgroundKind.FLOOR, color }, true)}
+          />
+        </>
+      )}
+
+      {fill.kind === 'carpet' && (
+        <>
+          <div className="carousel">
+            {Array.from({ length: carpetVariantCount }, (_, i) => i).map((variant) => (
+              <ItemSelect
+                key={variant}
+                width={48}
+                height={32}
+                selected={fill.variant === variant}
+                onClick={() =>
+                  onChange(
+                    {
+                      kind: BackgroundKind.CARPET,
+                      pattern: variant,
+                      color: fill.color,
+                      accent: fill.accent,
+                    },
+                    false,
+                  )
+                }
+                title={t('editor.carpetItem', { t: String(variant + 1) })}
+                deps={[variant, fill.color, fill.accent]}
+                draw={(ctx, w, h) =>
+                  drawCarpetBackgroundPreview(ctx, w, h, variant, fill.color, fill.accent)
+                }
+              />
+            ))}
+          </div>
+          <div className="flex gap-8 ml-2">
+            {(['color', 'accent'] as const).map((key) => (
+              <div key={key} className="flex flex-col gap-2">
+                <span className="text-xs uppercase tracking-[0.08em] text-text-muted">
+                  {t(key === 'color' ? 'editor.main' : 'editor.accent')}
+                </span>
+                <VisualColorPicker
+                  value={fill[key]}
+                  onChange={(c) =>
+                    onChange(
+                      {
+                        kind: BackgroundKind.CARPET,
+                        pattern: fill.variant,
+                        color: key === 'color' ? c : fill.color,
+                        accent: key === 'accent' ? c : fill.accent,
+                      },
+                      true,
+                    )
+                  }
+                />
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

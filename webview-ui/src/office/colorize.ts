@@ -260,3 +260,61 @@ export function adjustSprite(
 
   return result;
 }
+
+/** Convert HSL (h: 0-360, s: 0-1, l: 0-1) to an RGB tuple (0-255 each). */
+export function hslToRgb(h: number, s: number, l: number): [number, number, number] {
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const hp = h / 60;
+  const x = c * (1 - Math.abs((hp % 2) - 1));
+  let r1: number;
+  let g1: number;
+  let b1: number;
+  if (hp < 1) [r1, g1, b1] = [c, x, 0];
+  else if (hp < 2) [r1, g1, b1] = [x, c, 0];
+  else if (hp < 3) [r1, g1, b1] = [0, c, x];
+  else if (hp < 4) [r1, g1, b1] = [0, x, c];
+  else if (hp < 5) [r1, g1, b1] = [x, 0, c];
+  else [r1, g1, b1] = [c, 0, x];
+  const m = l - c / 2;
+  return [Math.round((r1 + m) * 255), Math.round((g1 + m) * 255), Math.round((b1 + m) * 255)];
+}
+
+/** Carpet lightness from `b` (brightness), matching flatColorizeSprite. */
+export function lightnessFromB(b: number): number {
+  return Math.max(0, Math.min(1, 0.5 + b / 200));
+}
+
+/** Representative hex preview for a ColorValue, using the carpet HSL model. */
+export function colorValueToHex(color: ColorValue): string {
+  const [r, g, b] = hslToRgb(color.h, color.s / 100, lightnessFromB(color.b));
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+}
+
+/** Parse `#RRGGBB` (with or without leading #) → ColorValue, or null if malformed. */
+export function hexToColorValue(hex: string): ColorValue | null {
+  const match = /^#?([0-9a-fA-F]{6})$/.exec(hex.trim());
+  if (!match) return null;
+  const int = parseInt(match[1], 16);
+  const r = ((int >> 16) & 0xff) / 255;
+  const g = ((int >> 8) & 0xff) / 255;
+  const b = (int & 0xff) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  const d = max - min;
+  let h = 0;
+  let s = 0;
+  if (d !== 0) {
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) * 60;
+    else if (max === g) h = ((b - r) / d + 2) * 60;
+    else h = ((r - g) / d + 4) * 60;
+  }
+  return {
+    h: Math.round(h),
+    s: Math.round(s * 100),
+    b: Math.max(-100, Math.min(100, Math.round((l - 0.5) * 200))),
+    c: 0,
+    colorize: true,
+  };
+}

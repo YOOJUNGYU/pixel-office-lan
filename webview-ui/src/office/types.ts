@@ -89,6 +89,8 @@ export const EditTool = {
   AREA_PAINT: 'area_paint',
   /** Colour-only eyedropper: takes a placed item's colour, leaves its type alone. */
   COLOR_PICK: 'color_pick',
+  /** Background tab: edits layout.background from the panel; canvas clicks do nothing. */
+  BACKGROUND: 'background',
 } as const;
 export type EditTool = (typeof EditTool)[keyof typeof EditTool];
 
@@ -147,6 +149,27 @@ export interface AreaDefinition {
   color: string;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// BACKGROUND — what fills the canvas outside the office and on VOID tiles.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const BackgroundKind = {
+  COLOR: 'color',
+  FLOOR: 'floor',
+  CARPET: 'carpet',
+} as const;
+export type BackgroundKind = (typeof BackgroundKind)[keyof typeof BackgroundKind];
+
+export interface OfficeBackground {
+  kind: BackgroundKind;
+  /** Solid color (kind 'color'), floor tint (kind 'floor') or carpet main color. A string is `#RRGGBB`. */
+  color?: ColorValue | string;
+  /** Floor pattern index (1..7, kind 'floor') or carpet variant (0-based, kind 'carpet'). */
+  pattern?: number;
+  /** Carpet accent color (kind 'carpet'). */
+  accent?: ColorValue | string;
+}
+
 export interface OfficeLayout {
   version: 1;
   cols: number;
@@ -165,6 +188,8 @@ export interface OfficeLayout {
   areas?: AreaDefinition[];
   /** Per-tile Area label, parallel to tiles array. null = no area assignment. */
   areaTiles?: Array<string | null>;
+  /** Canvas background around the office. Missing = the page's dark navy. */
+  background?: OfficeBackground;
 }
 
 export interface Character {

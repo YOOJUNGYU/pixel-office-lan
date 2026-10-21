@@ -39,6 +39,7 @@ import type { OfficeState } from '../office/engine/officeState.js';
 import { getRotatedType, getToggledType } from '../office/layout/furnitureCatalog.js';
 import type {
   EditTool as EditToolType,
+  OfficeBackground,
   OfficeLayout,
   PlacedPet,
   TileType as TileTypeVal,
@@ -96,6 +97,8 @@ interface EditorActions extends Omit<FurnitureColorActions, 'pickColorAt'> {
   handleRemoveArea: (label: string) => void;
   handleRenameArea: (oldLabel: string, newLabel: string) => void;
   handleAreaColorChange: (label: string, color: string) => void;
+  /** Set the map background. `continuous` = a slider/picker drag: one undo entry per run. */
+  handleBackgroundChange: (background: OfficeBackground, continuous: boolean) => void;
 }
 
 /** Default integer zoom (device pixels per sprite pixel) for a fresh session.
@@ -747,6 +750,14 @@ export function useEditorActions(
     [getOfficeState, editorState, applyEdit, applyStrokeEdit],
   );
 
+  const handleBackgroundChange = useCallback(
+    (background: OfficeBackground, continuous: boolean) => {
+      const layout = getOfficeState().getLayout();
+      commitLayout({ ...layout, background }, continuous ? 'background' : null);
+    },
+    [getOfficeState, commitLayout],
+  );
+
   return {
     isEditMode,
     editorTick,
@@ -793,5 +804,6 @@ export function useEditorActions(
     handleRemoveArea,
     handleRenameArea,
     handleAreaColorChange,
+    handleBackgroundChange,
   };
 }
