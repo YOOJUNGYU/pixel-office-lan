@@ -56,7 +56,12 @@ if [ -z "$USER_NAME" ] || [ "$USER_NAME" = root ] || [ "$USER_NAME" = _mbsetupus
   exit 0
 fi
 USER_ID=$(id -u "$USER_NAME")
-HOME_DIR=$(dscl . -read "/Users/$USER_NAME" NFSHomeDirectory | sed 's/^NFSHomeDirectory: //')
+# dscacheutil prints "dir: <path>" on one line (dscl wraps paths with spaces).
+HOME_DIR=$(dscacheutil -q user -a name "$USER_NAME" | sed -n 's/^dir: //p')
+if [ -z "$HOME_DIR" ] || [ ! -d "$HOME_DIR" ]; then
+  echo "Pixel Office: cannot find the home folder of $USER_NAME" >&2
+  exit 1
+fi
 AGENTS="$HOME_DIR/Library/LaunchAgents"
 PLIST="$AGENTS/com.pixeloffice.agent.plist"
 

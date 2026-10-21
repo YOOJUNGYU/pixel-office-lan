@@ -115,6 +115,13 @@ jobs:
           name: dist
           path: dist
       - run: scripts/package/macos.sh ${{ matrix.arch }} "$VERSION"
+      - name: postinstall home lookup matches $HOME
+        run: |
+          # Runs the exact HOME_DIR line from the generated postinstall for the runner user.
+          USER_NAME=$(id -un)
+          eval "$(grep '^HOME_DIR=' build/mac-${{ matrix.arch }}/scripts/postinstall)"
+          echo "HOME_DIR=$HOME_DIR HOME=$HOME"
+          test -n "$HOME_DIR" && test "$HOME_DIR" = "$HOME"
       - name: Smoke test packaged app
         run: |
           RES="build/mac-${{ matrix.arch }}/root/Applications/Pixel Office.app/Contents/Resources"
