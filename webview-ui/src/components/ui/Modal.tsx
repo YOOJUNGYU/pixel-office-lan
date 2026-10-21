@@ -10,6 +10,8 @@ interface ModalProps {
   /** z-index for backdrop (modal gets +1). Default 49 */
   zIndex?: number;
   className?: string;
+  /** Hide the close button (the modal must be completed to proceed). */
+  hideClose?: boolean;
 }
 
 export function Modal({
@@ -19,6 +21,7 @@ export function Modal({
   children,
   zIndex = 50,
   className = '',
+  hideClose = false,
 }: ModalProps) {
   if (!isOpen) return null;
 
@@ -43,9 +46,11 @@ export function Modal({
               (changelog, settings) scrolls under it. */}
           <div className="sticky top-0 z-10 bg-bg flex items-center justify-between py-4 px-10 border-b border-border mb-4">
             <span className="text-accent-bright text-2xl">{title}</span>
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              x
-            </Button>
+            {!hideClose && (
+              <Button variant="ghost" size="icon" onClick={onClose}>
+                x
+              </Button>
+            )}
           </div>
           {children}
         </div>

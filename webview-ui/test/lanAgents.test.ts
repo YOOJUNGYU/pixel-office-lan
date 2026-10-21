@@ -82,6 +82,20 @@ test('a main agent in coding is headed into 코딩실, then 대기실 when it mo
   assert.equal(areaOf(target(os, ch)), '대기실');
 });
 
+test('a changed peer look is applied to existing characters and ghosts', () => {
+  const { os, lan } = setup();
+  lan.apply([agent('a', 'coding'), child('c', 'a', 'server')]);
+  const next = { ...peer, palette: 4, hueShift: 90 };
+  lan.apply([agent('a', 'coding', { peer: next }), { ...child('c', 'a', 'server'), peer: next }]);
+  const main = os.characters.get(lan.idFor('p1:a')!)!;
+  assert.equal(main.palette, 4);
+  assert.equal(main.hueShift, 90);
+  const sub = os.characters.get(lan.idFor('p1:c')!)!;
+  assert.equal(sub.palette, 4);
+  assert.equal(sub.hueShift, (90 + 120) % 360);
+  for (const g of ghosts(os)) assert.equal(g.palette, 4);
+});
+
 test('more lounge agents than lounge seats all land inside 대기실', () => {
   const { os, lan } = setup();
   let seats = 0;

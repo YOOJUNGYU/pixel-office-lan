@@ -61,6 +61,8 @@ export class LanAgents {
         this.ids.set(a.key, id);
         const { palette, hueShift } = looks(a);
         os.addAgent(id, palette, hueShift);
+      } else {
+        this.restyle(id, looks(a));
       }
       this.byId.set(id, a);
       const prev = prevByKey.get(a.key);
@@ -120,12 +122,21 @@ export class LanAgents {
       this.os.addAgent(id, child.peer.palette, child.peer.hueShift);
       this.os.moveToArea(id, ROOM_LABELS[child.room], true);
     }
+    this.restyle(id, child.peer);
     const parentId = child.parentKey !== undefined ? this.ids.get(child.parentKey) : undefined;
     const ch = this.os.characters.get(id);
     if (ch) ch.ghostOf = parentId ?? id;
     if (parent) this.byId.set(id, parent);
     else this.byId.delete(id);
     return id;
+  }
+
+  /** A PC edited its profile: existing characters take the new look. */
+  private restyle(id: number, look: { palette: number; hueShift: number }): void {
+    const ch = this.os.characters.get(id);
+    if (!ch) return;
+    ch.palette = look.palette;
+    ch.hueShift = look.hueShift;
   }
 
   /** Lounge idles (wanders in the room); every other room works at a desk. */

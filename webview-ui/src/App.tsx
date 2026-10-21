@@ -12,6 +12,7 @@ import { useEditorKeyboard } from './hooks/useEditorKeyboard.js';
 import { useExtensionMessages } from './hooks/useExtensionMessages.js';
 import { useIsMobile } from './hooks/useIsMobile.js';
 import { LanOverlay } from './lan/LanOverlay.js';
+import { ProfileModal } from './lan/ProfileModal.js';
 import { OfficeCanvas } from './office/components/OfficeCanvas.js';
 import { EditorState } from './office/editor/editorState.js';
 import { EditorToolbar } from './office/editor/EditorToolbar.js';
@@ -63,7 +64,7 @@ function App() {
   const {
     layoutReady,
     loadedAssets,
-    externalAssetDirectories,
+    profile,
     areaMappings,
     setAreaMappings,
     showAreas,
@@ -75,6 +76,8 @@ function App() {
   // Overlay geometry: the root div is the canvas container's size.
   const containerRef = useRef<HTMLDivElement>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const firstRun = !!profile?.canEdit && profile.profile.nickname === '';
 
   // Phones and touch tablets: pinch replaces the zoom buttons and Settings floats.
   const isMobile = useIsMobile();
@@ -377,10 +380,22 @@ function App() {
 
       <ConnectionIndicator />
 
+      {profile?.canEdit && (firstRun || isProfileOpen) && (
+        <ProfileModal
+          profile={profile.profile}
+          firstRun={firstRun}
+          onSave={(p) => {
+            transport.send({ type: 'saveProfile', profile: p });
+            setIsProfileOpen(false);
+          }}
+          onClose={() => setIsProfileOpen(false)}
+        />
+      )}
+
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
-        externalAssetDirectories={externalAssetDirectories}
+        onOpenProfile={profile?.canEdit ? () => setIsProfileOpen(true) : null}
         showAreas={showAreas}
         onToggleShowAreas={onToggleShowAreas}
         showAreasAvailable={areasAvailable}
