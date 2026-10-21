@@ -309,12 +309,18 @@ export const LAN_PROVIDER_COLORS: Record<Provider, string> = {
   claude: '#D97757',
   codex: '#10A37F',
 };
-/** Name tag font size in CSS px — fixed, so tags stay readable at every zoom. */
-export const LAN_TAG_FONT_PX = 20;
+/** Hover bubble wraps long summaries/reasons at this width (CSS px). */
+export const LAN_BUBBLE_MAX_WIDTH_PX = 300;
 /** Hover bubble sits this many world px above a character's feet (sprite height). */
 export const LAN_BUBBLE_HEAD_OFFSET = 32;
 export const LAN_TAG_Z_INDEX = 40;
 export const LAN_PERMISSION_Z_INDEX = 41;
 export const LAN_BUBBLE_Z_INDEX = 42;
-/** Room names stay on the map outside the editor, dimmer than the editor's. */
-export const LAN_ROOM_LABEL_ALPHA = 0.55;
+/** Room names on the map outside Show Areas: light text, dark outline, top of each room. */
+export const LAN_ROOM_LABEL_COLOR = '#f2f2f2';
+export const LAN_ROOM_LABEL_OUTLINE_COLOR = '#000000';
+/** Outline stroke width in device px. */
+export const LAN_ROOM_LABEL_OUTLINE_PX = 4;
+/** Font size per zoom step (sprite px), floored at the minimum in device px. */
+export const LAN_ROOM_LABEL_FONT_PX = 7;
+export const LAN_ROOM_LABEL_MIN_FONT_PX = 13;

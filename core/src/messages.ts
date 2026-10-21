@@ -26,7 +26,6 @@ export type ClientMessage =
   | WebviewReady
   | SaveLayout
   | SetSoundEnabled
-  | SetLastSeenVersion
   | SetAlwaysShowLabels
   | AddExternalAssetDirectory
   | RemoveExternalAssetDirectory
@@ -117,8 +116,6 @@ export interface OfficeAccess {
 export interface SettingsLoaded {
   type: 'settingsLoaded';
   soundEnabled: boolean;
-  lastSeenVersion: string;
-  extensionVersion: string;
   alwaysShowLabels: boolean;
   externalAssetDirectories: string[];
   showAreas: boolean;
@@ -194,11 +191,6 @@ export interface SaveLayout {
 export interface SetSoundEnabled {
   type: 'setSoundEnabled';
   enabled: boolean;
-}
-
-export interface SetLastSeenVersion {
-  type: 'setLastSeenVersion';
-  version: string;
 }
 
 export interface SetAlwaysShowLabels {

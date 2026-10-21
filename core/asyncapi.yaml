@@ -96,7 +96,6 @@ components:
         - $ref: '#/components/schemas/WebviewReady'
         - $ref: '#/components/schemas/SaveLayout'
         - $ref: '#/components/schemas/SetSoundEnabled'
-        - $ref: '#/components/schemas/SetLastSeenVersion'
         - $ref: '#/components/schemas/SetAlwaysShowLabels'
         - $ref: '#/components/schemas/AddExternalAssetDirectory'
         - $ref: '#/components/schemas/RemoveExternalAssetDirectory'
@@ -300,8 +299,6 @@ components:
       required:
         - type
         - soundEnabled
-        - lastSeenVersion
-        - extensionVersion
         - alwaysShowLabels
         - externalAssetDirectories
         - showAreas
@@ -310,10 +307,6 @@ components:
           const: settingsLoaded
         soundEnabled:
           type: boolean
-        lastSeenVersion:
-          type: string
-        extensionVersion:
-          type: string
         alwaysShowLabels:
           type: boolean
         externalAssetDirectories:
@@ -523,16 +516,6 @@ components:
           const: setSoundEnabled
         enabled:
           type: boolean
-
-    SetLastSeenVersion:
-      type: object
-      additionalProperties: false
-      required: [type, version]
-      properties:
-        type:
-          const: setLastSeenVersion
-        version:
-          type: string
 
     SetAlwaysShowLabels:
       type: object

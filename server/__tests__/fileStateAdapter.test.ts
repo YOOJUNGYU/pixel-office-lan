@@ -28,18 +28,15 @@ describe('FileStateAdapter', () => {
   it('returns defaults when config file does not exist', () => {
     const adapter = new FileStateAdapter();
     expect(adapter.getSetting('pixel-agents.soundEnabled', false)).toBe(true);
-    expect(adapter.getSetting('pixel-agents.lastSeenVersion', 'x')).toBe('');
   });
 
   it('round-trips each setting key', () => {
     const adapter = new FileStateAdapter();
     adapter.setSetting('pixel-agents.soundEnabled', false);
-    adapter.setSetting('pixel-agents.lastSeenVersion', '1.3');
     adapter.setSetting('pixel-agents.alwaysShowLabels', true);
     adapter.setSetting('pixel-agents.showAreas', true);
 
     expect(adapter.getSetting('pixel-agents.soundEnabled', true)).toBe(false);
-    expect(adapter.getSetting('pixel-agents.lastSeenVersion', '')).toBe('1.3');
     expect(adapter.getSetting('pixel-agents.alwaysShowLabels', false)).toBe(true);
     expect(adapter.getSetting('pixel-agents.showAreas', false)).toBe(true);
   });
@@ -55,8 +52,8 @@ describe('FileStateAdapter', () => {
     const adapter = new FileStateAdapter();
     adapter.setSetting('pixel-agents.soundEnabled', false);
     expect(adapter.getSetting('soundEnabled', true)).toBe(false);
-    adapter.setSetting('lastSeenVersion', '1.0');
-    expect(adapter.getSetting('pixel-agents.lastSeenVersion', '')).toBe('1.0');
+    adapter.setSetting('showAreas', true);
+    expect(adapter.getSetting('pixel-agents.showAreas', false)).toBe(true);
   });
 
   it('persists settings under ~/.pixel-office/config.json with clean field names', () => {

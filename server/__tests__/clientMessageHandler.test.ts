@@ -140,7 +140,6 @@ describe('clientMessageHandler', () => {
       for (const msg of [
         { type: 'saveLayout', layout: { version: 1, cols: 1, rows: 1, tiles: [0], furniture: [] } },
         { type: 'setSoundEnabled', enabled: false },
-        { type: 'setLastSeenVersion', version: '9.9' },
         { type: 'setAlwaysShowLabels', enabled: true },
         { type: 'addExternalAssetDirectory', path: '/x' },
         { type: 'removeExternalAssetDirectory', path: '/x' },

@@ -78,7 +78,7 @@ CI (`.github/workflows/ci.yml`): install, lint, asyncapi validate + generate dri
 
 - **Protocol**: edit `core/asyncapi.yaml`, run `npm run asyncapi:generate`; CI fails if `core/src/messages.ts` drifts. Every message sets `additionalProperties: false`.
 - **Constants**: no inline magic numbers/strings. Server → `server/src/constants.ts`; protocol → `core/src/constants.ts`; webview → `webview-ui/src/constants.ts`; CSS variables in `webview-ui/src/index.css` `:root`.
-- **Colors**: hex/rgb/hsl literals only in `webview-ui/src/constants.ts` (eslint `pixel-agents/no-inline-colors`, error level). Pixel style: `borderRadius: 0`, `2px solid` borders, hard `2px 2px 0px` shadows, FS Pixel Sans.
+- **Colors**: hex/rgb/hsl literals only in `webview-ui/src/constants.ts` (eslint `pixel-agents/no-inline-colors`, error level). Pixel style: `borderRadius: 0`, `2px solid` borders, hard `2px 2px 0px` shadows. UI font Pretendard (`var(--font-ui)`, bundled `webview-ui/public/fonts/`, OFL; eslint `pixel-agents/ui-font`).
 - **TypeScript**: no `enum` (use `as const`); `import type` for type-only imports; `.js` extensions on relative imports in `server/` and `core/`; `noUnusedLocals`/`noUnusedParameters` everywhere.
 - **No new runtime dependencies** — UDP, file watching, paths via Node stdlib.
 - **User-facing text in Korean** (room labels 코딩실, 자료실, 서버실, 대기실; keys coding|library|server|lounge).

@@ -4,7 +4,7 @@
  * Rules:
  *   no-inline-colors  — flag hex/rgb/rgba/hsl/hsla color literals (centralize in constants)
  *   pixel-shadow      — flag box-shadow values not using var(--pixel-shadow) or 2px 2px 0px
- *   pixel-font        — flag font-family values not referencing FS Pixel Sans
+ *   ui-font           — flag font-family values not using var(--font-ui) (Pretendard)
  */
 
 const HEX_COLOR = /#[0-9a-fA-F]{3,8}\b/;
@@ -103,15 +103,15 @@ function isFontFamilyProperty(node) {
   return false;
 }
 
-const pixelFont = {
+const uiFont = {
   meta: {
     type: 'suggestion',
     docs: {
-      description: 'Require font-family values to reference FS Pixel Sans.',
+      description: 'Require font-family values to use var(--font-ui) (Pretendard).',
     },
     schema: [],
     messages: {
-      found: 'Use the FS Pixel Sans font for UI styling.',
+      found: 'Use var(--font-ui) (Pretendard) for UI styling.',
     },
   },
   create(context) {
@@ -120,7 +120,7 @@ const pixelFont = {
         if (!isFontFamilyProperty(node)) return;
         const value = node.value;
         if (value.type !== 'Literal' || typeof value.value !== 'string') return;
-        if (value.value.includes('FS Pixel Sans')) return;
+        if (value.value.includes('var(--font-ui)')) return;
         context.report({ node: value, messageId: 'found' });
       },
     };
@@ -135,7 +135,7 @@ const plugin = {
   rules: {
     'no-inline-colors': noInlineColors,
     'pixel-shadow': pixelShadow,
-    'pixel-font': pixelFont,
+    'ui-font': uiFont,
   },
 };
 

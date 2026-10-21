@@ -44,8 +44,6 @@ interface ExtensionMessageState {
   layoutReady: boolean;
   loadedAssets?: { catalog: FurnitureAsset[]; sprites: Record<string, string[][]> };
   externalAssetDirectories: string[];
-  lastSeenVersion: string;
-  extensionVersion: string;
   alwaysShowLabels: boolean;
   // Areas
   areaMappings: Record<string, string[]>;
@@ -73,8 +71,6 @@ export function useExtensionMessages(
     { catalog: FurnitureAsset[]; sprites: Record<string, string[][]> } | undefined
   >();
   const [externalAssetDirectories, setExternalAssetDirectories] = useState<string[]>([]);
-  const [lastSeenVersion, setLastSeenVersion] = useState('');
-  const [extensionVersion, setExtensionVersion] = useState('');
   const [alwaysShowLabels, setAlwaysShowLabels] = useState(false);
   const [areaMappings, setAreaMappings] = useState<Record<string, string[]>>({});
   const [showAreas, setShowAreas] = useState(false);
@@ -184,12 +180,6 @@ export function useExtensionMessages(
         if (Array.isArray(msg.externalAssetDirectories)) {
           setExternalAssetDirectories(msg.externalAssetDirectories as string[]);
         }
-        if (typeof msg.lastSeenVersion === 'string') {
-          setLastSeenVersion(msg.lastSeenVersion as string);
-        }
-        if (typeof msg.extensionVersion === 'string') {
-          setExtensionVersion(msg.extensionVersion as string);
-        }
       } else if (msg.type === 'externalAssetDirectoriesUpdated') {
         if (Array.isArray(msg.dirs)) {
           setExternalAssetDirectories(msg.dirs as string[]);
@@ -218,8 +208,6 @@ export function useExtensionMessages(
     layoutReady,
     loadedAssets,
     externalAssetDirectories,
-    lastSeenVersion,
-    extensionVersion,
     alwaysShowLabels,
     areaMappings,
     setAreaMappings,

@@ -32,7 +32,11 @@ import {
   HEADLESS_CHARACTER_ALPHA,
   HOVERED_OUTLINE_ALPHA,
   LAN_GHOST_ALPHA,
-  LAN_ROOM_LABEL_ALPHA,
+  LAN_ROOM_LABEL_COLOR,
+  LAN_ROOM_LABEL_FONT_PX,
+  LAN_ROOM_LABEL_MIN_FONT_PX,
+  LAN_ROOM_LABEL_OUTLINE_COLOR,
+  LAN_ROOM_LABEL_OUTLINE_PX,
   OUTLINE_Z_SORT_OFFSET,
   ROTATE_BUTTON_BG,
   SEAT_AVAILABLE_COLOR,
@@ -239,7 +243,6 @@ export function renderAreaLabels(
   offsetX: number,
   offsetY: number,
   zoom: number,
-  alpha = AREA_LABEL_ALPHA,
 ): void {
   if (!areaTiles || areaTiles.length === 0) return;
   if (!areas || areas.length === 0) return;
@@ -270,7 +273,7 @@ export function renderAreaLabels(
   const fontSize = Math.max(AREA_LABEL_FONT_SIZE_PX * zoom, AREA_LABEL_MIN_FONT_SIZE_PX);
 
   ctx.save();
-  ctx.font = `bold ${fontSize}px 'FS Pixel Sans'`;
+  ctx.font = `bold ${fontSize}px Pretendard`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
@@ -279,13 +282,61 @@ export function renderAreaLabels(
     const cy = offsetY + (acc.sumY / acc.count + 0.5) * s;
 
     // Pixel-art drop shadow (1px right + down, no blur).
-    ctx.globalAlpha = AREA_LABEL_SHADOW_ALPHA * alpha;
+    ctx.globalAlpha = AREA_LABEL_SHADOW_ALPHA;
     ctx.fillStyle = AREA_LABEL_SHADOW_COLOR;
     ctx.fillText(label, cx + 1, cy + 1);
 
     // Main label — area's own color, falling back to white if missing.
-    ctx.globalAlpha = alpha;
+    ctx.globalAlpha = AREA_LABEL_ALPHA;
     ctx.fillStyle = colorMap.get(label) ?? AREA_LABEL_FALLBACK_COLOR;
+    ctx.fillText(label, cx, cy);
+  }
+  ctx.restore();
+}
+
+/**
+ * Room names for everyday viewing: light text with a dark outline, centred
+ * on each area's top tile row so seated characters don't cover it.
+ *
+ * @internal
+ */
+export function renderRoomNames(
+  ctx: CanvasRenderingContext2D,
+  areaTiles: Array<string | null> | undefined,
+  cols: number,
+  rows: number,
+  offsetX: number,
+  offsetY: number,
+  zoom: number,
+): void {
+  if (!areaTiles || areaTiles.length === 0) return;
+  // label → top row and the column span on that row
+  const tops = new Map<string, { row: number; minCol: number; maxCol: number }>();
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const label = areaTiles[r * cols + c];
+      if (!label) continue;
+      const t = tops.get(label);
+      if (!t) tops.set(label, { row: r, minCol: c, maxCol: c });
+      else if (t.row === r) t.maxCol = c;
+    }
+  }
+  if (tops.size === 0) return;
+
+  const s = TILE_SIZE * zoom;
+  const fontSize = Math.max(LAN_ROOM_LABEL_FONT_PX * zoom, LAN_ROOM_LABEL_MIN_FONT_PX);
+  ctx.save();
+  ctx.font = `bold ${fontSize}px Pretendard`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = LAN_ROOM_LABEL_OUTLINE_PX;
+  ctx.strokeStyle = LAN_ROOM_LABEL_OUTLINE_COLOR;
+  ctx.fillStyle = LAN_ROOM_LABEL_COLOR;
+  for (const [label, t] of tops) {
+    const cx = offsetX + ((t.minCol + t.maxCol + 1) / 2) * s;
+    const cy = offsetY + (t.row + 0.5) * s;
+    ctx.strokeText(label, cx, cy);
     ctx.fillText(label, cx, cy);
   }
   ctx.restore();
@@ -943,10 +994,13 @@ export function renderFrame(
     renderPetBubbles(ctx, pets, offsetX, offsetY, zoom);
   }
 
-  // Area labels (above bubbles + characters, below editor overlays). Always
-  // on — the room names tell people where they are — just dimmer without the tint.
-  const labelAlpha = showAreas ? AREA_LABEL_ALPHA : LAN_ROOM_LABEL_ALPHA;
-  renderAreaLabels(ctx, areaTiles, areas, cols, rows, offsetX, offsetY, zoom, labelAlpha);
+  // Area labels (above bubbles + characters, below editor overlays). Outside
+  // Show Areas the room names still show, at the top of each room.
+  if (showAreas) {
+    renderAreaLabels(ctx, areaTiles, areas, cols, rows, offsetX, offsetY, zoom);
+  } else {
+    renderRoomNames(ctx, areaTiles, cols, rows, offsetX, offsetY, zoom);
+  }
 
   // Editor overlays
   if (editor) {

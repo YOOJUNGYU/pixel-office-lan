@@ -18,16 +18,16 @@ export function BottomToolbar({
       <Button
         variant={isEditMode ? 'active' : 'default'}
         onClick={onToggleEditMode}
-        title="Edit office layout"
+        title="사무실 배치 편집"
       >
-        Layout
+        레이아웃
       </Button>
       <Button
         variant={isSettingsOpen ? 'active' : 'default'}
         onClick={onToggleSettings}
-        title="Settings"
+        title="설정"
       >
-        Settings
+        설정
       </Button>
     </div>
   );

@@ -6,7 +6,6 @@ import { CONFIG_FILE_NAME, LAYOUT_FILE_DIR } from './constants.js';
 
 export interface AdapterSettings {
   soundEnabled: boolean;
-  lastSeenVersion: string;
   alwaysShowLabels: boolean;
   showAreas: boolean;
   areaMappings: Record<string, string[]>;
@@ -15,7 +14,6 @@ export interface AdapterSettings {
 /** All keys in AdapterSettings. Used by FileStateAdapter to map `pixel-agents.foo` → `foo`. */
 export const ADAPTER_SETTING_KEYS = [
   'soundEnabled',
-  'lastSeenVersion',
   'alwaysShowLabels',
   'showAreas',
   'areaMappings',
@@ -30,7 +28,6 @@ export interface PixelAgentsConfig {
 
 const DEFAULT_ADAPTER_SETTINGS: AdapterSettings = {
   soundEnabled: true,
-  lastSeenVersion: '',
   alwaysShowLabels: false,
   showAreas: false,
   areaMappings: {},
@@ -72,10 +69,6 @@ function parseAdapterSettings(raw: unknown): AdapterSettings {
       typeof obj.soundEnabled === 'boolean'
         ? obj.soundEnabled
         : DEFAULT_ADAPTER_SETTINGS.soundEnabled,
-    lastSeenVersion:
-      typeof obj.lastSeenVersion === 'string'
-        ? obj.lastSeenVersion
-        : DEFAULT_ADAPTER_SETTINGS.lastSeenVersion,
     alwaysShowLabels:
       typeof obj.alwaysShowLabels === 'boolean'
         ? obj.alwaysShowLabels

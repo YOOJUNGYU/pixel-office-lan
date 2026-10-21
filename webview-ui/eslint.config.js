@@ -38,7 +38,7 @@ export default defineConfig([
       'react-hooks/set-state-in-effect': 'off',
       'pixel-agents/no-inline-colors': 'error',
       'pixel-agents/pixel-shadow': 'error',
-      'pixel-agents/pixel-font': 'error',
+      'pixel-agents/ui-font': 'error',
     },
   },
   {
@@ -46,7 +46,7 @@ export default defineConfig([
     rules: {
       'pixel-agents/no-inline-colors': 'off',
       'pixel-agents/pixel-shadow': 'off',
-      'pixel-agents/pixel-font': 'off',
+      'pixel-agents/ui-font': 'off',
     },
   },
   eslintConfigPrettier,

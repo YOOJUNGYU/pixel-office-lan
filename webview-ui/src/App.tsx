@@ -1,13 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { toMajorMinor } from './changelogData.js';
 import { BottomToolbar } from './components/BottomToolbar.js';
-import { ChangelogModal } from './components/ChangelogModal.js';
 import { ConnectionIndicator } from './components/ConnectionIndicator.js';
 import { EditActionBar } from './components/EditActionBar.js';
 import { SettingsModal } from './components/SettingsModal.js';
 import { Button } from './components/ui/Button.js';
-import { VersionIndicator } from './components/VersionIndicator.js';
 import { ZoomControls } from './components/ZoomControls.js';
 import { OFFICE_CANVAS_TEST_ID } from './constants.js';
 import { useEditorActions } from './hooks/useEditorActions.js';
@@ -67,9 +64,6 @@ function App() {
     layoutReady,
     loadedAssets,
     externalAssetDirectories,
-    lastSeenVersion,
-    extensionVersion,
-    alwaysShowLabels,
     areaMappings,
     setAreaMappings,
     showAreas,
@@ -80,36 +74,10 @@ function App() {
 
   // Overlay geometry: the root div is the canvas container's size.
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isChangelogOpen, setIsChangelogOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [alwaysShowOverlay, setAlwaysShowOverlay] = useState(false);
 
   // Phones and touch tablets: pinch replaces the zoom buttons and Settings floats.
   const isMobile = useIsMobile();
-
-  const currentMajorMinor = toMajorMinor(extensionVersion);
-
-  const handleWhatsNewDismiss = useCallback(() => {
-    transport.send({ type: 'setLastSeenVersion', version: currentMajorMinor });
-  }, [currentMajorMinor]);
-
-  const handleOpenChangelog = useCallback(() => {
-    setIsChangelogOpen(true);
-    transport.send({ type: 'setLastSeenVersion', version: currentMajorMinor });
-  }, [currentMajorMinor]);
-
-  // Sync alwaysShowOverlay from persisted settings
-  useEffect(() => {
-    setAlwaysShowOverlay(alwaysShowLabels);
-  }, [alwaysShowLabels]);
-
-  const handleToggleAlwaysShowOverlay = useCallback(() => {
-    setAlwaysShowOverlay((prev) => {
-      const newVal = !prev;
-      transport.send({ type: 'setAlwaysShowLabels', enabled: newVal });
-      return newVal;
-    });
-  }, []);
 
   // Mutate Directory→Area mappings locally + send to server.
   const handleAreaMappingChange = useCallback(
@@ -215,7 +183,7 @@ function App() {
     // bypassing the layoutLoaded message whose dirty guard would skip it.
     if (
       isEditDirty() &&
-      !window.confirm('Replace the current layout? Unsaved edits will be lost.')
+      !window.confirm('현재 레이아웃을 바꿀까요? 저장하지 않은 편집은 사라집니다.')
     ) {
       return;
     }
@@ -230,7 +198,7 @@ function App() {
           !Array.isArray(imported.tiles) ||
           !Array.isArray(imported.furniture)
         ) {
-          window.alert('Invalid layout file.');
+          window.alert('올바른 레이아웃 파일이 아닙니다.');
           return;
         }
         const migrated = migrateLayoutColors(imported as unknown as OfficeLayout);
@@ -242,7 +210,7 @@ function App() {
         });
         editor.markClean();
       } catch {
-        window.alert('Failed to read or parse layout file.');
+        window.alert('레이아웃 파일을 읽지 못했습니다.');
       }
     };
     reader.readAsText(file);
@@ -271,7 +239,7 @@ function App() {
     })();
 
   if (!layoutReady) {
-    return <div className="w-full h-full flex items-center justify-center ">Loading...</div>;
+    return <div className="w-full h-full flex items-center justify-center ">불러오는 중…</div>;
   }
 
   return (
@@ -320,7 +288,7 @@ function App() {
           className="absolute left-1/2 -translate-x-1/2 z-11 bg-accent-bright text-white text-sm py-3 px-8 rounded-none border-2 border-accent shadow-pixel pointer-events-none whitespace-nowrap"
           style={{ top: editor.isDirty ? 64 : 8 }}
         >
-          Rotate (R)
+          회전 (R)
         </div>
       )}
 
@@ -377,7 +345,7 @@ function App() {
 
       {officeReadOnly && (
         <div className="absolute mobile-safe-top left-1/2 -translate-x-1/2 z-10 text-sm text-text-muted pointer-events-none select-none whitespace-nowrap">
-          View only
+          보기 전용
         </div>
       )}
 
@@ -402,32 +370,16 @@ function App() {
             className="border-border! shadow-pixel"
             onClick={() => setIsSettingsOpen((v) => !v)}
           >
-            Settings
+            설정
           </Button>
         </div>
       )}
 
-      <VersionIndicator
-        currentVersion={extensionVersion}
-        lastSeenVersion={lastSeenVersion}
-        hideUpdateNotice={officeReadOnly}
-        onDismiss={handleWhatsNewDismiss}
-        onOpenChangelog={handleOpenChangelog}
-      />
-
       <ConnectionIndicator />
-
-      <ChangelogModal
-        isOpen={isChangelogOpen}
-        onClose={() => setIsChangelogOpen(false)}
-        currentVersion={extensionVersion}
-      />
 
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
-        alwaysShowOverlay={alwaysShowOverlay}
-        onToggleAlwaysShowOverlay={handleToggleAlwaysShowOverlay}
         externalAssetDirectories={externalAssetDirectories}
         showAreas={showAreas}
         onToggleShowAreas={onToggleShowAreas}

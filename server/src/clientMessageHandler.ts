@@ -47,7 +47,6 @@ export interface ClientMessageContext {
 
 // ── Setting keys ──
 const KEY_SOUND_ENABLED = 'pixel-agents.soundEnabled';
-const KEY_LAST_SEEN_VERSION = 'pixel-agents.lastSeenVersion';
 const KEY_ALWAYS_SHOW_LABELS = 'pixel-agents.alwaysShowLabels';
 const KEY_SHOW_AREAS = 'pixel-agents.showAreas';
 
@@ -83,10 +82,6 @@ export function handleClientMessage(
 
     case 'setSoundEnabled':
       adapter.setSetting(KEY_SOUND_ENABLED, msg.enabled);
-      break;
-
-    case 'setLastSeenVersion':
-      adapter.setSetting(KEY_LAST_SEEN_VERSION, msg.version as string);
       break;
 
     case 'setAlwaysShowLabels':
@@ -240,8 +235,6 @@ function settingsSnapshot(ctx: ClientMessageContext) {
   return {
     type: 'settingsLoaded',
     soundEnabled: adapter.getSetting(KEY_SOUND_ENABLED, true),
-    lastSeenVersion: adapter.getSetting(KEY_LAST_SEEN_VERSION, ''),
-    extensionVersion: process.env.PIXEL_AGENTS_VERSION ?? '',
     alwaysShowLabels: adapter.getSetting(KEY_ALWAYS_SHOW_LABELS, false),
     externalAssetDirectories: externalAssetDirectoriesFor(ctx),
     showAreas: adapter.getSetting(KEY_SHOW_AREAS, false),
@@ -267,7 +260,6 @@ const KNOWN_CLIENT_TYPES: ReadonlySet<string> = new Set<ClientMessage['type']>([
   'webviewReady',
   'saveLayout',
   'setSoundEnabled',
-  'setLastSeenVersion',
   'setAlwaysShowLabels',
   'addExternalAssetDirectory',
   'removeExternalAssetDirectory',

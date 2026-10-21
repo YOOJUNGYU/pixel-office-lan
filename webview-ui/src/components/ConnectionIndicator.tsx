@@ -4,16 +4,16 @@ import { transport } from '../transport/index.js';
 import type { TransportState } from '../transport/types.js';
 
 const STATE_LABELS: Partial<Record<TransportState, string>> = {
-  connecting: 'Connecting…',
-  reconnecting: 'Reconnecting…',
-  disconnected: 'Disconnected',
+  connecting: '연결 중…',
+  reconnecting: '다시 연결 중…',
+  disconnected: '연결 끊김',
 };
 
 /**
  * Standalone connection status badge. Renders nothing while connected (the happy
  * path, and always in VS Code where the transport is permanently connected), so
- * it is invisible unless the WebSocket drops in standalone mode. Modeled on
- * VersionIndicator's absolute-overlay + pixel-panel convention.
+ * it is invisible unless the WebSocket drops in standalone mode. Follows the
+ * absolute-overlay + pixel-panel convention.
  */
 export function ConnectionIndicator() {
   const [state, setState] = useState<TransportState>(transport.state);
@@ -26,7 +26,7 @@ export function ConnectionIndicator() {
 
   if (state === 'connected') return null;
 
-  const label = STATE_LABELS[state] ?? 'Disconnected';
+  const label = STATE_LABELS[state] ?? '연결 끊김';
   const dotClass = state === 'connecting' ? 'bg-status-permission' : 'bg-status-error';
 
   return (

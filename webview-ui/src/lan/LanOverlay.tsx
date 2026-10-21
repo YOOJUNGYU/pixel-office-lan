@@ -6,10 +6,10 @@ import {
   BUBBLE_VERTICAL_OFFSET_PX,
   CHARACTER_SITTING_OFFSET_PX,
   LAN_BUBBLE_HEAD_OFFSET,
+  LAN_BUBBLE_MAX_WIDTH_PX,
   LAN_BUBBLE_Z_INDEX,
   LAN_PERMISSION_Z_INDEX,
   LAN_PROVIDER_COLORS,
-  LAN_TAG_FONT_PX,
   LAN_TAG_Z_INDEX,
 } from '../constants.js';
 import type { OfficeState } from '../office/engine/officeState.js';
@@ -87,11 +87,10 @@ export function LanOverlay({ officeState, lan, containerRef, zoom, panRef }: Lan
     nodes.push(
       <div
         key={a.key}
-        className="absolute -translate-x-1/2 flex items-center gap-4 whitespace-nowrap leading-none px-2 bg-bg/70 text-text pointer-events-none"
+        className="absolute -translate-x-1/2 flex items-center gap-4 whitespace-nowrap text-sm leading-none px-3 py-1 bg-bg/75 text-text pointer-events-none"
         style={{
           left: x,
           top: project.toScreenY(ch.y + (typing ? CHARACTER_SITTING_OFFSET_PX : 0)),
-          fontSize: LAN_TAG_FONT_PX,
           zIndex: LAN_TAG_Z_INDEX,
         }}
       >
@@ -134,23 +133,22 @@ export function LanOverlay({ officeState, lan, containerRef, zoom, panRef }: Lan
     nodes.push(
       <div
         key="hover"
-        className="absolute -translate-x-1/2 -translate-y-full pixel-panel px-8 py-4 flex flex-col gap-2 max-w-xs pointer-events-none"
+        className="absolute -translate-x-1/2 -translate-y-full pixel-panel px-8 py-6 flex flex-col gap-4 w-max text-sm leading-snug break-words pointer-events-none"
         style={{
           left: project.toScreenX(hoveredCh.x),
           top: project.toScreenY(
             hoveredCh.y + (typing ? CHARACTER_SITTING_OFFSET_PX : 0) - LAN_BUBBLE_HEAD_OFFSET,
           ),
+          maxWidth: LAN_BUBBLE_MAX_WIDTH_PX,
           zIndex: LAN_BUBBLE_Z_INDEX,
         }}
       >
-        <span className="text-sm leading-none whitespace-nowrap">
+        <span className="font-bold">
           {hovered.permission && '❗ 확인 필요 · '}
           {ROOM_LABELS[hovered.room]}
         </span>
-        {hovered.summary && <span className="text-xs leading-tight">{hovered.summary}</span>}
-        {hovered.reason && (
-          <span className="text-xs leading-tight text-text-muted">“{hovered.reason}”</span>
-        )}
+        {hovered.summary && <span>{hovered.summary}</span>}
+        {hovered.reason && <span className="text-text-muted">“{hovered.reason}”</span>}
       </div>,
     );
   }

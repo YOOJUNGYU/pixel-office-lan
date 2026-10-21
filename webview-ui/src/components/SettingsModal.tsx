@@ -10,8 +10,6 @@ import { Modal } from './ui/Modal.js';
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  alwaysShowOverlay: boolean;
-  onToggleAlwaysShowOverlay: () => void;
   externalAssetDirectories: string[];
   /** Whether the areas overlay is rendered outside of the Areas edit tool. */
   showAreas: boolean;
@@ -27,8 +25,6 @@ interface SettingsModalProps {
 export function SettingsModal({
   isOpen,
   onClose,
-  alwaysShowOverlay,
-  onToggleAlwaysShowOverlay,
   externalAssetDirectories,
   showAreas,
   onToggleShowAreas,
@@ -41,17 +37,17 @@ export function SettingsModal({
   const [assetDirDraft, setAssetDirDraft] = useState('');
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Settings">
+    <Modal isOpen={isOpen} onClose={onClose} title="설정">
       <MenuItem
         onClick={() => {
           onExportLayout();
           onClose();
         }}
       >
-        Export Layout
+        레이아웃 내보내기
       </MenuItem>
       {/* Open the native file picker; the import is applied in onChange below. */}
-      <MenuItem onClick={() => fileInputRef.current?.click()}>Import Layout</MenuItem>
+      <MenuItem onClick={() => fileInputRef.current?.click()}>레이아웃 가져오기</MenuItem>
       <input
         ref={fileInputRef}
         type="file"
@@ -72,7 +68,7 @@ export function SettingsModal({
         <input
           type="text"
           value={assetDirDraft}
-          placeholder="Absolute asset directory path"
+          placeholder="에셋 폴더 절대 경로"
           onChange={(e) => setAssetDirDraft(e.target.value)}
           className="flex-1 min-w-0 text-xs py-2 px-4 bg-bg border-2 border-border rounded-none text-text"
         />
@@ -87,7 +83,7 @@ export function SettingsModal({
           }}
           className="shrink-0"
         >
-          Add
+          추가
         </Button>
       </div>
       {externalAssetDirectories.map((dir) => (
@@ -109,7 +105,7 @@ export function SettingsModal({
         </div>
       ))}
       <Checkbox
-        label="Sound Notifications"
+        label="알림 소리"
         checked={soundLocal}
         onChange={() => {
           const newVal = !isSoundEnabled();
@@ -118,13 +114,8 @@ export function SettingsModal({
           transport.send({ type: 'setSoundEnabled', enabled: newVal });
         }}
       />
-      <Checkbox
-        label="Always Show Labels"
-        checked={alwaysShowOverlay}
-        onChange={onToggleAlwaysShowOverlay}
-      />
       {showAreasAvailable && (
-        <Checkbox label="Show Areas" checked={showAreas} onChange={onToggleShowAreas} />
+        <Checkbox label="방 영역 표시" checked={showAreas} onChange={onToggleShowAreas} />
       )}
     </Modal>
   );
