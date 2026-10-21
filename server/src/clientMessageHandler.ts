@@ -1,3 +1,4 @@
+import type { ClientMessage } from '../../core/src/messages.js';
 import type { LoadedAssets, LoadedCharacterSprites, LoadedPetSprites } from './assetLoader.js';
 import { readConfig, writeConfig } from './configPersistence.js';
 import type { FileStateAdapter } from './fileStateAdapter.js';
@@ -166,10 +167,10 @@ function handleWebviewReady(send: WsSend, ctx: ClientMessageContext): void {
   }
 
   // 2. Settings
-  send(settingsSnapshot(ctx.adapter));
+  send(settingsSnapshot(ctx));
 
   // 3. Directory→Area mappings
-  send({ type: 'areaMappingsLoaded', mappings: readConfig().standalone.areaMappings ?? {} });
+  send(areaMappingsSnapshot(ctx));
 
   // 4. Layout last: the webview builds the office once it arrives.
   const savedLayout = readLayoutFromFile();
@@ -179,22 +180,53 @@ function handleWebviewReady(send: WsSend, ctx: ClientMessageContext): void {
 /**
  * The settingsLoaded snapshot: sent on connect, and re-sent to a read-only
  * client whose setting change was refused, so its optimistic toggle snaps back.
+ * Local paths never leave the PC: a read-only (LAN) client gets no asset dirs.
  */
-function settingsSnapshot(adapter: FileStateAdapter) {
+function settingsSnapshot(ctx: ClientMessageContext) {
+  const { adapter } = ctx;
   return {
     type: 'settingsLoaded',
     soundEnabled: adapter.getSetting(KEY_SOUND_ENABLED, true),
     lastSeenVersion: adapter.getSetting(KEY_LAST_SEEN_VERSION, ''),
     extensionVersion: process.env.PIXEL_AGENTS_VERSION ?? '',
     alwaysShowLabels: adapter.getSetting(KEY_ALWAYS_SHOW_LABELS, false),
-    externalAssetDirectories: readConfig().externalAssetDirectories,
+    externalAssetDirectories: externalAssetDirectoriesFor(ctx),
     showAreas: adapter.getSetting(KEY_SHOW_AREAS, false),
   } as const;
 }
 
-/** Message types already reported as refused, so a read-only client that keeps
- *  sending logs once per type, not per message. */
-const reportedRefusals = new Set<string>();
+/** Absolute paths: only a privileged (loopback) client may see them. */
+function externalAssetDirectoriesFor(ctx: ClientMessageContext): string[] {
+  return ctx.privileged ? readConfig().externalAssetDirectories : [];
+}
+
+/** Area mappings are keyed by directory name: privileged clients only. */
+function areaMappingsSnapshot(ctx: ClientMessageContext) {
+  return {
+    type: 'areaMappingsLoaded',
+    mappings: ctx.privileged ? (readConfig().standalone.areaMappings ?? {}) : {},
+  };
+}
+
+/** Client message types this server knows. Refusal logging buckets by these
+ *  only, so untrusted input can't grow the set below or flood the log. */
+const KNOWN_CLIENT_TYPES: ReadonlySet<string> = new Set<ClientMessage['type']>([
+  'webviewReady',
+  'saveLayout',
+  'setSoundEnabled',
+  'setLastSeenVersion',
+  'setAlwaysShowLabels',
+  'addExternalAssetDirectory',
+  'removeExternalAssetDirectory',
+  'saveAreaMappings',
+  'setShowAreas',
+]);
+const UNKNOWN_REFUSAL_KEY = 'unknown';
+
+/** Refusal-log buckets already reported, so a read-only client that keeps
+ *  sending logs once per known type (plus one 'unknown' bucket), not per message.
+ *  @internal exported for the bounded-growth test. */
+export const reportedRefusals = new Set<string>();
 
 /**
  * Drop a message from a read-only (non-loopback) client. Where the UI changes
@@ -206,28 +238,31 @@ function refuseReadOnly(
   send: WsSend,
   ctx: ClientMessageContext,
 ): void {
-  const type = String(msg.type);
-  if (!reportedRefusals.has(type)) {
-    reportedRefusals.add(type);
+  const key =
+    typeof msg.type === 'string' && KNOWN_CLIENT_TYPES.has(msg.type)
+      ? msg.type
+      : UNKNOWN_REFUSAL_KEY;
+  if (!reportedRefusals.has(key)) {
+    reportedRefusals.add(key);
     console.warn(
-      `[Pixel Office] Ignoring ${type} from a read-only client. Changes are only accepted from http://localhost on this PC.`,
+      `[Pixel Office] Ignoring ${key} message from a read-only client. Changes are only accepted from http://localhost on this PC.`,
     );
   }
   switch (msg.type) {
     case 'setSoundEnabled':
     case 'setAlwaysShowLabels':
     case 'setShowAreas':
-      send(settingsSnapshot(ctx.adapter));
+      send(settingsSnapshot(ctx));
       return;
     case 'addExternalAssetDirectory':
     case 'removeExternalAssetDirectory':
       send({
         type: 'externalAssetDirectoriesUpdated',
-        dirs: readConfig().externalAssetDirectories,
+        dirs: externalAssetDirectoriesFor(ctx),
       });
       return;
     case 'saveAreaMappings':
-      send({ type: 'areaMappingsLoaded', mappings: readConfig().standalone.areaMappings ?? {} });
+      send(areaMappingsSnapshot(ctx));
       return;
   }
 }

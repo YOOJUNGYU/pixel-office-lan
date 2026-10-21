@@ -16,6 +16,7 @@ vi.mock('os', async () => {
 
 const { PixelAgentsServer } = await import('../src/server.js');
 const { isLoopback } = await import('../src/httpServer.js');
+const { readConfig, writeConfig } = await import('../src/configPersistence.js');
 
 /** Slack after the handshake for a server-side rejection close to land. */
 const SETTLE_MS = 300;
@@ -155,5 +156,21 @@ describe('/ws', () => {
     await new Promise((r) => setTimeout(r, SETTLE_MS));
     warn.mockRestore();
     expect(fs.existsSync(layoutPath())).toBe(false);
+  });
+
+  it('a LAN viewer never receives local paths in the handshake', async () => {
+    const cfg = readConfig();
+    cfg.externalAssetDirectories = ['/home/kim/assets'];
+    cfg.standalone.areaMappings = { 'kim-project': ['Lab'] };
+    writeConfig(cfg);
+
+    const host = `office.example:${port.toString()}`;
+    const { socket } = await connect(port, { Host: host, Origin: `http://${host}` });
+    sockets.push(socket);
+    const settings = waitForMessage(socket, 'settingsLoaded');
+    const mappings = waitForMessage(socket, 'areaMappingsLoaded');
+    socket.send(JSON.stringify({ type: 'webviewReady' }));
+    expect(await settings).toMatchObject({ externalAssetDirectories: [] });
+    expect(await mappings).toEqual({ type: 'areaMappingsLoaded', mappings: {} });
   });
 });

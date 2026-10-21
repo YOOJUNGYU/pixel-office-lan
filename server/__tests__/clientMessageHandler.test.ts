@@ -7,8 +7,9 @@ import {
   type AssetCache,
   type ClientMessageContext,
   handleClientMessage,
+  reportedRefusals,
 } from '../src/clientMessageHandler.js';
-import { readConfig } from '../src/configPersistence.js';
+import { readConfig, writeConfig } from '../src/configPersistence.js';
 import { FileStateAdapter } from '../src/fileStateAdapter.js';
 
 // Hex placeholders are test fixtures, not UI tokens.
@@ -170,5 +171,59 @@ describe('clientMessageHandler', () => {
       expect(sent).toEqual([{ type: 'areaMappingsLoaded', mappings: {} }]);
       warn.mockRestore();
     });
+  });
+
+  describe('local paths never reach a read-only client', () => {
+    function seedPaths(): void {
+      const cfg = readConfig();
+      cfg.externalAssetDirectories = ['/home/kim/assets'];
+      cfg.standalone.areaMappings = { 'kim-project': ['Lab'] };
+      writeConfig(cfg);
+    }
+    const pick = (type: string) => sent.find((m) => m.type === type);
+
+    it('handshake: read-only gets empty dirs and mappings, privileged gets the real ones', () => {
+      seedPaths();
+      send({ type: 'webviewReady' }, ctx(false));
+      expect(pick('settingsLoaded')).toMatchObject({ externalAssetDirectories: [] });
+      expect(pick('areaMappingsLoaded')).toEqual({ type: 'areaMappingsLoaded', mappings: {} });
+
+      sent = [];
+      send({ type: 'webviewReady' }, ctx(true));
+      expect(pick('settingsLoaded')).toMatchObject({
+        externalAssetDirectories: ['/home/kim/assets'],
+      });
+      expect(pick('areaMappingsLoaded')).toEqual({
+        type: 'areaMappingsLoaded',
+        mappings: { 'kim-project': ['Lab'] },
+      });
+    });
+
+    it('refusal replies carry no paths either', () => {
+      seedPaths();
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      send({ type: 'setShowAreas', enabled: true }, ctx(false));
+      send({ type: 'addExternalAssetDirectory', path: '/x' }, ctx(false));
+      send({ type: 'saveAreaMappings', mappings: {} }, ctx(false));
+      warn.mockRestore();
+      expect(pick('settingsLoaded')).toMatchObject({ externalAssetDirectories: [] });
+      expect(pick('externalAssetDirectoriesUpdated')).toEqual({
+        type: 'externalAssetDirectoriesUpdated',
+        dirs: [],
+      });
+      expect(pick('areaMappingsLoaded')).toEqual({ type: 'areaMappingsLoaded', mappings: {} });
+      expect(JSON.stringify(sent)).not.toContain('kim');
+    });
+  });
+
+  it('refusal logging stays bounded under endless garbage message types', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    for (let i = 0; i < 1000; i++) {
+      send({ type: `garbage-${i.toString()}-${'x'.repeat(1000)}` }, ctx(false));
+    }
+    send({ type: 42 }, ctx(false));
+    expect(reportedRefusals.size).toBeLessThanOrEqual(9 + 1);
+    for (const [line] of warn.mock.calls) expect(String(line)).not.toContain('garbage');
+    warn.mockRestore();
   });
 });
