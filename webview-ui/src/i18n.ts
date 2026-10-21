@@ -93,7 +93,9 @@ const ko = {
   'profile.hideDetailsHint':
     '켜면 파일 경로·주소·토큰 같은 민감 정보는 다른 사람에게 보내지 않습니다',
   'profile.manualPeers': '직접 연결할 PC IP',
-  'profile.manualPeersHint': '한 줄에 하나씩 입력 (같은 네트워크에서 자동으로 못 찾을 때)',
+  'profile.advanced': '고급: 자동으로 안 보일 때',
+  'profile.manualPeersHint':
+    '같은 망의 PC는 자동으로 보입니다. 다른 층이나 망에 있는 PC만 IP를 적으세요. (한 줄에 하나씩)',
   'profile.manualPeersTooMany': '직접 연결 PC는 20개까지 입력할 수 있습니다.',
   'profile.manualPeersInvalid': 'IP 또는 PC 이름만 입력하세요 (포트·http:// 없이): {list}',
   'profile.saveRejected': '저장하지 못했습니다. 입력을 확인하고 다시 저장하세요.',
@@ -250,7 +252,9 @@ const en: Record<Key, string> = {
   'profile.hideDetailsHint':
     'When on, sensitive info such as file paths, addresses and tokens is never sent to others',
   'profile.manualPeers': 'PC IPs to connect directly',
-  'profile.manualPeersHint': "One per line (when a PC on the network isn't found automatically)",
+  'profile.advanced': "Advanced: when a PC isn't found automatically",
+  'profile.manualPeersHint':
+    'PCs on the same network appear automatically. Only add IPs of PCs on another floor or network. (One per line)',
   'profile.manualPeersTooMany': 'You can enter up to 20 PCs.',
   'profile.manualPeersInvalid': 'Enter only an IP or PC name (no port or http://): {list}',
   'profile.saveRejected': 'Could not save. Check your input and save again.',

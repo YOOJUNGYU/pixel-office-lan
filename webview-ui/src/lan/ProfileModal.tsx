@@ -70,6 +70,8 @@ export function ProfileModal({ profile, firstRun, saveError, onSave, onClose }: 
   const [hideDetails, setHideDetails] = useState(profile.hideDetails);
   const [peersText, setPeersText] = useState(profile.manualPeers.join('\n'));
   const [submitted, setSubmitted] = useState(false);
+  // Advanced (manual peers) starts collapsed unless some are already set.
+  const [peersOpen] = useState(profile.manualPeers.length > 0);
 
   const trimmed = nickname.trim();
   const manualPeers = peersText
@@ -179,23 +181,34 @@ export function ProfileModal({ profile, firstRun, saveError, onSave, onClose }: 
           <span className="w-30 text-right text-text-muted">{hueShift}°</span>
         </div>
 
-        <Checkbox
-          label={t('profile.hideDetails')}
-          checked={hideDetails}
-          onChange={() => setHideDetails((v) => !v)}
-        />
-        <div className="text-xs text-text-muted">{t('profile.hideDetailsHint')}</div>
+        {/* First run asks only for name, character and colour; hideDetails keeps
+            its default and the rest lives in Settings → My profile. */}
+        {!firstRun && (
+          <>
+            <Checkbox
+              label={t('profile.hideDetails')}
+              checked={hideDetails}
+              onChange={() => setHideDetails((v) => !v)}
+            />
+            <div className="text-xs text-text-muted">{t('profile.hideDetailsHint')}</div>
 
-        <label htmlFor="profile-peers">{t('profile.manualPeers')}</label>
-        <textarea
-          id="profile-peers"
-          rows={3}
-          value={peersText}
-          onChange={(e) => setPeersText(e.target.value)}
-          className="w-full py-2 px-4 bg-bg border-2 border-border rounded-none text-text text-xs"
-        />
-        <div className="text-xs text-text-muted">{t('profile.manualPeersHint')}</div>
-        {errors.peers && <span className="text-xs text-danger">{errors.peers}</span>}
+            <details open={peersOpen}>
+              <summary className="cursor-pointer select-none">{t('profile.advanced')}</summary>
+              <div className="flex flex-col gap-4 pt-4">
+                <div className="text-xs text-text-muted">{t('profile.manualPeersHint')}</div>
+                <label htmlFor="profile-peers">{t('profile.manualPeers')}</label>
+                <textarea
+                  id="profile-peers"
+                  rows={3}
+                  value={peersText}
+                  onChange={(e) => setPeersText(e.target.value)}
+                  className="w-full py-2 px-4 bg-bg border-2 border-border rounded-none text-text text-xs"
+                />
+              </div>
+            </details>
+            {errors.peers && <span className="text-xs text-danger">{errors.peers}</span>}
+          </>
+        )}
 
         {saveError && <span className="text-xs text-danger">{t('profile.saveRejected')}</span>}
         <Button variant="accent" onClick={save} className="self-end">
