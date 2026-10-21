@@ -600,7 +600,7 @@ export class LanAgents {
 - Produces: `ProfileModal(props: { profile: Omit<Profile,'peerId'>; firstRun: boolean; onSave(p): void; onClose(): void })`
 
 - `canEdit && nickname===''` 이면 첫 실행으로 닫을 수 없는 모달을 띄운다. `canEdit===false`(원격 구경꾼)면 프로필/설정 편집 UI 를 숨긴다.
-- 항목: 닉네임(1–20자), 캐릭터 6종 미리보기 선택, 색상(hueShift 0–360 슬라이더, 미리보기 즉시 반영), "상세 내용 숨기기" 체크(설명: "켜면 파일 경로·주소·토큰 같은 민감 정보는 다른 사람에게 보내지 않습니다"), "직접 연결할 PC IP" 목록(줄바꿈 구분).
+- 항목: 닉네임(1–20자), 캐릭터 6종 미리보기 선택, 색상(견본 8개 클릭 + hueShift 0–360 슬라이더, 미리보기 즉시 반영 — 사용자 요청), "상세 내용 숨기기" 체크(설명: "켜면 파일 경로·주소·토큰 같은 민감 정보는 다른 사람에게 보내지 않습니다"), "직접 연결할 PC IP" 목록(줄바꿈 구분).
 - 저장 시 `saveProfile` 전송.
 
 - [ ] **Step 1: 구현**
@@ -681,3 +681,96 @@ export function downloadAndRun(info: UpdateInfo, dir?: string): Promise<void>; /
 - [ ] **Step 3: 구현** (Node 내장 `fetch` 사용)
 - [ ] **Step 4: 통과 확인** → PASS. 실기: `v0.1.0-rc1` 설치 PC 에서 `v0.1.0-rc2` Release 후 배너 → 업데이트 → 새 버전 실행 확인(rc 는 `isNewer` 에서 무시되므로 이 검증만 `PIXEL_OFFICE_ALLOW_PRERELEASE=1` 환경변수로 허용).
 - [ ] **Step 5: 커밋** — `git commit -m "feat: update check via github releases"`
+
+---
+
+### Task 17: 한국어/영어 언어 설정 (i18n) — USER REQUEST 2026-10-21
+
+Runs after Task 14, before Task 15.
+
+**Goal:** Every user-visible string can be shown in Korean or English, chosen per viewer in Settings. Agent-generated free text (`reason`, file names, commands, search queries) is shown as-is.
+
+**Files:**
+
+- Create: `webview-ui/src/i18n.ts` (dictionary + `t(key, params?)` + `useLang()`), `webview-ui/test/i18n.test.ts`, `server/__tests__/lan/act.test.ts` (or extend parser tests)
+- Modify: `core/src/lan.ts` (AgentView/OfficeAgent: replace `summary: string` with `act: Act; target: string`), `core/asyncapi.yaml` + regenerate, `server/src/lan/session.ts`, `claudeParser.ts`, `codexParser.ts`, `redact.ts` (redact `target` instead of `summary`), `server/src/lan/office.ts`, webview overlay/modal/settings/toolbar/editor components, `webview-ui/src/lan/lanAgents.ts` (`tagText` localized)
+
+**Interfaces:**
+
+```ts
+// core/src/lan.ts
+export type Act =
+  | 'idle'
+  | 'edit'
+  | 'read'
+  | 'search'
+  | 'find'
+  | 'web'
+  | 'fetch'
+  | 'mcp'
+  | 'run'
+  | 'delegate'
+  | 'ask'
+  | 'image'
+  | 'tool';
+// AgentView: { …, act: Act; target: string /* ≤120 */; … }  — `summary` removed; parsePeerPacket validates act ∈ Act, target string ≤120
+export type Lang = 'ko' | 'en';
+```
+
+Parser mapping (same rules as before, now emitting act/target instead of a Korean sentence):
+
+| before (summary)                      | act      | target                 |
+| ------------------------------------- | -------- | ---------------------- |
+| `${file} 수정 중`                     | edit     | file basename          |
+| `${file} 읽는 중` / `읽는 중: ${cmd}` | read     | file basename / cmd    |
+| `"${pattern}" 검색 중`                | search   | pattern                |
+| `"${pattern}" 파일 찾는 중`           | find     | pattern                |
+| `웹 검색: ${q}` / `웹 검색 중`        | web      | query or ''            |
+| `${url} 보는 중`                      | fetch    | url                    |
+| `${srv}:${tool} 사용 중`              | mcp      | `${srv}:${tool}`       |
+| `명령 실행: ${x}`                     | run      | description or command |
+| `서브에이전트에게 맡김: ${d}`         | delegate | description            |
+| `답변 기다리는 중`                    | ask      | ''                     |
+| `이미지 보는 중`                      | image    | ''                     |
+| `${name} 사용 중`                     | tool     | tool name              |
+| `대기 중`                             | idle     | ''                     |
+
+Shell child views: act `run`, target = the command/description.
+
+Webview dictionary (exact strings):
+
+| key               | ko                                  | en                                  |
+| ----------------- | ----------------------------------- | ----------------------------------- |
+| room.coding       | 코딩실                              | Coding Room                         |
+| room.library      | 자료실                              | Library                             |
+| room.server       | 서버실                              | Server Room                         |
+| room.lounge       | 대기실                              | Lounge                              |
+| act.edit          | {t} 수정 중                         | Editing {t}                         |
+| act.read          | {t} 읽는 중                         | Reading {t}                         |
+| act.search        | "{t}" 검색 중                       | Searching "{t}"                     |
+| act.find          | "{t}" 파일 찾는 중                  | Finding files "{t}"                 |
+| act.web           | 웹 검색: {t} / 웹 검색 중 (empty t) | Web search: {t} / Searching the web |
+| act.fetch         | {t} 보는 중                         | Viewing {t}                         |
+| act.mcp           | {t} 사용 중                         | Using {t}                           |
+| act.run           | 명령 실행: {t}                      | Running: {t}                        |
+| act.delegate      | 서브에이전트에게 맡김: {t}          | Delegating: {t}                     |
+| act.ask           | 답변 기다리는 중                    | Waiting for your answer             |
+| act.image         | 이미지 보는 중                      | Viewing an image                    |
+| act.tool          | {t} 사용 중                         | Using {t}                           |
+| act.idle          | 대기 중                             | Idle                                |
+| tag.subagent      | ↳ 서브에이전트                      | ↳ Subagent                          |
+| tag.shell         | ↳ 셸                                | ↳ Shell                             |
+| bubble.permission | ❗ 확인 필요                        | ❗ Needs attention                  |
+| nickname.unset    | 이름없음                            | Unnamed                             |
+
+Plus every other visible UI string (toolbar, settings, profile modal, editor tool names/tooltips, read-only notice, errors). Room labels in the layout stay the Korean area labels as internal keys; the renderer/overlay maps `코딩실→room.coding` etc. for display.
+
+- Language preference is **per viewer**: `localStorage['pixel-office.lang']` (try/catch), default = `navigator.language` starts with `ko` → `ko`, else `en`. Settings modal gets "언어 / Language" select (한국어 / English). Works for read-only remote viewers too (no server round-trip).
+- Server-side Korean strings that reach the UI (e.g. nickname fallback `이름없음`) become codes or empty strings resolved in the webview (`nickname: ''` on the wire → `t('nickname.unset')`). The CLI's console messages may stay Korean.
+- `redact` applies to `target` (and `reason`) — keep all existing redaction tests passing by re-pointing them.
+
+- [ ] **Step 1: Failing tests** — `i18n.test.ts`: `t('act.edit',{t:'a.ts'})` → `'a.ts 수정 중'` in ko, `'Editing a.ts'` in en; `t('act.web',{t:''})` ko `'웹 검색 중'`, en `'Searching the web'`; every key exists in both languages (iterate dictionary); unknown key returns the key. Parser tests updated to assert `{act, target}` (e.g. Edit `/a/b/login.ts` → `{act:'edit', target:'login.ts'}`); packet test rejects `act:'dance'`.
+- [ ] **Step 2: Verify fail** — `cd webview-ui && npx vitest run test/i18n.test.ts` and `cd server && npx vitest run __tests__/lan` → FAIL
+- [ ] **Step 3: Implement** (protocol change first, regenerate messages.ts, then server, then webview)
+- [ ] **Step 4: Verify** — `npm test`, `npm run check-types`, `npm run lint` → PASS. Screenshots in both languages (overview + hover) to the sdd dir as `task-17-ko.png`, `task-17-en.png`.
+- [ ] **Step 5: Commit** — `git commit -m "feat: korean/english language setting"`

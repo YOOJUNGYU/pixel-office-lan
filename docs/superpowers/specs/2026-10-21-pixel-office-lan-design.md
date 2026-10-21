@@ -42,7 +42,8 @@ pixel-agents 는 **내 PC 의** AI 코딩 에이전트를 픽셀아트 사무실
    - 닉네임·외형은 패킷에 실려 다른 PC 에도 그대로 보인다.
 8. **설치 파일 하나** — Windows(.exe 설치) · Mac(설치 패키지). Node 등 사전 설치 불필요. 첫 실행 시 닉네임 입력, 로그인 시 자동 시작, 트레이/메뉴바 또는 브라우저로 사무실 열기.
 9. **배포·업데이트 = GitHub** — 공개 저장소 `github.com/YOOJUNGYU/pixel-office-lan`. 버전 태그(`v*`) push → GitHub Actions 가 Windows `.exe`·Mac `.pkg` 를 빌드해 **GitHub Release** 에 올린다. 앱은 주기적으로 최신 Release 를 확인해 새 버전이 있으면 화면에 "새 버전이 있습니다 → 업데이트" 버튼을 띄우고, 누르면 설치 파일을 받아 실행한다(자동 무음 설치 안 함 — UAC 창이 갑자기 뜨지 않게). 원작은 `upstream` 원격으로 연결해 변경을 받아올 수 있게 한다.
-10. **지원 환경** — Claude Code: Windows 네이티브 · WSL · Mac. Codex: 동일하게 세 환경.
+10. **언어: 한국어/영어** — 보는 사람마다 설정(브라우저 저장, 기본은 브라우저 언어). 방 이름·활동 문구·이름표·메뉴가 번역되고, 에이전트가 쓴 이유·파일명·명령은 원문. 이를 위해 네트워크에는 완성 문장 대신 `{act, target}` 을 보낸다. UI 글꼴은 Pretendard(OFL, 앱에 동봉).
+11. **지원 환경** — Claude Code: Windows 네이티브 · WSL · Mac. Codex: 동일하게 세 환경.
 
 ## 3. 비목표 (이번 범위 아님)
 
