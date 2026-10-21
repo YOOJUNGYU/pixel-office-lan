@@ -1,5 +1,5 @@
 /**
- * Shared data types used across extension, server, and webview.
+ * Shared data types used across server and webview.
  * Extracted from src/types.ts, webview-ui/src/office/types.ts, shared/assets/types.ts.
  *
  * This is the core package's public contract, so every type here is exported whether or
@@ -8,46 +8,6 @@
  * across the process boundary. Deleting one because knip reports it unused would break
  * the contract, hence the @public tags.
  */
-
-// ── Agent State ──────────────────────────────────────────────
-
-/** Persisted agent data (survives F5 reload / restart) */
-export interface PersistedAgent {
-  id: number;
-  sessionId?: string;
-  terminalName: string;
-  isExternal?: boolean;
-  jsonlFile: string;
-  projectDir: string;
-  directoryName?: string;
-  /** Pre-Directory spelling of `directoryName`, written by releases up to
-   *  v1.4.x. Read as a fallback on restore; never written. */
-  folderName?: string;
-  teamName?: string;
-  agentName?: string;
-  isTeamLead?: boolean;
-  leadAgentId?: number;
-  teamUsesTmux?: boolean;
-  /** Live background-spawn tool ids on a lead. Persisted so the spawns'
-   *  transcripts are re-adopted after a reload; the spawned children
-   *  themselves are derived state and never persisted. */
-  backgroundAgentToolIds?: string[];
-  /** Preferred character palette (0-5). Persisted so colors stay stable
-   *  across server restarts; assignPaletteIfNeeded is a no-op on restore. */
-  palette?: number;
-  /** Hue shift in degrees (0-360). Persisted alongside palette. */
-  hueShift?: number;
-}
-
-/** Agent seat assignment with visual identity
- *
- * @public
- */
-export interface AgentMeta {
-  palette: number;
-  hueShift: number;
-  seatId: string | null;
-}
 
 // ── Layout ───────────────────────────────────────────────────
 
@@ -123,26 +83,4 @@ export interface FurnitureCatalogEntry {
   rotationScheme?: string;
   animationGroup?: string;
   frame?: number;
-}
-
-// ── Hook Events ──────────────────────────────────────────────
-
-/** Raw hook event received from any provider's hook script via HTTP server
- *
- * @public
- */
-export interface HookEvent {
-  hook_event_name: string;
-  session_id: string;
-  [key: string]: unknown;
-}
-
-// ── Disposable ───────────────────────────────────────────────
-
-/** Generic disposable pattern (matches VS Code's Disposable)
- *
- * @public
- */
-export interface Disposable {
-  dispose(): void;
 }

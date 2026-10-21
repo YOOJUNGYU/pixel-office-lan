@@ -25,20 +25,5 @@
 
 <!-- Add your own test steps -->
 
-- [ ] Tested in Extension Development Host (F5)
+- [ ] Ran `node dist/cli.js --port 47801` and checked http://localhost:47801
 - [ ] ...
-
-## E2E coverage
-
-<!-- See pixel-agents/e2e/README.md for the suite inventory. -->
-
-- [ ] If user-visible behavior changed, an e2e test was added or updated
-      under `pixel-agents/e2e/tests/`. Ran `npm run e2e:inventory` and
-      committed the regenerated `pixel-agents/e2e/README.md`.
-- [ ] If this PR is a refactor / docs / chore with no user-visible
-      behavior change, no e2e test is needed. Explain below.
-
-**What e2e tests cover this change?** (test names + file paths, or
-"manual smoke only because:")
-
-<!-- Your answer here -->

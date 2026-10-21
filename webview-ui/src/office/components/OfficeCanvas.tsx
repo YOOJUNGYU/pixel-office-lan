@@ -10,7 +10,6 @@ import {
   ZOOM_SCROLL_THRESHOLD,
 } from '../../constants.js';
 import { unlockAudio } from '../../notificationSound.js';
-import { transport } from '../../transport/index.js';
 import { furnitureAt } from '../editor/editorActions.js';
 import { buildEditorRenderState } from '../editor/editorRenderState.js';
 import type { EditorState } from '../editor/editorState.js';
@@ -39,7 +38,7 @@ function dragMoveCursor(editorState: EditorState): string {
 
 interface OfficeCanvasProps {
   officeState: OfficeState;
-  onClick: (agentId: number) => void;
+  onClick?: (agentId: number) => void;
   isEditMode: boolean;
   editorState: EditorState;
   onEditorTileAction: (col: number, row: number) => void;
@@ -60,7 +59,7 @@ interface OfficeCanvasProps {
   activeAreaLabel: string | null;
   /** Mobile two-step tap: the first tap on a character selects it (camera
    *  follow + status label), and only a second tap on the already-selected
-   *  character fires onClick (opens its terminal). Desktop keeps single-click
+   *  character fires onClick. Desktop keeps single-click
    *  focus with tap-again-to-deselect. */
   tapSelectsFirst?: boolean;
 }
@@ -616,7 +615,7 @@ export function OfficeCanvas({
         // Deselection is tapping empty floor, as ever.
         if (tapSelectsFirst) {
           if (officeState.selectedAgentId === hitId) {
-            onClick(hitId);
+            onClick?.(hitId);
           } else {
             officeState.selectedAgentId = hitId;
             officeState.cameraFollowId = hitId;
@@ -631,7 +630,7 @@ export function OfficeCanvas({
           officeState.selectedAgentId = hitId;
           officeState.cameraFollowId = hitId;
         }
-        onClick(hitId); // still focus terminal
+        onClick?.(hitId);
         return;
       }
 
@@ -669,10 +668,6 @@ export function OfficeCanvas({
                   officeState.reassignSeat(officeState.selectedAgentId, seatId);
                   officeState.selectedAgentId = null;
                   officeState.cameraFollowId = null;
-                  transport.send({
-                    type: 'saveAgentSeats',
-                    seats: officeState.getPersistableSeats(),
-                  });
                   return;
                 }
               }
