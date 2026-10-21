@@ -64,11 +64,10 @@ function runCli(args: string[]): Promise<{ code: number | null; stdout: string; 
 }
 
 describe('parseArgs', () => {
-  // 1. No --port -> ephemeral default (unset), never a hardcoded port
-  it('defaults port to undefined (ephemeral) when --port is omitted', () => {
-    const args = parseArgs([]);
-    expect(args.port).toBeUndefined();
-    expect(args.host).toBe('127.0.0.1');
+  // 1. Defaults: LAN-reachable on the well-known UI port, no browser
+  it('defaults to 0.0.0.0:47801 without --open', () => {
+    expect(parseArgs([])).toEqual({ host: '0.0.0.0', port: 47801, open: false });
+    expect(parseArgs(['--open']).open).toBe(true);
   });
 
   // 2. Valid --port is accepted

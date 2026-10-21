@@ -1,13 +1,19 @@
-import fastifyCors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
 import fastifyWebsocket from '@fastify/websocket';
 import type { FastifyInstance } from 'fastify';
 import Fastify from 'fastify';
 
 import type { AssetCache, ReloadAssetsSideEffect } from './clientMessageHandler.js';
-import { handleClientMessage } from './clientMessageHandler.js';
-import { LOOPBACK_ADDRESSES, LOOPBACK_HOSTNAMES, WS_CLOSE_FORBIDDEN_ORIGIN } from './constants.js';
+import { handleClientMessage, profileMessage, snapshotMessage } from './clientMessageHandler.js';
+import {
+  LOOPBACK_ADDRESSES,
+  LOOPBACK_HOSTNAMES,
+  PING_APP,
+  SNAPSHOT_INTERVAL_MS,
+  WS_CLOSE_FORBIDDEN_ORIGIN,
+} from './constants.js';
 import type { FileStateAdapter } from './fileStateAdapter.js';
+import type { LanService } from './lan/office.js';
 
 /** Options for creating the HTTP + WebSocket server. */
 export interface HttpServerOptions {
@@ -25,6 +31,10 @@ export interface HttpServerOptions {
   onReloadAssets?: ReloadAssetsSideEffect;
   /** Request logging. Default true; tests turn it off. */
   logger?: boolean;
+  /** LAN office: officeSnapshot every second, profile messages. */
+  lan?: LanService;
+  /** `POST /api/quit` from this PC: shut everything down. */
+  onQuit?: () => void;
 }
 
 /** Result of createHttpServer(). */
@@ -99,7 +109,6 @@ function isAllowedWebSocketOrigin(origin: string | undefined, host: string | und
 export async function createHttpServer(options: HttpServerOptions): Promise<HttpServerHandle> {
   const app = Fastify({ logger: options.logger ?? true });
 
-  await app.register(fastifyCors, { origin: true });
   await app.register(fastifyWebsocket);
 
   if (options.staticDir) {
@@ -119,12 +128,44 @@ export async function createHttpServer(options: HttpServerOptions): Promise<Http
     pid: process.pid,
   }));
 
+  // Single-instance probe (cli.checkExisting); harmless for anyone to read.
+  app.get('/api/ping', async () => ({ app: PING_APP }));
+
+  // Used by the uninstaller. This PC only: a LAN viewer must not stop our office.
+  app.post('/api/quit', async (request, reply) => {
+    if (!isLoopback(request)) return reply.code(403).send({ error: 'forbidden' });
+    options.onQuit?.(); // the caller delays the exit so this reply goes out first
+    return { ok: true };
+  });
+
+  const clients = new Set<{ socket: WsLike; privileged: boolean }>();
+  const { lan } = options;
+  if (lan) {
+    const timer = setInterval(() => {
+      for (const c of clients) {
+        try {
+          safeSend(c.socket, snapshotMessage(lan, c.privileged));
+        } catch (err) {
+          console.error('[Pixel Office] officeSnapshot failed:', err);
+        }
+      }
+    }, SNAPSHOT_INTERVAL_MS);
+    app.addHook('onClose', async () => clearInterval(timer));
+  }
+  const onProfileSaved = (): void => {
+    if (!lan) return;
+    for (const c of clients) if (c.privileged) safeSend(c.socket, profileMessage(lan, true));
+  };
+
   app.get('/ws', { websocket: true }, (socket, request) => {
     if (!isAllowedWebSocketOrigin(request.headers.origin, request.headers.host)) {
       socket.close(WS_CLOSE_FORBIDDEN_ORIGIN, 'forbidden origin');
       return;
     }
     const privileged = isLoopback(request);
+    const client = { socket, privileged };
+    clients.add(client);
+    socket.on('close', () => clients.delete(client));
 
     socket.on('message', (data: Buffer | string) => {
       try {
@@ -134,6 +175,8 @@ export async function createHttpServer(options: HttpServerOptions): Promise<Http
           cache: options.assetCache ?? null,
           onReloadAssets: options.onReloadAssets,
           privileged,
+          lan,
+          onProfileSaved,
         });
       } catch {
         // Malformed JSON, ignore
@@ -148,10 +191,12 @@ export async function createHttpServer(options: HttpServerOptions): Promise<Http
   return { app, port };
 }
 
-function safeSend(
-  socket: { send: (data: string) => void; readyState: number },
-  message: Record<string, unknown>,
-): void {
+interface WsLike {
+  send: (data: string) => void;
+  readyState: number;
+}
+
+function safeSend(socket: WsLike, message: Record<string, unknown>): void {
   // WebSocket.OPEN = 1
   if (socket.readyState === 1) {
     socket.send(JSON.stringify(message));

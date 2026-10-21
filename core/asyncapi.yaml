@@ -86,6 +86,9 @@ components:
         - $ref: '#/components/schemas/SettingsLoaded'
         - $ref: '#/components/schemas/ExternalAssetDirectoriesUpdated'
         - $ref: '#/components/schemas/AreaMappingsLoaded'
+        # LAN office
+        - $ref: '#/components/schemas/OfficeSnapshot'
+        - $ref: '#/components/schemas/ProfileLoaded'
       discriminator: type
 
     ClientMessage:
@@ -99,6 +102,7 @@ components:
         - $ref: '#/components/schemas/RemoveExternalAssetDirectory'
         - $ref: '#/components/schemas/SaveAreaMappings'
         - $ref: '#/components/schemas/SetShowAreas'
+        - $ref: '#/components/schemas/SaveProfile'
       discriminator: type
 
     # ── Server message variants ────────────────────────────────────
@@ -366,6 +370,127 @@ components:
         readOnly:
           type: boolean
 
+    OfficeSnapshot:
+      description: >-
+        Every agent in the LAN office (this PC's and every live peer's), pushed
+        about once a second. When this PC's profile hides details, a read-only
+        viewer gets this PC's summaries redacted; peer agents arrive already
+        redacted by their sender.
+      type: object
+      additionalProperties: false
+      required: [type, agents, selfPeerId]
+      properties:
+        type:
+          const: officeSnapshot
+        agents:
+          type: array
+          items:
+            $ref: '#/components/schemas/OfficeAgentMessage'
+        selfPeerId:
+          type: string
+          description: This server's peer id (marks which agents are local).
+
+    ProfileLoaded:
+      description: >-
+        This PC's profile, sent on webviewReady and after a profile save.
+        `canEdit` is true only for a same-host loopback browser; a read-only
+        viewer gets `manualPeers: []`.
+      type: object
+      additionalProperties: false
+      required: [type, profile, canEdit]
+      properties:
+        type:
+          const: profileLoaded
+        profile:
+          $ref: '#/components/schemas/ProfileMessage'
+        canEdit:
+          type: boolean
+
+    ProfileMessage:
+      description: The editable profile (everything but the peer id).
+      type: object
+      additionalProperties: false
+      required: [nickname, palette, hueShift, hideDetails, manualPeers]
+      properties:
+        nickname:
+          type: string
+          description: '1-20 chars; empty until the user picks one.'
+        palette:
+          type: integer
+          minimum: 0
+          maximum: 5
+        hueShift:
+          type: integer
+          minimum: 0
+          maximum: 360
+        hideDetails:
+          type: boolean
+        manualPeers:
+          type: array
+          description: Extra peer IPv4 addresses or hostnames to send to.
+          items:
+            type: string
+
+    OfficeAgentMessage:
+      description: One agent view of one PC; `key` is `<peerId>:<id>`.
+      type: object
+      additionalProperties: false
+      required: [key, id, provider, kind, num, room, permission, summary, reason, peer]
+      properties:
+        key:
+          type: string
+        parentKey:
+          type: string
+          description: '`<peerId>:<parentId>`, children (subagent, shell) only.'
+        id:
+          type: string
+        provider:
+          $ref: '#/components/schemas/AgentProvider'
+        kind:
+          $ref: '#/components/schemas/AgentViewKind'
+        num:
+          type: integer
+          description: '#n for main sessions, 0 for children.'
+        parentId:
+          type: string
+        room:
+          $ref: '#/components/schemas/AgentRoom'
+        permission:
+          type: boolean
+          description: Waiting for approval or input.
+        summary:
+          type: string
+        reason:
+          type: string
+        peer:
+          $ref: '#/components/schemas/PeerInfoMessage'
+
+    PeerInfoMessage:
+      type: object
+      additionalProperties: false
+      required: [id, nickname, palette, hueShift]
+      properties:
+        id:
+          type: string
+        nickname:
+          type: string
+        palette:
+          type: integer
+        hueShift:
+          type: integer
+
+    AgentProvider:
+      type: string
+      enum: [claude, codex]
+
+    AgentViewKind:
+      type: string
+      enum: [main, subagent, shell]
+
+    AgentRoom:
+      type: string
+      enum: [coding, library, server, lounge]
+
     # ── Client message variants ────────────────────────────────────
 
     WebviewReady:
@@ -563,3 +688,14 @@ components:
           type: string
         frame:
           type: integer
+
+    SaveProfile:
+      description: Save this PC's profile (loopback browser only; validated server-side).
+      type: object
+      additionalProperties: false
+      required: [type, profile]
+      properties:
+        type:
+          const: saveProfile
+        profile:
+          $ref: '#/components/schemas/ProfileMessage'

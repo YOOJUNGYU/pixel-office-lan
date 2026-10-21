@@ -2,6 +2,8 @@ import type { ClientMessage } from '../../core/src/messages.js';
 import type { LoadedAssets, LoadedCharacterSprites, LoadedPetSprites } from './assetLoader.js';
 import { readConfig, writeConfig } from './configPersistence.js';
 import type { FileStateAdapter } from './fileStateAdapter.js';
+import type { LanService } from './lan/office.js';
+import { validateProfileUpdate } from './lan/profile.js';
 import { readLayoutFromFile, writeLayoutToFile } from './layoutPersistence.js';
 
 type WsSend = (message: Record<string, unknown>) => void;
@@ -37,6 +39,10 @@ export interface ClientMessageContext {
    * gets the safe answer.
    */
   privileged?: boolean;
+  /** LAN office (profile + agents). Absent in tests that only exercise layout/settings. */
+  lan?: LanService;
+  /** After a successful saveProfile: re-send profileLoaded to every privileged client. */
+  onProfileSaved?: () => void;
 }
 
 // ── Setting keys ──
@@ -124,9 +130,52 @@ export function handleClientMessage(
       break;
     }
 
+    case 'saveProfile': {
+      if (!ctx.lan) break;
+      const update = validateProfileUpdate(msg.profile);
+      if (!update) {
+        send(profileMessage(ctx.lan, true));
+        break;
+      }
+      try {
+        ctx.lan.saveProfile(update);
+      } catch (err) {
+        console.error('[Pixel Office] Failed to save profile:', err);
+        send(profileMessage(ctx.lan, true));
+        break;
+      }
+      ctx.onProfileSaved?.();
+      break;
+    }
+
     default:
       break;
   }
+}
+
+/** profileLoaded. Manual peer IPs are LAN-internal: privileged clients only. */
+export function profileMessage(lan: LanService, privileged: boolean) {
+  const { nickname, palette, hueShift, hideDetails, manualPeers } = lan.profile;
+  return {
+    type: 'profileLoaded',
+    profile: {
+      nickname,
+      palette,
+      hueShift,
+      hideDetails,
+      manualPeers: privileged ? manualPeers : [],
+    },
+    canEdit: privileged,
+  } as const;
+}
+
+/** officeSnapshot. A read-only viewer sees this PC's agents redacted when hideDetails is on. */
+export function snapshotMessage(lan: LanService, privileged: boolean) {
+  return {
+    type: 'officeSnapshot',
+    agents: lan.office(lan.profile.hideDetails && !privileged),
+    selfPeerId: lan.profile.peerId,
+  } as const;
 }
 
 function handleWebviewReady(send: WsSend, ctx: ClientMessageContext): void {
@@ -168,6 +217,7 @@ function handleWebviewReady(send: WsSend, ctx: ClientMessageContext): void {
 
   // 2. Settings
   send(settingsSnapshot(ctx));
+  if (ctx.lan) send(profileMessage(ctx.lan, ctx.privileged === true));
 
   // 3. Directory→Area mappings
   send(areaMappingsSnapshot(ctx));
@@ -175,6 +225,9 @@ function handleWebviewReady(send: WsSend, ctx: ClientMessageContext): void {
   // 4. Layout last: the webview builds the office once it arrives.
   const savedLayout = readLayoutFromFile();
   send({ type: 'layoutLoaded', layout: savedLayout ?? cache?.defaultLayout ?? null });
+
+  // 5. Agents right away rather than on the next 1 s tick.
+  if (ctx.lan) send(snapshotMessage(ctx.lan, ctx.privileged === true));
 }
 
 /**
@@ -220,6 +273,7 @@ const KNOWN_CLIENT_TYPES: ReadonlySet<string> = new Set<ClientMessage['type']>([
   'removeExternalAssetDirectory',
   'saveAreaMappings',
   'setShowAreas',
+  'saveProfile',
 ]);
 const UNKNOWN_REFUSAL_KEY = 'unknown';
 
@@ -263,6 +317,9 @@ function refuseReadOnly(
       return;
     case 'saveAreaMappings':
       send(areaMappingsSnapshot(ctx));
+      return;
+    case 'saveProfile':
+      if (ctx.lan) send(profileMessage(ctx.lan, false));
       return;
   }
 }

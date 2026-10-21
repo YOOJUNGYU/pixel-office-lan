@@ -40,3 +40,14 @@ export const CODEX_META_MAX_BYTES = 256 * 1024;
 export const DISCOVER_INTERVAL_MS = 10_000;
 export const POLL_INTERVAL_MS = 1_000;
 export const WSL_LIST_TIMEOUT_MS = 3_000;
+
+// ── LAN office wiring ──────────────────────────────────────
+/** `GET /api/ping` answer that marks a running Pixel Office (single-instance check). */
+export const PING_APP = 'pixel-office';
+export const PING_TIMEOUT_MS = 1_000;
+/** officeSnapshot push interval per WebSocket. */
+export const SNAPSHOT_INTERVAL_MS = 1_000;
+/** `POST /api/quit`: delay before exit so the reply reaches the caller. */
+export const QUIT_DELAY_MS = 100;
+/** Nickname sent to peers until the user picks one. */
+export const UNNAMED_NICKNAME = '이름없음';

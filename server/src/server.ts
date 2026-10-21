@@ -3,12 +3,15 @@ import type { FastifyInstance } from 'fastify';
 import type { AssetCache, ReloadAssetsSideEffect } from './clientMessageHandler.js';
 import { FileStateAdapter } from './fileStateAdapter.js';
 import { createHttpServer } from './httpServer.js';
+import type { LanService } from './lan/office.js';
 
 /**
  * Pixel Office server: serves the SPA and streams office state over WebSocket.
  *
  * Routes (via Fastify in httpServer.ts):
  * - `GET /api/health` -- health check
+ * - `GET /api/ping` -- `{app:'pixel-office'}` single-instance probe
+ * - `POST /api/quit` -- shut down (this PC only)
  * - `GET /ws` -- WebSocket protocol channel (writes only from a loopback browser)
  * - `GET /*` -- the SPA
  */
@@ -24,6 +27,8 @@ export class PixelAgentsServer {
     onReloadAssets?: ReloadAssetsSideEffect;
     adapter?: FileStateAdapter;
     logger?: boolean;
+    lan?: LanService;
+    onQuit?: () => void;
   }): Promise<{ port: number }> {
     const { app, port } = await createHttpServer({
       host: options?.host,
@@ -33,6 +38,8 @@ export class PixelAgentsServer {
       assetCache: options?.assetCache,
       onReloadAssets: options?.onReloadAssets,
       logger: options?.logger,
+      lan: options?.lan,
+      onQuit: options?.onQuit,
     });
     this.app = app;
     return { port };

@@ -15,9 +15,10 @@ core/
   src/transport.ts       MessageTransport interface
   src/assets/            PNG decoding + manifest helpers shared by server and webview
 server/src/
-  cli.ts                 Entry (dist/cli.js): parse --port/--host, load assets, start server
+  cli.ts                 Entry (dist/cli.js): --port/--host/--open, single-instance check, Scanner + PeerNet, start server
   server.ts              PixelAgentsServer.start({host, port, staticDir, assetCache}) / stop()
-  httpServer.ts          Fastify: GET /api/health, GET /ws, SPA static; isLoopback(req)
+  httpServer.ts          Fastify: GET /api/health, /api/ping, POST /api/quit (loopback), GET /ws (+1 s officeSnapshot), SPA static; isLoopback(req)
+  lan/office.ts          buildOffice, checkExisting (single instance), LanService (profile + scanner + peers)
   clientMessageHandler.ts  ClientMessage dispatch + webviewReady handshake + read-only gate
   assetLoader.ts / assetReload.ts   PNG → SpriteData, external asset directories
   layoutPersistence.ts   ~/.pixel-office/layout.json (atomic tmp+rename)
@@ -38,11 +39,11 @@ VS Code adapter, PTY/xterm terminal, hook providers + consent flow, JSONL transc
 
 ## Handshake (`webviewReady`)
 
-`officeAccess {readOnly}` → asset messages (characters, pets, floor, walls, carpets, furniture) → `settingsLoaded` → `areaMappingsLoaded` → `layoutLoaded` (saved layout, else bundled default) last.
+`officeAccess {readOnly}` → asset messages (characters, pets, floor, walls, carpets, furniture) → `settingsLoaded` → `profileLoaded {profile, canEdit}` → `areaMappingsLoaded` → `layoutLoaded` (saved layout, else bundled default) → first `officeSnapshot`. After that `officeSnapshot {agents, selfPeerId}` is pushed every second to every socket (this PC's agents redacted for read-only viewers when `hideDetails`).
 
 ## Privilege rule
 
-A `/ws` connection may write (save layout, settings, area mappings, asset dirs) only when `isLoopback(req)` (`server/src/httpServer.ts`):
+A `/ws` connection may write (save layout, settings, area mappings, asset dirs, profile) — and `POST /api/quit` is accepted — only when `isLoopback(req)` (`server/src/httpServer.ts`):
 
 - remote address is `127.0.0.1`, `::1` or `::ffff:127.0.0.1`, AND
 - `Host` header host is `localhost`, `127.0.0.1` or `[::1]`, AND
@@ -52,7 +53,7 @@ Everyone else is read-only: the single gate at the top of `handleClientMessage` 
 
 ## Data
 
-`~/.pixel-office/` — `layout.json`, `config.json`. Ports: UDP 47800 (peers), HTTP 47801 (UI) per the spec; the CLI currently defaults to `127.0.0.1` and an ephemeral port.
+`~/.pixel-office/` — `layout.json`, `config.json`, `profile.json`. Ports: UDP 47800 (peers), HTTP 47801 (UI); the CLI defaults to `--host 0.0.0.0 --port 47801`. A UDP bind failure only disables peers.
 
 ## Build & test
 

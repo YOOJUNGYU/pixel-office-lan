@@ -18,7 +18,9 @@ export type ServerMessage =
   | OfficeAccess
   | SettingsLoaded
   | ExternalAssetDirectoriesUpdated
-  | AreaMappingsLoaded;
+  | AreaMappingsLoaded
+  | OfficeSnapshot
+  | ProfileLoaded;
 
 export type ClientMessage =
   | WebviewReady
@@ -29,7 +31,8 @@ export type ClientMessage =
   | AddExternalAssetDirectory
   | RemoveExternalAssetDirectory
   | SaveAreaMappings
-  | SetShowAreas;
+  | SetShowAreas
+  | SaveProfile;
 
 export interface LayoutLoaded {
   type: 'layoutLoaded';
@@ -131,6 +134,54 @@ export interface AreaMappingsLoaded {
   mappings: Record<string, string[]>;
 }
 
+export interface OfficeSnapshot {
+  type: 'officeSnapshot';
+  agents: OfficeAgentMessage[];
+  selfPeerId: string;
+}
+
+export interface OfficeAgentMessage {
+  key: string;
+  parentKey?: string;
+  id: string;
+  provider: AgentProvider;
+  kind: AgentViewKind;
+  num: number;
+  parentId?: string;
+  room: AgentRoom;
+  permission: boolean;
+  summary: string;
+  reason: string;
+  peer: PeerInfoMessage;
+}
+
+export type AgentProvider = 'claude' | 'codex';
+
+export type AgentViewKind = 'main' | 'subagent' | 'shell';
+
+export type AgentRoom = 'coding' | 'library' | 'server' | 'lounge';
+
+export interface PeerInfoMessage {
+  id: string;
+  nickname: string;
+  palette: number;
+  hueShift: number;
+}
+
+export interface ProfileLoaded {
+  type: 'profileLoaded';
+  profile: ProfileMessage;
+  canEdit: boolean;
+}
+
+export interface ProfileMessage {
+  nickname: string;
+  palette: number;
+  hueShift: number;
+  hideDetails: boolean;
+  manualPeers: string[];
+}
+
 export interface WebviewReady {
   type: 'webviewReady';
 }
@@ -173,4 +224,9 @@ export interface SaveAreaMappings {
 export interface SetShowAreas {
   type: 'setShowAreas';
   enabled: boolean;
+}
+
+export interface SaveProfile {
+  type: 'saveProfile';
+  profile: ProfileMessage;
 }

@@ -17,6 +17,8 @@ vi.mock('os', async () => {
 const { PixelAgentsServer } = await import('../src/server.js');
 const { isLoopback } = await import('../src/httpServer.js');
 const { readConfig, writeConfig } = await import('../src/configPersistence.js');
+const { LanService } = await import('../src/lan/office.js');
+const { loadProfile } = await import('../src/lan/profile.js');
 
 /** Slack after the handshake for a server-side rejection close to land. */
 const SETTLE_MS = 300;
@@ -172,5 +174,93 @@ describe('/ws', () => {
     socket.send(JSON.stringify({ type: 'webviewReady' }));
     expect(await settings).toMatchObject({ externalAssetDirectories: [] });
     expect(await mappings).toEqual({ type: 'areaMappingsLoaded', mappings: {} });
+  });
+});
+
+describe('/ws LAN office', () => {
+  let server: InstanceType<typeof PixelAgentsServer>;
+  let port: number;
+  const sockets: WebSocket[] = [];
+  const profilePath = (): string => path.join(tmpBase, '.pixel-office', 'profile.json');
+  const localView = {
+    id: 's1',
+    provider: 'claude',
+    kind: 'main',
+    num: 1,
+    room: 'coding',
+    permission: false,
+    summary: '/home/kim/a.ts 수정 중',
+    reason: '',
+  } as const;
+  const update = {
+    nickname: '유',
+    palette: 1,
+    hueShift: 20,
+    hideDetails: true,
+    manualPeers: ['192.168.0.9'],
+  };
+
+  beforeEach(async () => {
+    tmpBase = fs.mkdtempSync(path.join(os.tmpdir(), 'pxl-ws-lan-'));
+    const lan = new LanService(loadProfile(), { views: () => [localView] });
+    server = new PixelAgentsServer();
+    ({ port } = await server.start({ logger: false, lan }));
+  });
+
+  afterEach(async () => {
+    for (const socket of sockets) socket.terminate();
+    sockets.length = 0;
+    await server.stop();
+    fs.rmSync(tmpBase, { recursive: true, force: true });
+  });
+
+  async function open(hostname: string): Promise<WebSocket> {
+    const host = `${hostname}:${port.toString()}`;
+    const { socket } = await connect(port, { Host: host, Origin: `http://${host}` });
+    sockets.push(socket);
+    return socket;
+  }
+
+  it('loopback: canEdit, verbatim agents, saveProfile lands and is echoed', async () => {
+    const socket = await open('localhost');
+    const loaded = waitForMessage(socket, 'profileLoaded');
+    const snap = waitForMessage(socket, 'officeSnapshot');
+    socket.send(JSON.stringify({ type: 'webviewReady' }));
+    expect(await loaded).toMatchObject({ canEdit: true, profile: { hideDetails: true } });
+    expect(await snap).toMatchObject({
+      agents: [{ summary: '/home/kim/a.ts 수정 중', key: expect.stringMatching(/:s1$/) }],
+      selfPeerId: expect.any(String),
+    });
+
+    const echoed = waitForMessage(socket, 'profileLoaded');
+    socket.send(JSON.stringify({ type: 'saveProfile', profile: update }));
+    expect(await echoed).toMatchObject({ canEdit: true, profile: update });
+    expect(JSON.parse(fs.readFileSync(profilePath(), 'utf-8'))).toMatchObject(update);
+  });
+
+  it('read-only viewer: redacted agents, no manual peers, saveProfile ignored', async () => {
+    const before = fs.readFileSync(profilePath(), 'utf-8');
+    const socket = await open('office.example');
+    const loaded = waitForMessage(socket, 'profileLoaded');
+    const snap = waitForMessage(socket, 'officeSnapshot');
+    socket.send(JSON.stringify({ type: 'webviewReady' }));
+    expect(await loaded).toMatchObject({ canEdit: false, profile: { manualPeers: [] } });
+    expect(await snap).toMatchObject({ agents: [{ summary: 'a.ts 수정 중' }] });
+
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const refused = waitForMessage(socket, 'profileLoaded');
+    socket.send(JSON.stringify({ type: 'saveProfile', profile: update }));
+    expect(await refused).toMatchObject({ canEdit: false, profile: { nickname: '' } });
+    warn.mockRestore();
+    expect(fs.readFileSync(profilePath(), 'utf-8')).toBe(before);
+  });
+
+  it('pushes officeSnapshot every second', async () => {
+    const socket = await open('localhost');
+    let count = 0;
+    socket.on('message', (d: Buffer) => {
+      if ((JSON.parse(d.toString()) as { type?: string }).type === 'officeSnapshot') count++;
+    });
+    await vi.waitFor(() => expect(count).toBeGreaterThanOrEqual(2), { timeout: 3_000 });
   });
 });
