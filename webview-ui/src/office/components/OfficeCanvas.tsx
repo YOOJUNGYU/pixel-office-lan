@@ -6,9 +6,6 @@ import {
   OFFICE_CANVAS_TEST_ID,
   PAN_DRAG_THRESHOLD_PX,
   PAN_MARGIN_FRACTION,
-  ZOOM_MAX,
-  ZOOM_MIN,
-  ZOOM_SCROLL_THRESHOLD,
 } from '../../constants.js';
 import { unlockAudio } from '../../notificationSound.js';
 import { furnitureAt } from '../editor/editorActions.js';
@@ -24,7 +21,7 @@ import type {
 } from '../engine/renderer.js';
 import { renderFrame } from '../engine/renderer.js';
 import { EditTool, TILE_SIZE } from '../types.js';
-import { clampPanToMap, zoomAtPoint } from '../zoomAtPoint.js';
+import { clampPanToMap, wheelZoom, zoomAtPoint } from '../zoomAtPoint.js';
 import { computeNormalModeCursor } from './officeCanvasCursor.js';
 import { useCanvasTouchGestures } from './useCanvasTouchGestures.js';
 
@@ -96,8 +93,9 @@ export function OfficeCanvas({
   const rotateButtonBoundsRef = useRef<RotateButtonBounds | null>(null);
   // Right-click erase dragging
   const isEraseDraggingRef = useRef(false);
-  // Zoom scroll accumulator for trackpad pinch sensitivity
-  const zoomAccumulatorRef = useRef(0);
+  // Latest zoom, ahead of the prop between a wheel event and the re-render
+  const liveZoomRef = useRef(zoom);
+  liveZoomRef.current = zoom;
   // Left-button press that may turn into a pan once it moves PAN_DRAG_THRESHOLD_PX
   const leftDownRef = useRef<{ x: number; y: number } | null>(null);
   // Set when a left drag panned, so exactly the following click is ignored
@@ -800,17 +798,16 @@ export function OfficeCanvas({
         );
         return;
       }
-      // Accumulate scroll delta, step zoom when threshold crossed
-      zoomAccumulatorRef.current += e.deltaY;
-      if (Math.abs(zoomAccumulatorRef.current) < ZOOM_SCROLL_THRESHOLD) return;
-      const delta = zoomAccumulatorRef.current < 0 ? 1 : -1;
-      zoomAccumulatorRef.current = 0;
-      const newZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoom + delta));
-      if (newZoom === zoom) return;
+      // Several wheel events can land before React re-renders with the new
+      // zoom; chain them off the latest value, not the stale prop.
+      const oldZoom = liveZoomRef.current;
+      const newZoom = wheelZoom(oldZoom, e.deltaY, e.deltaMode);
+      if (newZoom === oldZoom) return;
+      liveZoomRef.current = newZoom;
       const rect = canvas.getBoundingClientRect();
       const zoomed = zoomAtPoint(
         panRef.current,
-        zoom,
+        oldZoom,
         newZoom,
         { x: (e.clientX - rect.left) * dpr, y: (e.clientY - rect.top) * dpr },
         { w: canvas.width, h: canvas.height },
@@ -819,7 +816,7 @@ export function OfficeCanvas({
       officeState.breakCameraFollow();
       onZoomChange(newZoom);
     },
-    [zoom, onZoomChange, officeState, panRef, clampPan],
+    [onZoomChange, officeState, panRef, clampPan],
   );
 
   // Attach wheel listener with { passive: false } so preventDefault() works.

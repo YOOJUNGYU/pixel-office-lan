@@ -956,13 +956,13 @@ export interface SelectionRenderState {
 }
 
 export function renderFrame(
-  ctx: CanvasRenderingContext2D,
-  canvasWidth: number,
-  canvasHeight: number,
+  screenCtx: CanvasRenderingContext2D,
+  screenWidth: number,
+  screenHeight: number,
   tileMap: TileTypeVal[][],
   furniture: FurnitureInstance[],
   characters: Character[],
-  zoom: number,
+  viewZoom: number,
   panX: number,
   panY: number,
   selection?: SelectionRenderState,
@@ -978,16 +978,24 @@ export function renderFrame(
   pets?: Pet[],
   background?: OfficeBackground,
 ): { offsetX: number; offsetY: number } {
-  // Clear
-  ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-
   // Use layout dimensions (fallback to tileMap size)
   const cols = layoutCols ?? (tileMap.length > 0 ? tileMap[0].length : 0);
   const rows = layoutRows ?? tileMap.length;
 
-  // Center map in viewport + pan offset (integer device pixels). Shared with
-  // the DOM overlays so a label lands exactly on the sprite it belongs to.
-  const { offsetX, offsetY } = mapOffset(canvasWidth, canvasHeight, cols, rows, zoom, panX, panY);
+  // Fractional zoom: draw at the integer `renderZoom` (sprite caches stay
+  // per-integer) into an offscreen canvas, then blit it scaled by `scale` with
+  // nearest-neighbour. Everything below works in that render space; the
+  // returned offsets are screen device px, the frame overlays use.
+  const view = mapOffset(screenWidth, screenHeight, cols, rows, viewZoom, panX, panY);
+  const scaled = view.scale !== 1;
+  const canvasWidth = scaled ? Math.ceil(screenWidth / view.scale) : screenWidth;
+  const canvasHeight = scaled ? Math.ceil(screenHeight / view.scale) : screenHeight;
+  const ctx = scaled ? offscreenContext(canvasWidth, canvasHeight) : screenCtx;
+  const zoom = view.renderZoom;
+  const offsetX = view.renderOffsetX;
+  const offsetY = view.renderOffsetY;
+
+  ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
   // Background (outside the office + VOID tiles), then tiles (floor + wall base color)
   renderBackground(
@@ -1129,5 +1137,33 @@ export function renderFrame(
     }
   }
 
-  return { offsetX, offsetY };
+  if (scaled) {
+    screenCtx.clearRect(0, 0, screenWidth, screenHeight);
+    screenCtx.imageSmoothingEnabled = false;
+    screenCtx.drawImage(ctx.canvas, 0, 0, canvasWidth * view.scale, canvasHeight * view.scale);
+    if (editor) {
+      editor.deleteButtonBounds = scaleBounds(editor.deleteButtonBounds, view.scale);
+      editor.rotateButtonBounds = scaleBounds(editor.rotateButtonBounds, view.scale);
+    }
+  }
+
+  return { offsetX: view.offsetX, offsetY: view.offsetY };
+}
+
+let offscreen: CanvasRenderingContext2D | null = null;
+
+/** One reusable offscreen render target for fractional-zoom frames. */
+function offscreenContext(width: number, height: number): CanvasRenderingContext2D {
+  if (!offscreen) offscreen = document.createElement('canvas').getContext('2d')!;
+  const c = offscreen.canvas;
+  if (c.width !== width || c.height !== height) {
+    c.width = width;
+    c.height = height;
+    offscreen.imageSmoothingEnabled = false;
+  }
+  return offscreen;
+}
+
+function scaleBounds(b: ButtonBounds | null, scale: number): ButtonBounds | null {
+  return b && { cx: b.cx * scale, cy: b.cy * scale, radius: b.radius * scale };
 }

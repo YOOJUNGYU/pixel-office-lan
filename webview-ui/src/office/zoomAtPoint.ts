@@ -1,3 +1,19 @@
+import { WHEEL_LINE_HEIGHT_PX, ZOOM_MAX, ZOOM_MIN, ZOOM_WHEEL_SENSITIVITY } from '../constants.js';
+
+export function clampZoom(zoom: number): number {
+  return Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoom));
+}
+
+/**
+ * Continuous wheel/pinch zoom: multiplicative and proportional to the scroll
+ * delta, so a mouse notch is one ~×1.16 step and a trackpad's small deltas are
+ * fine steps. `deltaMode` 1 = lines (some mice), converted to px.
+ */
+export function wheelZoom(zoom: number, deltaY: number, deltaMode = 0): number {
+  const px = deltaMode === 1 ? deltaY * WHEEL_LINE_HEIGHT_PX : deltaY;
+  return clampZoom(zoom * Math.exp(-px * ZOOM_WHEEL_SENSITIVITY));
+}
+
 /**
  * New pan (device px) that keeps the world point under `cursor` fixed on screen
  * when zoom changes. The map is centered in the viewport, so the point's offset

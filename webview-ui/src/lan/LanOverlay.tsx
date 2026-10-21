@@ -13,14 +13,23 @@ import {
 } from '../constants.js';
 import { actText, t } from '../i18n.js';
 import type { OfficeState } from '../office/engine/officeState.js';
-import { overlayProjection } from '../office/projection.js';
+import { overlayProjection, renderScale } from '../office/projection.js';
 import { getCachedSprite } from '../office/sprites/spriteCache.js';
 import { BUBBLE_PERMISSION_SPRITE } from '../office/sprites/spriteData.js';
 import { CharacterState } from '../office/types.js';
 import { type LanAgents, tagText } from './lanAgents.js';
 
 /** The permission bubble sprite, blitted into a DOM canvas above the tags. */
-function PermissionBubble({ cached, dpr }: { cached: HTMLCanvasElement; dpr: number }) {
+/** `scale` = fractional-zoom stretch on top of the integer-zoom sprite (see renderScale). */
+function PermissionBubble({
+  cached,
+  dpr,
+  scale,
+}: {
+  cached: HTMLCanvasElement;
+  dpr: number;
+  scale: number;
+}) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const canvas = ref.current;
@@ -33,7 +42,11 @@ function PermissionBubble({ cached, dpr }: { cached: HTMLCanvasElement; dpr: num
     <canvas
       ref={ref}
       className="block"
-      style={{ width: cached.width / dpr, height: cached.height / dpr }}
+      style={{
+        width: (cached.width * scale) / dpr,
+        height: (cached.height * scale) / dpr,
+        imageRendering: 'pixelated',
+      }}
     />
   );
 }
@@ -75,7 +88,9 @@ export function LanOverlay({ officeState, lan, containerRef, zoom, panRef }: Lan
     panRef.current,
     dpr,
   );
-  const permissionSprite = getCachedSprite(BUBBLE_PERMISSION_SPRITE, zoom);
+  // Sprite cache stays per integer zoom; the bubble is stretched by `scale`.
+  const { renderZoom, scale } = renderScale(zoom);
+  const permissionSprite = getCachedSprite(BUBBLE_PERMISSION_SPRITE, renderZoom);
 
   const nodes = [];
   for (const a of lan.all()) {
@@ -114,11 +129,11 @@ export function LanOverlay({ officeState, lan, containerRef, zoom, panRef }: Lan
               project.toScreenY(
                 ch.y + (typing ? BUBBLE_SITTING_OFFSET_PX : 0) - BUBBLE_VERTICAL_OFFSET_PX,
               ) -
-              (permissionSprite.height + zoom) / dpr,
+              (permissionSprite.height * scale + zoom) / dpr,
             zIndex: LAN_PERMISSION_Z_INDEX,
           }}
         >
-          <PermissionBubble cached={permissionSprite} dpr={dpr} />
+          <PermissionBubble cached={permissionSprite} dpr={dpr} scale={scale} />
         </div>,
       );
     }

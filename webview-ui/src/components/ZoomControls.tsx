@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import {
+  ZOOM_BUTTON_FACTOR,
   ZOOM_LEVEL_FADE_DELAY_MS,
   ZOOM_LEVEL_FADE_DURATION_SEC,
   ZOOM_LEVEL_HIDE_DELAY_MS,
@@ -66,7 +67,7 @@ export function ZoomControls({ zoom, onZoomChange }: ZoomControlsProps) {
             transition: `opacity ${ZOOM_LEVEL_FADE_DURATION_SEC}s ease-out`,
           }}
         >
-          {zoom}x
+          {zoom.toFixed(1)}x
         </div>
       )}
 
@@ -74,7 +75,7 @@ export function ZoomControls({ zoom, onZoomChange }: ZoomControlsProps) {
       <div className="absolute top-8 left-8 z-10 flex flex-col gap-4">
         <Button
           size="icon_lg"
-          onClick={() => onZoomChange(zoom + 1)}
+          onClick={() => onZoomChange(zoom * ZOOM_BUTTON_FACTOR)}
           disabled={maxDisabled}
           className="border-border! shadow-pixel disabled:hover:bg-btn-bg disabled:cursor-default disabled:opacity-(--btn-disabled-opacity)"
           title={t('zoom.in')}
@@ -102,7 +103,7 @@ export function ZoomControls({ zoom, onZoomChange }: ZoomControlsProps) {
         </Button>
         <Button
           size="icon_lg"
-          onClick={() => onZoomChange(zoom - 1)}
+          onClick={() => onZoomChange(zoom / ZOOM_BUTTON_FACTOR)}
           disabled={minDisabled}
           className="border-border! shadow-pixel disabled:hover:bg-btn-bg disabled:cursor-default disabled:opacity-(--btn-disabled-opacity)"
           title={t('zoom.out')}

@@ -6,7 +6,6 @@ import {
   CARPET_DEFAULT_COLOR,
   LAYOUT_SAVE_DEBOUNCE_MS,
   ZOOM_DEFAULT_DPR_FACTOR,
-  ZOOM_MAX,
   ZOOM_MIN,
 } from '../constants.js';
 import type { ExpandDirection } from '../office/editor/editorActions.js';
@@ -46,6 +45,7 @@ import type {
 } from '../office/types.js';
 import { EditTool } from '../office/types.js';
 import { TileType } from '../office/types.js';
+import { clampZoom } from '../office/zoomAtPoint.js';
 import { transport } from '../transport/index.js';
 import type { FurnitureColorActions } from './useFurnitureColorActions.js';
 import { useFurnitureColorActions } from './useFurnitureColorActions.js';
@@ -513,7 +513,7 @@ export function useEditorActions(
   const handleEditorSelectionChange = bumpTick;
 
   const handleZoomChange = useCallback((newZoom: number) => {
-    setZoom(Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, newZoom)));
+    setZoom(clampZoom(newZoom));
   }, []);
 
   /**

@@ -84,13 +84,20 @@ export const CAMERA_FOLLOW_LERP = 0.1;
 export const CAMERA_FOLLOW_SNAP_THRESHOLD = 0.5;
 
 // ── Zoom ─────────────────────────────────────────────────────
-export const ZOOM_MIN = 1;
+export const ZOOM_MIN = 0.5;
 export const ZOOM_MAX = 10;
+/** Wheel/pinch zoom: zoom *= exp(-deltaY × this). A 100-px mouse notch ≈ ×1.16. */
+export const ZOOM_WHEEL_SENSITIVITY = 0.0015;
+/** Zoom +/- buttons multiply / divide by this. */
+export const ZOOM_BUTTON_FACTOR = 1.25;
+/** Wheel deltaMode 1 (lines) → px, so line-scrolling mice zoom like pixel ones. */
+export const WHEEL_LINE_HEIGHT_PX = 40;
+/** A zoom this close to an integer counts as that integer (crisp, unscaled frame). */
+export const ZOOM_INTEGER_EPSILON = 1e-6;
 export const ZOOM_DEFAULT_DPR_FACTOR = 2;
 export const ZOOM_LEVEL_FADE_DELAY_MS = 1500;
 export const ZOOM_LEVEL_HIDE_DELAY_MS = 2000;
 export const ZOOM_LEVEL_FADE_DURATION_SEC = 0.5;
-export const ZOOM_SCROLL_THRESHOLD = 50;
 export const PAN_MARGIN_FRACTION = 0.25;
 /** Left-button movement (CSS px) before a press becomes a map pan instead of a click */
 export const PAN_DRAG_THRESHOLD_PX = 4;

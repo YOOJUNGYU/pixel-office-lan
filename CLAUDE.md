@@ -91,7 +91,7 @@ Installers (`.github/workflows/package.yml`, `scripts/package/`): official Node 
 
 ## Office UI essentials
 
-- Game state lives in the imperative `OfficeState` (not React). Integer zoom, no `ctx.scale(dpr)`, z-sort by Y.
+- Game state lives in the imperative `OfficeState` (not React). Zoom is a float (0.5–10, wheel = `wheelZoom`); the frame is drawn at the integer `renderScale(zoom).renderZoom` (sprite caches stay per-integer) and blitted scaled — overlays/hit-tests use `mapOffset`/`overlayProjection` with the float zoom. No `ctx.scale(dpr)`, z-sort by Y.
 - Layout model `{ version: 1, cols, rows, tiles, furniture, tileColors?, areas? }`; saved via `saveLayout` from the editor (loopback only).
 - Layout editor: floor/wall/erase/furniture/area tools, 50-level stroke-scoped undo, Esc unwinds in stages; pure ops in `office/editor/editorActions.ts`.
 - Assets: per-furniture `manifest.json` under `webview-ui/public/assets/furniture/`, characters `char_0..5.png`, floors, walls, carpets, pets.
