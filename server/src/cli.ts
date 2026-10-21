@@ -21,6 +21,7 @@ import {
 import type { AssetCache, ReloadAssetsSideEffect } from './clientMessageHandler.js';
 import { readConfig } from './configPersistence.js';
 import { MAX_PORT, MIN_PORT, NO_PEERS_ENV, QUIT_DELAY_MS } from './constants.js';
+import { applyInstallerChoice, getAutostart, setAutostart } from './lan/autostart.js';
 import { checkExisting, LanService } from './lan/office.js';
 import { PeerNet } from './lan/peerNet.js';
 import { loadProfile } from './lan/profile.js';
@@ -35,7 +36,12 @@ export interface CliArgs {
   host: string;
   /** Open the office in the default browser once it is up. */
   open: boolean;
+  /** Installer hook: set start-at-login and exit (no server). */
+  autostart?: AutostartMode;
 }
+
+const AUTOSTART_MODES = ['on', 'off', 'default'] as const;
+type AutostartMode = (typeof AUTOSTART_MODES)[number];
 
 /** Thrown by parseArgs on an invalid --port. Kept separate from process.exit so
  *  the parsing logic stays a pure, unit-testable function. */
@@ -64,6 +70,13 @@ export function parseArgs(argv: string[]): CliArgs {
       i++;
     } else if (argv[i] === '--open') {
       args.open = true;
+    } else if (argv[i] === '--autostart') {
+      const mode = argv[i + 1];
+      if (!AUTOSTART_MODES.includes(mode as AutostartMode)) {
+        throw new CliArgsError(`Invalid --autostart "${mode ?? ''}": expected on, off or default.`);
+      }
+      args.autostart = mode as AutostartMode;
+      i++;
     } else if (argv[i] === '--help') {
       console.log(`Usage: pixel-office [options]
 
@@ -71,6 +84,7 @@ Options:
   --port, -p <number>   Port to listen on (default: ${LAN_HTTP_PORT})
   --host <string>       Host to bind to (default: 0.0.0.0)
   --open                Open the office in the default browser
+  --autostart <mode>    Set start at login (on|off|default) and exit — used by the installer
   --help                Show this help message`);
       process.exit(0);
     }
@@ -102,6 +116,12 @@ async function main(): Promise<void> {
   } catch (err) {
     console.error(`[Pixel Office] ${err instanceof Error ? err.message : String(err)}`);
     process.exit(1);
+  }
+
+  if (args.autostart) {
+    const state = await applyInstallerChoice(args.autostart);
+    console.log(`[Pixel Office] start at login: ${JSON.stringify(state)}`);
+    process.exit(0);
   }
 
   // One office per PC: a second launch just (re)opens the browser.
@@ -212,6 +232,7 @@ async function main(): Promise<void> {
       lan,
       onQuit: () => setTimeout(() => void shutdown(), QUIT_DELAY_MS),
       updater,
+      autostart: { get: () => getAutostart(), set: (on) => setAutostart(on) },
     });
     updater.start();
 

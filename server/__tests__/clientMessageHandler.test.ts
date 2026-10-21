@@ -214,6 +214,41 @@ describe('clientMessageHandler', () => {
     });
   });
 
+  describe('start at login', () => {
+    function fakeAutostart() {
+      const state = { enabled: true, supported: true };
+      const set = vi.fn(async (enabled: boolean) => {
+        state.enabled = enabled;
+        return { ...state };
+      });
+      return { autostart: { get: () => ({ ...state }), set }, set };
+    }
+
+    it('handshake reports it to this PC only', () => {
+      const { autostart } = fakeAutostart();
+      send({ type: 'webviewReady' }, { ...ctx(true), autostart });
+      expect(sent).toContainEqual({ type: 'autostartState', enabled: true, supported: true });
+      sent = [];
+      send({ type: 'webviewReady' }, { ...ctx(false), autostart });
+      expect(sent.map((m) => m.type)).not.toContain('autostartState');
+    });
+
+    it('setAutostart applies for this PC and answers; a read-only client is refused', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const { autostart, set } = fakeAutostart();
+      send({ type: 'setAutostart', enabled: false }, { ...ctx(false), autostart });
+      expect(set).not.toHaveBeenCalled();
+      send({ type: 'setAutostart', enabled: 'yes' }, { ...ctx(true), autostart });
+      expect(set).not.toHaveBeenCalled();
+      send({ type: 'setAutostart', enabled: false }, { ...ctx(true), autostart });
+      expect(set).toHaveBeenCalledWith(false);
+      await vi.waitFor(() =>
+        expect(sent.at(-1)).toEqual({ type: 'autostartState', enabled: false, supported: true }),
+      );
+      warn.mockRestore();
+    });
+  });
+
   describe('local paths never reach a read-only client', () => {
     function seedPaths(): void {
       const cfg = readConfig();

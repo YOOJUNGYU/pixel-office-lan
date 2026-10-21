@@ -1,6 +1,10 @@
 import type { FastifyInstance } from 'fastify';
 
-import type { AssetCache, ReloadAssetsSideEffect } from './clientMessageHandler.js';
+import type {
+  AssetCache,
+  ClientMessageContext,
+  ReloadAssetsSideEffect,
+} from './clientMessageHandler.js';
 import { FileStateAdapter } from './fileStateAdapter.js';
 import { createHttpServer } from './httpServer.js';
 import type { LanService } from './lan/office.js';
@@ -31,6 +35,7 @@ export class PixelAgentsServer {
     lan?: LanService;
     onQuit?: () => void;
     updater?: Updater;
+    autostart?: ClientMessageContext['autostart'];
   }): Promise<{ port: number }> {
     const { app, port } = await createHttpServer({
       host: options?.host,
@@ -43,6 +48,7 @@ export class PixelAgentsServer {
       lan: options?.lan,
       onQuit: options?.onQuit,
       updater: options?.updater,
+      autostart: options?.autostart,
     });
     this.app = app;
     return { port };

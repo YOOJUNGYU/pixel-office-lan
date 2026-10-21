@@ -61,3 +61,17 @@ export const UPDATES_DIR_NAME = 'updates';
 export const NO_PEERS_ENV = 'PIXEL_OFFICE_NO_PEERS';
 /** Opt in to prereleases (rc testing): `PIXEL_OFFICE_ALLOW_PRERELEASE=1`. */
 export const ALLOW_PRERELEASE_ENV = 'PIXEL_OFFICE_ALLOW_PRERELEASE';
+
+// ── Start at login (lan/autostart.ts) ──────────────────────
+/** Installed Windows layout: `<install dir>\launch.vbs` next to node.exe. */
+export const WIN_LAUNCHER_NAME = 'launch.vbs';
+/** Per-user Startup folder under %APPDATA%, and the shortcut placed there. */
+export const WIN_STARTUP_SUBDIR = ['Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup'];
+export const WIN_STARTUP_LINK_NAME = 'Pixel Office.lnk';
+export const WIN_DEFAULT_SYSTEM_ROOT = 'C:\\Windows';
+export const AUTOSTART_EXEC_TIMEOUT_MS = 15_000;
+/** Installed macOS layout: the LaunchAgent template sits next to node in Contents/Resources. */
+export const MAC_AGENT_PLIST_NAME = 'com.pixeloffice.agent.plist';
+export const MAC_LAUNCH_AGENTS_SUBDIR = ['Library', 'LaunchAgents'];
+/** Marker in the data dir: the user turned start-at-login off; a silent update must not undo it. */
+export const AUTOSTART_OFF_MARKER = 'autostart-off';

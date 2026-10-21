@@ -2,6 +2,7 @@ import type { ClientMessage } from '../../core/src/messages.js';
 import type { LoadedAssets, LoadedCharacterSprites, LoadedPetSprites } from './assetLoader.js';
 import { readConfig, writeConfig } from './configPersistence.js';
 import type { FileStateAdapter } from './fileStateAdapter.js';
+import type { AutostartState } from './lan/autostart.js';
 import type { LanService } from './lan/office.js';
 import { validateProfileUpdate } from './lan/profile.js';
 import type { Updater } from './lan/updater.js';
@@ -46,6 +47,11 @@ export interface ClientMessageContext {
   onProfileSaved?: () => void;
   /** GitHub Releases update check/install. Absent in tests. */
   updater?: Updater;
+  /** Start at login (lan/autostart.ts). Absent in tests that don't exercise it. */
+  autostart?: {
+    get(): AutostartState;
+    set(enabled: boolean): Promise<AutostartState>;
+  };
 }
 
 // ── Setting keys ──
@@ -155,9 +161,20 @@ export function handleClientMessage(
       void ctx.updater?.check(true);
       break;
 
+    case 'setAutostart': {
+      const autostart = ctx.autostart;
+      if (!autostart || typeof msg.enabled !== 'boolean') break;
+      void autostart.set(msg.enabled).then((state) => send(autostartMessage(state)));
+      break;
+    }
+
     default:
       break;
   }
+}
+
+function autostartMessage(state: AutostartState) {
+  return { type: 'autostartState', ...state } as const;
 }
 
 /** profileLoaded. Manual peer IPs are LAN-internal: privileged clients only. */
@@ -236,7 +253,8 @@ function handleWebviewReady(send: WsSend, ctx: ClientMessageContext): void {
   // 5. Agents right away rather than on the next 1 s tick.
   if (ctx.lan) send(snapshotMessage(ctx.lan, ctx.privileged === true));
 
-  // 6. Update banner: this PC's browser only.
+  // 6. Start-at-login checkbox and update banner: this PC's browser only.
+  if (ctx.privileged && ctx.autostart) send(autostartMessage(ctx.autostart.get()));
   const update = ctx.privileged ? ctx.updater?.availableMessage() : null;
   if (update) {
     send(update);
@@ -287,6 +305,7 @@ const KNOWN_CLIENT_TYPES: ReadonlySet<string> = new Set<ClientMessage['type']>([
   'saveProfile',
   'installUpdate',
   'checkUpdate',
+  'setAutostart',
 ]);
 const UNKNOWN_REFUSAL_KEY = 'unknown';
 

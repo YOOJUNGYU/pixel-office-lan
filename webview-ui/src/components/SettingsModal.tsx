@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 
 import type { Lang } from '../../../core/src/lan.js';
+import type { AutostartState } from '../../../core/src/messages.js';
 import { LANG_NAMES, setLang, t, useLang } from '../i18n.js';
 import { isSoundEnabled, setSoundEnabled } from '../notificationSound.js';
 import { transport } from '../transport/index.js';
@@ -24,6 +25,8 @@ interface SettingsModalProps {
   onExportLayout: () => void;
   /** Browser-native layout import from a chosen file. */
   onImportLayout: (file: File) => void;
+  /** Start at login on this PC; hidden when null or unsupported (dev run, Linux). */
+  autostart: AutostartState | null;
 }
 
 export function SettingsModal({
@@ -36,6 +39,7 @@ export function SettingsModal({
   showAreasAvailable,
   onExportLayout,
   onImportLayout,
+  autostart,
 }: SettingsModalProps) {
   const [soundLocal, setSoundLocal] = useState(isSoundEnabled);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -114,6 +118,14 @@ export function SettingsModal({
           transport.send({ type: 'setSoundEnabled', enabled: newVal });
         }}
       />
+      {autostart?.supported && (
+        // Not optimistic: the server answers with the real state (autostartState).
+        <Checkbox
+          label={t('settings.autostart')}
+          checked={autostart.enabled}
+          onChange={() => transport.send({ type: 'setAutostart', enabled: !autostart.enabled })}
+        />
+      )}
       {showAreasAvailable && (
         <Checkbox
           label={t('settings.showAreas')}

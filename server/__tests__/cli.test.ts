@@ -81,6 +81,9 @@ describe('parseArgs', () => {
   it('defaults to 0.0.0.0:47801 without --open', () => {
     expect(parseArgs([])).toEqual({ host: '0.0.0.0', port: 47801, open: false });
     expect(parseArgs(['--open']).open).toBe(true);
+    expect(parseArgs(['--autostart', 'default']).autostart).toBe('default');
+    expect(() => parseArgs(['--autostart', 'maybe'])).toThrow(CliArgsError);
+    expect(() => parseArgs(['--autostart'])).toThrow(CliArgsError);
   });
 
   // 2. Valid --port is accepted

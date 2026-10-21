@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 
 import type { OfficeAgent } from '../../../core/src/lan.js';
-import type { ProfileLoaded, UpdateAvailable, UpdateStatus } from '../../../core/src/messages.js';
+import type {
+  AutostartState,
+  ProfileLoaded,
+  UpdateAvailable,
+  UpdateStatus,
+} from '../../../core/src/messages.js';
 import { LAN_READING_TOOLS } from '../constants.js';
 import { LanAgents } from '../lan/lanAgents.js';
 import { setSoundEnabled } from '../notificationSound.js';
@@ -64,6 +69,8 @@ interface ExtensionMessageState {
   /** Install progress / manual check result. */
   updateStatus: UpdateStatus | null;
   setUpdateStatus: (s: UpdateStatus | null) => void;
+  /** Start at login on this PC (this PC's browser only); null until reported. */
+  autostart: AutostartState | null;
 }
 
 export function useExtensionMessages(
@@ -84,6 +91,7 @@ export function useExtensionMessages(
   const [profile, setProfile] = useState<Omit<ProfileLoaded, 'type'> | null>(null);
   const [update, setUpdate] = useState<UpdateAvailable | null>(null);
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
+  const [autostart, setAutostart] = useState<AutostartState | null>(null);
   const lanRef = useRef<LanAgents | null>(null);
   lanRef.current ??= new LanAgents(getOfficeState());
   const lan = lanRef.current;
@@ -139,6 +147,8 @@ export function useExtensionMessages(
         setUpdate(msg as UpdateAvailable);
       } else if (msg.type === 'updateStatus') {
         setUpdateStatus(msg as UpdateStatus);
+      } else if (msg.type === 'autostartState') {
+        setAutostart(msg as AutostartState);
       } else if (msg.type === 'characterSpritesLoaded') {
         const characters = msg.characters as Array<{
           down: string[][][];
@@ -231,5 +241,6 @@ export function useExtensionMessages(
     update,
     updateStatus,
     setUpdateStatus,
+    autostart,
   };
 }

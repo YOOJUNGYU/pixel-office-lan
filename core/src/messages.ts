@@ -22,7 +22,8 @@ export type ServerMessage =
   | OfficeSnapshot
   | ProfileLoaded
   | UpdateAvailable
-  | UpdateStatus;
+  | UpdateStatus
+  | AutostartState;
 
 export type ClientMessage =
   | WebviewReady
@@ -35,7 +36,8 @@ export type ClientMessage =
   | SetShowAreas
   | SaveProfile
   | InstallUpdate
-  | CheckUpdate;
+  | CheckUpdate
+  | SetAutostart;
 
 export interface LayoutLoaded {
   type: 'layoutLoaded';
@@ -213,6 +215,12 @@ export interface UpdateStatus {
 
 export type UpdateState = 'upToDate' | 'downloading' | 'installing' | 'error';
 
+export interface AutostartState {
+  type: 'autostartState';
+  enabled: boolean;
+  supported: boolean;
+}
+
 export interface WebviewReady {
   type: 'webviewReady';
 }
@@ -263,4 +271,9 @@ export interface InstallUpdate {
 
 export interface CheckUpdate {
   type: 'checkUpdate';
+}
+
+export interface SetAutostart {
+  type: 'setAutostart';
+  enabled: boolean;
 }

@@ -77,6 +77,7 @@ function App() {
     update,
     updateStatus,
     setUpdateStatus,
+    autostart,
   } = useExtensionMessages(getOfficeState, editor.setLastSavedLayout, isEditDirty);
 
   // Overlay geometry: the root div is the canvas container's size.
@@ -435,6 +436,7 @@ function App() {
         showAreasAvailable={areasAvailable}
         onExportLayout={handleExportLayout}
         onImportLayout={handleImportLayout}
+        autostart={autostart}
       />
     </div>
   );

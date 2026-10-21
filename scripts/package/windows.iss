@@ -25,31 +25,64 @@ ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir=..\..\release
 OutputBaseFilename=PixelOffice-Setup-{#AppVersion}
 UninstallDisplayName=Pixel Office
-UninstallDisplayIcon={app}\node.exe
+UninstallDisplayIcon={app}\icon.ico
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
+; {userstartup} is only used to clean up on uninstall (see [UninstallDelete]).
+UsedUserAreasWarning=no
 
 [Languages]
 Name: "korean"; MessagesFile: "compiler:Languages\Korean.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
+[CustomMessages]
+korean.DesktopIcon=바탕화면에 바로가기 만들기
+english.DesktopIcon=Create a desktop shortcut
+korean.Autostart=로그인할 때 자동으로 실행
+english.Autostart=Start automatically at login
+korean.OpenOffice=Pixel Office 열기
+english.OpenOffice=Open Pixel Office
+
+[Tasks]
+Name: "desktopicon"; Description: "{cm:DesktopIcon}"
+Name: "autostart"; Description: "{cm:Autostart}"
+
 [Files]
 Source: "{#Stage}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{group}\Pixel Office 열기"; Filename: "{sys}\wscript.exe"; Parameters: """{app}\launch.vbs"" --open"; WorkingDir: "{app}"
-Name: "{commonstartup}\Pixel Office"; Filename: "{sys}\wscript.exe"; Parameters: """{app}\launch.vbs"""; WorkingDir: "{app}"
+Name: "{group}\Pixel Office 열기"; Filename: "{sys}\wscript.exe"; Parameters: """{app}\launch.vbs"" --open"; WorkingDir: "{app}"; IconFilename: "{app}\icon.ico"
+Name: "{autodesktop}\Pixel Office"; Filename: "{sys}\wscript.exe"; Parameters: """{app}\launch.vbs"" --open"; WorkingDir: "{app}"; IconFilename: "{app}\icon.ico"; Tasks: desktopicon
+; Start at login is per user (Startup folder), so the app can toggle it later without admin
+; rights. It is written by the app itself (cli.js --autostart), run as the ORIGINAL user below:
+; {userstartup} here would be the elevated account's folder when a standard user typed admin
+; credentials.
+
+[InstallDelete]
+; Older versions started the office for all users from the common Startup folder.
+Type: files; Name: "{commonstartup}\Pixel Office.lnk"
 
 [Run]
 ; Replace (not duplicate) the rule on reinstall/upgrade.
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""Pixel Office"""; Flags: runhidden
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""Pixel Office"" dir=in action=allow program=""{app}\node.exe"" enable=yes profile=any"; Flags: runhidden
+; Start at login for the installing (original, non-elevated) user. A silent update ("default") keeps
+; an earlier "off" from Settings; an interactive choice is applied as given.
+Filename: "{app}\node.exe"; Parameters: """{app}\app\cli.js"" --autostart on"; Tasks: autostart; Check: not WizardSilent; Flags: runhidden runasoriginaluser waituntilterminated
+Filename: "{app}\node.exe"; Parameters: """{app}\app\cli.js"" --autostart default"; Tasks: autostart; Check: WizardSilent; Flags: runhidden runasoriginaluser waituntilterminated
+Filename: "{app}\node.exe"; Parameters: """{app}\app\cli.js"" --autostart off"; Tasks: not autostart; Flags: runhidden runasoriginaluser waituntilterminated
 ; postinstall entries run as the original (non-elevated) user, so ~\.pixel-office lands in their home.
-Filename: "{sys}\wscript.exe"; Parameters: """{app}\launch.vbs"" --open"; Description: "Pixel Office 열기"; Flags: postinstall nowait
+Filename: "{sys}\wscript.exe"; Parameters: """{app}\launch.vbs"" --open"; Description: "{cm:OpenOffice}"; Flags: postinstall nowait
 
 [UninstallRun]
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""Pixel Office"""; Flags: runhidden; RunOnceId: "DelFirewallRule"
+
+[UninstallDelete]
+; The per-user start-at-login shortcut. The uninstaller runs elevated, so this is the uninstalling
+; account's Startup folder (normally the user who installed). A leftover in another account's
+; folder would point at a missing launch.vbs.
+Type: files; Name: "{userstartup}\Pixel Office.lnk"
 
 [Code]
 { Ask a running office to exit (POST /api/quit, loopback only) so node.exe is not locked. Errors are ignored. }

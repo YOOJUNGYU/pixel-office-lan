@@ -92,6 +92,8 @@ components:
         # Updates (loopback browser only)
         - $ref: '#/components/schemas/UpdateAvailable'
         - $ref: '#/components/schemas/UpdateStatus'
+        # Start at login (loopback browser only)
+        - $ref: '#/components/schemas/AutostartState'
       discriminator: type
 
     ClientMessage:
@@ -107,6 +109,7 @@ components:
         - $ref: '#/components/schemas/SaveProfile'
         - $ref: '#/components/schemas/InstallUpdate'
         - $ref: '#/components/schemas/CheckUpdate'
+        - $ref: '#/components/schemas/SetAutostart'
       discriminator: type
 
     # ── Server message variants ────────────────────────────────────
@@ -383,6 +386,23 @@ components:
         notesUrl:
           type: string
           description: Release page on github.com (change notes).
+
+    AutostartState:
+      description: >-
+        Whether the office starts at login on this PC. Sent to loopback
+        browsers only: on webviewReady and after setAutostart. `supported` is
+        false outside an installed Windows/macOS layout (dev runs, Linux); the
+        setting is then hidden.
+      type: object
+      additionalProperties: false
+      required: [type, enabled, supported]
+      properties:
+        type:
+          const: autostartState
+        enabled:
+          type: boolean
+        supported:
+          type: boolean
 
     UpdateStatus:
       description: >-
@@ -752,3 +772,16 @@ components:
       properties:
         type:
           const: checkUpdate
+
+    SetAutostart:
+      description: >-
+        Turn start-at-login on or off for this PC's user (loopback browser
+        only). Answered with autostartState.
+      type: object
+      additionalProperties: false
+      required: [type, enabled]
+      properties:
+        type:
+          const: setAutostart
+        enabled:
+          type: boolean

@@ -3,7 +3,11 @@ import fastifyWebsocket from '@fastify/websocket';
 import type { FastifyInstance } from 'fastify';
 import Fastify from 'fastify';
 
-import type { AssetCache, ReloadAssetsSideEffect } from './clientMessageHandler.js';
+import type {
+  AssetCache,
+  ClientMessageContext,
+  ReloadAssetsSideEffect,
+} from './clientMessageHandler.js';
 import { handleClientMessage, profileMessage, snapshotMessage } from './clientMessageHandler.js';
 import {
   LOOPBACK_ADDRESSES,
@@ -38,6 +42,8 @@ export interface HttpServerOptions {
   onQuit?: () => void;
   /** Update check/install; its messages go to privileged sockets only. */
   updater?: Updater;
+  /** Start at login; only privileged sockets see or change it. */
+  autostart?: ClientMessageContext['autostart'];
 }
 
 /** Result of createHttpServer(). */
@@ -188,6 +194,7 @@ export async function createHttpServer(options: HttpServerOptions): Promise<Http
           lan,
           onProfileSaved,
           updater,
+          autostart: options.autostart,
         });
       } catch {
         // Malformed JSON, ignore

@@ -64,6 +64,7 @@ jobs:
         run: |
           node scripts/package/fetch-node.mjs win-x64 build/win
           Copy-Item scripts/package/launch.vbs build/win/
+          node scripts/package/png2ico.mjs icon.png build/win/icon.ico
           Copy-Item LICENSE build/win/LICENSE.txt
           Copy-Item -Recurse dist build/win/app
           Get-ChildItem build/win/app -Recurse -Filter *.map | Remove-Item
@@ -74,6 +75,17 @@ jobs:
           Start-Sleep -Seconds 5
           (Invoke-WebRequest -UseBasicParsing http://127.0.0.1:47899/api/ping).Content
           Stop-Process -Id $p.Id
+      - name: Smoke test start at login (per-user Startup shortcut)
+        shell: pwsh
+        run: |
+          $lnk = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Startup\Pixel Office.lnk'
+          build/win/node.exe build/win/app/cli.js --autostart on
+          if (-not (Test-Path $lnk)) { throw 'autostart on: shortcut missing' }
+          $s = (New-Object -ComObject WScript.Shell).CreateShortcut($lnk)
+          "$($s.TargetPath) $($s.Arguments)"
+          if ($s.Arguments -notlike '*launch.vbs*') { throw 'autostart on: wrong target' }
+          build/win/node.exe build/win/app/cli.js --autostart off
+          if (Test-Path $lnk) { throw 'autostart off: shortcut still there' }
       - name: Install Inno Setup
         shell: pwsh
         run: |

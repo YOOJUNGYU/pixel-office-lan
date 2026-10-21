@@ -69,6 +69,11 @@ PLIST="$AGENTS/com.pixeloffice.agent.plist"
 curl -s -m 3 -X POST http://127.0.0.1:47801/api/quit >/dev/null 2>&1 && sleep 2
 launchctl bootout "gui/$USER_ID/com.pixeloffice.agent" 2>/dev/null || true
 
+# Start at login was turned off in Settings (the app writes this marker): keep it off.
+if [ -e "$HOME_DIR/.pixel-office/autostart-off" ]; then
+  exit 0
+fi
+
 # Write into the user's tree only AS the user: a root write would follow a planted symlink.
 sudo -u "$USER_NAME" mkdir -p "$AGENTS" "$HOME_DIR/Library/Logs"
 sudo -u "$USER_NAME" cp "/Applications/Pixel Office.app/Contents/Resources/com.pixeloffice.agent.plist" "$PLIST"
