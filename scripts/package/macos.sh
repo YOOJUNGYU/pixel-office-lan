@@ -69,8 +69,10 @@ PLIST="$AGENTS/com.pixeloffice.agent.plist"
 curl -s -m 3 -X POST http://127.0.0.1:47801/api/quit >/dev/null 2>&1 && sleep 2
 launchctl bootout "gui/$USER_ID/com.pixeloffice.agent" 2>/dev/null || true
 
-# Start at login was turned off in Settings (the app writes this marker): keep it off.
+# Start at login was turned off in Settings (the app writes this marker): keep it off, but start
+# the new version once now (in the user's GUI session) so an update doesn't leave the office gone.
 if [ -e "$HOME_DIR/.pixel-office/autostart-off" ]; then
+  launchctl asuser "$USER_ID" sudo -u "$USER_NAME" open -g "/Applications/Pixel Office.app" || true
   exit 0
 fi
 

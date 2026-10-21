@@ -29,8 +29,6 @@ UninstallDisplayIcon={app}\icon.ico
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
-; {userstartup} is only used to clean up on uninstall (see [UninstallDelete]).
-UsedUserAreasWarning=no
 
 [Languages]
 Name: "korean"; MessagesFile: "compiler:Languages\Korean.isl"
@@ -57,7 +55,7 @@ Name: "{autodesktop}\Pixel Office"; Filename: "{sys}\wscript.exe"; Parameters: "
 ; Start at login is per user (Startup folder), so the app can toggle it later without admin
 ; rights. It is written by the app itself (cli.js --autostart), run as the ORIGINAL user below:
 ; {userstartup} here would be the elevated account's folder when a standard user typed admin
-; credentials.
+; credentials. Uninstall sweeps every profile (DeleteStartupLinks in [Code]).
 
 [InstallDelete]
 ; Older versions started the office for all users from the common Startup folder.
@@ -67,22 +65,17 @@ Type: files; Name: "{commonstartup}\Pixel Office.lnk"
 ; Replace (not duplicate) the rule on reinstall/upgrade.
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""Pixel Office"""; Flags: runhidden
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""Pixel Office"" dir=in action=allow program=""{app}\node.exe"" enable=yes profile=any"; Flags: runhidden
-; Start at login for the installing (original, non-elevated) user. A silent update ("default") keeps
-; an earlier "off" from Settings; an interactive choice is applied as given.
+; Start at login for the installing (original, non-elevated) user. An interactive install applies
+; the checkbox as given. A silent update (in-app Update) ignores the remembered checkbox (Settings
+; may have changed it since) and runs "default": on unless the user turned it off in Settings.
 Filename: "{app}\node.exe"; Parameters: """{app}\app\cli.js"" --autostart on"; Tasks: autostart; Check: not WizardSilent; Flags: runhidden runasoriginaluser waituntilterminated
-Filename: "{app}\node.exe"; Parameters: """{app}\app\cli.js"" --autostart default"; Tasks: autostart; Check: WizardSilent; Flags: runhidden runasoriginaluser waituntilterminated
-Filename: "{app}\node.exe"; Parameters: """{app}\app\cli.js"" --autostart off"; Tasks: not autostart; Flags: runhidden runasoriginaluser waituntilterminated
+Filename: "{app}\node.exe"; Parameters: """{app}\app\cli.js"" --autostart off"; Tasks: not autostart; Check: not WizardSilent; Flags: runhidden runasoriginaluser waituntilterminated
+Filename: "{app}\node.exe"; Parameters: """{app}\app\cli.js"" --autostart default"; Check: WizardSilent; Flags: runhidden runasoriginaluser waituntilterminated
 ; postinstall entries run as the original (non-elevated) user, so ~\.pixel-office lands in their home.
 Filename: "{sys}\wscript.exe"; Parameters: """{app}\launch.vbs"" --open"; Description: "{cm:OpenOffice}"; Flags: postinstall nowait
 
 [UninstallRun]
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""Pixel Office"""; Flags: runhidden; RunOnceId: "DelFirewallRule"
-
-[UninstallDelete]
-; The per-user start-at-login shortcut. The uninstaller runs elevated, so this is the uninstalling
-; account's Startup folder (normally the user who installed). A leftover in another account's
-; folder would point at a missing launch.vbs.
-Type: files; Name: "{userstartup}\Pixel Office.lnk"
 
 [Code]
 { Ask a running office to exit (POST /api/quit, loopback only) so node.exe is not locked. Errors are ignored. }
@@ -101,8 +94,36 @@ begin
   Result := '';
 end;
 
+{ Start at login lives in each user's own Startup folder, written by the app. The uninstaller runs
+  elevated (possibly as another account), so sweep every profile for exactly our shortcut name;
+  a leftover would make wscript complain about the missing launch.vbs at every login. }
+procedure DeleteStartupLinks;
+var
+  Root, Link: String;
+  F: TFindRec;
+begin
+  Root := ExtractFileDir(GetEnv('PUBLIC'));
+  if Root = '' then
+    Root := ExpandConstant('{sd}\Users');
+  if FindFirst(Root + '\*', F) then
+  try
+    repeat
+      if ((F.Attributes and FILE_ATTRIBUTE_DIRECTORY) <> 0) and (F.Name <> '.') and (F.Name <> '..') then
+      begin
+        Link := Root + '\' + F.Name + '\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\Pixel Office.lnk';
+        if FileExists(Link) then
+          DeleteFile(Link);
+      end;
+    until not FindNext(F);
+  finally
+    FindClose(F);
+  end;
+end;
+
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 begin
   if CurUninstallStep = usUninstall then
     QuitRunningOffice;
+  if CurUninstallStep = usPostUninstall then
+    DeleteStartupLinks;
 end;

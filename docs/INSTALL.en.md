@@ -60,7 +60,8 @@ Other people's offices are **read-only**: nobody can run or change anything on y
   curl -s -X POST http://127.0.0.1:47801/api/quit
   launchctl bootout gui/$(id -u)/com.pixeloffice.agent
   rm -f ~/Library/LaunchAgents/com.pixeloffice.agent.plist
+  rm -f ~/.pixel-office/autostart-off   # the "start at login: off" record (if left, a reinstall keeps it off)
   sudo rm -rf "/Applications/Pixel Office.app"
   ```
 
-Your settings and layout in `~/.pixel-office/` are kept; delete that folder to remove them too.
+Your settings and layout in `~/.pixel-office/` are kept (on Windows too: if you turned start at login off in Settings, that `autostart-off` record stays; ticking the checkbox in a new interactive install turns it back on); delete that folder to remove them too.
