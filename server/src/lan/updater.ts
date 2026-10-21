@@ -151,19 +151,25 @@ export async function checkForUpdate(
 }
 
 /** Run the installer detached (it outlives us). Windows: `start` so UAC can elevate it. */
-function launchInstaller(file: string): void {
+function launchInstaller(file: string): Promise<void> {
   const [cmd, args] =
     process.platform === 'win32' ? ['cmd', ['/c', 'start', '', file, '/SILENT']] : ['open', [file]];
-  const child = spawn(cmd, args, { detached: true, stdio: 'ignore', windowsHide: false });
-  child.on('error', (err) => console.error('[Pixel Office] 설치 프로그램 실행 실패:', err));
-  child.unref();
+  return new Promise((resolve, reject) => {
+    const child = spawn(cmd, args, { detached: true, stdio: 'ignore', windowsHide: false });
+    // spawn failures (ENOENT…) arrive async: report them, not "installing"
+    child.once('error', reject);
+    child.once('spawn', () => {
+      child.unref();
+      resolve();
+    });
+  });
 }
 
 export interface DownloadOptions {
   fetchFn?: typeof fetch;
   /** Whole percent, on change. */
   onProgress?: (percent: number) => void;
-  launch?: (file: string) => void;
+  launch?: (file: string) => void | Promise<void>;
 }
 
 /**
@@ -214,7 +220,7 @@ export async function downloadAndRun(
     fs.rmSync(tmp, { force: true });
     throw err;
   }
-  launch(file);
+  await launch(file);
 }
 
 /** Periodic check + the one install in flight; messages go to privileged sockets. */
@@ -274,7 +280,10 @@ export class Updater {
         onProgress: (percent) =>
           this.setStatus({ type: 'updateStatus', state: 'downloading', percent }),
       });
-      this.setStatus({ type: 'updateStatus', state: 'installing' });
+      // Not kept for later handshakes: a cancelled UAC prompt must not leave a reloaded
+      // page stuck on "installing" (the update banner offers the install again instead).
+      this.status = null;
+      this.broadcast({ type: 'updateStatus', state: 'installing' });
     } catch (err) {
       console.error('[Pixel Office] 업데이트 실패:', err);
       this.setStatus({ type: 'updateStatus', state: 'error' });

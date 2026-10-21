@@ -16,7 +16,7 @@
   </array>
   <key>RunAtLoad</key>
   <true/>
-  <!-- Restart after a crash, but not after a clean exit (POST /api/quit, already running). -->
+  <!-- Restart after a crash, but not after a clean exit (POST /api/quit, already running, port busy). -->
   <key>KeepAlive</key>
   <dict>
     <key>SuccessfulExit</key>

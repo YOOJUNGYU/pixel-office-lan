@@ -20,7 +20,7 @@ import {
 } from './assetReload.js';
 import type { AssetCache, ReloadAssetsSideEffect } from './clientMessageHandler.js';
 import { readConfig } from './configPersistence.js';
-import { MAX_PORT, MIN_PORT, QUIT_DELAY_MS } from './constants.js';
+import { MAX_PORT, MIN_PORT, NO_PEERS_ENV, QUIT_DELAY_MS } from './constants.js';
 import { checkExisting, LanService } from './lan/office.js';
 import { PeerNet } from './lan/peerNet.js';
 import { loadProfile } from './lan/profile.js';
@@ -133,7 +133,7 @@ async function main(): Promise<void> {
   const server = new PixelAgentsServer();
 
   // LAN: local transcripts -> UDP peers; peers -> officeSnapshot.
-  const scanner = new Scanner(await discoverRoots());
+  const scanner = new Scanner(() => discoverRoots());
   scanner.start();
   const lan = new LanService(loadProfile(), scanner);
   const peerNet = new PeerNet({
@@ -143,8 +143,10 @@ async function main(): Promise<void> {
     manualPeers: () => lan.profile.manualPeers,
   });
   try {
-    await peerNet.start();
-    lan.net = peerNet;
+    if (process.env[NO_PEERS_ENV] !== '1') {
+      await peerNet.start();
+      lan.net = peerNet;
+    }
   } catch (err) {
     console.warn(
       `[Pixel Office] UDP ${LAN_UDP_PORT.toString()} 포트를 열 수 없어 다른 PC 와 연결하지 않습니다: ${err instanceof Error ? err.message : String(err)}`,
@@ -226,6 +228,9 @@ async function main(): Promise<void> {
       console.error(
         `[Pixel Office] ${args.port.toString()} 포트를 다른 프로그램이 쓰고 있습니다. 그 프로그램을 끄거나 --port 로 다른 포트를 지정하세요.`,
       );
+      // Not a crash: exit 0 so the macOS LaunchAgent (KeepAlive SuccessfulExit=false)
+      // does not respawn into the same busy port every 10 s.
+      process.exit(0);
     } else {
       console.error('[Pixel Office] 서버를 시작하지 못했습니다:', err);
     }

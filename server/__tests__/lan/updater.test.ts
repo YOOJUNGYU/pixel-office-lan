@@ -179,6 +179,12 @@ describe('downloadAndRun', () => {
     expect(launch).toHaveBeenCalledWith(file);
   });
 
+  it('an async launch failure (spawn error) rejects, so the status becomes error', async () => {
+    const fetchFn = (async () => new Response('12345')) as unknown as typeof fetch;
+    const launch = () => Promise.reject(new Error('spawn cmd ENOENT'));
+    await expect(downloadAndRun(info, tmp(), { fetchFn, launch })).rejects.toThrow('ENOENT');
+  });
+
   it('rejects a size mismatch or non-200 without launching', async () => {
     const dir = tmp();
     const launch = vi.fn();
@@ -215,6 +221,8 @@ describe('Updater', () => {
       { type: 'updateStatus', state: 'downloading', percent: 50 },
       { type: 'updateStatus', state: 'installing' },
     ]);
+    // a reload (handshake) after a cancelled UAC prompt is not stuck on "installing"
+    expect(u.status).toBeNull();
   });
 
   it('a manual check with nothing new says up to date; a failed install says error', async () => {

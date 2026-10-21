@@ -48,10 +48,23 @@ async function stopChild(child: ReturnType<typeof spawn>): Promise<void> {
   if (child.exitCode === null) child.kill('SIGKILL');
 }
 
+/** Isolated env: no UDP broadcast on the real LAN, no real Claude/Codex sessions. */
+function isolatedEnv(home: string): NodeJS.ProcessEnv {
+  return {
+    ...process.env,
+    HOME: home,
+    USERPROFILE: home,
+    PIXEL_OFFICE_NO_PEERS: '1',
+    CLAUDE_CONFIG_DIR: path.join(home, '.claude'),
+    CODEX_HOME: path.join(home, '.codex'),
+  };
+}
+
 /** Run the real bundled CLI as a subprocess, returns exit code + output. */
 function runCli(args: string[]): Promise<{ code: number | null; stdout: string; stderr: string }> {
   return new Promise((resolve) => {
     const child = spawn('node', [CLI_BUNDLE, ...args], {
+      env: isolatedEnv(fs.mkdtempSync(path.join(os.tmpdir(), 'pxl-cli-home-'))),
       stdio: ['ignore', 'pipe', 'pipe'],
       timeout: 5000,
     });
@@ -152,6 +165,20 @@ describe('dist/cli.js entry-point guard', () => {
     },
   );
 
+  // Port held by another program: exit 0 so the macOS LaunchAgent does not respawn-loop
+  itBuilt('port busy (not a Pixel Office): exits 0 with a message', async () => {
+    const blocker = net.createServer((sock) => sock.destroy());
+    await new Promise<void>((r) => blocker.listen(0, '127.0.0.1', r));
+    const port = (blocker.address() as net.AddressInfo).port;
+    try {
+      const { code, stderr } = await runCli(['--port', port.toString(), '--host', '127.0.0.1']);
+      expect(stderr).toContain('포트를 다른 프로그램이 쓰고 있습니다');
+      expect(code).toBe(0);
+    } finally {
+      blocker.close();
+    }
+  });
+
   /** Spawn the real bundled CLI against an isolated HOME, wait for /api/health,
    *  and hand back its output for assertions. Callers seed `tmpHome` first.
    *  `host` is the literal `--host` operand, so a caller can exercise a wildcard
@@ -165,7 +192,7 @@ describe('dist/cli.js entry-point guard', () => {
     const port = await getFreePort();
     const child = spawn(process.execPath, [CLI_BUNDLE, '--port', port.toString(), '--host', host], {
       cwd: workspaceDir,
-      env: { ...process.env, HOME: tmpHome, USERPROFILE: tmpHome },
+      env: isolatedEnv(tmpHome),
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     let output = '';

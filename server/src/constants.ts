@@ -57,5 +57,7 @@ export const UPDATE_API_TIMEOUT_MS = 15_000;
 export const UPDATE_DOWNLOAD_TIMEOUT_MS = 10 * 60_000;
 /** Downloaded installers, under the data directory. */
 export const UPDATES_DIR_NAME = 'updates';
+/** `PIXEL_OFFICE_NO_PEERS=1`: no UDP peers (tests must never broadcast on the real LAN). */
+export const NO_PEERS_ENV = 'PIXEL_OFFICE_NO_PEERS';
 /** Opt in to prereleases (rc testing): `PIXEL_OFFICE_ALLOW_PRERELEASE=1`. */
 export const ALLOW_PRERELEASE_ENV = 'PIXEL_OFFICE_ALLOW_PRERELEASE';
