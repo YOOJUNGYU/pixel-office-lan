@@ -126,6 +126,8 @@ export function updateCharacter(
       // No idle animation — static pose
       ch.frame = 0;
       if (ch.seatTimer < 0) ch.seatTimer = 0; // clear turn-end sentinel
+      // Followers and ghosts neither sit nor wander: OfficeState walks followers to their leader.
+      if (ch.followId !== undefined || ch.ghostOf !== undefined) break;
       // If became active, pathfind to seat
       if (ch.isActive) {
         if (!ch.seatId) {
@@ -223,7 +225,9 @@ export function updateCharacter(
         ch.x = center.x;
         ch.y = center.y;
 
-        if (ch.isActive) {
+        if (ch.followId !== undefined || ch.ghostOf !== undefined) {
+          ch.state = CharacterState.IDLE;
+        } else if (ch.isActive) {
           if (!ch.seatId) {
             // No seat — type in place
             ch.state = CharacterState.TYPE;

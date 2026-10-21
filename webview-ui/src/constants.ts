@@ -1,3 +1,4 @@
+import type { Room } from '../../core/src/lan.js';
 import type { ColorValue } from './components/ui/types.js';
 
 // ── Grid & Layout ────────────────────────────────────────────
@@ -15,6 +16,8 @@ export const WANDER_PAUSE_MIN_SEC = 2.0;
 export const WANDER_PAUSE_MAX_SEC = 20.0;
 export const WANDER_MOVES_BEFORE_REST_MIN = 3;
 export const WANDER_MOVES_BEFORE_REST_MAX = 6;
+/** A follower that found no free tile beside its parent retries after this long. */
+export const FOLLOW_RETRY_SEC = 1.0;
 export const SEAT_REST_MIN_SEC = 120.0;
 export const SEAT_REST_MAX_SEC = 240.0;
 
@@ -283,3 +286,21 @@ export const TOUCH_TAP_MAX_DURATION_MS = 350;
 /** Gap a viewport-fitted Dropdown keeps from the top of the viewport when its
  *  content is taller than the room above its anchor. */
 export const DROPDOWN_VIEWPORT_MARGIN_PX = 8;
+
+// ── LAN agents ──────────────────────────────────────────────
+/** Animation tool per room: typing (coding/server), reading (library), none = idle wander (lounge). */
+export const LAN_ROOM_TOOL: Record<Room, string | null> = {
+  coding: 'Edit',
+  library: 'Read',
+  server: 'Bash',
+  lounge: null,
+};
+/** Tools drawn with the reading animation (no provider sends providerCapabilities). */
+export const LAN_READING_TOOLS = ['Read'];
+/** Subagents wear their PC's palette, hue-rotated by this much. */
+export const LAN_SUBAGENT_HUE_OFFSET = 120;
+export const MAX_HUE_DEG = 360;
+/** A parent's ghost, leading its children in a room the parent is not in. */
+export const LAN_GHOST_ALPHA = 0.45;
+/** Shell characters share one fixed look. */
+export const LAN_SHELL_PALETTE = 3;

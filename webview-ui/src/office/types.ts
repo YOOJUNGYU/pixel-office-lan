@@ -236,6 +236,15 @@ export interface Character {
    *  (testHooks.getCharacters) to tell the greeter from agents. */
   isGreeter?: boolean;
 
+  // -- LAN rooms --
+  /** Area label of the agent's room: seats, floor and idle wander stay inside it. */
+  homeArea?: string;
+  /** Leader (parent or its ghost) this child walks beside, hand in hand; never sits or wanders. */
+  followId?: number;
+  /** Set on a parent's ghost: the real parent's character id (its own id when the
+   *  parent is absent). Drawn translucent; stands still at the head of the line. */
+  ghostOf?: number;
+
   // -- Agent Teams --
   /** Team name this agent belongs to */
   teamName?: string;

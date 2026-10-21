@@ -31,6 +31,7 @@ import {
   GRID_LINE_COLOR,
   HEADLESS_CHARACTER_ALPHA,
   HOVERED_OUTLINE_ALPHA,
+  LAN_GHOST_ALPHA,
   OUTLINE_Z_SORT_OFFSET,
   ROTATE_BUTTON_BG,
   SEAT_AVAILABLE_COLOR,
@@ -398,7 +399,13 @@ export function renderScene(
 
     // Headless agents (adopted, no terminal to focus) render translucent while
     // the "Display headless as ghosts" setting is on.
-    const alpha = ch.isHeadless && ghostHeadlessAgents ? HEADLESS_CHARACTER_ALPHA : 1;
+    // LAN ghost parents (a parent shown in its children's room) always do.
+    const alpha =
+      ch.ghostOf !== undefined
+        ? LAN_GHOST_ALPHA
+        : ch.isHeadless && ghostHeadlessAgents
+          ? HEADLESS_CHARACTER_ALPHA
+          : 1;
 
     // Matrix spawn/despawn effect — skip outline, use per-pixel rendering
     if (ch.matrixEffect) {

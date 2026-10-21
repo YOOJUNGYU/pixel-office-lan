@@ -6,6 +6,7 @@ import {
   CHARACTER_HIT_HEIGHT,
   CHARACTER_SITTING_OFFSET_PX,
   DISMISS_BUBBLE_FAST_FADE_SEC,
+  FOLLOW_RETRY_SEC,
   FURNITURE_ANIM_INTERVAL_SEC,
   GREETER_ID,
   GREETER_TILE_MARGIN,
@@ -58,6 +59,8 @@ export class OfficeState {
   blockedTiles: Set<string>;
   furniture: FurnitureInstance[];
   walkableTiles: Array<{ col: number; row: number }>;
+  /** Walkable tiles per area label (rooms confine seats, floor spots and wander). */
+  areaWalkable: Map<string, Array<{ col: number; row: number }>> = new Map();
   characters: Map<number, Character> = new Map();
   pets: Pet[] = [];
   /** Accumulated time for furniture animation frame cycling */
@@ -128,6 +131,7 @@ export class OfficeState {
     this.blockedTiles = getBlockedTiles(this.layout.furniture);
     this.furniture = layoutToFurnitureInstances(this.layout.furniture);
     this.walkableTiles = getWalkableTiles(this.tileMap, this.blockedTiles);
+    this.indexAreaTiles();
     // Pets are built last because they need walkableTiles populated for spawn.
     this.rebuildPetsFromLayout(this.layout);
   }
@@ -141,6 +145,7 @@ export class OfficeState {
     this.blockedTiles = getBlockedTiles(layout.furniture);
     this.rebuildFurnitureInstances();
     this.walkableTiles = getWalkableTiles(this.tileMap, this.blockedTiles);
+    this.indexAreaTiles();
 
     // Shift character positions when grid expands left/up
     if (shift && (shift.col !== 0 || shift.row !== 0)) {
@@ -192,10 +197,10 @@ export class OfficeState {
       ch.seatId = null; // will be reassigned below
     }
 
-    // Second pass: assign remaining characters to free seats
+    // Second pass: assign remaining characters to free seats (followers never sit)
     for (const ch of this.characters.values()) {
-      if (ch.seatId) continue;
-      const seatId = this.findFreeSeat(ch.directoryName);
+      if (ch.seatId || ch.followId !== undefined || ch.ghostOf !== undefined) continue;
+      const seatId = this.findFreeSeat(ch.directoryName, ch.homeArea);
       if (seatId) {
         this.seats.get(seatId)!.assigned = true;
         ch.seatId = seatId;
@@ -248,6 +253,19 @@ export class OfficeState {
 
     // Reconcile pets against the layout roster (handles editor add/remove)
     this.rebuildPetsFromLayout(layout);
+  }
+
+  private indexAreaTiles(): void {
+    this.areaWalkable = new Map();
+    const labels = this.layout.areaTiles;
+    if (!labels) return;
+    for (const t of this.walkableTiles) {
+      const label = labels[t.row * this.layout.cols + t.col];
+      if (!label) continue;
+      let list = this.areaWalkable.get(label);
+      if (!list) this.areaWalkable.set(label, (list = []));
+      list.push(t);
+    }
   }
 
   /** Move a character to a random walkable tile */
@@ -372,8 +390,9 @@ export class OfficeState {
    * null only when every seat is already occupied. Passing `undefined`
    * preserves pre-Areas single-stage behavior (skips Stage 1; Stage 2 picks
    * unzoned seats from a layout without `areaTiles`, which is every seat).
+   * `areaLabel` confines the search to that one area (Stage 1 only).
    */
-  private findFreeSeat(directoryName?: string): string | null {
+  private findFreeSeat(directoryName?: string, areaLabel?: string): string | null {
     const electronicsTiles = this.buildElectronicsTileSet();
     const freeSeats: string[] = [];
     for (const [uid, seat] of this.seats) {
@@ -381,7 +400,11 @@ export class OfficeState {
     }
     if (freeSeats.length === 0) return null;
 
-    const areaLabels = directoryName ? this.areaMappings[directoryName] : undefined;
+    const areaLabels = areaLabel
+      ? [areaLabel]
+      : directoryName
+        ? this.areaMappings[directoryName]
+        : undefined;
 
     // Stage 1 — in-area seats for the Directory's mapped Area labels.
     if (areaLabels && areaLabels.length > 0) {
@@ -391,7 +414,7 @@ export class OfficeState {
         return label !== null && wanted.has(label);
       });
       const pick = this.pickFromSeats(inArea, electronicsTiles);
-      if (pick) return pick;
+      if (pick || areaLabel) return pick;
     }
 
     // Stage 2 — unzoned seats (no area label, or layout has no areas at all).
@@ -404,14 +427,19 @@ export class OfficeState {
   }
 
   /** Closest walkable tile to (col,row) not occupied by another character, or null. */
-  private closestFreeWalkableTile(col: number, row: number): { col: number; row: number } | null {
+  private closestFreeWalkableTile(
+    col: number,
+    row: number,
+    self?: Character,
+    tiles = this.walkableTiles,
+  ): { col: number; row: number } | null {
     const occupied = new Set<string>();
     for (const ch of this.characters.values()) {
-      occupied.add(`${ch.tileCol},${ch.tileRow}`);
+      if (ch !== self) occupied.add(`${ch.tileCol},${ch.tileRow}`);
     }
     let best: { col: number; row: number } | null = null;
     let bestDist = Infinity;
-    for (const tile of this.walkableTiles) {
+    for (const tile of tiles) {
       if (occupied.has(`${tile.col},${tile.row}`)) continue;
       const d = Math.abs(tile.col - col) + Math.abs(tile.row - row);
       if (d < bestDist) {
@@ -720,6 +748,158 @@ export class OfficeState {
     ch.frame = 0;
     ch.frameTimer = 0;
     return true;
+  }
+
+  /**
+   * Send a character to a room (area): free its seat, take a free seat there
+   * (PC-facing first) unless `standing`, else a free floor tile there, and
+   * walk. A character still materializing is placed directly. `homeArea`
+   * confines its wander.
+   */
+  moveToArea(id: number, areaLabel: string, standing = false): void {
+    const ch = this.characters.get(id);
+    if (!ch) return;
+    this.releaseSeat(ch);
+    ch.homeArea = areaLabel;
+    const seatId = standing ? null : this.findFreeSeat(undefined, areaLabel);
+    const seat = seatId ? this.seats.get(seatId)! : null;
+    let target: { col: number; row: number } | null = null;
+    if (seat) {
+      seat.assigned = true;
+      ch.seatId = seatId;
+      target = { col: seat.seatCol, row: seat.seatRow };
+    } else {
+      target = this.freeTileIn(this.areaWalkable.get(areaLabel) ?? this.walkableTiles, ch);
+    }
+    if (!target) return;
+
+    ch.frame = 0;
+    ch.frameTimer = 0;
+    ch.moveProgress = 0;
+    if (ch.matrixEffect === 'spawn') {
+      this.placeAt(ch, target);
+    } else {
+      ch.path = this.withOwnSeatUnblocked(ch, () =>
+        findPath(ch.tileCol, ch.tileRow, target.col, target.row, this.tileMap, this.blockedTiles),
+      );
+    }
+    if (ch.path.length > 0) {
+      ch.state = CharacterState.WALK;
+    } else if (seat && ch.tileCol === seat.seatCol && ch.tileRow === seat.seatRow) {
+      ch.state = CharacterState.TYPE;
+      ch.dir = seat.facingDir;
+    } else {
+      ch.state = CharacterState.IDLE;
+    }
+  }
+
+  private releaseSeat(ch: Character): void {
+    if (!ch.seatId) return;
+    const seat = this.seats.get(ch.seatId);
+    if (seat) seat.assigned = false;
+    ch.seatId = null;
+  }
+
+  private placeAt(ch: Character, t: { col: number; row: number }): void {
+    ch.tileCol = t.col;
+    ch.tileRow = t.row;
+    ch.x = t.col * TILE_SIZE + TILE_SIZE / 2;
+    ch.y = t.row * TILE_SIZE + TILE_SIZE / 2;
+    ch.path = [];
+    ch.moveProgress = 0;
+  }
+
+  /** A random tile from `tiles` that no other character stands on or walks to (any, if all taken). */
+  private freeTileIn(
+    tiles: Array<{ col: number; row: number }>,
+    self: Character,
+  ): { col: number; row: number } | null {
+    if (tiles.length === 0) return null;
+    const taken = new Set<string>();
+    for (const ch of this.characters.values()) {
+      if (ch === self) continue;
+      const end = ch.path[ch.path.length - 1] ?? { col: ch.tileCol, row: ch.tileRow };
+      taken.add(`${end.col},${end.row}`);
+    }
+    const free = tiles.filter((t) => !taken.has(`${t.col},${t.row}`));
+    const pool = free.length > 0 ? free : tiles;
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  /**
+   * Make a child walk hand in hand beside `leaderId` (its parent, or the
+   * parent's ghost in another room): it gives up its seat and room and never
+   * sits or wanders (see update()). `null` stops following and leaves
+   * `homeArea` unset so the caller re-homes it.
+   */
+  setFollowTarget(childId: number, leaderId: number | null): void {
+    const ch = this.characters.get(childId);
+    if (!ch || ch.followId === (leaderId ?? undefined)) return;
+    if (leaderId === null) {
+      ch.followId = undefined;
+      ch.homeArea = undefined;
+      return;
+    }
+    const wasFollowing = ch.followId !== undefined;
+    ch.followId = leaderId;
+    ch.wanderTimer = 0;
+    if (wasFollowing) return; // already standing; update() re-paths to the new leader
+    this.releaseSeat(ch);
+    ch.homeArea = undefined;
+    ch.path = [];
+    ch.moveProgress = 0;
+    ch.state = CharacterState.IDLE;
+    const leader = this.characters.get(leaderId);
+    const spot = leader && ch.matrixEffect === 'spawn' ? this.spotBeside(leader, ch) : null;
+    if (spot) this.placeAt(ch, spot);
+  }
+
+  /** The tile right of `anchor` if free (lines grow left → right), else the closest free one in its area. */
+  private spotBeside(anchor: Character, self: Character): { col: number; row: number } | null {
+    const col = anchor.tileCol + 1;
+    const row = anchor.tileRow;
+    const area = this.areaAt(anchor.tileCol, anchor.tileRow);
+    let free =
+      isWalkable(col, row, this.tileMap, this.blockedTiles) && this.areaAt(col, row) === area;
+    for (const ch of this.characters.values()) {
+      if (!free) break;
+      if (ch !== self && ch.tileCol === col && ch.tileRow === row) free = false;
+    }
+    if (free) return { col, row };
+    const tiles = (area && this.areaWalkable.get(area)) || this.walkableTiles;
+    return this.closestFreeWalkableTile(anchor.tileCol, anchor.tileRow, self, tiles);
+  }
+
+  private areaAt(col: number, row: number): string | null {
+    return this.layout.areaTiles?.[row * this.layout.cols + col] ?? null;
+  }
+
+  /** Walk a follower beside `anchor` (its leader or the follower ahead in the line). */
+  private followAnchor(ch: Character, anchor: Character, dt: number): void {
+    if (ch.matrixEffect || ch.path.length > 0) return;
+    const dist = Math.max(
+      Math.abs(ch.tileCol - anchor.tileCol),
+      Math.abs(ch.tileRow - anchor.tileRow),
+    );
+    if (dist <= 1) return;
+    if (ch.wanderTimer > 0) {
+      ch.wanderTimer -= dt;
+      return;
+    }
+    const spot = this.spotBeside(anchor, ch);
+    const path =
+      spot && (spot.col !== ch.tileCol || spot.row !== ch.tileRow)
+        ? findPath(ch.tileCol, ch.tileRow, spot.col, spot.row, this.tileMap, this.blockedTiles)
+        : [];
+    if (path.length === 0) {
+      ch.wanderTimer = FOLLOW_RETRY_SEC;
+      return;
+    }
+    ch.path = path;
+    ch.moveProgress = 0;
+    ch.state = CharacterState.WALK;
+    ch.frame = 0;
+    ch.frameTimer = 0;
   }
 
   /** Create a sub-agent character with the parent's palette. Returns the sub-agent ID. */
@@ -1138,6 +1318,8 @@ export class OfficeState {
     }
 
     const toDelete: number[] = [];
+    /** leader id → last follower in its line, so siblings queue behind each other */
+    const lineEnd = new Map<number, Character>();
     for (const ch of this.characters.values()) {
       const effect = advanceMatrixEffect(ch, dt);
       if (effect !== 'none') {
@@ -1145,9 +1327,18 @@ export class OfficeState {
         continue; // skip normal FSM while the effect is (or just was) active
       }
 
+      if (ch.followId !== undefined) {
+        const leader = this.characters.get(ch.followId);
+        if (leader) {
+          this.followAnchor(ch, lineEnd.get(ch.followId) ?? leader, dt);
+          lineEnd.set(ch.followId, ch);
+        }
+      }
+
+      const wanderTiles = (ch.homeArea && this.areaWalkable.get(ch.homeArea)) || this.walkableTiles;
       // Temporarily unblock own seat so character can pathfind to it
       this.withOwnSeatUnblocked(ch, () =>
-        updateCharacter(ch, dt, this.walkableTiles, this.seats, this.tileMap, this.blockedTiles),
+        updateCharacter(ch, dt, wanderTiles, this.seats, this.tileMap, this.blockedTiles),
       );
 
       // Tick bubble timer for waiting bubbles

@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 
+import type { OfficeAgent } from '../../../core/src/lan.js';
+import type { ProfileLoaded } from '../../../core/src/messages.js';
+import { LAN_READING_TOOLS } from '../constants.js';
+import { LanAgents } from '../lan/lanAgents.js';
 import { setSoundEnabled } from '../notificationSound.js';
 import type { OfficeState } from '../office/engine/officeState.js';
 import { setFloorSprites } from '../office/floorTiles.js';
@@ -8,6 +12,7 @@ import { migrateLayoutColors } from '../office/layout/layoutSerializer.js';
 import { setCarpetSprites } from '../office/sprites/carpetTiles.js';
 import { setPetTemplates } from '../office/sprites/petSpriteData.js';
 import { setCharacterTemplates } from '../office/sprites/spriteData.js';
+import { setProviderCapabilities } from '../office/toolUtils.js';
 import type { OfficeLayout } from '../office/types.js';
 import { setWallSprites } from '../office/wallTiles.js';
 import { transport } from '../transport/index.js';
@@ -50,6 +55,12 @@ interface ExtensionMessageState {
   /** A read-only office (not a loopback browser): every change it sends is
    *  refused, so the UI hides the controls that would send one. */
   officeReadOnly: boolean;
+  /** LAN agents ↔ characters (lan.all(), lan.agentFor(id)). */
+  lan: LanAgents;
+  /** Bumped on every applied officeSnapshot so overlays re-render. */
+  lanVersion: number;
+  /** This PC's profile and whether this browser may edit it; null until loaded. */
+  profile: Omit<ProfileLoaded, 'type'> | null;
 }
 
 export function useExtensionMessages(
@@ -68,6 +79,13 @@ export function useExtensionMessages(
   const [areaMappings, setAreaMappings] = useState<Record<string, string[]>>({});
   const [showAreas, setShowAreas] = useState(false);
   const [officeReadOnly, setOfficeReadOnly] = useState(false);
+  const [lanVersion, setLanVersion] = useState(0);
+  const [profile, setProfile] = useState<Omit<ProfileLoaded, 'type'> | null>(null);
+  const lanRef = useRef<LanAgents | null>(null);
+  lanRef.current ??= new LanAgents(getOfficeState());
+  const lan = lanRef.current;
+  /** Snapshots can arrive before layoutLoaded: hold the latest until then. */
+  const pendingAgentsRef = useRef<OfficeAgent[] | null>(null);
 
   // Track whether initial layout has been loaded (ref to avoid re-render)
   const layoutReadyRef = useRef(false);
@@ -76,6 +94,10 @@ export function useExtensionMessages(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handler = (msg: any) => {
       const os = getOfficeState();
+      const applyAgents = (agents: OfficeAgent[]) => {
+        lan.apply(agents);
+        setLanVersion((v) => v + 1);
+      };
 
       if (msg.type === 'officeAccess') {
         setOfficeReadOnly(msg.readOnly === true);
@@ -99,6 +121,17 @@ export function useExtensionMessages(
         }
         layoutReadyRef.current = true;
         setLayoutReady(true);
+        if (pendingAgentsRef.current) {
+          applyAgents(pendingAgentsRef.current);
+          pendingAgentsRef.current = null;
+        }
+      } else if (msg.type === 'officeSnapshot') {
+        const agents = msg.agents as OfficeAgent[];
+        if (layoutReadyRef.current) applyAgents(agents);
+        else pendingAgentsRef.current = agents;
+      } else if (msg.type === 'profileLoaded') {
+        const { profile, canEdit } = msg as ProfileLoaded;
+        setProfile({ profile, canEdit });
       } else if (msg.type === 'characterSpritesLoaded') {
         const characters = msg.characters as Array<{
           down: string[][][];
@@ -174,6 +207,7 @@ export function useExtensionMessages(
         }
       }
     };
+    setProviderCapabilities({ readingTools: LAN_READING_TOOLS, subagentToolNames: [] });
     const unsubscribe = transport.onMessage(handler);
     transport.send({ type: 'webviewReady' });
     return unsubscribe;
@@ -192,5 +226,8 @@ export function useExtensionMessages(
     showAreas,
     setShowAreas,
     officeReadOnly,
+    lan,
+    lanVersion,
+    profile,
   };
 }
