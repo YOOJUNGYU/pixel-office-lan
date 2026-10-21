@@ -22,9 +22,10 @@ export const RELEASES_API =
 /** With PIXEL_OFFICE_ALLOW_PRERELEASE=1 (`releases/latest` skips prereleases). */
 export const RELEASES_LIST_API =
   'https://api.github.com/repos/YOOJUNGYU/pixel-office-lan/releases?per_page=5';
-/** The only place an installer is ever downloaded from. */
-export const DOWNLOAD_PREFIX = 'https://github.com/YOOJUNGYU/pixel-office-lan/releases/download/';
-const NOTES_PREFIX = 'https://github.com/YOOJUNGYU/pixel-office-lan/releases/';
+const GITHUB_ORIGIN = 'https://github.com';
+/** The only place an installer is ever downloaded from (github.com + this path). */
+const DOWNLOAD_PATH = '/YOOJUNGYU/pixel-office-lan/releases/download/';
+const NOTES_PATH = '/YOOJUNGYU/pixel-office-lan/releases/';
 const RELEASES_PAGE = 'https://github.com/YOOJUNGYU/pixel-office-lan/releases';
 export const UPDATE_CHECK_MS = 6 * 60 * 60_000;
 
@@ -51,6 +52,20 @@ interface Release {
   html_url?: unknown;
   draft?: unknown;
   assets?: unknown;
+}
+
+/**
+ * Normalized href when `raw` is on github.com under `pathPrefix`, else null.
+ * Parsed, not startsWith: `PREFIX/../../evil/...` normalizes out of the repo.
+ */
+export function repoUrl(raw: string, pathPrefix: string): string | null {
+  if (/\.\.|%2e/i.test(raw)) return null; // dot segments, raw or encoded
+  try {
+    const u = new URL(raw);
+    return u.origin === GITHUB_ORIGIN && u.pathname.startsWith(pathPrefix) ? u.href : null;
+  } catch {
+    return null;
+  }
 }
 
 const SEMVER = /^v?(\d+)\.(\d+)\.(\d+)(?:-([\w.]+))?$/;
@@ -122,7 +137,7 @@ export async function checkForUpdate(
       assetUrl: asset.url,
       assetName: asset.name,
       assetSize: asset.size,
-      notesUrl: typeof notes === 'string' && notes.startsWith(NOTES_PREFIX) ? notes : RELEASES_PAGE,
+      notesUrl: (typeof notes === 'string' && repoUrl(notes, NOTES_PATH)) || RELEASES_PAGE,
     };
   } catch (err) {
     if (!warnedCheck) {
@@ -161,14 +176,13 @@ export async function downloadAndRun(
   dir: string = path.join(os.homedir(), LAYOUT_FILE_DIR, UPDATES_DIR_NAME),
   opts: DownloadOptions = {},
 ): Promise<void> {
-  if (!info.assetUrl.startsWith(DOWNLOAD_PREFIX)) {
-    throw new Error(`refusing download from ${info.assetUrl}`);
-  }
+  const url = repoUrl(info.assetUrl, DOWNLOAD_PATH);
+  if (!url) throw new Error(`refusing download from ${info.assetUrl}`);
   if (!ASSET_NAME.test(info.assetName)) throw new Error(`bad asset name ${info.assetName}`);
   const { fetchFn = fetch, onProgress, launch = launchInstaller } = opts;
 
   // Validated above: redirects (to objects.githubusercontent.com) are followed.
-  const res = await fetchFn(info.assetUrl, {
+  const res = await fetchFn(url, {
     signal: AbortSignal.timeout(UPDATE_DOWNLOAD_TIMEOUT_MS),
   });
   if (res.status !== 200 || !res.body) throw new Error(`download ${res.status.toString()}`);

@@ -9,6 +9,7 @@ import {
   downloadAndRun,
   isNewer,
   pickAsset,
+  repoUrl,
   Updater,
 } from '../../src/lan/updater.js';
 
@@ -59,6 +60,24 @@ describe('isNewer', () => {
     expect(isNewer('v0.1.0-rc2', '0.1.0-rc1', true)).toBe(true);
     expect(isNewer('v0.1.0', '0.1.0-rc2', true)).toBe(true);
     expect(isNewer('v0.1.0-rc1', '0.1.0', true)).toBe(false);
+  });
+});
+
+describe('repoUrl', () => {
+  const P = '/YOOJUNGYU/pixel-office-lan/releases/';
+  it('accepts this repo only, after normalizing', () => {
+    expect(repoUrl(RELEASE.html_url, P)).toBe(RELEASE.html_url);
+    expect(repoUrl(`${RELEASE.html_url}/../../../../evil/repo/releases/x`, P)).toBeNull();
+    expect(
+      repoUrl('https://github.com/YOOJUNGYU/pixel-office-lan/releases/%2e%2e/%2e%2e/x', P),
+    ).toBeNull();
+    expect(repoUrl('not a url', P)).toBeNull();
+  });
+
+  it('a notes URL outside the repo falls back to the releases page', async () => {
+    const evil = { ...RELEASE, html_url: `${RELEASE.html_url}/../../../../evil/x/releases/y` };
+    const info = await checkForUpdate('0.1.0', json(evil), 'win32', 'x64');
+    expect(info?.notesUrl).toBe('https://github.com/YOOJUNGYU/pixel-office-lan/releases');
   });
 });
 
@@ -127,6 +146,10 @@ describe('downloadAndRun', () => {
       'https://evil.example/PixelOffice-Setup-0.2.0.exe',
       'https://github.com/someone/else/releases/download/v1/x.exe',
       'http://github.com/YOOJUNGYU/pixel-office-lan/releases/download/v0.2.0/x.exe',
+      `${DL}../../../../evil/repo/releases/download/v1/PixelOffice-Setup-1.exe`,
+      `${DL}%2e%2e/%2e%2e/%2e%2e/%2e%2e/evil/repo/releases/download/v1/PixelOffice-Setup-1.exe`,
+      `${DL}%2E%2E/x.exe`,
+      'https://github.com.evil.example/YOOJUNGYU/pixel-office-lan/releases/download/v1/x.exe',
     ]) {
       await expect(downloadAndRun({ ...info, assetUrl }, tmp(), { launch })).rejects.toThrow();
     }
@@ -144,8 +167,13 @@ describe('downloadAndRun', () => {
   it('saves the installer and launches it', async () => {
     const dir = tmp();
     const launch = vi.fn();
-    const fetchFn = (async () => new Response('12345')) as unknown as typeof fetch;
+    const urls: string[] = [];
+    const fetchFn = (async (url: string) => {
+      urls.push(url);
+      return new Response('12345');
+    }) as unknown as typeof fetch;
     await downloadAndRun(info, dir, { fetchFn, launch });
+    expect(urls).toEqual([info.assetUrl]);
     const file = path.join(dir, info.assetName);
     expect(fs.readFileSync(file, 'utf8')).toBe('12345');
     expect(launch).toHaveBeenCalledWith(file);
