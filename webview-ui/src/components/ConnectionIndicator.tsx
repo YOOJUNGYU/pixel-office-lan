@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 
+import { type Key, t, useLang } from '../i18n.js';
 import { transport } from '../transport/index.js';
 import type { TransportState } from '../transport/types.js';
 
-const STATE_LABELS: Partial<Record<TransportState, string>> = {
-  connecting: '연결 중…',
-  reconnecting: '다시 연결 중…',
-  disconnected: '연결 끊김',
+const STATE_LABELS: Partial<Record<TransportState, Key>> = {
+  connecting: 'conn.connecting',
+  reconnecting: 'conn.reconnecting',
+  disconnected: 'conn.disconnected',
 };
 
 /**
@@ -17,6 +18,7 @@ const STATE_LABELS: Partial<Record<TransportState, string>> = {
  */
 export function ConnectionIndicator() {
   const [state, setState] = useState<TransportState>(transport.state);
+  useLang();
 
   useEffect(() => {
     // Re-read on mount in case the state changed before this subscribed.
@@ -26,7 +28,7 @@ export function ConnectionIndicator() {
 
   if (state === 'connected') return null;
 
-  const label = STATE_LABELS[state] ?? '연결 끊김';
+  const label = t(STATE_LABELS[state] ?? 'conn.disconnected');
   const dotClass = state === 'connecting' ? 'bg-status-permission' : 'bg-status-error';
 
   return (

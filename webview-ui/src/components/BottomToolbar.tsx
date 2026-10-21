@@ -1,8 +1,10 @@
+import { t, useLang } from '../i18n.js';
 import { Button } from './ui/Button.js';
 
 interface BottomToolbarProps {
   isEditMode: boolean;
-  onToggleEditMode: () => void;
+  /** null hides the layout button (read-only viewers). */
+  onToggleEditMode: (() => void) | null;
   isSettingsOpen: boolean;
   onToggleSettings: () => void;
 }
@@ -13,21 +15,24 @@ export function BottomToolbar({
   isSettingsOpen,
   onToggleSettings,
 }: BottomToolbarProps) {
+  useLang();
   return (
     <div className="absolute left-10 bottom-10 z-20 flex items-center gap-4 pixel-panel p-4">
-      <Button
-        variant={isEditMode ? 'active' : 'default'}
-        onClick={onToggleEditMode}
-        title="사무실 배치 편집"
-      >
-        레이아웃
-      </Button>
+      {onToggleEditMode && (
+        <Button
+          variant={isEditMode ? 'active' : 'default'}
+          onClick={onToggleEditMode}
+          title={t('toolbar.layoutTitle')}
+        >
+          {t('toolbar.layout')}
+        </Button>
+      )}
       <Button
         variant={isSettingsOpen ? 'active' : 'default'}
         onClick={onToggleSettings}
-        title="설정"
+        title={t('toolbar.settings')}
       >
-        설정
+        {t('toolbar.settings')}
       </Button>
     </div>
   );

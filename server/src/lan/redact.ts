@@ -52,5 +52,5 @@ export function redactText(s: string): string {
 }
 
 export function redactView(v: AgentView): AgentView {
-  return { ...v, summary: redactText(v.summary), reason: redactText(v.reason) };
+  return { ...v, target: redactText(v.target), reason: redactText(v.reason) };
 }

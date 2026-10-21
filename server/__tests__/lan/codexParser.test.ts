@@ -3,6 +3,7 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import type { Act } from '../../../core/src/lan.js';
 import { applyCodexLine, classifyShell, codexSessionMeta } from '../../src/lan/codexParser.js';
 import { newSession, tick, toViews } from '../../src/lan/session.js';
 
@@ -24,7 +25,7 @@ describe('applyCodexLine', () => {
     for (const l of fixture('codex-exec.jsonl')) applyCodexLine(s, l, 1_000);
     tick(s, 4_000);
     expect(s.room).toBe('library');
-    expect(s.summary).toBe("읽는 중: rg -n 'refresh' src");
+    expect(s).toMatchObject({ act: 'read', target: "rg -n 'refresh' src" });
     expect(s.reason).toBe('검색 배치를 확인해 수정하겠습니다');
     expect(s.pendingTool).toBeNull();
     expect(s.lastLineAt).toBe(1_000);
@@ -40,34 +41,35 @@ describe('applyCodexLine', () => {
       0,
     );
     expect(s.candidate).toBe('coding');
-    expect(s.summary).toBe('login.ts 수정 중');
+    expect(s).toMatchObject({ act: 'edit', target: 'login.ts' });
   });
 
   it('exec_command pnpm build -> server', () => {
     const s = mk();
     applyCodexLine(s, exec('text(await tools.exec_command({cmd:"pnpm build"}));'), 0);
     expect(s.candidate).toBe('server');
-    expect(s.summary).toBe('명령 실행: pnpm build');
+    expect(s).toMatchObject({ act: 'run', target: 'pnpm build' });
   });
 
   it('other tools', () => {
-    const cases: [string, string | null, string][] = [
-      ['text(await tools.web__run({q:"x"}))', 'library', '웹 검색 중'],
-      ['text(await tools.view_image({path:"/a.png"}))', 'library', '이미지 보는 중'],
+    const cases: [string, string | null, Act, string][] = [
+      ['text(await tools.web__run({q:"x"}))', 'library', 'web', ''],
+      ['text(await tools.view_image({path:"/a.png"}))', 'library', 'image', ''],
       [
         'text(await tools.exec_command({cmd:"cat \\"a b\\".ts | head"}))',
         'library',
-        '읽는 중: cat "a b".ts | head',
+        'read',
+        'cat "a b".ts | head',
       ],
-      ['text(await tools.write_stdin({session_id:1,chars:""}))', null, 'keep'],
-      ['text(await tools.update_plan({plan:[]}))', null, 'keep'],
+      ['text(await tools.write_stdin({session_id:1,chars:""}))', null, 'idle', 'keep'],
+      ['text(await tools.update_plan({plan:[]}))', null, 'idle', 'keep'],
     ];
-    for (const [input, room, summary] of cases) {
+    for (const [input, room, act, target] of cases) {
       const s = mk();
       s.candidate = 'server';
-      s.summary = 'keep';
+      s.target = 'keep';
       applyCodexLine(s, exec(input), 0);
-      expect(s.summary).toBe(summary);
+      expect(s).toMatchObject({ act, target });
       expect(s.candidate).toBe(room ?? 'server');
       expect(s.pendingTool).toMatchObject({ exempt: true });
     }
@@ -79,7 +81,7 @@ describe('applyCodexLine', () => {
     lines.slice(0, 2).forEach((l) => applyCodexLine(s, l, 0));
     expect(s.pendingTool).toBeNull();
     expect(toViews(s)).toContainEqual(
-      expect.objectContaining({ id: 'c1/sh/7933', summary: '명령 실행: pnpm build' }),
+      expect.objectContaining({ id: 'c1/sh/7933', act: 'run', target: 'pnpm build' }),
     );
     lines.slice(2).forEach((l) => applyCodexLine(s, l, 1));
     expect(s.shells.size).toBe(0);
@@ -89,7 +91,7 @@ describe('applyCodexLine', () => {
     const s = mk();
     applyCodexLine(s, exec('tools.exec_command({cmd:"pnpm dev"})'), 0);
     applyCodexLine(s, output('{"session_id":7933,"output":""}'), 0);
-    expect(s.shells.get('7933')).toBe('명령 실행: pnpm dev');
+    expect(s.shells.get('7933')).toBe('pnpm dev');
     applyCodexLine(s, output('{"session_id":7933,"exit_code":0}'), 0);
     expect(s.shells.size).toBe(0);
   });
@@ -108,7 +110,7 @@ describe('applyCodexLine', () => {
     );
     expect(s.permission).toBe(true);
     expect(s.candidate).toBe('lounge');
-    expect(s.summary).toBe('답변 기다리는 중');
+    expect(s).toMatchObject({ act: 'ask', target: '' });
   });
 
   it('assistant message sets reason; task_started resets it', () => {
@@ -133,11 +135,11 @@ describe('applyCodexLine', () => {
     applyCodexLine(s, event({ type: 'task_complete' }), 0);
     tick(s, 3_000);
     expect(s.room).toBe('lounge');
-    expect(s.summary).toBe('대기 중');
+    expect(s).toMatchObject({ act: 'idle', target: '' });
   });
 
   it('legacy formats', () => {
-    const cases: [unknown, string, string][] = [
+    const cases: [unknown, string, Act, string][] = [
       [
         {
           type: 'function_call',
@@ -145,12 +147,14 @@ describe('applyCodexLine', () => {
           arguments: '{"command":["bash","-lc","cat a.ts"]}',
         },
         'library',
-        '읽는 중: cat a.ts',
+        'read',
+        'cat a.ts',
       ],
       [
         { type: 'function_call', name: 'exec_command', arguments: '{"cmd":"make"}' },
         'server',
-        '명령 실행: make',
+        'run',
+        'make',
       ],
       [
         {
@@ -159,15 +163,16 @@ describe('applyCodexLine', () => {
           input: '*** Begin Patch\n*** Add File: src/b.ts\n+x\n',
         },
         'coding',
-        'b.ts 수정 중',
+        'edit',
+        'b.ts',
       ],
-      [{ type: 'web_search_call', action: { query: 'x' } }, 'library', '웹 검색 중'],
+      [{ type: 'web_search_call', action: { query: 'x' } }, 'library', 'web', ''],
     ];
-    for (const [payload, room, summary] of cases) {
+    for (const [payload, room, act, target] of cases) {
       const s = mk();
       applyCodexLine(s, item(payload), 0);
       expect(s.candidate).toBe(room);
-      expect(s.summary).toBe(summary);
+      expect(s).toMatchObject({ act, target });
     }
   });
 
@@ -176,7 +181,7 @@ describe('applyCodexLine', () => {
     expect(() => applyCodexLine(s, '{not json', 5)).not.toThrow();
     expect(() => applyCodexLine(s, 'null', 5)).not.toThrow();
     expect(() => applyCodexLine(s, item(null), 5)).not.toThrow();
-    expect(s.summary).toBe('대기 중');
+    expect(s.act).toBe('idle');
   });
 
   it.skipIf(!process.env.REAL_CODEX_JSONL)('real transcript smoke', () => {

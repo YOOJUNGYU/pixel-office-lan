@@ -6,13 +6,14 @@ import {
   LAN_SUBAGENT_HUE_OFFSET,
   MAX_HUE_DEG,
 } from '../constants.js';
+import { t } from '../i18n.js';
 import type { OfficeState } from '../office/engine/officeState.js';
 
 /** Text of an agent's name tag (the provider dot is drawn separately). */
 export function tagText(a: OfficeAgent): string {
-  if (a.kind === 'subagent') return '↳ 서브에이전트';
-  if (a.kind === 'shell') return '↳ 셸';
-  return `${a.peer.nickname} · ${a.provider === 'claude' ? 'Claude' : 'Codex'} #${a.num}`;
+  if (a.kind === 'subagent') return t('tag.subagent');
+  if (a.kind === 'shell') return t('tag.shell');
+  return `${a.peer.nickname || t('nickname.unset')} · ${a.provider === 'claude' ? 'Claude' : 'Codex'} #${a.num}`;
 }
 
 /** Look of an agent's character: main = its PC's, subagent = hue-rotated, shell = fixed. */

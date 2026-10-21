@@ -14,7 +14,8 @@ const view = (o: Partial<AgentView> = {}): AgentView => ({
   num: 1,
   room: 'coding',
   permission: false,
-  summary: '/home/kim/a.ts 수정 중',
+  act: 'edit',
+  target: '/home/kim/a.ts',
   reason: '',
   ...o,
 });
@@ -27,11 +28,11 @@ const peer: PeerPacket = {
 
 describe('buildOffice', () => {
   it('redacts only local views when redactLocal', () => {
-    expect(buildOffice(self, [view()], [], true)[0].summary).toBe('a.ts 수정 중');
-    expect(buildOffice(self, [view()], [], false)[0].summary).toBe('/home/kim/a.ts 수정 중');
+    expect(buildOffice(self, [view()], [], true)[0].target).toBe('a.ts');
+    expect(buildOffice(self, [view()], [], false)[0].target).toBe('/home/kim/a.ts');
     // peer views pass through untouched (sender redacts)
     const fromPeer = buildOffice(self, [], [peer], true);
-    expect(fromPeer[0].summary).toBe('/home/kim/a.ts 수정 중');
+    expect(fromPeer[0].target).toBe('/home/kim/a.ts');
   });
 
   it('keys agents by peer and links children to their parent', () => {
@@ -53,11 +54,11 @@ describe('LanService', () => {
     manualPeers: [],
   };
 
-  it('sends 이름없음 until a nickname is set, and redacts when hideDetails', () => {
+  it('sends an empty nickname until one is set, and redacts when hideDetails', () => {
     const lan = new LanService({ ...profile }, { views: () => [view()] });
     const p = lan.packet();
-    expect(p.peer).toEqual({ id: 'me', nickname: '이름없음', palette: 2, hueShift: 30 });
-    expect(p.views[0].summary).toBe('a.ts 수정 중');
+    expect(p.peer).toEqual({ id: 'me', nickname: '', palette: 2, hueShift: 30 });
+    expect(p.views[0].target).toBe('a.ts');
   });
 
   it('packet() never throws: a failing scan sends no views', () => {

@@ -100,7 +100,8 @@ describe('fitPacket', () => {
     num: i,
     room: 'coding' as const,
     permission: false,
-    summary: 'x'.repeat(120),
+    act: 'run' as const,
+    target: 'x'.repeat(120),
     reason: 'y'.repeat(200),
   });
   it('drops trailing views to fit, leaves small packets alone', () => {

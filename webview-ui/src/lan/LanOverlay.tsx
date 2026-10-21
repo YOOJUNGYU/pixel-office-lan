@@ -1,6 +1,5 @@
 import { type MutableRefObject, type RefObject, useEffect, useRef, useState } from 'react';
 
-import { ROOM_LABELS } from '../../../core/src/lan.js';
 import {
   BUBBLE_SITTING_OFFSET_PX,
   BUBBLE_VERTICAL_OFFSET_PX,
@@ -12,6 +11,7 @@ import {
   LAN_PROVIDER_COLORS,
   LAN_TAG_Z_INDEX,
 } from '../constants.js';
+import { actText, t } from '../i18n.js';
 import type { OfficeState } from '../office/engine/officeState.js';
 import { overlayProjection } from '../office/projection.js';
 import { getCachedSprite } from '../office/sprites/spriteCache.js';
@@ -48,7 +48,7 @@ interface LanOverlayProps {
 
 /**
  * Name tags under every LAN character, permission bubbles over waiting ones,
- * and the hover bubble (room, summary, reason). Re-rendered every animation
+ * and the hover bubble (room, activity, reason) in the viewer's language. Re-rendered every animation
  * frame so the DOM follows walking sprites; tags are keyed so React only
  * moves them. Ghost parents get no tag (the real parent has one) but hovering
  * one shows the parent's bubble. All text is React text nodes.
@@ -144,10 +144,10 @@ export function LanOverlay({ officeState, lan, containerRef, zoom, panRef }: Lan
         }}
       >
         <span className="font-bold">
-          {hovered.permission && '❗ 확인 필요 · '}
-          {ROOM_LABELS[hovered.room]}
+          {hovered.permission && `${t('bubble.permission')} · `}
+          {t(`room.${hovered.room}`)}
         </span>
-        {hovered.summary && <span>{hovered.summary}</span>}
+        <span>{actText(hovered.act, hovered.target)}</span>
         {hovered.reason && <span className="text-text-muted">“{hovered.reason}”</span>}
       </div>,
     );

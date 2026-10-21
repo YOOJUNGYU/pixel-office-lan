@@ -48,13 +48,14 @@ describe('redactText', () => {
 });
 
 describe('redactView', () => {
-  it('redacts summary and reason only', () => {
+  it('redacts target and reason only', () => {
     const v = {
       id: 's1',
-      summary: '/a/b/c.ts',
+      act: 'edit',
+      target: '/a/b/c.ts',
       reason: '10.0.0.1',
       num: 1,
     } as unknown as AgentView;
-    expect(redactView(v)).toEqual({ ...v, summary: 'c.ts', reason: '[IP]' });
+    expect(redactView(v)).toEqual({ ...v, target: 'c.ts', reason: '[IP]' });
   });
 });

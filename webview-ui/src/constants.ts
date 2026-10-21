@@ -106,6 +106,8 @@ export const GHOST_BORDER_NO_HOVER_TILE = -999;
 // ── Layout Import/Export (browser-native, standalone) ────────
 /** Suggested filename when exporting the office layout from the standalone browser. */
 export const LAYOUT_EXPORT_FILENAME = 'pixel-agents-layout.json';
+/** localStorage key of this viewer's UI language ('ko' | 'en'). */
+export const LANG_STORAGE_KEY = 'pixel-office.lang';
 /** MIME type for the exported layout Blob. */
 export const LAYOUT_EXPORT_MIME = 'application/json';
 export const DEFAULT_FLOOR_COLOR: ColorValue = { h: 35, s: 30, b: 15, c: 0 };

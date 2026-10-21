@@ -428,7 +428,7 @@ components:
       description: One agent view of one PC; `key` is `<peerId>:<id>`.
       type: object
       additionalProperties: false
-      required: [key, id, provider, kind, num, room, permission, summary, reason, peer]
+      required: [key, id, provider, kind, num, room, permission, act, target, reason, peer]
       properties:
         key:
           type: string
@@ -451,8 +451,11 @@ components:
         permission:
           type: boolean
           description: Waiting for approval or input.
-        summary:
+        act:
+          $ref: '#/components/schemas/AgentAct'
+        target:
           type: string
+          description: 'What the act applies to (file, pattern, command…), <=120 chars, empty if none.'
         reason:
           type: string
         peer:
@@ -467,6 +470,7 @@ components:
           type: string
         nickname:
           type: string
+          description: Empty until the user picks one (viewers show their own "unnamed" label).
         palette:
           type: integer
         hueShift:
@@ -479,6 +483,11 @@ components:
     AgentViewKind:
       type: string
       enum: [main, subagent, shell]
+
+    AgentAct:
+      type: string
+      description: What the agent is doing; each viewer renders it in their own language.
+      enum: [idle, edit, read, search, find, web, fetch, mcp, run, delegate, ask, image, tool]
 
     AgentRoom:
       type: string

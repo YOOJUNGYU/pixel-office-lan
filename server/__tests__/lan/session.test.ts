@@ -7,7 +7,7 @@ const mk = () => newSession('claude', 's1', 'main', 0);
 describe('session state', () => {
   it('debounces room change by 3s', () => {
     const s = mk();
-    setActivity(s, 'coding', 'x', 0);
+    setActivity(s, 'coding', 'edit', 'x', 0);
     tick(s, 2_999);
     expect(s.room).toBe('lounge');
     tick(s, 3_000);
@@ -16,9 +16,9 @@ describe('session state', () => {
 
   it('flapping rooms every 1s never moves within 3s', () => {
     const s = mk();
-    setActivity(s, 'coding', 'x', 0);
-    setActivity(s, 'library', 'x', 1_000);
-    setActivity(s, 'coding', 'x', 2_000);
+    setActivity(s, 'coding', 'edit', 'x', 0);
+    setActivity(s, 'library', 'read', 'x', 1_000);
+    setActivity(s, 'coding', 'edit', 'x', 2_000);
     tick(s, 4_999);
     expect(s.room).toBe('lounge');
     tick(s, 5_000);
@@ -34,7 +34,7 @@ describe('session state', () => {
     tick(s, 7_000);
     expect(s.permission).toBe(true);
     expect(s.room).toBe('lounge');
-    setActivity(s, 'coding', 'y', 7_500);
+    setActivity(s, 'coding', 'edit', 'y', 7_500);
     expect(s.permission).toBe(false);
   });
 
@@ -48,10 +48,11 @@ describe('session state', () => {
   it('text-only idles after 5s, lounge after 3 more', () => {
     const s = mk();
     s.room = s.candidate = 'coding';
-    s.summary = '작성 중';
+    s.act = 'edit';
+    s.target = 'a.ts';
     s.textOnlyAt = 0;
     tick(s, 5_000);
-    expect(s.summary).toBe('대기 중');
+    expect(s).toMatchObject({ act: 'idle', target: '' });
     expect(s.turnEnded).toBe(true);
     expect(s.room).toBe('coding');
     tick(s, 8_000);
@@ -69,7 +70,7 @@ describe('session state', () => {
 
   it('toViews appends shell views in server room', () => {
     const s = mk();
-    s.shells.set('b1', '명령 실행: npm run dev');
+    s.shells.set('b1', 'npm run dev');
     const v = toViews(s);
     expect(v).toHaveLength(2);
     expect(v[1]).toMatchObject({
@@ -77,7 +78,8 @@ describe('session state', () => {
       room: 'server',
       parentId: 's1',
       id: 's1/sh/b1',
-      summary: '명령 실행: npm run dev',
+      act: 'run',
+      target: 'npm run dev',
     });
   });
 });

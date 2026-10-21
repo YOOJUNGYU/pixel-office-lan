@@ -10,7 +10,8 @@ const view = (over: Partial<AgentView> = {}): AgentView => ({
   num: 1,
   room: 'coding',
   permission: false,
-  summary: 'working',
+  act: 'edit',
+  target: 'a.ts',
   reason: '',
   ...over,
 });
@@ -32,6 +33,8 @@ describe('parsePeerPacket', () => {
     expect(parse({ ...packet(), v: 2 })).toBeNull();
     expect(parse({ ...packet(), views: 'x' })).toBeNull();
     expect(parse(packet({ views: [view({ room: 'kitchen' as never })] }))).toBeNull();
+    expect(parse(packet({ views: [view({ act: 'dance' as never })] }))).toBeNull();
+    expect(parse(packet({ views: [view({ target: 5 as never })] }))).toBeNull();
     expect(parse(packet({ peer: { ...packet().peer, palette: 9 } }))).toBeNull();
     expect(parse(packet({ peer: { ...packet().peer, hueShift: 400 } }))).toBeNull();
     expect(parse(packet({ peer: { ...packet().peer, palette: 1.5 } }))).toBeNull();
@@ -46,11 +49,11 @@ describe('parsePeerPacket', () => {
     const p = parse(
       packet({
         peer: { ...packet().peer, nickname: 'n'.repeat(30) },
-        views: [view({ summary: 's'.repeat(500), reason: 'r'.repeat(500) })],
+        views: [view({ target: 's'.repeat(500), reason: 'r'.repeat(500) })],
       }),
     )!;
     expect(p.peer.nickname).toHaveLength(20);
-    expect(p.views[0].summary).toHaveLength(120);
+    expect(p.views[0].target).toHaveLength(120);
     expect(p.views[0].reason).toHaveLength(200);
     const many = parse(
       packet({ views: Array.from({ length: 80 }, (_, i) => view({ id: `s${i}` })) }),

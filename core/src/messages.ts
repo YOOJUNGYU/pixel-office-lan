@@ -147,7 +147,8 @@ export interface OfficeAgentMessage {
   parentId?: string;
   room: AgentRoom;
   permission: boolean;
-  summary: string;
+  act: AgentAct;
+  target: string;
   reason: string;
   peer: PeerInfoMessage;
 }
@@ -157,6 +158,21 @@ export type AgentProvider = 'claude' | 'codex';
 export type AgentViewKind = 'main' | 'subagent' | 'shell';
 
 export type AgentRoom = 'coding' | 'library' | 'server' | 'lounge';
+
+export type AgentAct =
+  | 'idle'
+  | 'edit'
+  | 'read'
+  | 'search'
+  | 'find'
+  | 'web'
+  | 'fetch'
+  | 'mcp'
+  | 'run'
+  | 'delegate'
+  | 'ask'
+  | 'image'
+  | 'tool';
 
 export interface PeerInfoMessage {
   id: string;

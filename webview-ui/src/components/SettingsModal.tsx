@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react';
 
+import type { Lang } from '../../../core/src/lan.js';
+import { LANG_NAMES, setLang, t, useLang } from '../i18n.js';
 import { isSoundEnabled, setSoundEnabled } from '../notificationSound.js';
 import { transport } from '../transport/index.js';
 import { Checkbox } from './ui/Checkbox.js';
@@ -9,6 +11,8 @@ import { Modal } from './ui/Modal.js';
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Read-only viewers only get the (per-browser) language choice. */
+  readOnly: boolean;
   /** Opens the profile modal; null when this browser cannot edit the profile. */
   onOpenProfile: (() => void) | null;
   /** Whether the areas overlay is rendered outside of the Areas edit tool. */
@@ -25,6 +29,7 @@ interface SettingsModalProps {
 export function SettingsModal({
   isOpen,
   onClose,
+  readOnly,
   onOpenProfile,
   showAreas,
   onToggleShowAreas,
@@ -34,9 +39,36 @@ export function SettingsModal({
 }: SettingsModalProps) {
   const [soundLocal, setSoundLocal] = useState(isSoundEnabled);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const lang = useLang();
+
+  const languageSelect = (
+    <label className="flex items-center justify-between gap-8 py-4 px-10 text-base">
+      {t('settings.language')}
+      <select
+        value={lang}
+        onChange={(e) => setLang(e.target.value as Lang)}
+        className="py-2 px-4 bg-bg-dark border-2 border-border rounded-none text-text"
+      >
+        {(Object.keys(LANG_NAMES) as Lang[]).map((l) => (
+          <option key={l} value={l}>
+            {LANG_NAMES[l]}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+
+  if (readOnly) {
+    return (
+      <Modal isOpen={isOpen} onClose={onClose} title={t('toolbar.settings')}>
+        {languageSelect}
+      </Modal>
+    );
+  }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="설정">
+    <Modal isOpen={isOpen} onClose={onClose} title={t('toolbar.settings')}>
+      {languageSelect}
       {onOpenProfile && (
         <MenuItem
           onClick={() => {
@@ -44,7 +76,7 @@ export function SettingsModal({
             onClose();
           }}
         >
-          내 프로필
+          {t('settings.profile')}
         </MenuItem>
       )}
       <MenuItem
@@ -53,10 +85,10 @@ export function SettingsModal({
           onClose();
         }}
       >
-        레이아웃 내보내기
+        {t('settings.export')}
       </MenuItem>
       {/* Open the native file picker; the import is applied in onChange below. */}
-      <MenuItem onClick={() => fileInputRef.current?.click()}>레이아웃 가져오기</MenuItem>
+      <MenuItem onClick={() => fileInputRef.current?.click()}>{t('settings.import')}</MenuItem>
       <input
         ref={fileInputRef}
         type="file"
@@ -73,7 +105,7 @@ export function SettingsModal({
         }}
       />
       <Checkbox
-        label="알림 소리"
+        label={t('settings.sound')}
         checked={soundLocal}
         onChange={() => {
           const newVal = !isSoundEnabled();
@@ -83,7 +115,11 @@ export function SettingsModal({
         }}
       />
       {showAreasAvailable && (
-        <Checkbox label="방 영역 표시" checked={showAreas} onChange={onToggleShowAreas} />
+        <Checkbox
+          label={t('settings.showAreas')}
+          checked={showAreas}
+          onChange={onToggleShowAreas}
+        />
       )}
     </Modal>
   );

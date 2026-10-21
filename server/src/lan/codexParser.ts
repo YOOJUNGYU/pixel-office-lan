@@ -1,11 +1,11 @@
-import type { Room } from '../../../core/src/lan.js';
+import type { Act, Room } from '../../../core/src/lan.js';
 import type { SessionState } from './session.js';
 import { setActivity, setIdle } from './session.js';
 
 type Obj = Record<string, unknown>;
 
-/** per-session call_id -> summary after the call, and write_stdin's session_id */
-const calls = new WeakMap<SessionState, Map<string, { summary: string; stdinId?: string }>>();
+/** per-session call_id -> target after the call, and write_stdin's session_id */
+const calls = new WeakMap<SessionState, Map<string, { target: string; stdinId?: string }>>();
 const callsOf = (s: SessionState) => {
   let m = calls.get(s);
   if (!m) calls.set(s, (m = new Map()));
@@ -35,21 +35,20 @@ export function classifyShell(cmd: string): Room {
   return LIBRARY_CMD.test(cmd.split('|')[0].trim()) ? 'library' : 'server';
 }
 
-function shellSummary(cmd: string): [Room, string] {
+type Activity = [Room, Act, string];
+
+function shellActivity(cmd: string): Activity {
   const room = classifyShell(cmd);
-  return [room, `${room === 'library' ? '읽는 중' : '명령 실행'}: ${clip(cmd, 80)}`];
+  return [room, room === 'library' ? 'read' : 'run', clip(cmd, 80)];
 }
 
-/** [room, summary] or null = keep room and summary */
-function describe(fn: string, input: string): [Room, string] | null {
-  if (fn === 'apply_patch') {
-    const path = PATCH_RE.exec(input)?.[1] ?? '';
-    return ['coding', `${basename(path) || '파일'} 수정 중`];
-  }
-  if (fn === 'exec_command') return shellSummary(unescape(CMD_RE.exec(input)?.[2] ?? ''));
-  if (fn === 'web__run' || fn === 'web_search') return ['library', '웹 검색 중'];
-  if (fn === 'view_image') return ['library', '이미지 보는 중'];
-  if (fn.startsWith('request_user_input')) return ['lounge', '답변 기다리는 중'];
+/** [room, act, target] or null = keep room and activity */
+function describe(fn: string, input: string): Activity | null {
+  if (fn === 'apply_patch') return ['coding', 'edit', basename(PATCH_RE.exec(input)?.[1] ?? '')];
+  if (fn === 'exec_command') return shellActivity(unescape(CMD_RE.exec(input)?.[2] ?? ''));
+  if (fn === 'web__run' || fn === 'web_search') return ['library', 'web', ''];
+  if (fn === 'view_image') return ['library', 'image', ''];
+  if (fn.startsWith('request_user_input')) return ['lounge', 'ask', ''];
   return null;
 }
 
@@ -65,16 +64,15 @@ function onToolCall(
   s: SessionState,
   name: string,
   callId: string,
-  room: Room | null,
-  summary: string | null,
+  d: Activity | null,
   now: number,
   stdinId?: string,
 ): void {
-  if (summary !== null) setActivity(s, room, clip(summary, 120), now);
+  if (d) setActivity(s, d[0], d[1], clip(d[2], 120), now);
   if (name.startsWith('request_user_input')) s.permission = true;
   // ponytail: Codex 승인 대기 미감지, 기록에 승인 이벤트가 생기면 추가
   s.pendingTool = { name, since: now, exempt: true };
-  if (callId) callsOf(s).set(callId, { summary: s.summary, stdinId });
+  if (callId) callsOf(s).set(callId, { target: s.target, stdinId });
 }
 
 function onItem(s: SessionState, p: Obj, now: number): void {
@@ -85,7 +83,7 @@ function onItem(s: SessionState, p: Obj, now: number): void {
       const fn = p.name === 'exec' ? (FN_RE.exec(input)?.[1] ?? '') : str(p.name);
       const d = describe(fn, input);
       const stdinId = fn === 'write_stdin' ? STDIN_SID_RE.exec(input)?.[1] : undefined;
-      return onToolCall(s, fn || str(p.name), callId, d?.[0] ?? null, d?.[1] ?? null, now, stdinId);
+      return onToolCall(s, fn || str(p.name), callId, d, now, stdinId);
     }
     case 'function_call':
     case 'local_shell_call': {
@@ -97,12 +95,12 @@ function onItem(s: SessionState, p: Obj, now: number): void {
         /* keep {} */
       }
       const d = ['shell', 'exec_command', 'local_shell_call'].includes(name)
-        ? shellSummary(legacyShell(args))
+        ? shellActivity(legacyShell(args))
         : describe(name, '');
-      return onToolCall(s, name, callId, d?.[0] ?? null, d?.[1] ?? null, now);
+      return onToolCall(s, name, callId, d, now);
     }
     case 'web_search_call':
-      return onToolCall(s, 'web_search', callId, 'library', '웹 검색 중', now);
+      return onToolCall(s, 'web_search', callId, ['library', 'web', ''], now);
     case 'custom_tool_call_output':
     case 'function_call_output': {
       s.pendingTool = null;
@@ -115,7 +113,7 @@ function onItem(s: SessionState, p: Obj, now: number): void {
         const id = SID_RE.exec(t)?.[1] ?? call?.stdinId;
         if (!id) continue;
         if (EXIT_RE.test(t)) s.shells.delete(id);
-        else if (!s.shells.has(id)) s.shells.set(id, call?.summary ?? s.summary);
+        else if (!s.shells.has(id)) s.shells.set(id, call?.target ?? s.target);
       }
       return;
     }

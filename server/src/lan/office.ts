@@ -1,6 +1,6 @@
 // Merges this PC's and peers' agents into one office; single-instance probe.
 import type { AgentView, OfficeAgent, PeerInfo, PeerPacket } from '../../../core/src/lan.js';
-import { PING_APP, PING_TIMEOUT_MS, UNNAMED_NICKNAME } from '../constants.js';
+import { PING_APP, PING_TIMEOUT_MS } from '../constants.js';
 import { fitPacket } from './peerNet.js';
 import type { Profile } from './profile.js';
 import { saveProfile } from './profile.js';
@@ -56,7 +56,8 @@ export class LanService {
 
   self(): PeerInfo {
     const { peerId, nickname, palette, hueShift } = this.profile;
-    return { id: peerId, nickname: nickname || UNNAMED_NICKNAME, palette, hueShift };
+    // '' = unnamed; each viewer shows its own label
+    return { id: peerId, nickname, palette, hueShift };
   }
 
   /** What PeerNet broadcasts. Never throws: a failing scan sends no views. */

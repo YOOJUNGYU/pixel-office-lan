@@ -48,6 +48,7 @@ import {
   VOID_TILE_DASH_PATTERN,
   VOID_TILE_OUTLINE_COLOR,
 } from '../../constants.js';
+import { areaName } from '../../i18n.js';
 import { getColorizedFloorSprite, hasFloorSprites, WALL_COLOR } from '../floorTiles.js';
 import { mapOffset } from '../projection.js';
 import {
@@ -280,16 +281,17 @@ export function renderAreaLabels(
   for (const [label, acc] of centroids) {
     const cx = offsetX + (acc.sumX / acc.count + 0.5) * s;
     const cy = offsetY + (acc.sumY / acc.count + 0.5) * s;
+    const name = areaName(label);
 
     // Pixel-art drop shadow (1px right + down, no blur).
     ctx.globalAlpha = AREA_LABEL_SHADOW_ALPHA;
     ctx.fillStyle = AREA_LABEL_SHADOW_COLOR;
-    ctx.fillText(label, cx + 1, cy + 1);
+    ctx.fillText(name, cx + 1, cy + 1);
 
     // Main label — area's own color, falling back to white if missing.
     ctx.globalAlpha = AREA_LABEL_ALPHA;
     ctx.fillStyle = colorMap.get(label) ?? AREA_LABEL_FALLBACK_COLOR;
-    ctx.fillText(label, cx, cy);
+    ctx.fillText(name, cx, cy);
   }
   ctx.restore();
 }
@@ -336,8 +338,9 @@ export function renderRoomNames(
   for (const [label, t] of tops) {
     const cx = offsetX + ((t.minCol + t.maxCol + 1) / 2) * s;
     const cy = offsetY + (t.row + 0.5) * s;
-    ctx.strokeText(label, cx, cy);
-    ctx.fillText(label, cx, cy);
+    const name = areaName(label);
+    ctx.strokeText(name, cx, cy);
+    ctx.fillText(name, cx, cy);
   }
   ctx.restore();
 }

@@ -5,26 +5,10 @@ import { Button } from '../components/ui/Button.js';
 import { Checkbox } from '../components/ui/Checkbox.js';
 import { Modal } from '../components/ui/Modal.js';
 import { CHARACTER_SKIN_COLORS, MAX_HUE_DEG, PALETTE_COUNT } from '../constants.js';
+import { t, useLang } from '../i18n.js';
 import { adjustSprite } from '../office/colorize.js';
 import { getCharacterSprites } from '../office/sprites/spriteData.js';
 import { Direction } from '../office/types.js';
-
-const T = {
-  title: '내 프로필',
-  firstRunTitle: '프로필 만들기',
-  nickname: '닉네임',
-  nicknamePlaceholder: '다른 사람에게 보이는 이름',
-  nicknameEmpty: '닉네임을 입력하세요.',
-  nicknameTooLong: '닉네임은 20자 이하여야 합니다.',
-  character: '캐릭터',
-  color: '색상',
-  hideDetails: '상세 내용 숨기기',
-  hideDetailsHint: '켜면 파일 경로·주소·토큰 같은 민감 정보는 다른 사람에게 보내지 않습니다',
-  manualPeers: '직접 연결할 PC IP',
-  manualPeersHint: '한 줄에 하나씩 입력 (같은 네트워크에서 자동으로 못 찾을 때)',
-  manualPeersTooMany: '직접 연결 PC는 20개까지 입력할 수 있습니다.',
-  save: '저장',
-};
 
 const MAX_NICKNAME = 20;
 const MAX_MANUAL_PEERS = 20;
@@ -74,6 +58,7 @@ interface ProfileModalProps {
 }
 
 export function ProfileModal({ profile, firstRun, onSave, onClose }: ProfileModalProps) {
+  useLang();
   const [nickname, setNickname] = useState(profile.nickname);
   const [palette, setPalette] = useState(profile.palette);
   const [hueShift, setHueShift] = useState(profile.hueShift);
@@ -88,8 +73,12 @@ export function ProfileModal({ profile, firstRun, onSave, onClose }: ProfileModa
     .filter(Boolean);
   const errors = {
     nickname:
-      trimmed === '' ? T.nicknameEmpty : trimmed.length > MAX_NICKNAME ? T.nicknameTooLong : '',
-    peers: manualPeers.length > MAX_MANUAL_PEERS ? T.manualPeersTooMany : '',
+      trimmed === ''
+        ? t('profile.nicknameEmpty')
+        : trimmed.length > MAX_NICKNAME
+          ? t('profile.nicknameTooLong')
+          : '',
+    peers: manualPeers.length > MAX_MANUAL_PEERS ? t('profile.manualPeersTooMany') : '',
   };
   const valid = !errors.nickname && !errors.peers;
 
@@ -104,7 +93,7 @@ export function ProfileModal({ profile, firstRun, onSave, onClose }: ProfileModa
       isOpen
       onClose={firstRun ? () => {} : onClose}
       hideClose={firstRun}
-      title={firstRun ? T.firstRunTitle : T.title}
+      title={firstRun ? t('profile.firstRunTitle') : t('profile.title')}
     >
       <div className="flex flex-col gap-8 py-4 px-10 text-sm">
         <div className="flex gap-12 items-start">
@@ -112,12 +101,12 @@ export function ProfileModal({ profile, firstRun, onSave, onClose }: ProfileModa
             <CharacterPreview palette={palette} hueShift={hueShift} scale={PREVIEW_SCALE} />
           </div>
           <div className="flex-1 min-w-0 flex flex-col gap-4">
-            <label htmlFor="profile-nickname">{T.nickname}</label>
+            <label htmlFor="profile-nickname">{t('profile.nickname')}</label>
             <input
               id="profile-nickname"
               type="text"
               value={nickname}
-              placeholder={T.nicknamePlaceholder}
+              placeholder={t('profile.nicknamePlaceholder')}
               autoFocus
               onChange={(e) => setNickname(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && save()}
@@ -129,13 +118,13 @@ export function ProfileModal({ profile, firstRun, onSave, onClose }: ProfileModa
           </div>
         </div>
 
-        <div>{T.character}</div>
+        <div>{t('profile.character')}</div>
         <div className="flex gap-4 flex-wrap">
           {Array.from({ length: PALETTE_COUNT }, (_, i) => (
             <button
               key={i}
               type="button"
-              aria-label={`${T.character} ${i + 1}`}
+              aria-label={`${t('profile.character')} ${i + 1}`}
               aria-pressed={palette === i}
               onClick={() => setPalette(i)}
               className={`p-2 rounded-none cursor-pointer bg-bg-dark border-2 ${palette === i ? 'border-accent-bright' : 'border-border'}`}
@@ -145,13 +134,13 @@ export function ProfileModal({ profile, firstRun, onSave, onClose }: ProfileModa
           ))}
         </div>
 
-        <div>{T.color}</div>
+        <div>{t('profile.color')}</div>
         <div className="flex gap-4 flex-wrap">
           {HUE_PRESETS.map((h) => (
             <button
               key={h}
               type="button"
-              aria-label={`${T.color} ${h}°`}
+              aria-label={`${t('profile.color')} ${h}°`}
               aria-pressed={hueShift === h}
               onClick={() => setHueShift(h)}
               className={`p-2 rounded-none cursor-pointer bg-bg-dark border-2 ${hueShift === h ? 'border-accent-bright' : 'border-border'}`}
@@ -167,7 +156,7 @@ export function ProfileModal({ profile, firstRun, onSave, onClose }: ProfileModa
             max={MAX_HUE_DEG}
             step={1}
             value={hueShift}
-            aria-label={T.color}
+            aria-label={t('profile.color')}
             onChange={(e) => setHueShift(Number(e.target.value))}
             className="flex-1 min-w-0"
           />
@@ -175,13 +164,13 @@ export function ProfileModal({ profile, firstRun, onSave, onClose }: ProfileModa
         </div>
 
         <Checkbox
-          label={T.hideDetails}
+          label={t('profile.hideDetails')}
           checked={hideDetails}
           onChange={() => setHideDetails((v) => !v)}
         />
-        <div className="text-xs text-text-muted">{T.hideDetailsHint}</div>
+        <div className="text-xs text-text-muted">{t('profile.hideDetailsHint')}</div>
 
-        <label htmlFor="profile-peers">{T.manualPeers}</label>
+        <label htmlFor="profile-peers">{t('profile.manualPeers')}</label>
         <textarea
           id="profile-peers"
           rows={3}
@@ -189,11 +178,11 @@ export function ProfileModal({ profile, firstRun, onSave, onClose }: ProfileModa
           onChange={(e) => setPeersText(e.target.value)}
           className="w-full py-2 px-4 bg-bg border-2 border-border rounded-none text-text text-xs"
         />
-        <div className="text-xs text-text-muted">{T.manualPeersHint}</div>
+        <div className="text-xs text-text-muted">{t('profile.manualPeersHint')}</div>
         {errors.peers && <span className="text-xs text-danger">{errors.peers}</span>}
 
         <Button variant="accent" onClick={save} className="self-end">
-          {T.save}
+          {t('profile.save')}
         </Button>
       </div>
     </Modal>

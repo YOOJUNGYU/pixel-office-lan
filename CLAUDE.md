@@ -81,7 +81,7 @@ CI (`.github/workflows/ci.yml`): install, lint, asyncapi validate + generate dri
 - **Colors**: hex/rgb/hsl literals only in `webview-ui/src/constants.ts` (eslint `pixel-agents/no-inline-colors`, error level). Pixel style: `borderRadius: 0`, `2px solid` borders, hard `2px 2px 0px` shadows. UI font Pretendard (`var(--font-ui)`, bundled `webview-ui/public/fonts/`, OFL; eslint `pixel-agents/ui-font`).
 - **TypeScript**: no `enum` (use `as const`); `import type` for type-only imports; `.js` extensions on relative imports in `server/` and `core/`; `noUnusedLocals`/`noUnusedParameters` everywhere.
 - **No new runtime dependencies** — UDP, file watching, paths via Node stdlib.
-- **User-facing text in Korean** (room labels 코딩실, 자료실, 서버실, 대기실; keys coding|library|server|lounge).
+- **User-facing text via `webview-ui/src/i18n.ts`** (`t(key, params?)`, ko/en per viewer, `localStorage['pixel-office.lang']`, default from `navigator.language`). Agent activity travels as `{act, target}` and is rendered by each viewer; `reason`/targets are shown as-is. Layout room labels stay 코딩실, 자료실, 서버실, 대기실 (keys coding|library|server|lounge) and are translated only for display (`areaName`).
 - Logging: `console.*` with `[Pixel Office]` (server) / `[Webview]` prefixes.
 - Keep the upstream MIT LICENSE and the JIK-A-4 Metro City character credit.
 - Commits: husky pre-commit runs gitleaks + lint-staged; never `--no-verify`.

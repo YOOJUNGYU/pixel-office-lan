@@ -1,4 +1,4 @@
-import type { Room } from '../../../core/src/lan.js';
+import type { Act, Room } from '../../../core/src/lan.js';
 import type { SessionState } from './session.js';
 import { setActivity, setIdle } from './session.js';
 
@@ -14,7 +14,7 @@ interface Block {
 }
 
 interface Turn {
-  tools: Map<string, { name: string; input: Input; summary: string }>;
+  tools: Map<string, { name: string; input: Input; target: string }>;
 }
 /** per-session turn memory (tool_use ids of the current turn) */
 const turns = new WeakMap<SessionState, Turn>();
@@ -38,37 +38,37 @@ const textOf = (c: unknown): string =>
       ? c.map((b: Block) => (b?.type === 'text' ? str(b.text) : '')).join('\n')
       : '';
 
-/** [room (null = keep), summary, exempt] */
-function describe(name: string, i: Input): [Room | null, string, boolean] {
+/** [room (null = keep), act, target, exempt] */
+function describe(name: string, i: Input): [Room | null, Act, string, boolean] {
   switch (name) {
     case 'Edit':
     case 'Write':
     case 'MultiEdit':
     case 'NotebookEdit':
-      return ['coding', `${basename(i.file_path ?? i.notebook_path)} 수정 중`, false];
+      return ['coding', 'edit', basename(i.file_path ?? i.notebook_path), false];
     case 'Read':
-      return ['library', `${basename(i.file_path)} 읽는 중`, false];
+      return ['library', 'read', basename(i.file_path), false];
     case 'Grep':
-      return ['library', `"${str(i.pattern)}" 검색 중`, false];
+      return ['library', 'search', str(i.pattern), false];
     case 'Glob':
-      return ['library', `"${str(i.pattern)}" 파일 찾는 중`, false];
+      return ['library', 'find', str(i.pattern), false];
     case 'WebSearch':
-      return ['library', `웹 검색: ${str(i.query)}`, false];
+      return ['library', 'web', str(i.query), false];
     case 'WebFetch':
-      return ['library', `${str(i.url)} 보는 중`, false];
+      return ['library', 'fetch', str(i.url), false];
     case 'Bash':
     case 'PowerShell':
-      return ['server', `명령 실행: ${str(i.description) || str(i.command).slice(0, 80)}`, false];
+      return ['server', 'run', str(i.description) || str(i.command).slice(0, 80), false];
     case 'Task':
     case 'Agent':
-      return ['lounge', `서브에이전트에게 맡김: ${str(i.description)}`, true];
+      return ['lounge', 'delegate', str(i.description), true];
     case 'AskUserQuestion':
     case 'ExitPlanMode':
-      return ['lounge', '답변 기다리는 중', true];
+      return ['lounge', 'ask', '', true];
   }
   const mcp = /^mcp__(.+?)__(.+)$/.exec(name);
-  if (mcp) return ['library', `${mcp[1]}:${mcp[2]} 사용 중`, false];
-  return [null, `${name} 사용 중`, false];
+  if (mcp) return ['library', 'mcp', `${mcp[1]}:${mcp[2]}`, false];
+  return [null, 'tool', name, false];
 }
 
 function onAssistant(s: SessionState, content: Block[], now: number): void {
@@ -83,12 +83,12 @@ function onAssistant(s: SessionState, content: Block[], now: number): void {
         s.shells.delete(str(input.shell_id ?? input.task_id));
         continue;
       }
-      const [room, summary, exempt] = describe(b.name, input);
-      const clipped = clip(summary, 120);
-      setActivity(s, room, clipped, now);
+      const [room, act, target, exempt] = describe(b.name, input);
+      const clipped = clip(target, 120);
+      setActivity(s, room, act, clipped, now);
       if (b.name === 'AskUserQuestion' || b.name === 'ExitPlanMode') s.permission = true;
       s.pendingTool = { name: b.name, since: now, exempt };
-      if (b.id) turnOf(s).tools.set(b.id, { name: b.name, input, summary: clipped });
+      if (b.id) turnOf(s).tools.set(b.id, { name: b.name, input, target: clipped });
     }
   }
   if (!sawTool && content.some((b) => b?.type === 'text')) s.textOnlyAt = now;
@@ -104,7 +104,7 @@ function onUser(s: SessionState, content: unknown): void {
     for (const r of results) {
       const id = BG_RE.exec(textOf(r.content))?.[1];
       const call = turnOf(s).tools.get(str(r.tool_use_id));
-      if (id && call?.input.run_in_background === true) s.shells.set(id, call.summary);
+      if (id && call?.input.run_in_background === true) s.shells.set(id, call.target);
     }
     return;
   }

@@ -7,6 +7,24 @@ export const ROOM_LABELS: Record<Room, string> = {
   server: '서버실',
   lounge: '대기실',
 };
+const ACTS = [
+  'idle',
+  'edit',
+  'read',
+  'search',
+  'find',
+  'web',
+  'fetch',
+  'mcp',
+  'run',
+  'delegate',
+  'ask',
+  'image',
+  'tool',
+] as const;
+/** What an agent is doing; each viewer renders it in their own language. */
+export type Act = (typeof ACTS)[number];
+export type Lang = 'ko' | 'en';
 export type Provider = 'claude' | 'codex';
 export type ViewKind = 'main' | 'subagent' | 'shell';
 
@@ -22,8 +40,9 @@ export interface AgentView {
   room: Room;
   /** waiting for approval/input */
   permission: boolean;
-  /** <=120 chars */
-  summary: string;
+  act: Act;
+  /** what the act is applied to (file, pattern, command…), <=120 chars, '' if none */
+  target: string;
   /** <=200 chars, '' if none */
   reason: string;
 }
@@ -52,12 +71,13 @@ const MAX_VIEWS = 50;
 const MAX_PEER_ID = 64;
 const MAX_NICKNAME = 20;
 const MAX_ID = 200;
-const MAX_SUMMARY = 120;
+const MAX_TARGET = 120;
 const MAX_REASON = 200;
 
 const ROOMS = new Set<string>(Object.keys(ROOM_LABELS));
 const PROVIDERS = new Set<string>(['claude', 'codex']);
 const KINDS = new Set<string>(['main', 'subagent', 'shell']);
+const ACT_SET = new Set<string>(ACTS);
 
 type Obj = Record<string, unknown>;
 const isObj = (x: unknown): x is Obj => typeof x === 'object' && x !== null && !Array.isArray(x);
@@ -70,11 +90,12 @@ function parseView(raw: unknown): AgentView | null {
   if (!isObj(raw)) return null;
   const id = str(raw.id, MAX_ID);
   const num = int(raw.num, 0, 1_000_000);
-  const summary = str(raw.summary, MAX_SUMMARY);
+  const target = str(raw.target, MAX_TARGET);
   const reason = str(raw.reason, MAX_REASON);
-  if (id === null || num === null || summary === null || reason === null) return null;
+  if (id === null || num === null || target === null || reason === null) return null;
   if (!PROVIDERS.has(raw.provider as string) || !KINDS.has(raw.kind as string)) return null;
   if (!ROOMS.has(raw.room as string) || typeof raw.permission !== 'boolean') return null;
+  if (!ACT_SET.has(raw.act as string)) return null;
   const view: AgentView = {
     id,
     provider: raw.provider as Provider,
@@ -82,7 +103,8 @@ function parseView(raw: unknown): AgentView | null {
     num,
     room: raw.room as Room,
     permission: raw.permission,
-    summary,
+    act: raw.act as Act,
+    target,
     reason,
   };
   if (raw.parentId !== undefined) {

@@ -52,7 +52,7 @@ describe('Scanner', () => {
     await scanner.discover();
     await advance(3_000);
     const [v] = scanner.views();
-    expect(v).toMatchObject({ room: 'coding', summary: 'login.ts 수정 중', reason: '' });
+    expect(v).toMatchObject({ room: 'coding', act: 'edit', target: 'login.ts', reason: '' });
   });
 
   it('buffers a line split across polls (incl. split multibyte char)', async () => {
@@ -66,7 +66,7 @@ describe('Scanner', () => {
     appendFileSync(p, line.subarray(cut));
     await scanner.poll();
     await advance(3_000);
-    expect(scanner.views()[0]).toMatchObject({ room: 'coding', summary: '한글.ts 수정 중' });
+    expect(scanner.views()[0]).toMatchObject({ room: 'coding', act: 'edit', target: '한글.ts' });
   });
 
   it('registers subagents with parentId', async () => {

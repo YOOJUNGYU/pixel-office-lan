@@ -2,7 +2,9 @@
 // Everything in this package is types-only (no runtime behavior)
 
 export type {
+  Act,
   AgentView,
+  Lang,
   OfficeAgent,
   PeerInfo,
   PeerPacket,

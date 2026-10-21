@@ -14,6 +14,7 @@ import { test } from 'vitest';
 import { buildFurnitureCatalog } from '../../core/src/assets/build.ts';
 import { decodeAllFurniture } from '../../core/src/assets/loader.ts';
 import type { OfficeAgent, Room } from '../../core/src/lan.ts';
+import { setLang } from '../src/i18n.js';
 import { LanAgents, tagText } from '../src/lan/lanAgents.js';
 import { OfficeState } from '../src/office/engine/officeState.js';
 import { buildDynamicCatalog } from '../src/office/layout/furnitureCatalog.js';
@@ -38,7 +39,8 @@ function agent(id: string, room: Room, extra: Partial<OfficeAgent> = {}): Office
     num: 1,
     room,
     permission: false,
-    summary: '',
+    act: 'idle',
+    target: '',
     reason: '',
     ...extra,
   };
@@ -230,8 +232,14 @@ test('permission toggles the bubble; subagent and shell looks', () => {
 });
 
 test('name tags: nickname · provider #n for mains, kind for children', () => {
+  setLang('ko');
   assert.equal(tagText(agent('s1', 'coding', { num: 2 })), 'kim · Claude #2');
   assert.equal(tagText(agent('s2', 'coding', { provider: 'codex', num: 1 })), 'kim · Codex #1');
   assert.equal(tagText(child('s1/sub/a', 's1', 'coding')), '↳ 서브에이전트');
   assert.equal(tagText({ ...child('s1/sh/1', 's1', 'server'), kind: 'shell' }), '↳ 셸');
+  const unnamed = agent('s3', 'coding', { num: 1 });
+  assert.equal(
+    tagText({ ...unnamed, peer: { ...unnamed.peer, nickname: '' } }),
+    '이름없음 · Claude #1',
+  );
 });

@@ -11,6 +11,7 @@ import { useEditorActions } from './hooks/useEditorActions.js';
 import { useEditorKeyboard } from './hooks/useEditorKeyboard.js';
 import { useExtensionMessages } from './hooks/useExtensionMessages.js';
 import { useIsMobile } from './hooks/useIsMobile.js';
+import { t, useLang } from './i18n.js';
 import { LanOverlay } from './lan/LanOverlay.js';
 import { ProfileModal } from './lan/ProfileModal.js';
 import { OfficeCanvas } from './office/components/OfficeCanvas.js';
@@ -76,6 +77,7 @@ function App() {
   // Overlay geometry: the root div is the canvas container's size.
   const containerRef = useRef<HTMLDivElement>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  useLang();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const firstRun = !!profile?.canEdit && profile.profile.nickname === '';
 
@@ -184,10 +186,7 @@ function App() {
   const handleImportLayout = (file: File) => {
     // Browser-native import: read + validate + apply directly,
     // bypassing the layoutLoaded message whose dirty guard would skip it.
-    if (
-      isEditDirty() &&
-      !window.confirm('현재 레이아웃을 바꿀까요? 저장하지 않은 편집은 사라집니다.')
-    ) {
+    if (isEditDirty() && !window.confirm(t('app.importConfirm'))) {
       return;
     }
     const reader = new FileReader();
@@ -201,7 +200,7 @@ function App() {
           !Array.isArray(imported.tiles) ||
           !Array.isArray(imported.furniture)
         ) {
-          window.alert('올바른 레이아웃 파일이 아닙니다.');
+          window.alert(t('app.importInvalid'));
           return;
         }
         const migrated = migrateLayoutColors(imported as unknown as OfficeLayout);
@@ -213,7 +212,7 @@ function App() {
         });
         editor.markClean();
       } catch {
-        window.alert('레이아웃 파일을 읽지 못했습니다.');
+        window.alert(t('app.importFailed'));
       }
     };
     reader.readAsText(file);
@@ -242,7 +241,9 @@ function App() {
     })();
 
   if (!layoutReady) {
-    return <div className="w-full h-full flex items-center justify-center ">불러오는 중…</div>;
+    return (
+      <div className="w-full h-full flex items-center justify-center ">{t('app.loading')}</div>
+    );
   }
 
   return (
@@ -291,7 +292,7 @@ function App() {
           className="absolute left-1/2 -translate-x-1/2 z-11 bg-accent-bright text-white text-sm py-3 px-8 rounded-none border-2 border-accent shadow-pixel pointer-events-none whitespace-nowrap"
           style={{ top: editor.isDirty ? 64 : 8 }}
         >
-          회전 (R)
+          {t('app.rotateHint')}
         </div>
       )}
 
@@ -348,16 +349,16 @@ function App() {
 
       {officeReadOnly && (
         <div className="absolute mobile-safe-top left-1/2 -translate-x-1/2 z-10 text-sm text-text-muted pointer-events-none select-none whitespace-nowrap">
-          보기 전용
+          {t('app.readOnly')}
         </div>
       )}
 
-      {/* A read-only office gets no toolbar: layout editing and every setting
-          would be refused by the server anyway. */}
-      {!isMobile && !officeReadOnly && (
+      {/* A read-only office gets no layout button and only the language
+          setting: everything else would be refused by the server anyway. */}
+      {!isMobile && (
         <BottomToolbar
           isEditMode={editor.isEditMode}
-          onToggleEditMode={editor.handleToggleEditMode}
+          onToggleEditMode={officeReadOnly ? null : editor.handleToggleEditMode}
           isSettingsOpen={isSettingsOpen}
           onToggleSettings={() => setIsSettingsOpen((v) => !v)}
         />
@@ -365,7 +366,7 @@ function App() {
 
       {/* Mobile: Settings floats top-left (the layout editor stays desktop-
           only — its tools are drag/hover-driven). */}
-      {isMobile && !officeReadOnly && (
+      {isMobile && (
         <div className="absolute mobile-safe-top left-8 z-20">
           <Button
             size="sm"
@@ -373,7 +374,7 @@ function App() {
             className="border-border! shadow-pixel"
             onClick={() => setIsSettingsOpen((v) => !v)}
           >
-            설정
+            {t('toolbar.settings')}
           </Button>
         </div>
       )}
@@ -395,6 +396,7 @@ function App() {
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
+        readOnly={officeReadOnly}
         onOpenProfile={profile?.canEdit ? () => setIsProfileOpen(true) : null}
         showAreas={showAreas}
         onToggleShowAreas={onToggleShowAreas}

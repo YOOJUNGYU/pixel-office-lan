@@ -7,6 +7,7 @@ import {
   ZOOM_MAX,
   ZOOM_MIN,
 } from '../constants.js';
+import { t, useLang } from '../i18n.js';
 import { Button } from './ui/Button.js';
 
 interface ZoomControlsProps {
@@ -15,6 +16,7 @@ interface ZoomControlsProps {
 }
 
 export function ZoomControls({ zoom, onZoomChange }: ZoomControlsProps) {
+  useLang();
   const [showLevel, setShowLevel] = useState(false);
   const [fadeOut, setFadeOut] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -75,7 +77,7 @@ export function ZoomControls({ zoom, onZoomChange }: ZoomControlsProps) {
           onClick={() => onZoomChange(zoom + 1)}
           disabled={maxDisabled}
           className="border-border! shadow-pixel disabled:hover:bg-btn-bg disabled:cursor-default disabled:opacity-(--btn-disabled-opacity)"
-          title="확대 (Ctrl+스크롤)"
+          title={t('zoom.in')}
         >
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
             <line
@@ -103,7 +105,7 @@ export function ZoomControls({ zoom, onZoomChange }: ZoomControlsProps) {
           onClick={() => onZoomChange(zoom - 1)}
           disabled={minDisabled}
           className="border-border! shadow-pixel disabled:hover:bg-btn-bg disabled:cursor-default disabled:opacity-(--btn-disabled-opacity)"
-          title="축소 (Ctrl+스크롤)"
+          title={t('zoom.out')}
         >
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
             <line

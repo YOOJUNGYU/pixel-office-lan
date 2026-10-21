@@ -1,4 +1,4 @@
-import type { AgentView, Provider, Room } from '../../../core/src/lan.js';
+import type { Act, AgentView, Provider, Room } from '../../../core/src/lan.js';
 import { PERMISSION_DELAY_MS, ROOM_DEBOUNCE_MS, TEXT_IDLE_DELAY_MS } from '../constants.js';
 
 export { PERMISSION_DELAY_MS, ROOM_DEBOUNCE_MS, TEXT_IDLE_DELAY_MS };
@@ -13,14 +13,15 @@ export interface SessionState {
   room: Room;
   candidate: Room;
   candidateSince: number;
-  summary: string;
+  act: Act;
+  target: string;
   reason: string;
   permission: boolean;
   lastLineAt: number;
   pendingTool: { name: string; since: number; exempt: boolean } | null;
   textOnlyAt: number | null;
   turnEnded: boolean;
-  /** shellId -> summary */
+  /** shellId -> target (command or its description) */
   shells: Map<string, string>;
 }
 
@@ -40,7 +41,8 @@ export function newSession(
     room: 'lounge',
     candidate: 'lounge',
     candidateSince: now,
-    summary: '대기 중',
+    act: 'idle',
+    target: '',
     reason: '',
     permission: false,
     lastLineAt: now,
@@ -62,11 +64,13 @@ function setCandidate(s: SessionState, room: Room, now: number): void {
 export function setActivity(
   s: SessionState,
   room: Room | null,
-  summary: string,
+  act: Act,
+  target: string,
   now: number,
 ): void {
   if (room) setCandidate(s, room, now);
-  s.summary = summary;
+  s.act = act;
+  s.target = target;
   s.permission = false;
   s.turnEnded = false;
   s.textOnlyAt = null;
@@ -74,7 +78,8 @@ export function setActivity(
 
 export function setIdle(s: SessionState, now: number): void {
   setCandidate(s, 'lounge', now);
-  s.summary = '대기 중';
+  s.act = 'idle';
+  s.target = '';
   s.pendingTool = null;
   s.permission = false;
   s.turnEnded = true;
@@ -102,11 +107,12 @@ export function toViews(s: SessionState): AgentView[] {
     num: s.kind === 'main' ? s.num : 0,
     room: s.room,
     permission: s.permission,
-    summary: s.summary,
+    act: s.act,
+    target: s.target,
     reason: s.reason,
   };
   if (s.kind === 'subagent') self.parentId = s.parentId;
-  const shells = [...s.shells].map(([shellId, summary]): AgentView => ({
+  const shells = [...s.shells].map(([shellId, target]): AgentView => ({
     id: `${s.id}/sh/${shellId}`,
     provider: s.provider,
     kind: 'shell',
@@ -114,7 +120,8 @@ export function toViews(s: SessionState): AgentView[] {
     parentId: s.id,
     room: 'server',
     permission: false,
-    summary,
+    act: 'run',
+    target,
     reason: '',
   }));
   return [self, ...shells];

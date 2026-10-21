@@ -3,6 +3,7 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import type { Act } from '../../../core/src/lan.js';
 import { applyClaudeLine } from '../../src/lan/claudeParser.js';
 import { newSession, tick, toViews } from '../../src/lan/session.js';
 
@@ -21,12 +22,12 @@ const toolUse = (name: string, input: unknown, id = 'tu_x') => ({
 });
 
 describe('applyClaudeLine', () => {
-  it('Edit with preceding text -> coding, basename summary, reason', () => {
+  it('Edit with preceding text -> coding, basename target, reason', () => {
     const s = mk();
     for (const l of fixture('claude-edit.jsonl')) applyClaudeLine(s, l, 1_000);
     tick(s, 1_000 + 3_000);
     expect(s.room).toBe('coding');
-    expect(s.summary).toBe('login.ts 수정 중');
+    expect(s).toMatchObject({ act: 'edit', target: 'login.ts' });
     expect(s.reason).toBe('토큰 만료 시 재로그인 문제를 고치겠습니다');
     expect(s.lastLineAt).toBe(1_000);
   });
@@ -36,27 +37,28 @@ describe('applyClaudeLine', () => {
     applyClaudeLine(s, assistant(toolUse('Grep', { pattern: 'refreshToken' })), 0);
     tick(s, 3_000);
     expect(s.room).toBe('library');
-    expect(s.summary).toBe('"refreshToken" 검색 중');
+    expect(s).toMatchObject({ act: 'search', target: 'refreshToken' });
   });
 
-  it('summaries for other tools', () => {
-    const cases: [string, unknown, string | null, string][] = [
-      ['Write', { file_path: 'C:\\w\\a.ts' }, 'coding', 'a.ts 수정 중'],
-      ['NotebookEdit', { notebook_path: '/n/x.ipynb' }, 'coding', 'x.ipynb 수정 중'],
-      ['Read', { file_path: '/r/y.md' }, 'library', 'y.md 읽는 중'],
-      ['Glob', { pattern: '**/*.ts' }, 'library', '"**/*.ts" 파일 찾는 중'],
-      ['WebSearch', { query: 'vitest' }, 'library', '웹 검색: vitest'],
-      ['WebFetch', { url: 'https://x.dev/a' }, 'library', 'https://x.dev/a 보는 중'],
-      ['mcp__github__get_issue', {}, 'library', 'github:get_issue 사용 중'],
-      ['Bash', { command: 'a'.repeat(100) }, 'server', `명령 실행: ${'a'.repeat(80)}`],
-      ['Agent', { description: '조사' }, 'lounge', '서브에이전트에게 맡김: 조사'],
-      ['Skill', {}, null, 'Skill 사용 중'],
+  it('act/target for other tools', () => {
+    const cases: [string, unknown, string | null, Act, string][] = [
+      ['Write', { file_path: 'C:\\w\\a.ts' }, 'coding', 'edit', 'a.ts'],
+      ['NotebookEdit', { notebook_path: '/n/x.ipynb' }, 'coding', 'edit', 'x.ipynb'],
+      ['Read', { file_path: '/r/y.md' }, 'library', 'read', 'y.md'],
+      ['Glob', { pattern: '**/*.ts' }, 'library', 'find', '**/*.ts'],
+      ['WebSearch', { query: 'vitest' }, 'library', 'web', 'vitest'],
+      ['WebFetch', { url: 'https://x.dev/a' }, 'library', 'fetch', 'https://x.dev/a'],
+      ['mcp__github__get_issue', {}, 'library', 'mcp', 'github:get_issue'],
+      ['Bash', { command: 'a'.repeat(100) }, 'server', 'run', 'a'.repeat(80)],
+      ['Bash', { command: 'ls', description: '목록' }, 'server', 'run', '목록'],
+      ['Agent', { description: '조사' }, 'lounge', 'delegate', '조사'],
+      ['Skill', {}, null, 'tool', 'Skill'],
     ];
-    for (const [name, input, room, summary] of cases) {
+    for (const [name, input, room, act, target] of cases) {
       const s = mk();
       s.candidate = 'server';
       applyClaudeLine(s, assistant(toolUse(name, input)), 0);
-      expect(s.summary).toBe(summary);
+      expect(s).toMatchObject({ act, target });
       expect(s.candidate).toBe(room ?? 'server');
     }
   });
@@ -76,7 +78,7 @@ describe('applyClaudeLine', () => {
     for (const l of fixture('claude-bg-shell.jsonl')) applyClaudeLine(s, l, 0);
     expect(s.pendingTool).toBeNull();
     expect(toViews(s)).toContainEqual(
-      expect.objectContaining({ id: 's1/sh/bash_1', summary: '명령 실행: 개발 서버 실행' }),
+      expect.objectContaining({ id: 's1/sh/bash_1', act: 'run', target: '개발 서버 실행' }),
     );
     applyClaudeLine(
       s,
@@ -92,21 +94,21 @@ describe('applyClaudeLine', () => {
     expect(toViews(s)).toHaveLength(1);
   });
 
-  it('KillShell / TaskStop remove the shell, keep summary', () => {
+  it('KillShell / TaskStop remove the shell, keep activity', () => {
     const s = mk();
     s.shells.set('b1', 'x').set('b2', 'y');
-    s.summary = 'keep';
+    s.target = 'keep';
     applyClaudeLine(s, assistant(toolUse('KillShell', { shell_id: 'b1' })), 0);
     applyClaudeLine(s, assistant(toolUse('TaskStop', { task_id: 'b2' })), 0);
     expect(s.shells.size).toBe(0);
-    expect(s.summary).toBe('keep');
+    expect(s).toMatchObject({ act: 'idle', target: 'keep' });
   });
 
   it('AskUserQuestion -> immediate permission', () => {
     const s = mk();
     applyClaudeLine(s, assistant(toolUse('AskUserQuestion', { questions: [] })), 0);
     expect(s.permission).toBe(true);
-    expect(s.summary).toBe('답변 기다리는 중');
+    expect(s).toMatchObject({ act: 'ask', target: '' });
   });
 
   it('reason carries across messages in a turn, resets on new user text', () => {
@@ -124,13 +126,13 @@ describe('applyClaudeLine', () => {
     expect(s.reason).toBe('');
   });
 
-  it('turn_duration -> lounge / 대기 중 after 3s', () => {
+  it('turn_duration -> lounge / idle after 3s', () => {
     const s = mk();
     s.room = s.candidate = 'coding';
     applyClaudeLine(s, '{"type":"system","subtype":"turn_duration"}', 0);
     tick(s, 3_000);
     expect(s.room).toBe('lounge');
-    expect(s.summary).toBe('대기 중');
+    expect(s).toMatchObject({ act: 'idle', target: '' });
   });
 
   it('ignores garbage entirely', () => {

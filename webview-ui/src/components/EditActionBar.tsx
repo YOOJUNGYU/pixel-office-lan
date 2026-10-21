@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import type { useEditorActions } from '../hooks/useEditorActions.js';
+import { t, useLang } from '../i18n.js';
 import type { EditorState } from '../office/editor/editorState.js';
 import { Button } from './ui/Button.js';
 
@@ -11,6 +12,7 @@ interface EditActionBarProps {
 
 export function EditActionBar({ editor, editorState: es }: EditActionBarProps) {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  useLang();
 
   const undoDisabled = es.undoStack.length === 0;
   const redoDisabled = es.redoStack.length === 0;
@@ -21,33 +23,33 @@ export function EditActionBar({ editor, editorState: es }: EditActionBarProps) {
         variant={undoDisabled ? 'disabled' : 'default'}
         size="md"
         onClick={undoDisabled ? undefined : editor.handleUndo}
-        title="실행 취소 (Ctrl+Z)"
+        title={t('edit.undoTitle')}
       >
-        실행 취소
+        {t('edit.undo')}
       </Button>
       <Button
         variant={redoDisabled ? 'disabled' : 'default'}
         size="md"
         onClick={redoDisabled ? undefined : editor.handleRedo}
-        title="다시 실행 (Ctrl+Y)"
+        title={t('edit.redoTitle')}
       >
-        다시 실행
+        {t('edit.redo')}
       </Button>
-      <Button variant="default" size="md" onClick={editor.handleSave} title="레이아웃 저장">
-        저장
+      <Button variant="default" size="md" onClick={editor.handleSave} title={t('edit.saveTitle')}>
+        {t('edit.save')}
       </Button>
       {!showResetConfirm ? (
         <Button
           variant="default"
           size="md"
           onClick={() => setShowResetConfirm(true)}
-          title="마지막 저장 상태로 되돌리기"
+          title={t('edit.resetTitle')}
         >
-          되돌리기
+          {t('edit.reset')}
         </Button>
       ) : (
         <div className="flex gap-4 items-center">
-          <span className="text-base text-reset-text">되돌릴까요?</span>
+          <span className="text-base text-reset-text">{t('edit.resetConfirm')}</span>
           <Button
             variant="default"
             size="md"
@@ -57,10 +59,10 @@ export function EditActionBar({ editor, editorState: es }: EditActionBarProps) {
               editor.handleReset();
             }}
           >
-            예
+            {t('edit.yes')}
           </Button>
           <Button variant="default" size="md" onClick={() => setShowResetConfirm(false)}>
-            아니요
+            {t('edit.no')}
           </Button>
         </div>
       )}

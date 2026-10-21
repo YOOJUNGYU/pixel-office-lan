@@ -189,7 +189,8 @@ describe('/ws LAN office', () => {
     num: 1,
     room: 'coding',
     permission: false,
-    summary: '/home/kim/a.ts 수정 중',
+    act: 'edit',
+    target: '/home/kim/a.ts',
     reason: '',
   } as const;
   const update = {
@@ -228,7 +229,7 @@ describe('/ws LAN office', () => {
     socket.send(JSON.stringify({ type: 'webviewReady' }));
     expect(await loaded).toMatchObject({ canEdit: true, profile: { hideDetails: true } });
     expect(await snap).toMatchObject({
-      agents: [{ summary: '/home/kim/a.ts 수정 중', key: expect.stringMatching(/:s1$/) }],
+      agents: [{ target: '/home/kim/a.ts', key: expect.stringMatching(/:s1$/) }],
       selfPeerId: expect.any(String),
     });
 
@@ -245,7 +246,7 @@ describe('/ws LAN office', () => {
     const snap = waitForMessage(socket, 'officeSnapshot');
     socket.send(JSON.stringify({ type: 'webviewReady' }));
     expect(await loaded).toMatchObject({ canEdit: false, profile: { manualPeers: [] } });
-    expect(await snap).toMatchObject({ agents: [{ summary: 'a.ts 수정 중' }] });
+    expect(await snap).toMatchObject({ agents: [{ target: 'a.ts' }] });
 
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const refused = waitForMessage(socket, 'profileLoaded');
