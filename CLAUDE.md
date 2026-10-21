@@ -35,7 +35,7 @@ webview-ui/src/          React 19 + Canvas office
 
 ## Removed from upstream (Task 1)
 
-VS Code adapter, PTY/xterm terminal, hook providers + consent flow, JSONL transcript watching, agent runtime/store, directories/launch drawer, mobile terminal shell, server token, server registry (`server.json`), e2e suite, Allure/Vercel, npm/vsix publishing. Agent detection is rebuilt by the LAN reporter (Tasks 2–9). `docs/adr/`, `docs/design/`, `docs/research/` describe the removed upstream pipeline.
+VS Code adapter, PTY/xterm terminal, hook providers + consent flow, JSONL transcript watching, agent runtime/store, directories/launch drawer, mobile terminal shell, server token, server registry (`server.json`), e2e suite, Allure/Vercel, npm/vsix publishing. Agent detection is rebuilt by the LAN reporter (Tasks 2–9). Upstream ADRs, design/research notes, CHANGELOG and CONTRIBUTING were deleted (Task 15).
 
 ## Handshake (`webviewReady`)
 
@@ -70,9 +70,11 @@ npm run asyncapi:generate   # after editing core/asyncapi.yaml; commit messages.
 node dist/cli.js --port 47801   # then open http://localhost:47801
 ```
 
-`esbuild.js` bundles only `server/src/cli.ts` → `dist/cli.js` and copies `webview-ui/public/assets/` → `dist/assets/`; Vite builds the SPA into `dist/webview/`. `@playwright/test` stays as a devDependency for headless screenshots (no e2e suite).
+`esbuild.js` bundles `server/src/cli.ts` with all its dependencies (fastify included — `dist/` runs without `node_modules`) → `dist/cli.js`, inlines `__APP_VERSION__` (package.json version), and copies `webview-ui/public/assets/` → `dist/assets/`; Vite builds the SPA into `dist/webview/`. `@playwright/test` stays as a devDependency for headless screenshots (no e2e suite).
 
 CI (`.github/workflows/ci.yml`): install, lint, asyncapi validate + generate drift check, check-types, build, test:server, test:webview.
+
+Installers (`.github/workflows/package.yml`, `scripts/package/`): official Node (`node-version.txt`, SHA-256 checked by `fetch-node.mjs`) + `dist/` as `app/`. Windows = Inno Setup (`windows.iss`, `launch.vbs`, firewall rule, all-users startup); Mac = `macos.sh` → `/Applications/Pixel Office.app` + LaunchAgent `com.pixeloffice.agent` via pkgbuild. Manual run → artifacts; tag `v<package.json version>` → GitHub Release (`-` in tag = prerelease). User guide: `docs/설치-안내.md`, `docs/INSTALL.en.md`.
 
 ## Conventions
 

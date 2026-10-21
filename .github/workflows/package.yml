@@ -8,7 +8,6 @@ on:
   workflow_dispatch:
   push:
     tags: ['v*']
-    branches: ['feat/lan'] # TEMP: registers the workflow before it reaches main; removed after CI verification
 
 permissions:
   contents: read
