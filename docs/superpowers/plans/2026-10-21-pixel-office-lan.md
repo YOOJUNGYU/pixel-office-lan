@@ -557,7 +557,7 @@ export class LanAgents {
 - 이름표(항상, 캐릭터 발 아래): main `${nickname} · ${provider==='claude' ? 'Claude' : 'Codex'} #${num}` + 앞에 제공자 배지(Claude 주황 `#D97757`, Codex 초록 `#10A37F` 작은 점). subagent `↳ 서브에이전트`, shell `↳ 셸`.
 - hover 말풍선: 1행 `${ROOM_LABELS[room]}`, 2행 `summary`, 3행 `reason`(있을 때, 따옴표). `permission` 이면 1행에 `❗ 확인 필요`.
 - 모든 텍스트는 React 텍스트 노드로만(`dangerouslySetInnerHTML` 금지).
-- renderer: `linkParentId` 가 있는 캐릭터마다 — `followParent` 면 두 캐릭터 손 높이에서 짧은 실선(2px, 부모 palette 색), 아니면 두 캐릭터 중심 사이 점선(1px, 반투명).
+- renderer: 연결선 없음(사용자 변경). 손잡기는 Task 11 의 따라가기 배치로 표현하고, `ghostOf` 캐릭터(다른 방에 있는 부모의 반투명 분신)는 hover 시 실제 부모 정보를 보여 준다.
 
 - [ ] **Step 1: 구현**
 - [ ] **Step 2: 확인** — `npm run check-types && cd webview-ui && npx vitest run` → PASS. 수동: 두 Claude 세션(하나는 서브에이전트 사용)과 Codex 세션 하나를 돌리고 브라우저에서 이름표·hover·손잡기·점선·❗ 를 확인, 닉네임을 `<b>x</b>` 로 저장해 글자 그대로 보이는지 확인. 스크린샷을 PR 설명에 첨부.
