@@ -17,3 +17,11 @@ export const LAYOUT_FILE_DIR = '.pixel-office';
 export const LAYOUT_FILE_NAME = 'layout.json';
 export const LAYOUT_REVISION_KEY = 'layoutRevision';
 export const CONFIG_FILE_NAME = 'config.json';
+
+// ── LAN session state ──────────────────────────────────────
+/** A room change must hold this long before the agent moves. */
+export const ROOM_DEBOUNCE_MS = 3_000;
+/** Non-exempt tool pending this long with no new line => waiting for approval. */
+export const PERMISSION_DELAY_MS = 7_000;
+/** Text-only turn with no tool pending this long => idle. */
+export const TEXT_IDLE_DELAY_MS = 5_000;
