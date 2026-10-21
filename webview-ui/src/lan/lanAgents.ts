@@ -8,6 +8,13 @@ import {
 } from '../constants.js';
 import type { OfficeState } from '../office/engine/officeState.js';
 
+/** Text of an agent's name tag (the provider dot is drawn separately). */
+export function tagText(a: OfficeAgent): string {
+  if (a.kind === 'subagent') return '↳ 서브에이전트';
+  if (a.kind === 'shell') return '↳ 셸';
+  return `${a.peer.nickname} · ${a.provider === 'claude' ? 'Claude' : 'Codex'} #${a.num}`;
+}
+
 /** Look of an agent's character: main = its PC's, subagent = hue-rotated, shell = fixed. */
 function looks(a: OfficeAgent): { palette: number; hueShift: number } {
   if (a.kind === 'shell') return { palette: LAN_SHELL_PALETTE, hueShift: 0 };

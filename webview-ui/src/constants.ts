@@ -1,4 +1,4 @@
-import type { Room } from '../../core/src/lan.js';
+import type { Provider, Room } from '../../core/src/lan.js';
 import type { ColorValue } from './components/ui/types.js';
 
 // ── Grid & Layout ────────────────────────────────────────────
@@ -304,3 +304,17 @@ export const MAX_HUE_DEG = 360;
 export const LAN_GHOST_ALPHA = 0.45;
 /** Shell characters share one fixed look. */
 export const LAN_SHELL_PALETTE = 3;
+/** Provider badge dot in a main agent's name tag. */
+export const LAN_PROVIDER_COLORS: Record<Provider, string> = {
+  claude: '#D97757',
+  codex: '#10A37F',
+};
+/** Name tag font size in CSS px — fixed, so tags stay readable at every zoom. */
+export const LAN_TAG_FONT_PX = 20;
+/** Hover bubble sits this many world px above a character's feet (sprite height). */
+export const LAN_BUBBLE_HEAD_OFFSET = 32;
+export const LAN_TAG_Z_INDEX = 40;
+export const LAN_PERMISSION_Z_INDEX = 41;
+export const LAN_BUBBLE_Z_INDEX = 42;
+/** Room names stay on the map outside the editor, dimmer than the editor's. */
+export const LAN_ROOM_LABEL_ALPHA = 0.55;

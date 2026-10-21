@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { toMajorMinor } from './changelogData.js';
 import { BottomToolbar } from './components/BottomToolbar.js';
@@ -14,6 +14,7 @@ import { useEditorActions } from './hooks/useEditorActions.js';
 import { useEditorKeyboard } from './hooks/useEditorKeyboard.js';
 import { useExtensionMessages } from './hooks/useExtensionMessages.js';
 import { useIsMobile } from './hooks/useIsMobile.js';
+import { LanOverlay } from './lan/LanOverlay.js';
 import { OfficeCanvas } from './office/components/OfficeCanvas.js';
 import { EditorState } from './office/editor/editorState.js';
 import { EditorToolbar } from './office/editor/EditorToolbar.js';
@@ -74,8 +75,11 @@ function App() {
     showAreas,
     setShowAreas,
     officeReadOnly,
+    lan,
   } = useExtensionMessages(getOfficeState, editor.setLastSavedLayout, isEditDirty);
 
+  // Overlay geometry: the root div is the canvas container's size.
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isChangelogOpen, setIsChangelogOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [alwaysShowOverlay, setAlwaysShowOverlay] = useState(false);
@@ -271,7 +275,7 @@ function App() {
   }
 
   return (
-    <div className="w-full h-full relative overflow-hidden">
+    <div ref={containerRef} className="w-full h-full relative overflow-hidden">
       <OfficeCanvas
         officeState={officeState}
         isEditMode={editor.isEditMode}
@@ -289,6 +293,14 @@ function App() {
         showAreas={effectiveShowAreas}
         activeAreaLabel={activeAreaLabel}
         tapSelectsFirst={isMobile}
+      />
+
+      <LanOverlay
+        officeState={officeState}
+        lan={lan}
+        containerRef={containerRef}
+        zoom={editor.zoom}
+        panRef={editor.panRef}
       />
 
       {!isMobile && <ZoomControls zoom={editor.zoom} onZoomChange={editor.handleZoomChange} />}

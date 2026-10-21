@@ -14,7 +14,7 @@ import { test } from 'vitest';
 import { buildFurnitureCatalog } from '../../core/src/assets/build.ts';
 import { decodeAllFurniture } from '../../core/src/assets/loader.ts';
 import type { OfficeAgent, Room } from '../../core/src/lan.ts';
-import { LanAgents } from '../src/lan/lanAgents.js';
+import { LanAgents, tagText } from '../src/lan/lanAgents.js';
 import { OfficeState } from '../src/office/engine/officeState.js';
 import { buildDynamicCatalog } from '../src/office/layout/furnitureCatalog.js';
 import type { Character, OfficeLayout } from '../src/office/types.js';
@@ -213,4 +213,11 @@ test('permission toggles the bubble; subagent and shell looks', () => {
   assert.equal(h.hueShift, 0);
   lan.apply([agent('a', 'server')]);
   assert.equal(a.bubbleType, null);
+});
+
+test('name tags: nickname · provider #n for mains, kind for children', () => {
+  assert.equal(tagText(agent('s1', 'coding', { num: 2 })), 'kim · Claude #2');
+  assert.equal(tagText(agent('s2', 'coding', { provider: 'codex', num: 1 })), 'kim · Codex #1');
+  assert.equal(tagText(child('s1/sub/a', 's1', 'coding')), '↳ 서브에이전트');
+  assert.equal(tagText({ ...child('s1/sh/1', 's1', 'server'), kind: 'shell' }), '↳ 셸');
 });
