@@ -89,6 +89,9 @@ components:
         # LAN office
         - $ref: '#/components/schemas/OfficeSnapshot'
         - $ref: '#/components/schemas/ProfileLoaded'
+        # Updates (loopback browser only)
+        - $ref: '#/components/schemas/UpdateAvailable'
+        - $ref: '#/components/schemas/UpdateStatus'
       discriminator: type
 
     ClientMessage:
@@ -102,6 +105,8 @@ components:
         - $ref: '#/components/schemas/SaveAreaMappings'
         - $ref: '#/components/schemas/SetShowAreas'
         - $ref: '#/components/schemas/SaveProfile'
+        - $ref: '#/components/schemas/InstallUpdate'
+        - $ref: '#/components/schemas/CheckUpdate'
       discriminator: type
 
     # ── Server message variants ────────────────────────────────────
@@ -363,6 +368,38 @@ components:
         readOnly:
           type: boolean
 
+    UpdateAvailable:
+      description: >-
+        A newer Pixel Office release exists on GitHub. Sent to loopback browsers
+        only: on webviewReady when already known, and when a check finds it.
+      type: object
+      additionalProperties: false
+      required: [type, version, notesUrl]
+      properties:
+        type:
+          const: updateAvailable
+        version:
+          type: string
+        notesUrl:
+          type: string
+          description: Release page on github.com (change notes).
+
+    UpdateStatus:
+      description: >-
+        Progress of installUpdate / result of checkUpdate (loopback browsers
+        only). `installing` = the installer was launched.
+      type: object
+      additionalProperties: false
+      required: [type, state]
+      properties:
+        type:
+          const: updateStatus
+        state:
+          $ref: '#/components/schemas/UpdateState'
+        percent:
+          type: integer
+          description: Download progress 0-100 while downloading.
+
     OfficeSnapshot:
       description: >-
         Every agent in the LAN office (this PC's and every live peer's), pushed
@@ -492,6 +529,10 @@ components:
     AgentRoom:
       type: string
       enum: [coding, library, server, lounge]
+
+    UpdateState:
+      type: string
+      enum: [upToDate, downloading, installing, error]
 
     # ── Client message variants ────────────────────────────────────
 
@@ -691,3 +732,23 @@ components:
           const: saveProfile
         profile:
           $ref: '#/components/schemas/ProfileMessage'
+
+    InstallUpdate:
+      description: >-
+        Download the available release's installer and run it (loopback browser
+        only).
+      type: object
+      additionalProperties: false
+      required: [type]
+      properties:
+        type:
+          const: installUpdate
+
+    CheckUpdate:
+      description: Check GitHub Releases now (loopback browser only).
+      type: object
+      additionalProperties: false
+      required: [type]
+      properties:
+        type:
+          const: checkUpdate

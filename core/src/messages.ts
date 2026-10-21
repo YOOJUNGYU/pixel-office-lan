@@ -20,7 +20,9 @@ export type ServerMessage =
   | ExternalAssetDirectoriesUpdated
   | AreaMappingsLoaded
   | OfficeSnapshot
-  | ProfileLoaded;
+  | ProfileLoaded
+  | UpdateAvailable
+  | UpdateStatus;
 
 export type ClientMessage =
   | WebviewReady
@@ -31,7 +33,9 @@ export type ClientMessage =
   | RemoveExternalAssetDirectory
   | SaveAreaMappings
   | SetShowAreas
-  | SaveProfile;
+  | SaveProfile
+  | InstallUpdate
+  | CheckUpdate;
 
 export interface LayoutLoaded {
   type: 'layoutLoaded';
@@ -195,6 +199,20 @@ export interface ProfileMessage {
   manualPeers: string[];
 }
 
+export interface UpdateAvailable {
+  type: 'updateAvailable';
+  version: string;
+  notesUrl: string;
+}
+
+export interface UpdateStatus {
+  type: 'updateStatus';
+  state: UpdateState;
+  percent?: number;
+}
+
+export type UpdateState = 'upToDate' | 'downloading' | 'installing' | 'error';
+
 export interface WebviewReady {
   type: 'webviewReady';
 }
@@ -237,4 +255,12 @@ export interface SetShowAreas {
 export interface SaveProfile {
   type: 'saveProfile';
   profile: ProfileMessage;
+}
+
+export interface InstallUpdate {
+  type: 'installUpdate';
+}
+
+export interface CheckUpdate {
+  type: 'checkUpdate';
 }

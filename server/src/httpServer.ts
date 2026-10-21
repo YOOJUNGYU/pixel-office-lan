@@ -14,6 +14,7 @@ import {
 } from './constants.js';
 import type { FileStateAdapter } from './fileStateAdapter.js';
 import type { LanService } from './lan/office.js';
+import type { Updater } from './lan/updater.js';
 
 /** Options for creating the HTTP + WebSocket server. */
 export interface HttpServerOptions {
@@ -35,6 +36,8 @@ export interface HttpServerOptions {
   lan?: LanService;
   /** `POST /api/quit` from this PC: shut everything down. */
   onQuit?: () => void;
+  /** Update check/install; its messages go to privileged sockets only. */
+  updater?: Updater;
 }
 
 /** Result of createHttpServer(). */
@@ -157,6 +160,13 @@ export async function createHttpServer(options: HttpServerOptions): Promise<Http
     for (const c of clients) if (c.privileged) safeSend(c.socket, profileMessage(lan, true));
   };
 
+  const { updater } = options;
+  if (updater) {
+    updater.broadcast = (msg) => {
+      for (const c of clients) if (c.privileged) safeSend(c.socket, msg);
+    };
+  }
+
   app.get('/ws', { websocket: true }, (socket, request) => {
     if (!isAllowedWebSocketOrigin(request.headers.origin, request.headers.host)) {
       socket.close(WS_CLOSE_FORBIDDEN_ORIGIN, 'forbidden origin');
@@ -177,6 +187,7 @@ export async function createHttpServer(options: HttpServerOptions): Promise<Http
           privileged,
           lan,
           onProfileSaved,
+          updater,
         });
       } catch {
         // Malformed JSON, ignore

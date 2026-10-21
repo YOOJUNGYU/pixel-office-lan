@@ -11,6 +11,7 @@ import {
 } from '../src/clientMessageHandler.js';
 import { readConfig, writeConfig } from '../src/configPersistence.js';
 import { FileStateAdapter } from '../src/fileStateAdapter.js';
+import { Updater } from '../src/lan/updater.js';
 
 // Hex placeholders are test fixtures, not UI tokens.
 /* eslint-disable pixel-agents/no-inline-colors */
@@ -168,6 +169,47 @@ describe('clientMessageHandler', () => {
       sent = [];
       send({ type: 'saveAreaMappings', mappings: { Lab: ['x'] } }, ctx(false));
       expect(sent).toEqual([{ type: 'areaMappingsLoaded', mappings: {} }]);
+      warn.mockRestore();
+    });
+  });
+
+  describe('updates', () => {
+    function fakeUpdater() {
+      const updater = new Updater('0.1.0', {
+        check: async () => null,
+        install: async () => {},
+      });
+      updater.info = {
+        version: '0.2.0',
+        assetUrl: 'https://github.com/YOOJUNGYU/pixel-office-lan/releases/download/v0.2.0/x.exe',
+        assetName: 'PixelOffice-Setup-0.2.0.exe',
+        assetSize: 1,
+        notesUrl: 'https://github.com/YOOJUNGYU/pixel-office-lan/releases/tag/v0.2.0',
+      };
+      const install = vi.spyOn(updater, 'install');
+      return { updater, install };
+    }
+
+    it('announces a known update in the handshake to this PC only', () => {
+      const { updater } = fakeUpdater();
+      send({ type: 'webviewReady' }, { ...ctx(true), updater });
+      expect(sent.at(-1)).toEqual({
+        type: 'updateAvailable',
+        version: '0.2.0',
+        notesUrl: 'https://github.com/YOOJUNGYU/pixel-office-lan/releases/tag/v0.2.0',
+      });
+      sent = [];
+      send({ type: 'webviewReady' }, { ...ctx(false), updater });
+      expect(sent.map((m) => m.type)).not.toContain('updateAvailable');
+    });
+
+    it('installUpdate runs for this PC and is refused for a read-only client', () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const { updater, install } = fakeUpdater();
+      send({ type: 'installUpdate' }, { ...ctx(false), updater });
+      expect(install).not.toHaveBeenCalled();
+      send({ type: 'installUpdate' }, { ...ctx(true), updater });
+      expect(install).toHaveBeenCalledTimes(1);
       warn.mockRestore();
     });
   });

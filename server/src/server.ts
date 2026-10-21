@@ -4,6 +4,7 @@ import type { AssetCache, ReloadAssetsSideEffect } from './clientMessageHandler.
 import { FileStateAdapter } from './fileStateAdapter.js';
 import { createHttpServer } from './httpServer.js';
 import type { LanService } from './lan/office.js';
+import type { Updater } from './lan/updater.js';
 
 /**
  * Pixel Office server: serves the SPA and streams office state over WebSocket.
@@ -29,6 +30,7 @@ export class PixelAgentsServer {
     logger?: boolean;
     lan?: LanService;
     onQuit?: () => void;
+    updater?: Updater;
   }): Promise<{ port: number }> {
     const { app, port } = await createHttpServer({
       host: options?.host,
@@ -40,6 +42,7 @@ export class PixelAgentsServer {
       logger: options?.logger,
       lan: options?.lan,
       onQuit: options?.onQuit,
+      updater: options?.updater,
     });
     this.app = app;
     return { port };

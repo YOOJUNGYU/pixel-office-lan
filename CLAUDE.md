@@ -19,6 +19,7 @@ server/src/
   server.ts              PixelAgentsServer.start({host, port, staticDir, assetCache}) / stop()
   httpServer.ts          Fastify: GET /api/health, /api/ping, POST /api/quit (loopback), GET /ws (+1 s officeSnapshot), SPA static; isLoopback(req)
   lan/office.ts          buildOffice, checkExisting (single instance), LanService (profile + scanner + peers)
+  lan/updater.ts         GitHub Releases check (60 s, then 6 h), installer download to ~/.pixel-office/updates + launch (loopback only)
   clientMessageHandler.ts  ClientMessage dispatch + webviewReady handshake + read-only gate
   assetLoader.ts / assetReload.ts   PNG → SpriteData, external asset directories
   layoutPersistence.ts   ~/.pixel-office/layout.json (atomic tmp+rename)
@@ -39,7 +40,7 @@ VS Code adapter, PTY/xterm terminal, hook providers + consent flow, JSONL transc
 
 ## Handshake (`webviewReady`)
 
-`officeAccess {readOnly}` → asset messages (characters, pets, floor, walls, carpets, furniture) → `settingsLoaded` → `profileLoaded {profile, canEdit}` → `areaMappingsLoaded` → `layoutLoaded` (saved layout, else bundled default) → first `officeSnapshot`. After that `officeSnapshot {agents, selfPeerId}` is pushed every second to every socket (this PC's agents redacted for read-only viewers when `hideDetails`).
+`officeAccess {readOnly}` → asset messages (characters, pets, floor, walls, carpets, furniture) → `settingsLoaded` → `profileLoaded {profile, canEdit}` → `areaMappingsLoaded` → `layoutLoaded` (saved layout, else bundled default) → first `officeSnapshot` → `updateAvailable` (loopback only, when known). After that `officeSnapshot {agents, selfPeerId}` is pushed every second to every socket (this PC's agents redacted for read-only viewers when `hideDetails`).
 
 ## Privilege rule
 

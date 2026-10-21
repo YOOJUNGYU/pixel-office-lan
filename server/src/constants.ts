@@ -49,3 +49,13 @@ export const PING_TIMEOUT_MS = 1_000;
 export const SNAPSHOT_INTERVAL_MS = 1_000;
 /** `POST /api/quit`: delay before exit so the reply reaches the caller. */
 export const QUIT_DELAY_MS = 100;
+
+// ── Updates (GitHub Releases) ──────────────────────────────
+/** First update check after start. */
+export const UPDATE_FIRST_CHECK_MS = 60_000;
+export const UPDATE_API_TIMEOUT_MS = 15_000;
+export const UPDATE_DOWNLOAD_TIMEOUT_MS = 10 * 60_000;
+/** Downloaded installers, under the data directory. */
+export const UPDATES_DIR_NAME = 'updates';
+/** Opt in to prereleases (rc testing): `PIXEL_OFFICE_ALLOW_PRERELEASE=1`. */
+export const ALLOW_PRERELEASE_ENV = 'PIXEL_OFFICE_ALLOW_PRERELEASE';

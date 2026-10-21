@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import type { OfficeAgent } from '../../../core/src/lan.js';
-import type { ProfileLoaded } from '../../../core/src/messages.js';
+import type { ProfileLoaded, UpdateAvailable, UpdateStatus } from '../../../core/src/messages.js';
 import { LAN_READING_TOOLS } from '../constants.js';
 import { LanAgents } from '../lan/lanAgents.js';
 import { setSoundEnabled } from '../notificationSound.js';
@@ -59,6 +59,11 @@ interface ExtensionMessageState {
   lanVersion: number;
   /** This PC's profile and whether this browser may edit it; null until loaded. */
   profile: Omit<ProfileLoaded, 'type'> | null;
+  /** A newer release (this PC's browser only); null when none is known. */
+  update: UpdateAvailable | null;
+  /** Install progress / manual check result. */
+  updateStatus: UpdateStatus | null;
+  setUpdateStatus: (s: UpdateStatus | null) => void;
 }
 
 export function useExtensionMessages(
@@ -77,6 +82,8 @@ export function useExtensionMessages(
   const [officeReadOnly, setOfficeReadOnly] = useState(false);
   const [lanVersion, setLanVersion] = useState(0);
   const [profile, setProfile] = useState<Omit<ProfileLoaded, 'type'> | null>(null);
+  const [update, setUpdate] = useState<UpdateAvailable | null>(null);
+  const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
   const lanRef = useRef<LanAgents | null>(null);
   lanRef.current ??= new LanAgents(getOfficeState());
   const lan = lanRef.current;
@@ -128,6 +135,10 @@ export function useExtensionMessages(
       } else if (msg.type === 'profileLoaded') {
         const { profile, canEdit } = msg as ProfileLoaded;
         setProfile({ profile, canEdit });
+      } else if (msg.type === 'updateAvailable') {
+        setUpdate(msg as UpdateAvailable);
+      } else if (msg.type === 'updateStatus') {
+        setUpdateStatus(msg as UpdateStatus);
       } else if (msg.type === 'characterSpritesLoaded') {
         const characters = msg.characters as Array<{
           down: string[][][];
@@ -217,5 +228,8 @@ export function useExtensionMessages(
     lan,
     lanVersion,
     profile,
+    update,
+    updateStatus,
+    setUpdateStatus,
   };
 }

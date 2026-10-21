@@ -4,6 +4,7 @@ import { readConfig, writeConfig } from './configPersistence.js';
 import type { FileStateAdapter } from './fileStateAdapter.js';
 import type { LanService } from './lan/office.js';
 import { validateProfileUpdate } from './lan/profile.js';
+import type { Updater } from './lan/updater.js';
 import { readLayoutFromFile, writeLayoutToFile } from './layoutPersistence.js';
 
 type WsSend = (message: Record<string, unknown>) => void;
@@ -43,6 +44,8 @@ export interface ClientMessageContext {
   lan?: LanService;
   /** After a successful saveProfile: re-send profileLoaded to every privileged client. */
   onProfileSaved?: () => void;
+  /** GitHub Releases update check/install. Absent in tests. */
+  updater?: Updater;
 }
 
 // ── Setting keys ──
@@ -143,6 +146,15 @@ export function handleClientMessage(
       break;
     }
 
+    // Results reach privileged sockets via updater.broadcast.
+    case 'installUpdate':
+      void ctx.updater?.install();
+      break;
+
+    case 'checkUpdate':
+      void ctx.updater?.check(true);
+      break;
+
     default:
       break;
   }
@@ -223,6 +235,13 @@ function handleWebviewReady(send: WsSend, ctx: ClientMessageContext): void {
 
   // 5. Agents right away rather than on the next 1 s tick.
   if (ctx.lan) send(snapshotMessage(ctx.lan, ctx.privileged === true));
+
+  // 6. Update banner: this PC's browser only.
+  const update = ctx.privileged ? ctx.updater?.availableMessage() : null;
+  if (update) {
+    send(update);
+    if (ctx.updater?.status) send(ctx.updater.status);
+  }
 }
 
 /**
@@ -266,6 +285,8 @@ const KNOWN_CLIENT_TYPES: ReadonlySet<string> = new Set<ClientMessage['type']>([
   'saveAreaMappings',
   'setShowAreas',
   'saveProfile',
+  'installUpdate',
+  'checkUpdate',
 ]);
 const UNKNOWN_REFUSAL_KEY = 'unknown';
 

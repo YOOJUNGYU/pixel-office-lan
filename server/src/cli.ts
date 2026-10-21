@@ -25,6 +25,7 @@ import { checkExisting, LanService } from './lan/office.js';
 import { PeerNet } from './lan/peerNet.js';
 import { loadProfile } from './lan/profile.js';
 import { discoverRoots, Scanner } from './lan/scanner.js';
+import { APP_VERSION, Updater } from './lan/updater.js';
 import { PixelAgentsServer } from './server.js';
 
 // ── Argument parsing ──────────────────────────────────────────
@@ -150,6 +151,8 @@ async function main(): Promise<void> {
     );
   }
 
+  const updater = new Updater(APP_VERSION);
+
   let shuttingDown = false;
   const shutdown = async (): Promise<void> => {
     if (shuttingDown) return;
@@ -157,6 +160,7 @@ async function main(): Promise<void> {
     console.log('\nShutting down...');
     scanner.stop();
     peerNet.stop();
+    updater.stop();
     await server.stop();
     process.exit(0);
   };
@@ -205,7 +209,9 @@ async function main(): Promise<void> {
       onReloadAssets,
       lan,
       onQuit: () => setTimeout(() => void shutdown(), QUIT_DELAY_MS),
+      updater,
     });
+    updater.start();
 
     // A wildcard bind address is a bind target, not an address you can browse to.
     const displayHost =

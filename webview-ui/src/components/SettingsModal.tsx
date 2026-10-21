@@ -121,6 +121,14 @@ export function SettingsModal({
           onChange={onToggleShowAreas}
         />
       )}
+      <MenuItem
+        onClick={() => {
+          transport.send({ type: 'checkUpdate' });
+          onClose();
+        }}
+      >
+        {t('settings.checkUpdate')}
+      </MenuItem>
     </Modal>
   );
 }

@@ -14,6 +14,7 @@ import { useIsMobile } from './hooks/useIsMobile.js';
 import { t, useLang } from './i18n.js';
 import { LanOverlay } from './lan/LanOverlay.js';
 import { ProfileModal } from './lan/ProfileModal.js';
+import { UpdateBanner } from './lan/UpdateBanner.js';
 import { OfficeCanvas } from './office/components/OfficeCanvas.js';
 import { EditorState } from './office/editor/editorState.js';
 import { EditorToolbar } from './office/editor/EditorToolbar.js';
@@ -72,6 +73,9 @@ function App() {
     setShowAreas,
     officeReadOnly,
     lan,
+    update,
+    updateStatus,
+    setUpdateStatus,
   } = useExtensionMessages(getOfficeState, editor.setLastSavedLayout, isEditDirty);
 
   // Overlay geometry: the root div is the canvas container's size.
@@ -380,6 +384,14 @@ function App() {
       )}
 
       <ConnectionIndicator />
+
+      {!officeReadOnly && (
+        <UpdateBanner
+          update={update}
+          status={updateStatus}
+          onClearStatus={() => setUpdateStatus(null)}
+        />
+      )}
 
       {profile?.canEdit && (firstRun || isProfileOpen) && (
         <ProfileModal
