@@ -1,0 +1,4 @@
+{"timestamp":"2026-10-21T00:00:01Z","type":"response_item","payload":{"type":"custom_tool_call","name":"exec","call_id":"call_1","input":"text(await tools.exec_command({\"cmd\":\"pnpm build\",\"yield_time_ms\":1000}));"}}
+{"timestamp":"2026-10-21T00:00:02Z","type":"response_item","payload":{"type":"custom_tool_call_output","call_id":"call_1","output":[{"type":"input_text","text":"{\"chunk_id\":\"a\",\"session_id\":7933,\"output\":\"\"}"}]}}
+{"timestamp":"2026-10-21T00:00:03Z","type":"response_item","payload":{"type":"custom_tool_call","name":"exec","call_id":"call_2","input":"text(await tools.write_stdin({session_id:7933,chars:\"\",yield_time_ms:5000}));"}}
+{"timestamp":"2026-10-21T00:00:04Z","type":"response_item","payload":{"type":"custom_tool_call_output","call_id":"call_2","output":[{"type":"input_text","text":"{\"chunk_id\":\"b\",\"exit_code\":0,\"output\":\"\"}"}]}}
