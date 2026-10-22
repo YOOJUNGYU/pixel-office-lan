@@ -411,5 +411,8 @@ export const PEOPLE_FACE_ROWS = 14;
 export const PEOPLE_FACE_SCALE = 2;
 /** How long the "no agents" hint stays after clicking an agentless row. */
 export const PEOPLE_HINT_MS = 2_000;
+/** Room kept clear above (install popup) and below (update banner) the panel, CSS px. */
+export const PEOPLE_TOP_RESERVE_PX = 200;
+export const PEOPLE_BOTTOM_RESERVE_PX = 64;
 /** Above name tags and bubbles (LAN_*_Z_INDEX), below modals (50). */
 export const PEOPLE_Z_INDEX = 43;

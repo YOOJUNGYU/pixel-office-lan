@@ -10,7 +10,7 @@ import { test } from 'vitest';
 
 import type { OfficeAgent, PeerInfo } from '../../core/src/lan.js';
 import type { OfficePersonMessage } from '../../core/src/messages.js';
-import { peopleRows } from '../src/lan/peopleModel.js';
+import { focusHintKey, inFrozenOrder, peopleRows } from '../src/lan/peopleModel.js';
 
 const person = (peerId: string, nickname: string, self = false): OfficePersonMessage => ({
   peerId,
@@ -105,3 +105,66 @@ test('a PC known only through its agents (tour demos) still gets a row', () => {
   );
   assert.deepEqual(peopleRows([person('me', '나', true)], []).length, 1);
 });
+
+test('❗ from a subagent focuses its parent main agent', () => {
+  const a = peer('a');
+  const rows = peopleRows(
+    [person('a', 'a')],
+    [
+      agent(a, 'w', { room: 'coding' }),
+      agent(a, 'm'),
+      agent(a, 'm/s', { kind: 'subagent', num: 0, parentKey: 'a:m', permission: true }),
+    ],
+  );
+  assert.equal(rows[0].status, 'attention');
+  assert.equal(rows[0].focusKey, 'a:m');
+});
+
+test('unnamed people sort by the displayed name, not first', () => {
+  const rows = peopleRows(
+    [person('u', ''), person('a', 'alpha'), person('z', 'zed')],
+    [],
+    'unnamed',
+  );
+  assert.deepEqual(
+    rows.map((r) => r.person.peerId),
+    ['a', 'u', 'z'],
+  );
+});
+
+test('a spoofed duplicate peerId yields one row (self, else first, wins)', () => {
+  const rows = peopleRows(
+    [person('x', 'fake'), person('me', 'me', true), person('me', 'evil')],
+    [],
+  );
+  assert.deepEqual(
+    rows.map((r) => [r.person.peerId, r.person.nickname]),
+    [
+      ['me', 'me'],
+      ['x', 'fake'],
+    ],
+  );
+  const first = peopleRows([person('d', 'one'), person('d', 'two')], []);
+  assert.deepEqual(
+    first.map((r) => r.person.nickname),
+    ['one'],
+  );
+});
+
+test('hint: no agents vs character not spawned yet', () => {
+  const k = peer('k');
+  assert.equal(focusHintKey(rowOf('n', [])), 'people.noAgents');
+  assert.equal(focusHintKey(rowOf('k', [agent(k, 'a')])), 'people.retry');
+});
+
+test('frozen order keeps rows put; new rows go last, gone rows drop', () => {
+  const rows = peopleRows([person('a', 'a'), person('b', 'b'), person('c', 'c')], []);
+  assert.deepEqual(
+    inFrozenOrder(rows, ['c', 'a', 'gone']).map((r) => r.person.peerId),
+    ['c', 'a', 'b'],
+  );
+});
+
+function rowOf(id: string, agents: OfficeAgent[]) {
+  return peopleRows([person(id, id)], agents)[0];
+}

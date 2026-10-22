@@ -225,6 +225,7 @@ function App() {
   const step = tour.current ? stepById(tour.current) : null;
   const scene = step?.scene;
   const tourDemoRef = useRef(false);
+  const [, setAgentsRev] = useState(0);
   // Camera: the user's before the tour (restored at the end) and the tour's
   // whole-office view (re-applied on every step, undoing the "try it" step).
   type Camera = { zoom: number; pan: { x: number; y: number } };
@@ -315,6 +316,7 @@ function App() {
           )
         : [],
     );
+    setAgentsRev((n) => n + 1); // the people panel reads lan.all() at render: show/clear demo people now, not on the next snapshot
   }, [lan, touring, walk, lang]);
 
   // Editor steps open the editor with a tool; leaving them restores the tool
@@ -539,7 +541,7 @@ function App() {
 
         {!editor.isEditMode && (
           <PeoplePanel
-            rows={peopleRows(people, lan.all())}
+            rows={peopleRows(people, lan.all(), t('nickname.unset'))}
             lan={lan}
             officeState={officeState}
             forceOpen={scene?.people === true}

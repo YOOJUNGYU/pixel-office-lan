@@ -1,19 +1,21 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import {
   MOBILE_MEDIA_QUERY,
+  PEOPLE_BOTTOM_RESERVE_PX,
   PEOPLE_COLLAPSED_KEY,
   PEOPLE_FACE_ROWS,
   PEOPLE_FACE_SCALE,
   PEOPLE_FACE_TOP,
   PEOPLE_HINT_MS,
+  PEOPLE_TOP_RESERVE_PX,
   PEOPLE_WIDE_MIN_PX,
   PEOPLE_Z_INDEX,
 } from '../constants.js';
 import { t, useLang } from '../i18n.js';
 import type { OfficeState } from '../office/engine/officeState.js';
 import type { LanAgents } from './lanAgents.js';
-import type { PersonRow } from './peopleModel.js';
+import { displayName, focusHintKey, inFrozenOrder, type PersonRow } from './peopleModel.js';
 import { CharacterPreview } from './ProfileModal.js';
 
 const FACE_CROP = { top: PEOPLE_FACE_TOP, rows: PEOPLE_FACE_ROWS };
@@ -68,8 +70,13 @@ interface PeoplePanelProps {
  * Right-edge list of everyone in the viewed office. Click = camera follows the
  * person's agent; hover = their name tags light up (LanAgents.highlightPeer).
  */
-export function PeoplePanel({ rows, lan, officeState, forceOpen }: PeoplePanelProps) {
+export function PeoplePanel({ rows: live, lan, officeState, forceOpen }: PeoplePanelProps) {
   useLang();
+  // Rows must not jump under a resting pointer: while it is over the list the order is frozen.
+  const [hovered, setHovered] = useState(false);
+  const frozen = useRef<string[]>([]);
+  if (!hovered) frozen.current = live.map((r) => r.person.peerId);
+  const rows = hovered ? inFrozenOrder(live, frozen.current) : live;
   const [collapsed, setCollapsed] = useState(initialCollapsed);
   const [hint, setHint] = useState<string | null>(null);
   useEffect(() => {
@@ -79,6 +86,13 @@ export function PeoplePanel({ rows, lan, officeState, forceOpen }: PeoplePanelPr
   }, [hint]);
   // Unmounted mid-hover: no tag stays lit.
   useEffect(() => () => void (lan.highlightPeer = null), [lan]);
+  // A highlighted person who left the list (or a row set that changed): no stale lit tags.
+  const peerIds = live.map((r) => r.person.peerId).join('\n');
+  useEffect(() => {
+    if (lan.highlightPeer !== null && !peerIds.split('\n').includes(lan.highlightPeer)) {
+      lan.highlightPeer = null;
+    }
+  }, [lan, peerIds]);
 
   const open = forceOpen || !collapsed;
   const toggle = () => {
@@ -96,60 +110,75 @@ export function PeoplePanel({ rows, lan, officeState, forceOpen }: PeoplePanelPr
     else officeState.selectAndFollow(id);
   };
 
+  const count = t('people.title', { n: String(rows.length) });
+
   return (
+    // The free band between the install popup and the update banner; the panel centres in it.
     <div
-      data-tour="people"
-      style={{ zIndex: PEOPLE_Z_INDEX }}
-      className="absolute right-10 top-1/2 -translate-y-1/2 pixel-panel flex flex-col text-sm max-w-[min(260px,calc(100%-20px))] max-h-[60%]"
+      style={{
+        zIndex: PEOPLE_Z_INDEX,
+        top: PEOPLE_TOP_RESERVE_PX,
+        bottom: PEOPLE_BOTTOM_RESERVE_PX,
+      }}
+      className="absolute right-10 flex items-center pointer-events-none max-w-[min(260px,calc(100%-20px))]"
     >
-      <button
-        type="button"
-        aria-expanded={open}
-        aria-label={open ? t('people.hide') : t('people.show')}
-        onClick={toggle}
-        className="flex items-center justify-between gap-8 py-4 px-8 bg-transparent border-0 text-text cursor-pointer font-bold whitespace-nowrap"
+      <div
+        data-tour="people"
+        className="pointer-events-auto pixel-panel flex flex-col text-sm max-w-full max-h-full min-h-0"
       >
-        <span>{t('people.title', { n: String(rows.length) })}</span>
-        <span aria-hidden>{open ? '▸' : '◂'}</span>
-      </button>
-      {open && (
-        <ul className="m-0 p-0 list-none overflow-y-auto border-t-2 border-border">
-          {rows.map((r) => (
-            <li key={r.person.peerId}>
-              <button
-                type="button"
-                onClick={() => focus(r)}
-                onMouseEnter={() => (lan.highlightPeer = r.person.peerId)}
-                onMouseLeave={() => (lan.highlightPeer = null)}
-                onFocus={() => (lan.highlightPeer = r.person.peerId)}
-                onBlur={() => (lan.highlightPeer = null)}
-                className="w-full flex items-center gap-8 py-3 px-8 bg-transparent border-0 text-left text-text cursor-pointer hover:bg-btn-hover"
-              >
-                <span className="shrink-0 flex bg-bg-dark border-2 border-border">
-                  <CharacterPreview
-                    palette={r.person.palette}
-                    hueShift={r.person.hueShift}
-                    scale={PEOPLE_FACE_SCALE}
-                    crop={FACE_CROP}
-                  />
-                </span>
-                <span className="flex-1 min-w-0 flex flex-col">
-                  <span className="truncate">
-                    {r.person.nickname || t('nickname.unset')}
-                    {r.person.self && ` ${t('people.you')}`}
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-label={`${count}, ${open ? t('people.hide') : t('people.show')}`}
+          onClick={toggle}
+          className="flex items-center justify-between gap-8 py-4 px-8 bg-transparent border-0 text-text cursor-pointer font-bold whitespace-nowrap"
+        >
+          <span>{count}</span>
+          <span aria-hidden>{open ? '▸' : '◂'}</span>
+        </button>
+        {open && (
+          <ul
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
+            className="m-0 p-0 list-none overflow-y-auto border-t-2 border-border"
+          >
+            {rows.map((r) => (
+              <li key={r.person.peerId}>
+                <button
+                  type="button"
+                  onClick={() => focus(r)}
+                  onMouseEnter={() => (lan.highlightPeer = r.person.peerId)}
+                  onMouseLeave={() => (lan.highlightPeer = null)}
+                  onFocus={() => (lan.highlightPeer = r.person.peerId)}
+                  onBlur={() => (lan.highlightPeer = null)}
+                  className="w-full flex items-center gap-8 py-3 px-8 bg-transparent border-0 text-left text-text cursor-pointer hover:bg-btn-hover"
+                >
+                  <span className="shrink-0 flex bg-bg-dark border-2 border-border">
+                    <CharacterPreview
+                      palette={r.person.palette}
+                      hueShift={r.person.hueShift}
+                      scale={PEOPLE_FACE_SCALE}
+                      crop={FACE_CROP}
+                    />
                   </span>
-                  <span
-                    className={`text-xs truncate ${hint === r.person.peerId ? 'text-warning' : 'text-text-muted'}`}
-                  >
-                    {counts(r)}
+                  <span className="flex-1 min-w-0 flex flex-col">
+                    <span className="truncate">
+                      {displayName(r.person, t('nickname.unset'))}
+                      {r.person.self && ` ${t('people.you')}`}
+                    </span>
+                    <span
+                      className={`text-xs truncate ${hint === r.person.peerId ? 'text-warning' : 'text-text-muted'}`}
+                    >
+                      {hint === r.person.peerId ? t(focusHintKey(r)) : counts(r)}
+                    </span>
                   </span>
-                </span>
-                <StatusMark status={r.status} />
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+                  <StatusMark status={r.status} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
