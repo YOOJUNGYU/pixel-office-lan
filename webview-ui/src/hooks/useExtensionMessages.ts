@@ -79,7 +79,7 @@ interface ExtensionMessageState {
   profileError: ProfileErrorReason | null;
   clearProfileError: () => void;
   /** Other people's nickname keys in the viewed office, and whether this PC lost a same-name tie-break. */
-  nicknames: { taken: ReadonlySet<string>; selfLost: boolean };
+  nicknames: { taken: ReadonlySet<string>; selfLost: string | null };
   /** A newer release (this PC's browser only); null when none is known. */
   update: UpdateAvailable | null;
   /** Install progress / manual check result. */
@@ -118,7 +118,7 @@ export function useExtensionMessages(
   const clearProfileError = useCallback(() => setProfileError(null), []);
   const [nicknames, setNicknames] = useState<ExtensionMessageState['nicknames']>({
     taken: new Set(),
-    selfLost: false,
+    selfLost: null,
   });
   const [update, setUpdate] = useState<UpdateAvailable | null>(null);
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);

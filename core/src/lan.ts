@@ -52,6 +52,8 @@ export interface PeerInfo {
   account: string;
   /** Optional, '' = none. */
   nickname: string;
+  /** When this nickname was set (ms epoch): the earlier one keeps a clashing nickname. Absent = unknown (loses). */
+  nickSince?: number;
   palette: number;
   hueShift: number;
 }
@@ -75,7 +77,6 @@ export function isValidManualPeer(s: string): boolean {
   return IPV4.test(s) ? s.split('.').every((n) => Number(n) <= 255) : HOSTNAME.test(s);
 }
 
-/** The office everyone on the LAN shares; any other view is a team office tag. */
 /** Nickname identity for the uniqueness rule: NFC, trimmed, inner whitespace
  *  collapsed, case-insensitive. '' = unset (exempt from the rule). */
 export const nicknameKey = (s: string): string =>
@@ -85,13 +86,24 @@ export const MAX_ACCOUNT = 32;
 /** Length of the peer-id prefix shown to tell same-looking PCs apart (and as a 0.3.x account stand-in). */
 export const SHORT_PEER_ID = 4;
 
-/** A displayable account name (trimmed, 1..MAX_ACCOUNT, no control/format chars), else null. */
+const CONTROL_OR_FORMAT = /\p{C}/u;
+
+/** At most `max` code points (never splits a surrogate pair). */
+export const takeCodePoints = (s: string, max: number): string =>
+  Array.from(s).slice(0, max).join('');
+
+/** A displayable account name (trimmed, 1..MAX_ACCOUNT code points, no control/bidi/format chars), else null. */
 export function cleanAccount(x: unknown): string | null {
   if (typeof x !== 'string') return null;
   const s = x.trim();
-  return s.length >= 1 && s.length <= MAX_ACCOUNT && !/\p{C}/u.test(s) ? s : null;
+  const n = Array.from(s).length;
+  return n >= 1 && n <= MAX_ACCOUNT && !CONTROL_OR_FORMAT.test(s) ? s : null;
 }
 
+/** A received nickname made displayable: control/bidi/format chars removed, trimmed. */
+export const cleanNickname = (s: string): string => s.replace(/\p{C}/gu, '').trim();
+
+/** The office everyone on the LAN shares; any other view is a team office tag. */
 export const PUBLIC_VIEW = 'public';
 export const LAN_UDP_PORT = 47800;
 export const LAN_HTTP_PORT = 47801;
@@ -151,10 +163,10 @@ export function parsePeerPacket(text: string): PeerPacket | null {
     const raw: unknown = JSON.parse(text);
     if (!isObj(raw) || raw.v !== 1 || !isObj(raw.peer) || !Array.isArray(raw.views)) return null;
     const id = str(raw.peer.id, Infinity);
-    const nickname = str(raw.peer.nickname, MAX_NICKNAME);
+    const rawNickname = str(raw.peer.nickname, MAX_NICKNAME);
     const palette = int(raw.peer.palette, 0, 5);
     const hueShift = int(raw.peer.hueShift, 0, 360);
-    if (!id || id.length > MAX_PEER_ID || nickname === null) return null;
+    if (!id || id.length > MAX_PEER_ID || rawNickname === null) return null;
     if (palette === null || hueShift === null) return null;
     const views: AgentView[] = [];
     for (const r of raw.views.slice(0, MAX_VIEWS)) {
@@ -162,10 +174,19 @@ export function parsePeerPacket(text: string): PeerPacket | null {
       if (!v) return null;
       views.push(v);
     }
-    // 0.3.x peers send no account: show their nickname (or short id) during the upgrade window.
-    const account =
-      cleanAccount(raw.peer.account) ?? (cleanAccount(nickname) || id.slice(0, SHORT_PEER_ID));
-    return { v: 1, peer: { id, account, nickname, palette, hueShift }, views };
+    let nickname = cleanNickname(rawNickname);
+    let account = cleanAccount(raw.peer.account);
+    if (account === null) {
+      // 0.3.x peers send no account: their nickname (or short id) stands in, shown once.
+      account = cleanAccount(nickname) ?? id.slice(0, SHORT_PEER_ID);
+      nickname = '';
+    }
+    const peer: PeerInfo = { id, account, nickname, palette, hueShift };
+    const since = raw.peer.nickSince;
+    if (typeof since === 'number' && Number.isSafeInteger(since) && since >= 0) {
+      peer.nickSince = since;
+    }
+    return { v: 1, peer, views };
   } catch {
     return null;
   }

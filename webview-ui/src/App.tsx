@@ -116,8 +116,6 @@ function App() {
     before: typeof profile;
   } | null>(null);
   const [profileSaveError, setProfileSaveError] = useState(false);
-  // Same-nickname tie-break lost: invite a rename once per page session.
-  const [nicknameNoticeDone, setNicknameNoticeDone] = useState(false);
   if (profileSave && profile && profile !== profileSave.before) {
     setProfileSave(null);
     if (sameProfile(profile.profile, profileSave.sent)) setIsProfileOpen(false);
@@ -615,19 +613,9 @@ function App() {
           />
         )}
 
-        {profile?.canEdit &&
-          nicknames.selfLost &&
-          !nicknameNoticeDone &&
-          !firstRun &&
-          !profileOpen && (
-            <NicknameNotice
-              onChange={() => {
-                setNicknameNoticeDone(true);
-                setIsProfileOpen(true);
-              }}
-              onClose={() => setNicknameNoticeDone(true)}
-            />
-          )}
+        {profile?.canEdit && nicknames.selfLost !== null && !firstRun && !profileOpen && (
+          <NicknameNotice clash={nicknames.selfLost} onChange={() => setIsProfileOpen(true)} />
+        )}
 
         <SettingsModal
           isOpen={settingsOpen}

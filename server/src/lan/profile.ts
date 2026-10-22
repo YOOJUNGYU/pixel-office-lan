@@ -8,6 +8,7 @@ import {
   isValidManualPeer,
   MAX_ACCOUNT,
   PUBLIC_VIEW,
+  takeCodePoints,
 } from '../../../core/src/lan.js';
 import {
   ACCOUNT_FALLBACK,
@@ -41,6 +42,8 @@ export interface Profile {
   activeView: string;
   /** Saved once from the first-run form (character and color chosen). */
   setUp: boolean;
+  /** When the current nickname was set (ms epoch); the earlier one keeps a clashing nickname. */
+  nicknameSince: number;
 }
 
 /** What saveProfile may change; identity/offices/views change only via their own messages. */
@@ -132,7 +135,7 @@ export function validateProfileUpdate(x: unknown): EditableProfile | null {
 /** This PC's account name: the OS login name (`DOMAIN\\` stripped, trimmed,
  *  capped), else the hostname. Never editable; re-read at every start. */
 export function accountName(username: string | undefined, hostname: string): string {
-  const cap = (x: string) => x.trim().slice(0, MAX_ACCOUNT).trim();
+  const cap = (x: string) => takeCodePoints(x.trim(), MAX_ACCOUNT).trim();
   const user = username ? username.slice(username.lastIndexOf('\\') + 1) : '';
   return cleanAccount(cap(user)) ?? cleanAccount(cap(hostname)) ?? ACCOUNT_FALLBACK;
 }
@@ -146,6 +149,18 @@ export function osAccount(): string {
     user = undefined;
   }
   return accountName(user, os.hostname());
+}
+
+/** Stored nicknameSince; a pre-0.4 profile with a nickname gets the file's mtime (else 0). */
+function nicknameSinceOf(raw: Record<string, unknown>, nickname: string, dir: string): number {
+  const v = raw.nicknameSince;
+  if (typeof v === 'number' && Number.isSafeInteger(v) && v >= 0) return v;
+  if (nickname === '') return 0;
+  try {
+    return Math.floor(fs.statSync(path.join(dir, PROFILE_FILE_NAME)).mtimeMs);
+  } catch {
+    return 0;
+  }
 }
 
 export function saveProfile(p: Profile, dir: string = defaultDir()): void {
@@ -189,6 +204,7 @@ export function loadProfile(dir: string = defaultDir()): Profile {
     activeView, // a pre-0.4 `remoteView` key is dropped (rewritten below)
     // Before 0.4 a saved profile always had a nickname.
     setUp: raw.setUp === true || nick !== '',
+    nicknameSince: nicknameSinceOf(raw, editable.nickname, dir),
   };
   if (JSON.stringify(profile) !== JSON.stringify(raw)) {
     try {

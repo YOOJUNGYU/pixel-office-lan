@@ -67,8 +67,15 @@ export class LanService {
   ) {}
 
   self(): PeerInfo {
-    const { peerId, nickname, palette, hueShift } = this.profile;
-    return { id: peerId, account: this.account, nickname, palette, hueShift };
+    const { peerId, nickname, palette, hueShift, nicknameSince } = this.profile;
+    return {
+      id: peerId,
+      account: this.account,
+      nickname,
+      palette,
+      hueShift,
+      ...(nickname !== '' && { nickSince: nicknameSince }),
+    };
   }
 
   /** What PeerNet sends (encrypted). Never throws: a failing scan sends no views. */
@@ -114,6 +121,7 @@ export class LanService {
       peerId: p.id,
       account: p.account,
       nickname: p.nickname,
+      ...(p.nickSince !== undefined && { nickSince: p.nickSince }),
       palette: p.palette,
       hueShift: p.hueShift,
       self: i === 0,
@@ -206,7 +214,16 @@ export class LanService {
 
   /** Persist a validated update and announce it to peers right away. */
   saveProfile(update: EditableProfile): void {
-    this.update({ ...update, setUp: true });
+    const changed = nicknameKey(update.nickname) !== nicknameKey(this.profile.nickname);
+    this.update({
+      ...update,
+      setUp: true,
+      nicknameSince: !changed
+        ? this.profile.nicknameSince
+        : update.nickname === ''
+          ? 0
+          : Date.now(),
+    });
   }
 
   private update(patch: Partial<Profile>): void {

@@ -24,10 +24,16 @@ const packet = (over: Partial<PeerPacket> = {}): PeerPacket => ({
 const parse = (p: unknown) => parsePeerPacket(JSON.stringify(p));
 
 describe('parsePeerPacket', () => {
-  it('account: validated; a 0.3.x packet without one falls back to nickname, then short id', () => {
+  it('account: validated; a 0.3.x packet without one: nickname (or short id) becomes the account, nickname cleared', () => {
     const { account: _, ...old } = packet().peer;
-    expect(parse(packet({ peer: old as never }))?.peer.account).toBe('kim');
+    expect(parse(packet({ peer: old as never }))?.peer).toMatchObject({
+      account: 'kim',
+      nickname: '',
+    });
     expect(parse(packet({ peer: { ...old, nickname: '' } as never }))?.peer.account).toBe('peer');
+    expect(
+      parse(packet({ peer: { ...old, account: '😀'.repeat(32) } as never }))?.peer.account,
+    ).toBe('😀'.repeat(32)); // 32 code points fit
     expect(
       parse(packet({ peer: { ...old, account: 'x'.repeat(33) } as never }))?.peer.account,
     ).toBe('kim');
@@ -35,6 +41,19 @@ describe('parsePeerPacket', () => {
     expect(parse(packet({ peer: { ...old, account: ' yoo ' } as never }))?.peer.account).toBe(
       'yoo',
     );
+  });
+
+  it('nickname: control/bidi/format chars stripped; nickSince kept only when a safe integer >= 0', () => {
+    const peer = packet().peer;
+    expect(parse(packet({ peer: { ...peer, nickname: ' k\u202eim\u0007 ' } }))?.peer.nickname).toBe(
+      'kim',
+    );
+    expect(parse(packet({ peer: { ...peer, nickSince: 5 } }))?.peer.nickSince).toBe(5);
+    for (const bad of [-1, 1.5, 'x', Number.MAX_SAFE_INTEGER + 2, null]) {
+      expect(
+        parse(packet({ peer: { ...peer, nickSince: bad as never } }))?.peer,
+      ).not.toHaveProperty('nickSince');
+    }
   });
 
   it('round-trips a valid packet', () => {

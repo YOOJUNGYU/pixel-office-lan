@@ -8,42 +8,63 @@ interface Named {
   peerId: string;
   account: string;
   nickname: string;
+  /** When the nickname was set (ms epoch); absent = unknown, loses a clash. */
+  nickSince?: number;
 }
 
-/** The label everywhere a PC is named: the fixed account, then the optional nickname. */
+/** The label everywhere a PC is named: the fixed account, then the optional
+ *  nickname (left out when it just repeats the account). */
 export const peerLabel = (p: { account: string; nickname: string }): string =>
-  p.nickname ? `${p.account} (${p.nickname})` : p.account;
+  p.nickname && nicknameKey(p.nickname) !== nicknameKey(p.account)
+    ? `${p.account} (${p.nickname})`
+    : p.account;
 
 const suffix = (s: string, peerId: string): string => `${s} · ${peerId.slice(0, SHORT_PEER_ID)}`;
 
-/** Per group key, every peerId but the lexicographically smallest. */
-function losers(list: Named[], keyOf: (p: Named) => string): Set<string> {
-  const owner = new Map<string, string>();
+/** Who keeps a clashing nickname: set earliest (unknown = last), then the smaller peerId. */
+const keepsNickname = (a: Named, b: Named): boolean => {
+  const ta = a.nickSince ?? Infinity;
+  const tb = b.nickSince ?? Infinity;
+  return ta !== tb ? ta < tb : a.peerId < b.peerId;
+};
+
+/** Per non-empty group key, every peerId but the one `keeps` prefers. */
+function losers(
+  list: Named[],
+  keyOf: (p: Named) => string,
+  keeps: (a: Named, b: Named) => boolean,
+): Set<string> {
+  const owner = new Map<string, Named>();
   for (const p of list) {
     const k = keyOf(p);
     const o = owner.get(k);
-    if (k !== '' && (o === undefined || p.peerId < o)) owner.set(k, p.peerId);
+    if (k !== '' && (o === undefined || keeps(p, o))) owner.set(k, p);
   }
   return new Set(
-    list.filter((p) => keyOf(p) !== '' && owner.get(keyOf(p)) !== p.peerId).map((p) => p.peerId),
+    list.filter((p) => keyOf(p) !== '' && owner.get(keyOf(p)) !== p).map((p) => p.peerId),
   );
 }
 
 /**
  * peerId → {account, nickname} to show, for PCs that need telling apart:
- * 1. same nickname (nicknameKey; '' exempt): the smallest peerId keeps it, the
- *    others' nickname gets " · <peerId prefix>";
+ * 1. same nickname (nicknameKey; '' exempt): whoever set it first (nickSince,
+ *    then the smaller peerId) keeps it; the others' nickname gets
+ *    " · <peerId prefix>";
  * 2. labels still identical (same account, no nickname): the same suffix on the
  *    account of all but the smallest peerId. Accounts are otherwise shown as is.
  */
 export function tieBreak(people: Named[]): Map<string, { account: string; nickname: string }> {
   const uniq = [...new Map(people.map((p) => [p.peerId, p] as const)).values()];
-  const nick = losers(uniq, (p) => nicknameKey(p.nickname));
+  const nick = losers(uniq, (p) => nicknameKey(p.nickname), keepsNickname);
   const named = uniq.map((p) => ({
     ...p,
     nickname: nick.has(p.peerId) ? suffix(p.nickname, p.peerId) : p.nickname,
   }));
-  const label = losers(named, (p) => peerLabel(p));
+  const label = losers(
+    named,
+    (p) => peerLabel(p),
+    (a, b) => a.peerId < b.peerId,
+  );
   const out = new Map<string, { account: string; nickname: string }>();
   for (const p of named) {
     if (!nick.has(p.peerId) && !label.has(p.peerId)) continue;
@@ -56,7 +77,7 @@ export function tieBreak(people: Named[]): Map<string, { account: string; nickna
 }
 
 /** A snapshot with tie-broken names, the other people's nickname keys (live
- *  check in the profile form) and whether this PC's nickname lost a tie-break. */
+ *  check in the profile form) and, when this PC's nickname lost a clash, its key. */
 export function disambiguate(people: OfficePersonMessage[], agents: OfficeAgent[]) {
   const shown = tieBreak([
     ...people,
@@ -64,9 +85,11 @@ export function disambiguate(people: OfficePersonMessage[], agents: OfficeAgent[
       peerId: a.peer.id,
       account: a.peer.account,
       nickname: a.peer.nickname,
+      nickSince: a.peer.nickSince,
     })),
   ]);
   const self = people.find((p) => p.self);
+  const selfShown = self && shown.get(self.peerId);
   return {
     people: people.map((p) => ({ ...p, ...shown.get(p.peerId) })),
     agents: agents.map((a) => {
@@ -79,10 +102,10 @@ export function disambiguate(people: OfficePersonMessage[], agents: OfficeAgent[
         .map((p) => nicknameKey(p.nickname))
         .filter((k) => k !== ''),
     ) as ReadonlySet<string>,
+    /** nicknameKey of this PC's nickname when it lost a clash, else null. */
     selfLost:
-      self !== undefined &&
-      self.nickname !== '' &&
-      shown.get(self.peerId)?.nickname !== undefined &&
-      shown.get(self.peerId)?.nickname !== self.nickname,
+      self && self.nickname !== '' && selfShown && selfShown.nickname !== self.nickname
+        ? nicknameKey(self.nickname)
+        : null,
   };
 }

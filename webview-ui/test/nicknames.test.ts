@@ -13,9 +13,29 @@ const person = (
   self = false,
 ): OfficePersonMessage => ({ peerId, account, nickname, palette: 0, hueShift: 0, self });
 
-test('peerLabel: account first, nickname in parentheses when set', () => {
+test('peerLabel: account first, nickname in parentheses when set and not a repeat', () => {
   assert.equal(peerLabel({ account: 'yoojungyu', nickname: '' }), 'yoojungyu');
   assert.equal(peerLabel({ account: 'yoojungyu', nickname: '지민' }), 'yoojungyu (지민)');
+  assert.equal(peerLabel({ account: 'kim', nickname: ' KIM ' }), 'kim');
+});
+
+test('tieBreak: whoever set the nickname first keeps it; missing time loses; equal time → smaller peerId', () => {
+  const at = (peerId: string, nickSince?: number) => ({
+    peerId,
+    account: peerId,
+    nickname: '지민',
+    ...(nickSince !== undefined && { nickSince }),
+  });
+  // The long-time user (older nickSince) keeps it even with a larger peerId.
+  let shown = tieBreak([at('aaa', 200), at('zzz', 100)]);
+  assert.equal(shown.has('zzz'), false);
+  assert.equal(shown.get('aaa')?.nickname, '지민 · aaa');
+  // Unknown time (0.3.x peer) loses to any known time.
+  shown = tieBreak([at('aaa'), at('zzz', 5)]);
+  assert.equal(shown.get('aaa')?.nickname, '지민 · aaa');
+  // Equal or both unknown: smaller peerId.
+  assert.equal(tieBreak([at('b', 7), at('a', 7)]).get('b')?.nickname, '지민 · b');
+  assert.equal(tieBreak([at('b'), at('a')]).get('b')?.nickname, '지민 · b');
 });
 
 test('tieBreak: same nickname → smallest peerId keeps it, others get a suffix on the nickname only', () => {
@@ -58,10 +78,10 @@ test('disambiguate: renames people and agents, reports taken names and a lost se
     ['kim (Kim · b)', 'lee (kim)', 'park (Lee)'],
   );
   assert.equal(snap.agents[0].peer.nickname, 'Kim · b');
-  assert.equal(snap.selfLost, true);
+  assert.equal(snap.selfLost, 'kim');
   assert.deepEqual([...snap.taken].sort(), ['kim', 'lee']);
   const alone = disambiguate([person('a', 'kim', '', true), person('b', 'kim')], []);
-  assert.equal(alone.selfLost, false); // same account, no nickname: display suffix only
+  assert.equal(alone.selfLost, null); // same account, no nickname: display suffix only
   assert.deepEqual(
     alone.people.map((p) => p.account),
     ['kim', 'kim · b'],

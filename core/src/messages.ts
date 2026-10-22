@@ -195,6 +195,7 @@ export interface PeerInfoMessage {
   id: string;
   account: string;
   nickname: string;
+  nickSince?: number;
   palette: number;
   hueShift: number;
 }
@@ -203,6 +204,7 @@ export interface OfficePersonMessage {
   peerId: string;
   account: string;
   nickname: string;
+  nickSince?: number;
   palette: number;
   hueShift: number;
   self: boolean;

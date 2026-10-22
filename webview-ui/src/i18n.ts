@@ -41,7 +41,7 @@ const ko = {
   'people.status.working': '작업 중',
   'people.status.idle': '쉬는 중',
   'nickname.conflict':
-    '같은 닉네임을 먼저 쓰는 사람이 있어, 다른 사람에게는 내 닉네임 뒤에 짧은 구분 표시가 붙어 보입니다. 닉네임을 바꿔 주세요.',
+    '이 닉네임은 다른 PC가 먼저 쓰고 있었습니다. 다른 사람에게는 내 닉네임 뒤에 짧은 구분 표시가 붙어 보이니 닉네임을 바꿔 주세요.',
   'nickname.change': '닉네임 바꾸기',
   'profile.nicknameTaken': '이미 사용 중인 닉네임입니다',
 
@@ -345,7 +345,7 @@ const en: Record<Key, string> = {
   'people.status.working': 'Working',
   'people.status.idle': 'Idle',
   'nickname.conflict':
-    'Someone else already uses this nickname, so others see yours with a short tag after it. Please change your nickname.',
+    'Another PC was using this nickname first. Others see yours with a short tag after it, so please change your nickname.',
   'nickname.change': 'Change nickname',
   'profile.nicknameTaken': 'This nickname is already taken',
 

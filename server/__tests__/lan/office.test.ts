@@ -67,6 +67,7 @@ describe('LanService', () => {
     offices: [],
     activeView: PUBLIC_VIEW,
     setUp: false,
+    nicknameSince: 0,
   };
 
   it('sends an empty nickname until one is set, and redacts when hideDetails', () => {
@@ -125,6 +126,14 @@ describe('LanService', () => {
       nickname: '유',
     });
     expect(sendNow).toHaveBeenCalledOnce();
+    const since = lan.profile.nicknameSince;
+    expect(since).toBeGreaterThan(0);
+    expect(lan.self().nickSince).toBe(since);
+    lan.saveProfile({ ...rest, nickname: ' 유 ', palette: 3 }); // same nickname: time kept
+    expect(lan.profile.nicknameSince).toBe(since);
+    lan.saveProfile({ ...rest, nickname: '' });
+    expect(lan.profile.nicknameSince).toBe(0);
+    expect(lan.self()).not.toHaveProperty('nickSince');
     fs.rmSync(dir, { recursive: true, force: true });
   });
 

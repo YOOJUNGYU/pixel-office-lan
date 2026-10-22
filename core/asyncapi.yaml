@@ -568,6 +568,10 @@ components:
           type: string
         nickname:
           type: string
+        nickSince:
+          type: integer
+          minimum: 0
+          description: When the nickname was set (ms epoch); see PeerInfoMessage.
         palette:
           type: integer
         hueShift:
@@ -671,10 +675,16 @@ components:
           type: string
           description: >-
             OS login account name, always shown. A 0.3.x peer sends none; its
-            nickname (or a short peer id) stands in.
+            nickname (or a short peer id) stands in and its nickname is cleared.
         nickname:
           type: string
           description: Optional ('' = none), shown next to the account.
+        nickSince:
+          type: integer
+          minimum: 0
+          description: >-
+            When the nickname was set (ms epoch). In a clash the earliest keeps
+            it (then the smallest peer id); absent = unknown, loses.
         palette:
           type: integer
         hueShift:

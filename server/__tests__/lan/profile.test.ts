@@ -46,6 +46,7 @@ describe('loadProfile', () => {
       offices: [office],
       activeView: office.tag,
       setUp: true,
+      nicknameSince: 123,
     };
     saveProfile(p, dir);
     expect(loadProfile(dir)).toEqual(p);
@@ -54,8 +55,10 @@ describe('loadProfile', () => {
     const f = path.join(dir, 'profile.json');
     const v1 = { peerId: 'old-pc', ...ok, nickname: '김' };
     fs.writeFileSync(f, JSON.stringify(v1), { mode: 0o644 });
+    const mtime = Math.floor(fs.statSync(f).mtimeMs);
     const p = loadProfile(dir);
     expect(p).toMatchObject({ ...v1, offices: [], activeView: PUBLIC_VIEW, setUp: true });
+    expect(p.nicknameSince).toBe(mtime); // migrated: nickname dates from the old file
     expect(publicKeyOf(p.identity.privateKeyPem)).toBe(p.identity.publicKey);
     expect(loadProfile(dir).identity).toEqual(p.identity); // persisted, stable
     if (posix) expect(mode(f)).toBe(0o600);
@@ -103,7 +106,13 @@ describe('loadProfile', () => {
       f,
       JSON.stringify({ peerId: 'k', palette: 1, hueShift: 0, hideDetails: true, manualPeers: [] }),
     );
-    expect(loadProfile(dir)).toMatchObject({ peerId: 'k', nickname: '', palette: 1, setUp: false });
+    expect(loadProfile(dir)).toMatchObject({
+      peerId: 'k',
+      nickname: '',
+      palette: 1,
+      setUp: false,
+      nicknameSince: 0,
+    });
   });
   it('keeps a valid peerId when fields are invalid, falls back on garbage', () => {
     fs.writeFileSync(
@@ -183,6 +192,7 @@ describe('accountName', () => {
     expect(accountName('CORP\\yoojungyu', 'host')).toBe('yoojungyu');
     expect(accountName('  kim  ', 'host')).toBe('kim');
     expect(accountName('a'.repeat(40), 'host')).toBe('a'.repeat(32));
+    expect(accountName('😀'.repeat(40), 'host')).toBe('😀'.repeat(32)); // never splits an emoji
     expect(accountName('', 'my-pc')).toBe('my-pc');
     expect(accountName(undefined, 'my-pc')).toBe('my-pc');
     expect(accountName('CORP\\', 'my-pc')).toBe('my-pc');

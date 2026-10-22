@@ -117,6 +117,8 @@ export const LAYOUT_EXPORT_FILENAME = 'pixel-agents-layout.json';
 export const LANG_STORAGE_KEY = 'pixel-office.lang';
 /** localStorage key: the update version this viewer closed the banner for. */
 export const UPDATE_DISMISSED_STORAGE_KEY = 'pixel-office.updateDismissed';
+/** nicknameKey of the last nickname clash whose rename notice was handled (shown once per clash). */
+export const NICKNAME_NOTICE_STORAGE_KEY = 'pixel-office.nicknameNotice';
 /** localStorage key: epoch ms when this viewer chose [Later] on the install-as-app popup. */
 export const INSTALL_DISMISSED_STORAGE_KEY = 'pixel-office.installDismissed';
 /** [Later] hides the install popup for 7 days. */
