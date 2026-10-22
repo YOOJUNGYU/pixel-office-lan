@@ -120,7 +120,7 @@ Switch the office you are looking at with the office switcher at the top of the 
 
 - 📲 **Install as an app (PWA)**: open the office in this PC's browser and an **Install Pixel Office as an app** popup appears top right. **Install** (Edge/Chrome) installs it as a tab-less app window, and the Windows shortcuts then open that app (a Mac opens the default browser). **Later** hides it for 7 days. Safari: **Share → Add to Dock / Add to Home Screen**; Firefox can't install apps.
 - 👤 **Profile**: on first run pick a character (6 kinds) and a color (8 swatches + slider), and optionally a nickname. Skin tone stays; clothes and hair change color. Your PC login account name always shows first and cannot be changed.
-- Nicknames must be unique (ignoring case and spaces): saving one that another PC you can see uses is refused. If two PCs picked the same one while apart, the later one shows with a short tag (`Mina · a1b2`) and gets a one-time prompt to change it.
+- Nicknames must be unique (ignoring case and spaces): saving one that another PC you can see uses is refused. If two PCs picked the same one while apart, **whoever set it first keeps it**; the later one shows with a short tag (`Mina · a1b2`) and gets a one-time prompt to change it.
 - 🌐 **한국어 / English**: each viewer chooses (Settings → Language). Text the agent wrote itself (reasons, file names, commands) is shown as-is.
 - 🖱️ **Map controls**: drag an empty spot to pan; the mouse wheel (or trackpad pinch) zooms smoothly around the cursor.
 - 🔄 **Updates**: when a new version is published on GitHub Releases, an **Update** button appears; it downloads and runs the installer.
