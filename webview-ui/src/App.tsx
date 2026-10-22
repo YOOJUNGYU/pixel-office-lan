@@ -13,6 +13,7 @@ import { useEditorKeyboard } from './hooks/useEditorKeyboard.js';
 import { useExtensionMessages } from './hooks/useExtensionMessages.js';
 import { useIsMobile } from './hooks/useIsMobile.js';
 import { t, useLang } from './i18n.js';
+import { InstallPrompt } from './lan/InstallPrompt.js';
 import { LanOverlay } from './lan/LanOverlay.js';
 import { OfficeSwitcher } from './lan/OfficeSwitcher.js';
 import { ProfileModal } from './lan/ProfileModal.js';
@@ -81,6 +82,7 @@ function App() {
     autostart,
     offices,
     officeReply,
+    clearOfficeReply,
   } = useExtensionMessages(getOfficeState, editor.setLastSavedLayout, isEditDirty);
 
   // Overlay geometry: the root div is the canvas container's size.
@@ -407,6 +409,8 @@ function App() {
 
       <ConnectionIndicator />
 
+      <InstallPrompt readOnly={officeReadOnly} />
+
       {!officeReadOnly && (
         <UpdateBanner
           update={update}
@@ -445,6 +449,7 @@ function App() {
         autostart={autostart}
         offices={officeReadOnly ? null : offices}
         officeReply={officeReply}
+        onOfficeReplyHandled={clearOfficeReply}
       />
     </div>
   );

@@ -8,7 +8,6 @@
  * WebSocket client receives the full state on webviewReady.
  */
 
-import { spawn } from 'child_process';
 import * as path from 'path';
 
 import { LAN_HTTP_PORT, LAN_UDP_PORT } from '../../core/src/lan.js';
@@ -28,6 +27,7 @@ import {
   UDP_PORT_ENV,
   UDP_TARGETS_ENV,
 } from './constants.js';
+import { openOffice } from './lan/appWindow.js';
 import { applyInstallerChoice, getAutostart, setAutostart } from './lan/autostart.js';
 import { checkExisting, LanService } from './lan/office.js';
 import { PeerNet } from './lan/peerNet.js';
@@ -41,7 +41,7 @@ import { PixelAgentsServer } from './server.js';
 export interface CliArgs {
   port: number;
   host: string;
-  /** Open the office in the default browser once it is up. */
+  /** Open the office (installed app / app window / default browser) once it is up. */
   open: boolean;
   /** Installer hook: set start-at-login and exit (no server). */
   autostart?: AutostartMode;
@@ -90,28 +90,13 @@ export function parseArgs(argv: string[]): CliArgs {
 Options:
   --port, -p <number>   Port to listen on (default: ${LAN_HTTP_PORT})
   --host <string>       Host to bind to (default: 0.0.0.0)
-  --open                Open the office in the default browser
+  --open                Open the office (installed app or app window on Windows)
   --autostart <mode>    Set start at login (on|off|default) and exit — used by the installer
   --help                Show this help message`);
       process.exit(0);
     }
   }
   return args;
-}
-
-/** Best effort: a missing browser launcher must not take the server down. */
-function openBrowser(url: string): void {
-  const [cmd, args] =
-    process.platform === 'win32'
-      ? ['cmd', ['/c', 'start', '', url]] // '' -> "" (window title), as start expects
-      : [process.platform === 'darwin' ? 'open' : 'xdg-open', [url]];
-  try {
-    const child = spawn(cmd, args, { detached: true, stdio: 'ignore', windowsHide: true });
-    child.on('error', () => {});
-    child.unref();
-  } catch {
-    // ignore
-  }
 }
 
 // ── Main ──────────────────────────────────────────────────────
@@ -132,10 +117,11 @@ async function main(): Promise<void> {
   }
 
   // One office per PC: a second launch just (re)opens the browser.
-  const localUrl = `http://localhost:${args.port.toString()}`;
+  // Trailing '/': also the PWA manifest id, from which the installed app's id is derived.
+  const localUrl = `http://localhost:${args.port.toString()}/`;
   if (await checkExisting(args.port)) {
     console.log(`[Pixel Office] 이미 실행 중입니다: ${localUrl}`);
-    if (args.open) openBrowser(localUrl);
+    if (args.open) openOffice(localUrl);
     process.exit(0);
   }
 
@@ -254,7 +240,7 @@ async function main(): Promise<void> {
     const displayHost =
       args.host === '0.0.0.0' || args.host === '::' || args.host === '' ? 'localhost' : args.host;
     console.log(`\n  Pixel Office running at http://${displayHost}:${port}\n`);
-    if (args.open) openBrowser(localUrl);
+    if (args.open) openOffice(localUrl);
 
     process.on('SIGINT', () => void shutdown());
     process.on('SIGTERM', () => void shutdown());

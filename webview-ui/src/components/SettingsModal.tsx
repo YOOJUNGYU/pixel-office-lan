@@ -32,6 +32,7 @@ interface SettingsModalProps {
   /** Team offices (this PC's browser only); the 오피스 section is hidden when null. */
   offices: Omit<OfficesState, 'type'> | null;
   officeReply: OfficeReply | null;
+  onOfficeReplyHandled: () => void;
 }
 
 export function SettingsModal({
@@ -47,6 +48,7 @@ export function SettingsModal({
   autostart,
   offices,
   officeReply,
+  onOfficeReplyHandled,
 }: SettingsModalProps) {
   const [soundLocal, setSoundLocal] = useState(isSoundEnabled);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -148,7 +150,9 @@ export function SettingsModal({
       >
         {t('settings.checkUpdate')}
       </MenuItem>
-      {offices && <OfficeSettings state={offices} reply={officeReply} />}
+      {offices && (
+        <OfficeSettings state={offices} reply={officeReply} onReplyHandled={onOfficeReplyHandled} />
+      )}
     </Modal>
   );
 }

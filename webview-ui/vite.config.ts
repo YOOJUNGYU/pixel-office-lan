@@ -119,7 +119,15 @@ function browserMockAssetsPlugin(): Plugin {
   };
 }
 
+const appVersion = (
+  JSON.parse(fs.readFileSync(path.resolve(__dirname, '../package.json'), 'utf8')) as {
+    version: string;
+  }
+).version;
+
 export default defineConfig({
+  // Service worker cache version (src/pwa.ts registers sw.js?v=<version>).
+  define: { __APP_VERSION__: JSON.stringify(appVersion) },
   plugins: [tailwindcss(), react(), browserMockAssetsPlugin()],
   server: {
     // Dev-only: allow reaching `vite --host` from another device on a

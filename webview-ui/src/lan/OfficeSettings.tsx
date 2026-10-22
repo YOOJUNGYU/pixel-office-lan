@@ -16,10 +16,12 @@ const CREATED = 'created';
 interface OfficeSettingsProps {
   state: Omit<OfficesState, 'type'>;
   reply: OfficeReply | null;
+  /** Consumes `reply`: a remount (Settings reopened) must not apply it again. */
+  onReplyHandled: () => void;
 }
 
 /** Settings → 오피스: create, join, copy code / leave, remote viewing. This PC's browser only. */
-export function OfficeSettings({ state, reply }: OfficeSettingsProps) {
+export function OfficeSettings({ state, reply, onReplyHandled }: OfficeSettingsProps) {
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
   const [joinName, setJoinName] = useState('');
@@ -53,7 +55,8 @@ export function OfficeSettings({ state, reply }: OfficeSettingsProps) {
       setCodes((c) => ({ ...c, [reply.tag]: reply.code }));
       copy(reply.tag, reply.code);
     }
-  }, [reply]);
+    onReplyHandled();
+  }, [reply, onReplyHandled]);
 
   // Joined/created the first team: say that this PC left the public office.
   useEffect(() => {

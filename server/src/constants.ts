@@ -117,3 +117,7 @@ export const MAX_WARN_KEYS = 256;
 export const SEQ_MEMORY_MS = 10 * 60_000;
 export const MAX_OFFICES = 10;
 export const MAX_OFFICE_NAME = 20;
+
+// ── App window (lan/appWindow.ts) ──────────────────────────
+/** Chromium web app id length: first 16 bytes of the (double) SHA-256, as letters a-p. */
+export const WEB_APP_ID_BYTES = 16;

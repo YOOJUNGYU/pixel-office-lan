@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { OfficeAgent } from '../../../core/src/lan.js';
 import type {
@@ -79,6 +79,8 @@ interface ExtensionMessageState {
   offices: Omit<OfficesState, 'type'> | null;
   /** Latest reply to an office request from this browser (each a new object). */
   officeReply: OfficeReply | null;
+  /** Drop the reply once handled, so reopening Settings does not apply it again. */
+  clearOfficeReply: () => void;
 }
 
 export type OfficeReply = OfficeCreated | OfficeCode | OfficeError;
@@ -104,6 +106,7 @@ export function useExtensionMessages(
   const [autostart, setAutostart] = useState<AutostartState | null>(null);
   const [offices, setOffices] = useState<Omit<OfficesState, 'type'> | null>(null);
   const [officeReply, setOfficeReply] = useState<OfficeReply | null>(null);
+  const clearOfficeReply = useCallback(() => setOfficeReply(null), []);
   const lanRef = useRef<LanAgents | null>(null);
   lanRef.current ??= new LanAgents(getOfficeState());
   const lan = lanRef.current;
@@ -265,5 +268,6 @@ export function useExtensionMessages(
     autostart,
     offices,
     officeReply,
+    clearOfficeReply,
   };
 }

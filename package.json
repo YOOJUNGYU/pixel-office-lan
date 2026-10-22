@@ -2,7 +2,7 @@
   "name": "pixel-office",
   "displayName": "Pixel Office",
   "description": "LAN pixel-art office where your coding agents come to life as animated characters",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/YOOJUNGYU/pixel-office-lan"

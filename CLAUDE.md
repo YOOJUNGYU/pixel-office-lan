@@ -22,6 +22,7 @@ server/src/
   lan/peerNet.ts         UDP v2: plaintext hello + encrypted pairwise pub (public office) / encrypted team broadcast; TOFU pins, per-channel seq replay guard
   lan/crypto.ts          X25519 identity, HKDF pair/team keys, AES-256-GCM seal/open, invite codes (PO2-…), parseWire
   lan/updater.ts         GitHub Releases check (60 s, then 6 h), installer download to ~/.pixel-office/updates + launch (loopback only)
+  lan/appWindow.ts       `--open`: Windows → installed PWA (`--app-id`, Chromium id = double SHA-256 of manifest id `http://localhost:<port>/`) in Edge/Chrome, else `--app=` window, else default browser
   lan/autostart.ts       Per-user start at login (Win Startup .lnk via PowerShell, Mac LaunchAgent plist copy); Settings toggle + `cli.js --autostart on|off|default` (installer)
   clientMessageHandler.ts  ClientMessage dispatch + webviewReady handshake + read-only gate
   assetLoader.ts / assetReload.ts   PNG → SpriteData, external asset directories
@@ -35,6 +36,9 @@ webview-ui/src/          React 19 + Canvas office
   transport/             WebSocketTransport (reconnect with backoff)
   office/                engine (officeState, renderer, characters), editor, layout, sprites
   constants.ts           ALL webview magic numbers and colors
+  pwa.ts                 Service worker registration (`sw.js?v=<version>`) + install-popup state (lan/InstallPrompt.tsx, pure lan/installMode.ts)
+webview-ui/public/sw.js  Navigations network-first, other same-origin GETs cache-first; never /ws or /api/*; cache per app version
+webview-ui/public/manifest.webmanifest  `id: "/"` — changing it changes the installed app id the launcher looks for
 ```
 
 ## Removed from upstream (Task 1)

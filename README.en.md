@@ -54,7 +54,37 @@ When an agent switches activity, its character walks to the matching room. So th
 - Every installed PC announces its agents' state to the network once a second and collects everyone else's to draw the office.
 - **There is no server.** When someone shuts down their PC, only their characters disappear after a few seconds; everyone else is unaffected.
 - PCs on the same network appear automatically, no IP needed. Only when they can't (different floors or VLANs), add the other PC's IP under **Settings → My profile → Advanced: when a PC isn't found automatically**.
-- People without the app can **watch** by opening `http://<IP>:47801` of any PC that has it.
+- Everything PCs exchange is **encrypted** (see [Encryption](#encryption)). Nothing to set up.
+- Watching from another PC's browser without the app (**remote viewing**) is **off by default**. See [Remote viewing](#remote-viewing).
+
+### Public and team offices
+
+Switch the office you are looking at with the office switcher at the top of the screen.
+
+- 🌐 **Public office** (default): everyone on the network who installed the app. No setup.
+- 🔒 **Team office**: a room only people with its invite code can see. You can be in several at once.
+  - **Create**: in **Settings → Offices → Create a team office**, enter a team name (1–20 chars) and press **Create**. You get an invite code like `PO2-XXXX-…`; **Copy code** and send it to your teammates (chat, mail, …). Copy it again later from **Your team offices**.
+  - **Join**: paste the code under **Settings → Offices → Join with a code** and press **Join** (the team name is optional; if empty, the name a member announces is used).
+  - **Leave**: **Leave** in the list. You need the code to come back.
+- ⚠️ **While you are in any team office you leave the public office completely**: you neither send to nor see the public office (so nobody can quietly watch the public office from inside a team). To return to the public office, leave all team offices.
+- If a code leaks, create a new team office and move. The code itself never goes on the network.
+
+### Encryption
+
+| Office | How                                                                                                                                                                                                     |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Public | Every PC creates an X25519 key pair automatically. Two PCs that find each other agree on a key for the pair, encrypt with **AES-256-GCM** and send **only to that PC**. Only public keys are broadcast. |
+| Team   | Encrypted with **AES-256-GCM** under a key derived from the invite code. Only a short tag identifying the team goes on the wire, never the code (secret).                                               |
+
+- A PC's public key is remembered the first time it is seen; a different key under the same PC id is ignored (anti-impersonation). Replayed packets are dropped.
+- **Limits**: the public office stops eavesdropping, but cannot stop someone who installed the app (or mimics the protocol) from joining. To choose who joins, use a team office. A team office is only as safe as its code.
+- v0.2.0 does not talk to v0.1.0 (old unencrypted packets are ignored). Update every PC to 0.2.0 or later.
+
+### Remote viewing
+
+- **Off** by default: browsers that are not on this PC (`http://<your IP>:47801`) are refused.
+- Turn on **Settings → Offices → Allow viewing from other browsers** to let people without the app watch. That page travels over the network **unencrypted (HTTP)**.
+- Even when on, remote viewers only ever see the **public office**, and nothing while you are in a team office. Remote viewers are always read-only.
 
 ### Security and privacy
 
@@ -64,6 +94,7 @@ When an agent switches activity, its character walks to the matching room. So th
 
 ### And more
 
+- 📲 **Install as an app (PWA)**: open the office in this PC's browser and an **Install Pixel Office as an app** popup appears top right. **Install** (Edge/Chrome) installs it as a tab-less app window, and the shortcuts then open that app. **Later** hides it for 7 days. Safari: **Share → Add to Dock / Add to Home Screen**; Firefox can't install apps.
 - 👤 **Profile**: on first run pick a nickname, a character (6 kinds) and a color (8 swatches + slider). Skin tone stays; clothes and hair change color.
 - 🌐 **한국어 / English**: each viewer chooses (Settings → Language). Text the agent wrote itself (reasons, file names, commands) is shown as-is.
 - 🖱️ **Map controls**: drag an empty spot to pan; the mouse wheel (or trackpad pinch) zooms smoothly around the cursor.
@@ -98,7 +129,7 @@ Claude Code and Codex running inside WSL are read by the Windows app; there is n
 ### How to open
 
 - **Start at login** — on by default. On Windows you can untick it in the installer; anytime, toggle **Settings → Start at login**.
-- **Windows**: the **Pixel Office** desktop shortcut ("Create a desktop shortcut" in the installer) or Start → **Pixel Office 열기**
+- **Windows**: the **Pixel Office** desktop shortcut ("Create a desktop shortcut" in the installer) or Start → **Pixel Office 열기**. It starts the office if needed and opens **the installed app** (Edge, else Chrome) if you installed it, otherwise a tab-less Edge (or Chrome) window, otherwise the default browser.
 - **Mac**: **Pixel Office** in **Applications** or **Launchpad** (no desktop alias, following macOS convention)
 - Anywhere: `http://localhost:47801` in a browser
 
@@ -112,28 +143,32 @@ Details, what to do when other PCs don't show up, and how to uninstall: **[Insta
  [My PC]                                          [Teammate's PC]
  Claude / Codex transcripts ─▶ reporter ─┐     ┌─ reporter ◀─ transcripts
   (~/.claude, ~/.codex, WSL)              │ UDP │
-                                          ├◀───▶┤   state every second (no server)
+                                          ├◀───▶┤   encrypted state every second (no server)
  browser ◀── WebSocket ── local server ◀──┘     └▶ local server ── WebSocket ──▶ browser
-         http://localhost:47801                          http://localhost:47801
+(app win) http://localhost:47801                          http://localhost:47801 (app win)
 ```
 
 - The **reporter** reads sessions changed in the last 30 minutes under `~/.claude/projects` and `~/.codex/sessions` (and the same places in running WSL distributions).
-- It turns each line into `{room, act, target, reason}`, applies the hide rules, and announces it on UDP port **47800**.
-- The **local server** (HTTP **47801**) merges your state with what it received and streams it to the browser, which renders sentences in the viewer's language.
+- It turns each line into `{room, act, target, reason}` and applies the hide rules.
+- On UDP port **47800** it broadcasts a hello carrying only its public key, and sends the state **encrypted**: to each discovered PC separately for the public office (pair keys), under the team key for team offices. While in a team office it sends neither hellos nor public-office state.
+- The **local server** (HTTP **47801**) merges your state with what it received for the office you are viewing and streams it to the browser, which renders sentences in the viewer's language. Browsers on other PCs can connect only when remote viewing is on.
+- The browser's service worker caches only the page files (for app install); office state (`/ws`) and `/api` are never cached.
 - A PC that has been silent for 5 seconds disappears from the office.
 
-| Port      | Purpose                                                     |
-| --------- | ----------------------------------------------------------- |
-| UDP 47800 | State exchange between PCs (broadcast + manually added IPs) |
-| TCP 47801 | Browser UI (`http://localhost:47801`)                       |
+| Port      | Purpose                                                                |
+| --------- | ---------------------------------------------------------------------- |
+| UDP 47800 | State exchange between PCs (encrypted; broadcast + manually added IPs) |
+| TCP 47801 | Browser UI (`http://localhost:47801`)                                  |
 
-Data is stored only in `~/.pixel-office/` (profile, layout, downloaded updates).
+Data is stored only in `~/.pixel-office/` (profile, keys and team codes, layout, remembered PC public keys, downloaded updates). Files holding keys and codes are readable by you only (0600).
 
 ## Known limitations
 
 - Broadcasts reach **only the same subnet**. Across subnets, add PC IPs under **Settings → My profile → Advanced: when a PC isn't found automatically**.
 - Codex doesn't record approval requests, so ❗ for Codex appears only when it asks you a question. Codex subagents are not yet verified against real transcripts.
 - Hide details filters paths, addresses and token shapes, but may not catch every password fragment an agent writes in prose.
+- The public office cannot stop people who installed the app from joining. With remote viewing on, the public office page is visible on the network as plain HTTP.
+- v0.1.0 PCs and 0.2.0 PCs don't see each other; everyone needs 0.2.0 or later.
 - Characters whose outfits are near-greyscale barely change with the color setting.
 
 ## Development
