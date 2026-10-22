@@ -36,6 +36,7 @@ It starts at every login (`~/Library/LaunchAgents/com.pixeloffice.agent.plist`, 
 ## 4. How to open
 
 - **Start at login**: runs in the background without a window. Turn it off or on in the office under **Settings → Start at login** (applies from the next login; the running office keeps running). Installing an update keeps your choice.
+- **Updates**: checked once when the app starts (Settings → Check for updates checks again). Installing with the **Update** button at the top right reloads the open window into the new version; no second window opens.
 - **Open the office**
   - Windows: the **Pixel Office** desktop shortcut, or Start → **Pixel Office 열기**
   - Mac: **Pixel Office** in **Applications** or **Launchpad**. Following macOS convention there is no desktop alias (drag it to the Dock if you like).

@@ -382,6 +382,35 @@ function App() {
     exportLayoutToFile(getOfficeState().getLayout());
   }, []);
 
+  const fetchDefaultLayout = async (): Promise<unknown> => {
+    const res = await fetch(`${import.meta.env.BASE_URL}${DEFAULT_LAYOUT_ASSET}`);
+    if (!res.ok) throw new Error(`default layout ${res.status.toString()}`);
+    return (await res.json()) as unknown;
+  };
+
+  /** Validate, apply and save a layout from outside (file import, reset to the default). */
+  const applyLayout = async (imported: unknown) => {
+    // The server's grid check (isLayoutGrid), before anything is built: a
+    // v1 grid within 128×128 whose tiles match it, with a furniture array.
+    if (!isLayoutGrid(imported)) {
+      window.alert(t('app.importInvalid'));
+      return;
+    }
+    let migrated = migrateLayoutColors(imported as unknown as OfficeLayout);
+    // Rooms come from the bundled default: a room without tiles takes the
+    // default's when the grid is the default size (the server does the same).
+    if (emptyRoomLabels(migrated).length > 0) {
+      migrated = fillMissingRooms(migrated, await fetchDefaultLayout());
+    }
+    getOfficeState().rebuildFromLayout(migrated);
+    editor.setLastSavedLayout(migrated);
+    transport.send({
+      type: 'saveLayout',
+      layout: migrated as unknown as Record<string, unknown>,
+    });
+    editor.markClean();
+  };
+
   const handleImportLayout = (file: File) => {
     // Browser-native import: read + validate + apply directly,
     // bypassing the layoutLoaded message whose dirty guard would skip it.
@@ -389,34 +418,24 @@ function App() {
       return;
     }
     const reader = new FileReader();
-    reader.onload = async () => {
+    reader.onload = () => {
       try {
-        const imported: unknown = JSON.parse(String(reader.result));
-        // The server's grid check (isLayoutGrid), before anything is built: a
-        // v1 grid within 128×128 whose tiles match it, with a furniture array.
-        if (!isLayoutGrid(imported)) {
-          window.alert(t('app.importInvalid'));
-          return;
-        }
-        let migrated = migrateLayoutColors(imported as unknown as OfficeLayout);
-        // Rooms come from the bundled default: a room without tiles takes the
-        // default's when the grid is the default size (the server does the same).
-        if (emptyRoomLabels(migrated).length > 0) {
-          const res = await fetch(`${import.meta.env.BASE_URL}${DEFAULT_LAYOUT_ASSET}`);
-          if (res.ok) migrated = fillMissingRooms(migrated, (await res.json()) as unknown);
-        }
-        getOfficeState().rebuildFromLayout(migrated);
-        editor.setLastSavedLayout(migrated);
-        transport.send({
-          type: 'saveLayout',
-          layout: migrated as unknown as Record<string, unknown>,
-        });
-        editor.markClean();
+        applyLayout(JSON.parse(String(reader.result)) as unknown).catch(() =>
+          window.alert(t('app.importFailed')),
+        );
       } catch {
         window.alert(t('app.importFailed'));
       }
     };
     reader.readAsText(file);
+  };
+
+  /** Settings → the bundled default office (an older saved layout stays until this). */
+  const handleResetToDefaultLayout = () => {
+    if (!window.confirm(t('app.resetDefaultConfirm'))) return;
+    fetchDefaultLayout()
+      .then(applyLayout)
+      .catch(() => window.alert(t('app.importFailed')));
   };
 
   // Force dependency on editorTickForKeyboard to propagate keyboard-triggered re-renders
@@ -656,6 +675,7 @@ function App() {
           showAreasAvailable={areasAvailable}
           onExportLayout={handleExportLayout}
           onImportLayout={handleImportLayout}
+          onResetToDefaultLayout={officeReadOnly ? undefined : handleResetToDefaultLayout}
           autostart={autostart}
           offices={offices}
           officeReply={officeReply}

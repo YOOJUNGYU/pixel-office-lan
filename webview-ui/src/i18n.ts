@@ -57,6 +57,9 @@ const ko = {
   'app.readOnly': '보기 전용',
   'app.rotateHint': '회전 (R)',
   'app.importConfirm': '현재 레이아웃을 바꿀까요? 저장하지 않은 편집은 사라집니다.',
+  'app.resetDefaultConfirm':
+    '기본 사무실(128×128)로 바꿀까요? 지금 배치는 사라집니다(먼저 내보내기로 저장해 둘 수 있습니다).',
+  'settings.resetDefaultLayout': '기본 사무실로 되돌리기',
   'app.importInvalid': '올바른 레이아웃 파일이 아닙니다.',
   'app.layoutSaveRejected': '레이아웃을 저장하지 못했습니다 (올바르지 않은 레이아웃).',
   'app.importFailed': '레이아웃 파일을 읽지 못했습니다.',
@@ -354,6 +357,9 @@ const en: Record<Key, string> = {
   'app.readOnly': 'View only',
   'app.rotateHint': 'Rotate (R)',
   'app.importConfirm': 'Replace the current layout? Unsaved edits will be lost.',
+  'app.resetDefaultConfirm':
+    'Switch to the default office (128×128)? The current layout will be lost (export it first to keep a copy).',
+  'settings.resetDefaultLayout': 'Reset to the default office',
   'app.importInvalid': 'This is not a valid layout file.',
   'app.layoutSaveRejected': 'The layout was not saved (not a valid layout).',
   'app.importFailed': 'Could not read the layout file.',
