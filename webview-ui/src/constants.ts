@@ -8,21 +8,22 @@ export const DEFAULT_COLS = 20;
 export const DEFAULT_ROWS = 11;
 export const MAX_COLS = MAX_LAYOUT_COLS;
 export const MAX_ROWS = MAX_LAYOUT_ROWS;
-/** Largest offscreen floor cache (device px²): a 128×128 office up to render zoom 2. */
+/** The bundled default layout (rooms of an imported layout that lacks them), relative to the base URL. */
+export const DEFAULT_LAYOUT_ASSET = 'assets/default-layout-1.json';
+/** Floor chunk cache budget (device px², all chunks; chunks on screen are always kept). */
 export const FLOOR_CACHE_MAX_PIXELS = 4096 * 4096;
+/** Floor chunk side in device px (rounded to whole tiles) and its minimum in tiles. */
+export const FLOOR_CHUNK_PX = 512;
+export const FLOOR_CHUNK_MIN_TILES = 4;
+/** Random tiles tried before scanning a whole room for a free one. */
+export const FREE_TILE_PROBES = 16;
 
 // ── Character Animation ─────────────────────────────────────
 export const WALK_SPEED_PX_PER_SEC = 48;
 export const WALK_FRAME_DURATION_SEC = 0.15;
 export const TYPE_FRAME_DURATION_SEC = 0.3;
-export const WANDER_PAUSE_MIN_SEC = 2.0;
-export const WANDER_PAUSE_MAX_SEC = 20.0;
-export const WANDER_MOVES_BEFORE_REST_MIN = 3;
-export const WANDER_MOVES_BEFORE_REST_MAX = 6;
 /** A follower that found no free tile beside its parent retries after this long. */
 export const FOLLOW_RETRY_SEC = 1.0;
-export const SEAT_REST_MIN_SEC = 120.0;
-export const SEAT_REST_MAX_SEC = 240.0;
 
 // ── Matrix Effect ────────────────────────────────────────────
 export const MATRIX_EFFECT_DURATION_SEC = 0.3;
@@ -69,9 +70,6 @@ export const SEAT_BUSY_COLOR = 'rgba(220, 50, 50, 0.35)';
 export const GRID_LINE_COLOR = 'rgba(255,255,255,0.12)';
 export const VOID_TILE_OUTLINE_COLOR = 'rgba(255,255,255,0.08)';
 export const VOID_TILE_DASH_PATTERN: [number, number] = [2, 2];
-export const GHOST_BORDER_HOVER_FILL = 'rgba(60, 130, 220, 0.25)';
-export const GHOST_BORDER_HOVER_STROKE = 'rgba(60, 130, 220, 0.5)';
-export const GHOST_BORDER_STROKE = 'rgba(255, 255, 255, 0.06)';
 export const GHOST_VALID_TINT = '#00ff00';
 export const GHOST_INVALID_TINT = '#ff0000';
 export const SELECTION_HIGHLIGHT_COLOR = '#007fd4';
@@ -87,7 +85,8 @@ export const CAMERA_FOLLOW_LERP = 0.1;
 export const CAMERA_FOLLOW_SNAP_THRESHOLD = 0.5;
 
 // ── Zoom ─────────────────────────────────────────────────────
-export const ZOOM_MIN = 0.5;
+/** Low enough that the whole 128×128 office fits a 1280×720 screen. */
+export const ZOOM_MIN = 0.25;
 export const ZOOM_MAX = 10;
 /** Wheel/pinch zoom: zoom *= exp(-deltaY × this). A 100-px mouse notch ≈ ×1.16. */
 export const ZOOM_WHEEL_SENSITIVITY = 0.0015;
@@ -110,8 +109,6 @@ export const UNDO_STACK_MAX_SIZE = 50;
 export const LAYOUT_SAVE_DEBOUNCE_MS = 500;
 /** data-testid of the office canvas — e2e drives real editor gestures on it. */
 export const OFFICE_CANVAS_TEST_ID = 'office-canvas';
-/** Ghost-border hover tile when the border isn't shown — off any reachable tile. */
-export const GHOST_BORDER_NO_HOVER_TILE = -999;
 
 // ── Layout Import/Export (browser-native, standalone) ────────
 /** Suggested filename when exporting the office layout from the standalone browser. */
@@ -161,8 +158,6 @@ export const KEY_CARPET_PICK = 'p';
 export const ROOM_AREA_COLORS: Readonly<Record<Room, string>> = ROOM_DEFAULT_COLORS;
 /** Translucent overlay alpha for area tile fills. */
 export const AREA_OVERLAY_ALPHA = 0.25;
-/** Alpha multiplier applied to the actively-selected area's overlay. */
-export const AREA_ACTIVE_ALPHA_MULTIPLIER = 1.6;
 /** Base font size (pixel-pre-zoom) for area centroid labels. */
 export const AREA_LABEL_FONT_SIZE_PX = 14;
 /** Minimum on-screen label size to keep labels legible at low zoom. */
@@ -226,8 +221,6 @@ export const WHATS_NEW_FADE_MS = 1000;
 export const MAX_DELTA_TIME_SEC = 0.1;
 export const WAITING_BUBBLE_DURATION_SEC = 2.0;
 export const DISMISS_BUBBLE_FAST_FADE_SEC = 0.3;
-export const INACTIVE_SEAT_TIMER_MIN_SEC = 3.0;
-export const INACTIVE_SEAT_TIMER_RANGE_SEC = 2.0;
 /** Default/fallback palette count (bundled characters). Actual count comes from getLoadedCharacterCount(). */
 export const PALETTE_COUNT = 6;
 export const AUTO_ON_FACING_DEPTH = 3;
@@ -293,7 +286,7 @@ export const TOUCH_TAP_MAX_DURATION_MS = 350;
 export const DROPDOWN_VIEWPORT_MARGIN_PX = 8;
 
 // ── LAN agents ──────────────────────────────────────────────
-/** Animation tool per room: typing (coding/server), reading (library), none = idle wander (lounge). */
+/** Animation tool per room: typing (coding/server), reading (library), none = idle (lounge). */
 export const LAN_ROOM_TOOL: Record<Room, string | null> = {
   coding: 'Edit',
   library: 'Read',
@@ -392,8 +385,23 @@ export const TOUR_OUTLINE_PX = 2;
 export const TOUR_FIT_FILL = 0.92;
 /** First open: share of the window the whole office fills when it would not fit at the default zoom. */
 export const FIRST_OPEN_FIT_FILL = 0.95;
+/** First-open fit leaves this much room at the top (CSS px): the office switcher + a gap. */
+export const FIT_TOP_MARGIN_PX = 56;
 /** How long the "layout not saved" toast stays. */
 export const LAYOUT_REJECTED_TOAST_MS = 4_000;
+
+// ── App version ─────────────────────────────────────────────
+/** An unbuilt (dev/test) server's version: never triggers a reload. */
+export const DEV_SERVER_VERSION = '0.0.0';
+/** sessionStorage: the server version this tab last reloaded for (no reload loop). */
+export const VERSION_RELOAD_KEY = 'pixel-office.reloadedFor';
+
+// ── Room legend (top left) ───────────────────────────────────
+/** localStorage: '1' = open, '0' = collapsed (per viewer); unset = open on a wide screen. */
+export const ROOM_LEGEND_KEY = 'pixel-office.roomLegend';
+/** Below the zoom buttons (desktop) / the Settings button (mobile), CSS px. */
+export const ROOM_LEGEND_TOP_PX = 100;
+export const ROOM_LEGEND_MOBILE_TOP_PX = 56;
 
 // ── People panel ─────────────────────────────────────────────
 /** localStorage: '1' = collapsed, '0' = expanded (per viewer); unset = by screen width. */
@@ -408,8 +416,7 @@ export const PEOPLE_PET_FACE_TOP = 15;
 export const PEOPLE_FACE_SCALE = 2;
 /** How long the "no agents" hint stays after clicking an agentless row. */
 export const PEOPLE_HINT_MS = 2_000;
-/** Room kept clear above (install popup) and below (update banner) the panel, CSS px. */
-export const PEOPLE_TOP_RESERVE_PX = 200;
-export const PEOPLE_BOTTOM_RESERVE_PX = 64;
-/** Above name tags and bubbles (LAN_*_Z_INDEX), below modals (50). */
-export const PEOPLE_Z_INDEX = 43;
+/** Top-right stack (update banner, install popup, people panel): room kept clear below it, CSS px. */
+export const TOP_RIGHT_BOTTOM_RESERVE_PX = 64;
+/** Top-right stack: above name tags and bubbles (LAN_*_Z_INDEX), below modals (50). */
+export const TOP_RIGHT_Z_INDEX = 43;

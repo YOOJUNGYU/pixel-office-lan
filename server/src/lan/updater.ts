@@ -7,6 +7,8 @@ import * as path from 'path';
 import {
   ALLOW_PRERELEASE_ENV,
   LAYOUT_FILE_DIR,
+  REOPEN_MARKER_NAME,
+  REOPEN_MARKER_TTL_MS,
   UPDATE_API_TIMEOUT_MS,
   UPDATE_DOWNLOAD_TIMEOUT_MS,
   UPDATE_FIRST_CHECK_MS,
@@ -27,7 +29,6 @@ const GITHUB_ORIGIN = 'https://github.com';
 const DOWNLOAD_PATH = '/YOOJUNGYU/pixel-office-lan/releases/download/';
 const NOTES_PATH = '/YOOJUNGYU/pixel-office-lan/releases/';
 const RELEASES_PAGE = 'https://github.com/YOOJUNGYU/pixel-office-lan/releases';
-export const UPDATE_CHECK_MS = 6 * 60 * 60_000;
 
 /** Installer names from scripts/package (Release assets). */
 const ASSET_NAME = /^PixelOffice-(Setup-[\w.-]+\.exe|[\w.-]+-(arm64|x64)\.pkg)$/;
@@ -223,35 +224,81 @@ export async function downloadAndRun(
   await launch(file);
 }
 
-/** Periodic check + the one install in flight; messages go to privileged sockets. */
+const updatesDir = (): string => path.join(os.homedir(), LAYOUT_FILE_DIR, UPDATES_DIR_NAME);
+
+/**
+ * Written when the launched installer quits this server (POST /api/quit after
+ * an in-app [Update]): whether a UI window is open at that moment. The new
+ * version's first start reads it (consumeReopenMarker): an open window
+ * reloads itself into the new version (officeAccess.version), so the start
+ * must not open a second one; with none open (closed since the click) it opens
+ * the office once. A failed download or a cancelled UAC prompt never quits
+ * us, so no marker is left behind.
+ */
+export function writeReopenMarker(windowOpen: boolean, dir = updatesDir(), now = Date.now()): void {
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, REOPEN_MARKER_NAME), JSON.stringify({ at: now, windowOpen }));
+  } catch (err) {
+    console.warn('[Pixel Office] reopen marker not written:', err);
+  }
+}
+
+/**
+ * At start: 'open' = open the office once (no window was open at the update),
+ * 'stay' = open nothing (the open window reloads itself), null = no fresh
+ * marker (a normal start: `--open` decides). The marker is deleted either way.
+ */
+export function consumeReopenMarker(dir = updatesDir(), now = Date.now()): 'open' | 'stay' | null {
+  const file = path.join(dir, REOPEN_MARKER_NAME);
+  let raw: string;
+  try {
+    raw = fs.readFileSync(file, 'utf-8');
+  } catch {
+    return null;
+  }
+  fs.rmSync(file, { force: true });
+  try {
+    const m = JSON.parse(raw) as { at?: unknown; windowOpen?: unknown };
+    if (typeof m.at !== 'number' || now - m.at > REOPEN_MARKER_TTL_MS || now < m.at) return null;
+    return m.windowOpen === true ? 'stay' : 'open';
+  } catch {
+    return null;
+  }
+}
+
+/** Startup check + the one install in flight; messages go to privileged sockets. */
 export class Updater {
   info: UpdateInfo | null = null;
   /** Last updateStatus of an install, re-sent on handshake. */
   status: Record<string, unknown> | null = null;
   /** Set by the HTTP server: send to every privileged socket. */
   broadcast: (msg: Record<string, unknown>) => void = () => {};
+  /** Set by the HTTP server: whether a UI page is connected right now. */
+  uiConnected: () => boolean = () => false;
   private busy = false;
-  private timers: NodeJS.Timeout[] = [];
+  /** An installer we launched may quit us (POST /api/quit) to install itself. */
+  private installerLaunched = false;
+  private timer: NodeJS.Timeout | null = null;
 
   constructor(
     private readonly current: string,
     private readonly deps: {
       check: (current: string) => Promise<UpdateInfo | null>;
       install: typeof downloadAndRun;
-    } = { check: (c) => checkForUpdate(c), install: downloadAndRun },
+      markReopen?: (windowOpen: boolean) => void;
+    } = { check: (c) => checkForUpdate(c), install: downloadAndRun, markReopen: writeReopenMarker },
   ) {}
 
+  /** One check right after the server listens; later checks only via Settings (manual). */
   start(): void {
-    const first = setTimeout(() => void this.check(), UPDATE_FIRST_CHECK_MS);
-    const every = setInterval(() => void this.check(), UPDATE_CHECK_MS);
-    first.unref();
-    every.unref();
-    this.timers = [first, every];
+    this.timer = setTimeout(() => void this.check(), UPDATE_FIRST_CHECK_MS);
+    this.timer.unref();
   }
 
   stop(): void {
-    for (const t of this.timers) clearTimeout(t);
-    this.timers = [];
+    if (this.timer) clearTimeout(this.timer);
+    this.timer = null;
   }
 
   availableMessage(): Record<string, unknown> | null {
@@ -283,6 +330,7 @@ export class Updater {
       // Not kept for later handshakes: a cancelled UAC prompt must not leave a reloaded
       // page stuck on "installing" (the update banner offers the install again instead).
       this.status = null;
+      this.installerLaunched = true;
       this.broadcast({ type: 'updateStatus', state: 'installing' });
     } catch (err) {
       console.error('[Pixel Office] 업데이트 실패:', err);
@@ -290,6 +338,11 @@ export class Updater {
     } finally {
       this.busy = false;
     }
+  }
+
+  /** POST /api/quit: an installer we launched is replacing us — leave the reopen marker. */
+  onQuit(): void {
+    if (this.installerLaunched) this.deps.markReopen?.(this.uiConnected());
   }
 
   private setStatus(msg: Record<string, unknown>): void {

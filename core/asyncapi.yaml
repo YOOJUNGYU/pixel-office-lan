@@ -367,6 +367,11 @@ components:
           const: officeAccess
         readOnly:
           type: boolean
+        version:
+          type: string
+          description: >-
+            The server's app version. A page whose bundle is another version
+            (it reconnected to an updated server) reloads itself into the new one.
 
     UpdateAvailable:
       description: >-

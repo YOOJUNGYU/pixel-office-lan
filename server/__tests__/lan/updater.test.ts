@@ -6,11 +6,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { UpdateInfo } from '../../src/lan/updater.js';
 import {
   checkForUpdate,
+  consumeReopenMarker,
   downloadAndRun,
   isNewer,
   pickAsset,
   repoUrl,
   Updater,
+  writeReopenMarker,
 } from '../../src/lan/updater.js';
 
 const DL = 'https://github.com/YOOJUNGYU/pixel-office-lan/releases/download/v0.2.0/';
@@ -240,5 +242,83 @@ describe('Updater', () => {
     u.info = info;
     await u.install();
     expect(sent.at(-1)).toEqual({ type: 'updateStatus', state: 'error' });
+  });
+
+  it('checks once right after start and never again on its own', async () => {
+    vi.useFakeTimers();
+    try {
+      const check = vi.fn(async () => null);
+      const u = new Updater('0.1.0', { check, install: async () => {} });
+      u.start();
+      await vi.advanceTimersByTimeAsync(1_000);
+      expect(check).toHaveBeenCalledTimes(1);
+      await vi.advanceTimersByTimeAsync(24 * 60 * 60_000);
+      expect(check).toHaveBeenCalledTimes(1);
+      u.stop();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('reopen marker (window after an update)', () => {
+  const dirs: string[] = [];
+  const tmp = () => {
+    const d = fs.mkdtempSync(path.join(os.tmpdir(), 'po-reopen-'));
+    dirs.push(d);
+    return d;
+  };
+  afterEach(() => {
+    for (const d of dirs.splice(0)) fs.rmSync(d, { recursive: true, force: true });
+  });
+
+  it('a window was open: the new start opens nothing; none was: it opens once', () => {
+    const d = tmp();
+    writeReopenMarker(true, d, 1_000);
+    expect(consumeReopenMarker(d, 2_000)).toBe('stay');
+    expect(consumeReopenMarker(d, 2_000)).toBeNull(); // consumed
+    writeReopenMarker(false, d, 1_000);
+    expect(consumeReopenMarker(d, 2_000)).toBe('open');
+    expect(fs.readdirSync(d)).toEqual([]);
+  });
+
+  it('no, stale or broken marker: a normal start (--open decides)', () => {
+    const d = tmp();
+    expect(consumeReopenMarker(d, 0)).toBeNull();
+    writeReopenMarker(false, d, 0);
+    expect(consumeReopenMarker(d, 31 * 60_000)).toBeNull();
+    fs.writeFileSync(path.join(d, 'reopen'), '{nope');
+    expect(consumeReopenMarker(d, 0)).toBeNull();
+    expect(fs.readdirSync(d)).toEqual([]);
+  });
+
+  it('the marker is written only when a launched installer quits us, with the UI state then', async () => {
+    const marks: boolean[] = [];
+    let fail = true;
+    const u = new Updater('0.1.0', {
+      check: async () => null,
+      install: async () => {
+        if (fail) throw new Error('download failed');
+      },
+      markReopen: (open) => marks.push(open),
+    });
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    u.info = {
+      version: '0.2.0',
+      assetUrl: '',
+      assetName: 'PixelOffice-Setup-0.2.0.exe',
+      assetSize: 1,
+      notesUrl: '',
+    };
+    u.onQuit(); // a manual install's quit: nothing
+    await u.install(); // download failed: nothing, and no installer to quit us
+    u.onQuit();
+    expect(marks).toEqual([]);
+    fail = false;
+    u.uiConnected = () => true;
+    await u.install(); // launched; the tab is closed before the installer quits us
+    u.uiConnected = () => false;
+    u.onQuit();
+    expect(marks).toEqual([false]);
   });
 });

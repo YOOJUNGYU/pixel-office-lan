@@ -47,6 +47,12 @@ export const CODEX_META_MAX_BYTES = 256 * 1024;
 export const DISCOVER_INTERVAL_MS = 10_000;
 export const POLL_INTERVAL_MS = 1_000;
 export const WSL_LIST_TIMEOUT_MS = 3_000;
+/** Claude's live-session registry: `<CLAUDE_CONFIG_DIR>/sessions/<pid>.json` (sibling of `projects`). */
+export const CLAUDE_SESSIONS_DIR_NAME = 'sessions';
+/** One `wsl.exe` per running distro per discover cycle checks the registry pids in that distro. */
+export const WSL_PROC_TIMEOUT_MS = 3_000;
+/** A Codex session whose turn ended (task_complete / turn_aborted) leaves after this since its last line. */
+export const CODEX_ENDED_TTL_MS = 10 * 60_000;
 
 // ── LAN office wiring ──────────────────────────────────────
 /** `GET /api/ping` answer that marks a running Pixel Office (single-instance check). */
@@ -58,12 +64,16 @@ export const SNAPSHOT_INTERVAL_MS = 1_000;
 export const QUIT_DELAY_MS = 100;
 
 // ── Updates (GitHub Releases) ──────────────────────────────
-/** First update check after start. */
-export const UPDATE_FIRST_CHECK_MS = 60_000;
+/** The only automatic update check, this long after the server listens (none after that). */
+export const UPDATE_FIRST_CHECK_MS = 300;
 export const UPDATE_API_TIMEOUT_MS = 15_000;
 export const UPDATE_DOWNLOAD_TIMEOUT_MS = 10 * 60_000;
 /** Downloaded installers, under the data directory. */
 export const UPDATES_DIR_NAME = 'updates';
+/** In UPDATES_DIR_NAME: written on [Update], read (and deleted) by the next start — whether to open a window. */
+export const REOPEN_MARKER_NAME = 'reopen';
+/** An older marker is stale (the update never ran): ignored. */
+export const REOPEN_MARKER_TTL_MS = 30 * 60_000;
 /** `PIXEL_OFFICE_NO_PEERS=1`: no UDP peers (tests must never broadcast on the real LAN). */
 export const NO_PEERS_ENV = 'PIXEL_OFFICE_NO_PEERS';
 /** Test only: two instances on one host. `PIXEL_OFFICE_UDP_PORT=47810` binds that UDP port and

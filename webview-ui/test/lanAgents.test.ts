@@ -193,22 +193,20 @@ test('a child in another room follows a ghost of the parent there; the ghost goe
   assert.equal(s1.followId, parent.id);
 });
 
-test('followers line up beside a wandering parent, and its wander stays in the room', () => {
+test('nobody wanders: a parked lounge agent stays put, its followers line up beside it', () => {
   const { os, lan } = setup();
   lan.apply([agent('a', 'lounge'), child('s1', 'a', 'lounge'), child('s2', 'a', 'lounge')]);
   for (let i = 0; i < 2000; i++) os.update(0.05);
   const p = os.characters.get(lan.idFor('p1:a')!)!;
   const s1 = os.characters.get(lan.idFor('p1:s1')!)!;
   const s2 = os.characters.get(lan.idFor('p1:s2')!)!;
-  // Settle: let the parent stop, then let the line catch up.
-  const wandered = new Set<string | undefined>();
-  for (let i = 0; i < 400; i++) {
-    if (i === 200) p.path = [];
-    if (i >= 200) p.wanderTimer = 1;
-    os.update(0.05);
-    wandered.add(areaOf({ col: p.tileCol, row: p.tileRow }));
-  }
-  assert.deepEqual([...wandered], ['대기실']);
+  const at = (c: { tileCol: number; tileRow: number }) => `${c.tileCol},${c.tileRow}`;
+  const before = [p, s1, s2].map(at);
+  // Five more simulated minutes: no stroll, nobody moves.
+  for (let i = 0; i < 6000; i++) os.update(0.05);
+  assert.deepEqual([p, s1, s2].map(at), before);
+  assert.equal(p.path.length, 0);
+  assert.equal(areaOf({ col: p.tileCol, row: p.tileRow }), '대기실');
   assert.ok(cheb(s1, p) <= 1, `s1 next to parent (${cheb(s1, p)})`);
   assert.ok(cheb(s2, s1) <= 1, `s2 next to s1 (${cheb(s2, s1)})`);
   assert.equal(s1.seatId, null);

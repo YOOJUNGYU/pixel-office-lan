@@ -29,14 +29,14 @@ export interface Scene {
   profile?: boolean;
   /** Layout editor open with this tool selected. */
   editor?: EditTool;
-  /** Show the save/undo bar even without unsaved changes (buttons blocked). */
-  actionBar?: boolean;
   /** Force the `bubble` agent's hover bubble. */
   hover?: boolean;
   /** Room the demo coder walks to. */
   walk?: Room;
   /** People panel expanded even if the viewer collapsed it. */
   people?: boolean;
+  /** Room legend open even if the viewer collapsed it. */
+  legend?: boolean;
 }
 
 /** Things a step needs on this screen; steps whose needs are unmet are dropped. */
@@ -45,7 +45,6 @@ export type Capability =
   | 'switcher'
   | 'profile'
   | 'offices'
-  | 'areas'
   /** A subagent or shell is on the map (real, or the demos). */
   | 'family';
 
@@ -64,6 +63,7 @@ export type StepId =
   | 'roomLibrary'
   | 'roomServer'
   | 'roomLounge'
+  | 'roomLegend'
   | 'tag'
   | 'bubble'
   | 'family'
@@ -79,7 +79,6 @@ export type StepId =
   | 'floor'
   | 'walls'
   | 'furniture'
-  | 'areas'
   | 'background'
   | 'editorMore'
   | 'save'
@@ -92,6 +91,7 @@ export const STEPS: Step[] = [
   { id: 'roomLibrary', targets: [{ room: 'library' }], scene: { walk: 'library' } },
   { id: 'roomServer', targets: [{ room: 'server' }], scene: { walk: 'server' } },
   { id: 'roomLounge', targets: [{ room: 'lounge' }], scene: { walk: 'lounge' } },
+  { id: 'roomLegend', targets: [{ dom: 'room-legend' }], scene: { legend: true } },
   { id: 'tag', targets: [{ agent: 'tag' }] },
   {
     id: 'bubble',
@@ -149,12 +149,6 @@ export const STEPS: Step[] = [
     requires: ['edit'],
   },
   {
-    id: 'areas',
-    targets: [{ dom: 'editor-toolbar' }],
-    scene: { editor: EditTool.AREA_PAINT },
-    requires: ['edit', 'areas'],
-  },
-  {
     id: 'background',
     targets: [{ dom: 'editor-toolbar' }],
     scene: { editor: EditTool.BACKGROUND },
@@ -163,13 +157,13 @@ export const STEPS: Step[] = [
   {
     id: 'editorMore',
     targets: [{ dom: 'editor-erase' }, { dom: 'edit-actions' }],
-    scene: { editor: EditTool.SELECT, actionBar: true },
+    scene: { editor: EditTool.SELECT },
     requires: ['edit'],
   },
   {
     id: 'save',
     targets: [{ dom: 'edit-actions' }],
-    scene: { editor: EditTool.SELECT, actionBar: true },
+    scene: { editor: EditTool.SELECT },
     requires: ['edit'],
   },
   // Falls back to a centred explanation when the install popup is not shown.

@@ -35,7 +35,6 @@ import {
 } from '../sprites/carpetTiles.js';
 import { getCachedSprite } from '../sprites/spriteCache.js';
 import type {
-  AreaDefinition,
   BackgroundKind as BackgroundKindVal,
   CarpetTile,
   OfficeBackground,
@@ -79,15 +78,8 @@ interface EditorToolbarProps {
   onCarpetVariantChange: (variant: number) => void;
   onCarpetColorChange: (color: ColorValue) => void;
   onCarpetAccentColorChange: (color: ColorValue) => void;
-  // Area state + handlers
-  areas: AreaDefinition[];
-  selectedAreaLabel: string | null;
-  /** Whether the Areas tool is offered (the layout has its rooms). */
-  areasAvailable: boolean;
   /** Labels of rooms with no walkable tile (agents headed there sit anywhere). */
   emptyRooms: string[];
-  onSelectArea: (label: string | null) => void;
-  onAreaColorChange: (label: string, color: string) => void;
   background: OfficeBackground | undefined;
   onBackgroundChange: (background: OfficeBackground, continuous: boolean) => void;
 }
@@ -122,12 +114,7 @@ export function EditorToolbar({
   onCarpetVariantChange,
   onCarpetColorChange,
   onCarpetAccentColorChange,
-  areas,
-  selectedAreaLabel,
-  areasAvailable,
   emptyRooms,
-  onSelectArea,
-  onAreaColorChange,
   background,
   onBackgroundChange,
 }: EditorToolbarProps) {
@@ -180,7 +167,6 @@ export function EditorToolbar({
   const isEraseActive = activeTool === EditTool.ERASE;
   const isCarpetActive =
     activeTool === EditTool.CARPET_PAINT || activeTool === EditTool.CARPET_PICK;
-  const isAreasActive = activeTool === EditTool.AREA_PAINT;
   // Furniture button stays "active" while editing carpets — they live inside this panel.
   const isFurnitureActive =
     activeTool === EditTool.FURNITURE_PLACE ||
@@ -271,16 +257,6 @@ export function EditorToolbar({
         >
           {t('editor.walls')}
         </Button>
-        {areasAvailable && (
-          <Button
-            variant={isAreasActive ? 'active' : 'default'}
-            size="md"
-            onClick={() => onToolChange(EditTool.AREA_PAINT)}
-            title={t('editor.areasTitle')}
-          >
-            {t('editor.areas')}
-          </Button>
-        )}
         <Button
           variant={isBackgroundActive ? 'active' : 'default'}
           size="md"
@@ -415,24 +391,7 @@ export function EditorToolbar({
         />
       )}
 
-      {/* Sub-panel: Areas — the four fixed rooms (paint/erase only) */}
-      {isAreasActive && (
-        <div className="flex flex-col-reverse gap-4 pb-2">
-          <div className="text-xs text-text-muted px-4 leading-none">{t('editor.areasHint')}</div>
-          <EmptyRoomsWarning labels={emptyRooms} />
-          <div className="grid grid-cols-[repeat(4,130px)] gap-4">
-            {areas.map((area) => (
-              <AreaCard
-                key={area.label}
-                area={area}
-                isSelected={selectedAreaLabel === area.label}
-                onSelect={() => onSelectArea(area.label)}
-                onColorChange={(c) => onAreaColorChange(area.label, c)}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+      <EmptyRoomsWarning labels={emptyRooms} />
 
       {/* Sub-panel: Furniture — stacked bottom-to-top via column-reverse */}
       {isFurnitureActive && (
@@ -841,7 +800,7 @@ function TileColorBox({
   );
 }
 
-// ── Areas sub-components ───────────────────────────────────────────
+// ── Rooms ───────────────────────────────────────────
 
 /** One line per room with no walkable tile; nothing when every room has floor. */
 export function EmptyRoomsWarning({ labels }: { labels: string[] }) {
@@ -851,39 +810,6 @@ export function EmptyRoomsWarning({ labels }: { labels: string[] }) {
       {labels.map((l) => (
         <span key={l}>{t('editor.emptyRoom', { room: areaName(l) })}</span>
       ))}
-    </div>
-  );
-}
-
-function AreaCard({
-  area,
-  isSelected,
-  onSelect,
-  onColorChange,
-}: {
-  area: AreaDefinition;
-  isSelected: boolean;
-  onSelect: () => void;
-  onColorChange: (color: string) => void;
-}) {
-  return (
-    <div
-      onClick={onSelect}
-      className={`flex items-center gap-4 w-130 py-4 px-8 bg-bg-dark border-2 rounded-none cursor-pointer ${
-        isSelected ? 'border-accent' : 'border-border'
-      }`}
-    >
-      <input
-        type="color"
-        value={area.color}
-        onChange={(e) => onColorChange(e.target.value)}
-        onClick={(e) => e.stopPropagation()}
-        className="w-24 h-24 p-0 border-2 border-border bg-transparent cursor-pointer"
-        title={t('editor.areaColor')}
-      />
-      <span className="flex-1 text-sm text-text overflow-hidden text-ellipsis whitespace-nowrap">
-        {areaName(area.label)}
-      </span>
     </div>
   );
 }

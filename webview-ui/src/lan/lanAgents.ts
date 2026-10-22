@@ -192,7 +192,7 @@ export class LanAgents {
     ch.pet = look.pet;
   }
 
-  /** Lounge idles (wanders in the room); every other room works at a desk. */
+  /** Lounge idles (seated, or standing still when the room is full); every other room works at a desk. */
   private enterRoom(id: number, room: Room): void {
     const tool = LAN_ROOM_TOOL[room];
     // Before moveToArea: deactivating clears the path it is about to set.

@@ -8,17 +8,12 @@ import {
   ZOOM_DEFAULT_DPR_FACTOR,
   ZOOM_MIN,
 } from '../constants.js';
-import type { ExpandDirection } from '../office/editor/editorActions.js';
 import {
-  areaStrokeErases,
   dropFurniture,
-  eraseArea,
   eraseCarpet,
   eraseTile,
-  expandLayout,
   furnitureAt,
   isFloorTile,
-  paintArea,
   paintCarpet,
   paintTile,
   placeNewFurniture,
@@ -26,7 +21,6 @@ import {
   removeFurniture,
   rotateFurniture,
   toggleFurnitureState,
-  updateAreaColor,
   wallStrokeAdds,
   wallStrokeTile,
 } from '../office/editor/editorActions.js';
@@ -85,10 +79,6 @@ interface EditorActions extends Omit<FurnitureColorActions, 'pickColorAt'> {
   handleCarpetAccentColorChange: (color: ColorValue) => void;
   handleResetCarpetColor: () => void;
   handleResetCarpetAccentColor: () => void;
-  // Area state + handlers (selection lives on editorState for imperative access)
-  selectedAreaLabel: string | null;
-  handleSelectArea: (label: string | null) => void;
-  handleAreaColorChange: (label: string, color: string) => void;
   /** Set the map background. `continuous` = a slider/picker drag: one undo entry per run. */
   handleBackgroundChange: (background: OfficeBackground, continuous: boolean) => void;
 }
@@ -114,9 +104,6 @@ export function useEditorActions(
   const [carpetColor, setCarpetColorState] = useState<ColorValue>(editorState.carpetColor);
   const [carpetAccentColor, setCarpetAccentColorState] = useState<ColorValue>(
     editorState.carpetAccentColor,
-  );
-  const [selectedAreaLabel, setSelectedAreaLabelState] = useState<string | null>(
-    editorState.selectedAreaLabel,
   );
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const panRef = useRef({ x: 0, y: 0 });
@@ -269,30 +256,6 @@ export function useEditorActions(
     editorState.carpetAccentColor = next;
     setCarpetAccentColorState(next);
   }, [editorState]);
-
-  // ── Area handlers ──────────────────────────────────────────────
-  const handleSelectArea = useCallback(
-    (label: string | null) => {
-      editorState.selectedAreaLabel = label;
-      setSelectedAreaLabelState(label);
-      // Reset stroke direction so the next drag re-decides paint vs erase.
-      editorState.areaDragErasing = null;
-      setEditorTick((n) => n + 1);
-    },
-    [editorState],
-  );
-
-  const handleAreaColorChange = useCallback(
-    (label: string, color: string) => {
-      const os = getOfficeState();
-      const layout = os.getLayout();
-      const next = updateAreaColor(layout, label, color);
-      if (next !== layout) {
-        applyEdit(next);
-      }
-    },
-    [getOfficeState, applyEdit],
-  );
 
   const handleTileTypeChange = useCallback(
     (type: TileTypeVal) => {
@@ -479,73 +442,22 @@ export function useEditorActions(
     [getOfficeState, editorState, applyEdit, bumpTick],
   );
 
-  /**
-   * Expand layout if click is on a ghost border tile (outside current bounds).
-   * Returns the expanded layout and adjusted col/row, or null if no expansion needed.
-   */
-  const maybeExpand = useCallback(
-    (
-      layout: OfficeLayout,
-      col: number,
-      row: number,
-    ): {
-      layout: OfficeLayout;
-      col: number;
-      row: number;
-      shift: { col: number; row: number };
-    } | null => {
-      if (col >= 0 && col < layout.cols && row >= 0 && row < layout.rows) return null;
-
-      // Determine which directions to expand
-      const directions: ExpandDirection[] = [];
-      if (col < 0) directions.push('left');
-      if (col >= layout.cols) directions.push('right');
-      if (row < 0) directions.push('up');
-      if (row >= layout.rows) directions.push('down');
-
-      let current = layout;
-      let totalShiftCol = 0;
-      let totalShiftRow = 0;
-      for (const dir of directions) {
-        const result = expandLayout(current, dir);
-        if (!result) return null; // exceeded max
-        current = result.layout;
-        totalShiftCol += result.shift.col;
-        totalShiftRow += result.shift.row;
-      }
-
-      return {
-        layout: current,
-        col: col + totalShiftCol,
-        row: row + totalShiftRow,
-        shift: { col: totalShiftCol, row: totalShiftRow },
-      };
-    },
-    [],
-  );
-
   const handleEditorTileAction = useCallback(
     (col: number, row: number) => {
-      const os = getOfficeState();
-      const layout = os.getLayout();
+      const layout = getOfficeState().getLayout();
+      // The office size is fixed: nothing happens outside the grid.
+      if (col < 0 || col >= layout.cols || row < 0 || row >= layout.rows) return;
       switch (editorState.activeTool) {
         case EditTool.TILE_PAINT:
         case EditTool.WALL_PAINT: {
-          // Floor and wall tools grow the grid when they hit the ghost border;
-          // rebuild from the expanded layout first, shifting characters along.
-          const expansion = maybeExpand(layout, col, row);
-          if (expansion) os.rebuildFromLayout(expansion.layout, expansion.shift);
-          const base = expansion?.layout ?? layout;
-          const c = expansion?.col ?? col;
-          const r = expansion?.row ?? row;
           const floor = { type: editorState.selectedTileType, color: editorState.floorColor };
           if (editorState.activeTool === EditTool.TILE_PAINT) {
-            applyStrokeEdit(paintTile(base, c, r, floor.type, floor.color));
+            applyStrokeEdit(paintTile(layout, col, row, floor.type, floor.color));
           } else {
             // The stroke's first tile decides whether it adds or removes walls.
-            editorState.wallDragAdding ??= wallStrokeAdds(base, c, r);
+            editorState.wallDragAdding ??= wallStrokeAdds(layout, col, row);
             const adding = editorState.wallDragAdding;
-            applyStrokeEdit(wallStrokeTile(base, c, r, adding, editorState.wallColor, floor));
+            applyStrokeEdit(wallStrokeTile(layout, col, row, adding, editorState.wallColor, floor));
           }
           return;
         }
@@ -600,20 +512,6 @@ export function useEditorActions(
           bumpTick();
           return;
         }
-        case EditTool.AREA_PAINT: {
-          // The first tile of a drag decides whether the stroke paints (default)
-          // or erases (when that tile already had this label). Each tile is its
-          // own undo entry — area painting is deliberate and low-velocity.
-          const label = editorState.selectedAreaLabel;
-          if (!label || !isFloorTile(layout, col, row)) return;
-          editorState.areaDragErasing ??= areaStrokeErases(layout, col, row, label);
-          applyEdit(
-            editorState.areaDragErasing
-              ? eraseArea(layout, col, row)
-              : paintArea(layout, col, row, label),
-          );
-          return;
-        }
         case EditTool.CARPET_PICK: {
           const tile = isFloorTile(layout, col, row)
             ? layout.carpetTiles?.[row * layout.cols + col]
@@ -637,12 +535,12 @@ export function useEditorActions(
         }
       }
     },
-    [getOfficeState, editorState, applyEdit, applyStrokeEdit, maybeExpand, colorActions, bumpTick],
+    [getOfficeState, editorState, applyEdit, applyStrokeEdit, colorActions, bumpTick],
   );
 
   /**
    * Right-click / right-drag on (col,row): erase with the active tool's own
-   * meaning — area and carpet tools clear their layer, everything else erases
+   * meaning — the carpet tool clears its layer, everything else erases
    * the tile and the furniture it crosses.
    */
   const handleEditorEraseAction = useCallback(
@@ -650,11 +548,6 @@ export function useEditorActions(
       const layout = getOfficeState().getLayout();
       if (col < 0 || col >= layout.cols || row < 0 || row >= layout.rows) return;
       switch (editorState.activeTool) {
-        case EditTool.AREA_PAINT:
-          // Clears whatever area is on the tile, regardless of the selected label.
-          // Per-tile undo, matching left-click area paint.
-          applyEdit(eraseArea(layout, col, row));
-          return;
         case EditTool.CARPET_PAINT:
           applyStrokeEdit(eraseCarpet(layout, col, row));
           return;
@@ -662,7 +555,7 @@ export function useEditorActions(
           applyStrokeEdit(eraseTile(layout, col, row));
       }
     },
-    [getOfficeState, editorState, applyEdit, applyStrokeEdit],
+    [getOfficeState, editorState, applyStrokeEdit],
   );
 
   const handleBackgroundChange = useCallback(
@@ -712,9 +605,6 @@ export function useEditorActions(
     handleCarpetAccentColorChange,
     handleResetCarpetColor,
     handleResetCarpetAccentColor,
-    selectedAreaLabel,
-    handleSelectArea,
-    handleAreaColorChange,
     handleBackgroundChange,
   };
 }

@@ -34,7 +34,7 @@ import { checkExisting, LanService } from './lan/office.js';
 import { PeerNet } from './lan/peerNet.js';
 import { KnownPeers, loadProfile } from './lan/profile.js';
 import { discoverRoots, Scanner } from './lan/scanner.js';
-import { APP_VERSION, Updater } from './lan/updater.js';
+import { APP_VERSION, consumeReopenMarker, Updater } from './lan/updater.js';
 import { PixelAgentsServer } from './server.js';
 
 // ── Argument parsing ──────────────────────────────────────────
@@ -232,17 +232,22 @@ async function main(): Promise<void> {
       assetCache,
       onReloadAssets,
       lan,
-      onQuit: () => setTimeout(() => void shutdown(), QUIT_DELAY_MS),
+      onQuit: () => {
+        updater.onQuit();
+        setTimeout(() => void shutdown(), QUIT_DELAY_MS);
+      },
       updater,
       autostart: { get: () => getAutostart(), set: (on) => setAutostart(on) },
     });
     updater.start();
-
+    // After an update: the marker (not --open) decides, so a window that was open
+    // (it reloads itself into the new version) never gets a second one.
+    const reopen = consumeReopenMarker();
     // A wildcard bind address is a bind target, not an address you can browse to.
     const displayHost =
       args.host === '0.0.0.0' || args.host === '::' || args.host === '' ? 'localhost' : args.host;
     console.log(`\n  Pixel Office running at http://${displayHost}:${port}\n`);
-    if (args.open) openOffice(localUrl);
+    if (reopen === 'open' || (reopen === null && args.open)) openOffice(localUrl);
 
     process.on('SIGINT', () => void shutdown());
     process.on('SIGTERM', () => void shutdown());

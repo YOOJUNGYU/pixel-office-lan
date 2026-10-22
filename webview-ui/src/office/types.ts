@@ -85,7 +85,6 @@ export const EditTool = {
   ERASE: 'erase',
   CARPET_PAINT: 'carpet_paint',
   CARPET_PICK: 'carpet_pick',
-  AREA_PAINT: 'area_paint',
   /** Colour-only eyedropper: takes a placed item's colour, leaves its type alone. */
   COLOR_PICK: 'color_pick',
   /** Background tab: edits layout.background from the panel; canvas clicks do nothing. */
@@ -216,12 +215,8 @@ export interface Character {
   frame: number;
   /** Time accumulator for animation */
   frameTimer: number;
-  /** Timer for idle wander decisions */
-  wanderTimer: number;
-  /** Number of wander moves completed in current roaming cycle */
-  wanderCount: number;
-  /** Max wander moves before returning to seat for rest */
-  wanderLimit: number;
+  /** Follower: seconds before it tries again to reach its leader */
+  followTimer: number;
   /** Whether the agent is actively working */
   isActive: boolean;
   /** Assigned seat uid, or null if no seat */
@@ -235,8 +230,6 @@ export interface Character {
   waitingAwaitingInput?: boolean;
   /** Countdown timer for bubble (waiting: 2→0, permission: unused) */
   bubbleTimer: number;
-  /** Timer to stay seated while inactive after seat reassignment (counts down to 0) */
-  seatTimer: number;
   /** Whether this character represents a sub-agent (spawned by Task tool) */
   isSubagent: boolean;
   /** Parent agent ID if this is a sub-agent, null otherwise */
@@ -261,9 +254,9 @@ export interface Character {
   isGreeter?: boolean;
 
   // -- LAN rooms --
-  /** Area label of the agent's room: seats, floor and idle wander stay inside it. */
+  /** Area label of the agent's room: seats and standing spots stay inside it. */
   homeArea?: string;
-  /** Leader (parent or its ghost) this child walks beside, hand in hand; never sits or wanders. */
+  /** Leader (parent or its ghost) this child walks beside, hand in hand; never sits. */
   followId?: number;
   /** Set on a parent's ghost: the real parent's character id (its own id when the
    *  parent is absent). Drawn translucent; stands still at the head of the line. */

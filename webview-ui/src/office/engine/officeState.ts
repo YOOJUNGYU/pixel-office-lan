@@ -8,11 +8,10 @@ import {
   CHARACTER_SITTING_OFFSET_PX,
   DISMISS_BUBBLE_FAST_FADE_SEC,
   FOLLOW_RETRY_SEC,
+  FREE_TILE_PROBES,
   FURNITURE_ANIM_INTERVAL_SEC,
   GREETER_ID,
   GREETER_TILE_MARGIN,
-  INACTIVE_SEAT_TIMER_MIN_SEC,
-  INACTIVE_SEAT_TIMER_RANGE_SEC,
   PET_HIT_HALF_WIDTH,
   PET_HIT_HALF_WIDTH_SIDE,
   PET_HIT_HEIGHT,
@@ -56,7 +55,7 @@ export class OfficeState {
   blockedTiles: Set<string>;
   furniture: FurnitureInstance[];
   walkableTiles: Array<{ col: number; row: number }>;
-  /** Walkable tiles per area label (rooms confine seats, floor spots and wander). */
+  /** Walkable tiles per area label (rooms confine seats and floor spots). */
   areaWalkable: Map<string, Array<{ col: number; row: number }>> = new Map();
   characters: Map<number, Character> = new Map();
   /** Accumulated time for furniture animation frame cycling */
@@ -91,7 +90,7 @@ export class OfficeState {
    * The first-run consent greeter, deliberately NOT in `characters`.
    *
    * `characters` means "agents": everything that iterates it — seat
-   * assignment, palette diversity, the wander FSM, hit-testing, the seat
+   * assignment, palette diversity, the character FSM, hit-testing, the seat
    * payload the webview persists — is asking an agent question the greeter has
    * no answer to. Holding it here instead of tagging it with a flag makes
    * every one of those loops correct by default, rather than correct as long
@@ -121,9 +120,8 @@ export class OfficeState {
 
   /** Rebuild all derived state from a new layout (every editor edit). Characters
    *  stay where they are: walkers keep their destination, sitters their seat;
-   *  only those whose tile or seat the edit took away move — nearby, on foot.
-   *  @param shift Optional tile shift to apply when grid expands left/up */
-  rebuildFromLayout(layout: OfficeLayout, shift?: { col: number; row: number }): void {
+   *  only those whose tile or seat the edit took away move — nearby, on foot. */
+  rebuildFromLayout(layout: OfficeLayout): void {
     const oldSeats = this.seats;
     this.layout = layout;
     this.tileMap = layoutToTileMap(layout);
@@ -132,17 +130,6 @@ export class OfficeState {
     this.rebuildFurnitureInstances();
     this.walkableTiles = getWalkableTiles(this.tileMap, this.blockedTiles);
     this.indexAreaTiles();
-
-    const dc = shift?.col ?? 0;
-    const dr = shift?.row ?? 0;
-    // Shift positions (and paths) when the grid expands left/up
-    for (const e of this.characters.values()) {
-      e.tileCol += dc;
-      e.tileRow += dr;
-      e.x += dc * TILE_SIZE;
-      e.y += dr * TILE_SIZE;
-      e.path = e.path.map((t) => ({ col: t.col + dc, row: t.row + dr }));
-    }
 
     // Where each character was headed before the edit: its seat (sitting or
     // walking there), else the end of its path, else nowhere.
@@ -154,7 +141,7 @@ export class OfficeState {
         ch,
         !!old &&
           (end
-            ? end.col === old.seatCol + dc && end.row === old.seatRow + dr
+            ? end.col === old.seatCol && end.row === old.seatRow
             : ch.state === CharacterState.TYPE),
       );
     }
@@ -637,9 +624,6 @@ export class OfficeState {
       ch.dir = seat.facingDir;
       ch.frame = 0;
       ch.frameTimer = 0;
-      if (!ch.isActive) {
-        ch.seatTimer = INACTIVE_SEAT_TIMER_MIN_SEC + Math.random() * INACTIVE_SEAT_TIMER_RANGE_SEC;
-      }
     }
   }
 
@@ -692,9 +676,6 @@ export class OfficeState {
       ch.dir = seat.facingDir;
       ch.frame = 0;
       ch.frameTimer = 0;
-      if (!ch.isActive) {
-        ch.seatTimer = INACTIVE_SEAT_TIMER_MIN_SEC + Math.random() * INACTIVE_SEAT_TIMER_RANGE_SEC;
-      }
     }
   }
 
@@ -723,7 +704,7 @@ export class OfficeState {
    * Send a character to a room (area): free its seat, take a free seat there
    * (PC-facing first) unless `standing`, else a free floor tile there, and
    * walk. A character still materializing is placed directly. `homeArea`
-   * confines its wander.
+   * keeps it in the room.
    */
   moveToArea(id: number, areaLabel: string, standing = false): void {
     const ch = this.characters.get(id);
@@ -787,6 +768,11 @@ export class OfficeState {
       const end = ch.path[ch.path.length - 1] ?? { col: ch.tileCol, row: ch.tileRow };
       taken.add(`${end.col},${end.row}`);
     }
+    // Random probes first (a big room is almost never full), then the full scan.
+    for (let i = 0; i < FREE_TILE_PROBES; i++) {
+      const t = tiles[Math.floor(Math.random() * tiles.length)];
+      if (!taken.has(`${t.col},${t.row}`)) return t;
+    }
     const free = tiles.filter((t) => !taken.has(`${t.col},${t.row}`));
     const pool = free.length > 0 ? free : tiles;
     return pool[Math.floor(Math.random() * pool.length)];
@@ -795,7 +781,7 @@ export class OfficeState {
   /**
    * Make a child walk hand in hand beside `leaderId` (its parent, or the
    * parent's ghost in another room): it gives up its seat and room and never
-   * sits or wanders (see update()). `null` stops following and leaves
+   * sits (see update()). `null` stops following and leaves
    * `homeArea` unset so the caller re-homes it.
    */
   setFollowTarget(childId: number, leaderId: number | null): void {
@@ -808,7 +794,7 @@ export class OfficeState {
     }
     const wasFollowing = ch.followId !== undefined;
     ch.followId = leaderId;
-    ch.wanderTimer = 0;
+    ch.followTimer = 0;
     if (wasFollowing) return; // already standing; update() re-paths to the new leader
     this.releaseSeat(ch);
     ch.homeArea = undefined;
@@ -848,8 +834,8 @@ export class OfficeState {
       Math.abs(ch.tileRow - anchor.tileRow),
     );
     if (dist <= 1) return;
-    if (ch.wanderTimer > 0) {
-      ch.wanderTimer -= dt;
+    if (ch.followTimer > 0) {
+      ch.followTimer -= dt;
       return;
     }
     const spot = this.spotBeside(anchor, ch);
@@ -858,7 +844,7 @@ export class OfficeState {
         ? findPath(ch.tileCol, ch.tileRow, spot.col, spot.row, this.tileMap, this.blockedTiles)
         : [];
     if (path.length === 0) {
-      ch.wanderTimer = FOLLOW_RETRY_SEC;
+      ch.followTimer = FOLLOW_RETRY_SEC;
       return;
     }
     ch.path = path;
@@ -975,9 +961,6 @@ export class OfficeState {
     if (ch) {
       ch.isActive = active;
       if (!active) {
-        // Sentinel -1: signals turn just ended, skip next seat rest timer.
-        // Prevents the WALK handler from setting a 2-4 min rest on arrival.
-        ch.seatTimer = -1;
         ch.path = [];
         ch.moveProgress = 0;
       }
@@ -1177,10 +1160,9 @@ export class OfficeState {
         }
       }
 
-      const wanderTiles = (ch.homeArea && this.areaWalkable.get(ch.homeArea)) || this.walkableTiles;
       // Temporarily unblock own seat so character can pathfind to it
       this.withOwnSeatUnblocked(ch, () =>
-        updateCharacter(ch, dt, wanderTiles, this.seats, this.tileMap, this.blockedTiles),
+        updateCharacter(ch, dt, this.seats, this.tileMap, this.blockedTiles),
       );
 
       // Tick bubble timer for waiting bubbles

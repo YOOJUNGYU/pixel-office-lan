@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { isLayoutGrid } from '../../core/src/lan.js';
+import { fillMissingRooms, isLayoutGrid, ROOM_LABELS, ROOM_ORDER } from '../../core/src/lan.js';
 import type { ProfileMessage } from '../../core/src/messages.js';
 import { BottomToolbar } from './components/BottomToolbar.js';
 import { ConnectionIndicator } from './components/ConnectionIndicator.js';
@@ -9,9 +9,13 @@ import { SettingsModal } from './components/SettingsModal.js';
 import { Button } from './components/ui/Button.js';
 import { ZoomControls } from './components/ZoomControls.js';
 import {
+  DEFAULT_LAYOUT_ASSET,
   FIRST_OPEN_FIT_FILL,
+  FIT_TOP_MARGIN_PX,
   LAYOUT_REJECTED_TOAST_MS,
   OFFICE_CANVAS_TEST_ID,
+  TOP_RIGHT_BOTTOM_RESERVE_PX,
+  TOP_RIGHT_Z_INDEX,
   TOUR_AUTOSTART_DELAY_MS,
   TOUR_FIT_FILL,
   ZOOM_MAX,
@@ -29,6 +33,7 @@ import { OfficeSwitcher } from './lan/OfficeSwitcher.js';
 import { peopleRows } from './lan/peopleModel.js';
 import { PeoplePanel } from './lan/PeoplePanel.js';
 import { ProfileModal } from './lan/ProfileModal.js';
+import { RoomLegend } from './lan/RoomLegend.js';
 import { UpdateBanner } from './lan/UpdateBanner.js';
 import { OfficeCanvas } from './office/components/OfficeCanvas.js';
 import { EditorState } from './office/editor/editorState.js';
@@ -56,6 +61,11 @@ const editorState = new EditorState();
 // Installed only under the e2e harness so they never patch prototypes or grow
 // unbounded logs in a real user's session.
 if (isE2E) installTestHooks(officeStateRef);
+
+/** Room labels with no tile in the layout. */
+function emptyRoomLabels(layout: OfficeLayout): string[] {
+  return ROOM_ORDER.map((r) => ROOM_LABELS[r]).filter((l) => !layout.areaTiles?.includes(l));
+}
 
 function getOfficeState(): OfficeState {
   if (!officeStateRef.current) {
@@ -89,6 +99,7 @@ function App() {
     showAreas,
     setShowAreas,
     officeReadOnly,
+    restarting,
     lan,
     people,
     profileError,
@@ -134,12 +145,7 @@ function App() {
     transport.send({ type: 'setShowAreas', enabled: next });
   }, [showAreas, setShowAreas]);
 
-  // When AREA_PAINT is active in the editor, force the overlay on even if the
-  // user has toggled Show Areas off globally — they need to see what they're
-  // editing. The selected area's overlay is alpha-bumped via activeAreaLabel.
-  const isEditingAreas = editor.isEditMode && editorState.activeTool === EditTool.AREA_PAINT;
-  const effectiveShowAreas = isEditingAreas || showAreas;
-  const activeAreaLabel = isEditingAreas ? editor.selectedAreaLabel : null;
+  const effectiveShowAreas = showAreas;
 
   // e2e: register the component-scoped editor-action drivers + the effective
   // show-areas gate on the test-hooks namespace (module-load installTestHooks
@@ -147,21 +153,24 @@ function App() {
   // pixel→tile geometry — the handlers still own undo/dirty/rebuild; for specs
   // that drive the real canvas gesture instead, getTileCenter projects a tile
   // to canvas CSS pixels with the renderer's own zoom + pan. Guarded on isE2E.
+  const { zoom, panRef, handleZoomChange, isEditMode, handleToggleEditMode, handleToolChange } =
+    editor;
+  const { handleEditorTileAction, handleEditorEraseAction, handleDrop } = editor;
   useEffect(() => {
     if (!isE2E || typeof window === 'undefined') return;
     const hooks = (window.__pixelAgentsTestHooks ??= {});
-    hooks.editorTileAction = (col, row) => editor.handleEditorTileAction(col, row);
-    hooks.editorEraseAction = (col, row) => editor.handleEditorEraseAction(col, row);
+    hooks.editorTileAction = (col, row) => handleEditorTileAction(col, row);
+    hooks.editorEraseAction = (col, row) => handleEditorEraseAction(col, row);
     hooks.editorDrop = (uid, col, row, duplicate = false) =>
-      editor.handleDrop(uid, col, row, { duplicate });
+      handleDrop(uid, col, row, { duplicate });
     hooks.getTileCenter = (col, row) => {
       const canvas = document.querySelector(`[data-testid="${OFFICE_CANVAS_TEST_ID}"]`);
       if (!canvas) return null;
       const projection = overlayProjection(
         getOfficeState().getLayout(),
         canvas.getBoundingClientRect(),
-        editor.zoom,
-        editor.panRef.current,
+        zoom,
+        panRef.current,
         window.devicePixelRatio || 1,
       );
       return {
@@ -170,12 +179,15 @@ function App() {
       };
     };
     hooks.getShowAreas = () => effectiveShowAreas;
+    hooks.getZoom = () => zoom;
+    hooks.setZoom = (z) => handleZoomChange(z);
   }, [
-    editor.handleEditorTileAction,
-    editor.handleEditorEraseAction,
-    editor.handleDrop,
-    editor.zoom,
-    editor.panRef,
+    handleZoomChange,
+    handleEditorTileAction,
+    handleEditorEraseAction,
+    handleDrop,
+    zoom,
+    panRef,
     effectiveShowAreas,
   ]);
 
@@ -194,7 +206,7 @@ function App() {
 
   const officeState = getOfficeState();
 
-  // Areas authoring is available when the layout already defines areas.
+  // The Show Areas setting is offered when the layout defines its rooms.
   const areasAvailable = (officeState.getLayout().areas?.length ?? 0) > 0;
   const emptyRooms = officeState.emptyRooms();
 
@@ -217,8 +229,6 @@ function App() {
   const tourUserFollowRef = useRef<{ selected: number | null; follow: number | null } | null>(null);
   /** The layout editor was open when the tour started: closed meanwhile, reopened after. */
   const tourUserEditorRef = useRef<{ tool: EditTool } | null>(null);
-  const { zoom, panRef, handleZoomChange, isEditMode, handleToggleEditMode, handleToolChange } =
-    editor;
   const startTour = useCallback(() => {
     const os = getOfficeState();
     tourUserCameraRef.current ??= { zoom, pan: { ...panRef.current } };
@@ -247,7 +257,6 @@ function App() {
     if (!officeReadOnly && !isMobile) caps.add('edit');
     if (offices) caps.add('switcher').add('offices');
     if (profile?.canEdit) caps.add('profile');
-    if (areasAvailable) caps.add('areas');
     setIsSettingsOpen(false);
     setIsProfileOpen(false);
     tourDemoRef.current = needsDemo(lan.realAgents());
@@ -260,7 +269,6 @@ function App() {
     isMobile,
     offices,
     profile,
-    areasAvailable,
     lan,
     tourDispatch,
     zoom,
@@ -278,7 +286,7 @@ function App() {
     return () => clearTimeout(timer);
   }, [layoutSaveRejections]);
 
-  // First open: a big office (the 90×60 default) is zoomed out to fit the
+  // First open: a big office (the 128×128 default) is zoomed out to fit the
   // window when the default zoom would not show all of it. Once per session.
   const fittedRef = useRef(false);
   useEffect(() => {
@@ -287,15 +295,21 @@ function App() {
     fittedRef.current = true;
     const dpr = window.devicePixelRatio || 1;
     const layout = getOfficeState().getLayout();
+    // Fit below the office switcher (top centre) so the room names along the
+    // top edge are never under it: fit in the height left, then pan down.
+    const top = FIT_TOP_MARGIN_PX * dpr;
     const fit = fitZoom(
       { w: layout.cols * TILE_SIZE, h: layout.rows * TILE_SIZE },
-      { w: box.width * dpr, h: box.height * dpr },
+      { w: box.width * dpr, h: box.height * dpr - top },
       FIRST_OPEN_FIT_FILL,
       ZOOM_MIN,
       ZOOM_MAX,
     );
-    if (fit < zoom) handleZoomChange(fit);
-  }, [layoutReady, zoom, handleZoomChange]);
+    if (fit < zoom) {
+      panRef.current = { x: 0, y: top / 2 };
+      handleZoomChange(fit);
+    }
+  }, [layoutReady, zoom, handleZoomChange, panRef]);
 
   // First run: right after the profile is saved.
   const tourCanAutostart =
@@ -375,6 +389,35 @@ function App() {
     exportLayoutToFile(getOfficeState().getLayout());
   }, []);
 
+  const fetchDefaultLayout = async (): Promise<unknown> => {
+    const res = await fetch(`${import.meta.env.BASE_URL}${DEFAULT_LAYOUT_ASSET}`);
+    if (!res.ok) throw new Error(`default layout ${res.status.toString()}`);
+    return (await res.json()) as unknown;
+  };
+
+  /** Validate, apply and save a layout from outside (file import, reset to the default). */
+  const applyLayout = async (imported: unknown) => {
+    // The server's grid check (isLayoutGrid), before anything is built: a
+    // v1 grid within 128×128 whose tiles match it, with a furniture array.
+    if (!isLayoutGrid(imported)) {
+      window.alert(t('app.importInvalid'));
+      return;
+    }
+    let migrated = migrateLayoutColors(imported as unknown as OfficeLayout);
+    // Rooms come from the bundled default: a room without tiles takes the
+    // default's when the grid is the default size (the server does the same).
+    if (emptyRoomLabels(migrated).length > 0) {
+      migrated = fillMissingRooms(migrated, await fetchDefaultLayout());
+    }
+    getOfficeState().rebuildFromLayout(migrated);
+    editor.setLastSavedLayout(migrated);
+    transport.send({
+      type: 'saveLayout',
+      layout: migrated as unknown as Record<string, unknown>,
+    });
+    editor.markClean();
+  };
+
   const handleImportLayout = (file: File) => {
     // Browser-native import: read + validate + apply directly,
     // bypassing the layoutLoaded message whose dirty guard would skip it.
@@ -384,26 +427,22 @@ function App() {
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        const imported: unknown = JSON.parse(String(reader.result));
-        // The server's grid check (isLayoutGrid), before anything is built: a
-        // v1 grid within 128×128 whose tiles match it, with a furniture array.
-        if (!isLayoutGrid(imported)) {
-          window.alert(t('app.importInvalid'));
-          return;
-        }
-        const migrated = migrateLayoutColors(imported as unknown as OfficeLayout);
-        getOfficeState().rebuildFromLayout(migrated);
-        editor.setLastSavedLayout(migrated);
-        transport.send({
-          type: 'saveLayout',
-          layout: migrated as unknown as Record<string, unknown>,
-        });
-        editor.markClean();
+        applyLayout(JSON.parse(String(reader.result)) as unknown).catch(() =>
+          window.alert(t('app.importFailed')),
+        );
       } catch {
         window.alert(t('app.importFailed'));
       }
     };
     reader.readAsText(file);
+  };
+
+  /** Settings → the bundled default office (an older saved layout stays until this). */
+  const handleResetToDefaultLayout = () => {
+    if (!window.confirm(t('app.resetDefaultConfirm'))) return;
+    fetchDefaultLayout()
+      .then(applyLayout)
+      .catch(() => window.alert(t('app.importFailed')));
   };
 
   // Force dependency on editorTickForKeyboard to propagate keyboard-triggered re-renders
@@ -447,12 +486,10 @@ function App() {
           onDeleteSelected={editor.handleDeleteSelected}
           onRotateSelected={editor.handleRotateSelected}
           onDrop={editor.handleDrop}
-          editorTick={editor.editorTick}
           zoom={editor.zoom}
           onZoomChange={editor.handleZoomChange}
           panRef={editor.panRef}
           showAreas={effectiveShowAreas}
-          activeAreaLabel={activeAreaLabel}
           tapSelectsFirst={isMobile}
         />
 
@@ -466,20 +503,24 @@ function App() {
 
         {!isMobile && <ZoomControls zoom={editor.zoom} onZoomChange={editor.handleZoomChange} />}
 
+        {!editor.isEditMode && (
+          <RoomLegend
+            areas={officeState.getLayout().areas}
+            isMobile={isMobile}
+            forceOpen={scene?.legend === true}
+          />
+        )}
+
         {/* Vignette overlay */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{ background: 'var(--vignette)' }}
         />
 
-        {editor.isEditMode && (editor.isDirty || scene?.actionBar || emptyRooms.length > 0) && (
-          <EditActionBar editor={editor} editorState={editorState} emptyRooms={emptyRooms} />
-        )}
-
         {showRotateHint && (
           <div
             className="absolute left-1/2 -translate-x-1/2 z-11 bg-accent-bright text-white text-sm py-3 px-8 rounded-none border-2 border-accent shadow-pixel pointer-events-none whitespace-nowrap"
-            style={{ top: editor.isDirty || emptyRooms.length > 0 ? 64 : 8 }}
+            style={{ top: 8 }}
           >
             {t('app.rotateHint')}
           </div>
@@ -518,12 +559,7 @@ function App() {
                 onCarpetVariantChange={editor.handleCarpetVariantChange}
                 onCarpetColorChange={editor.handleCarpetColorChange}
                 onCarpetAccentColorChange={editor.handleCarpetAccentColorChange}
-                areas={officeState.getLayout().areas ?? []}
-                selectedAreaLabel={editor.selectedAreaLabel}
-                areasAvailable={areasAvailable}
                 emptyRooms={emptyRooms}
-                onSelectArea={editor.handleSelectArea}
-                onAreaColorChange={editor.handleAreaColorChange}
                 background={officeState.getLayout().background}
                 onBackgroundChange={editor.handleBackgroundChange}
               />
@@ -541,14 +577,29 @@ function App() {
 
         {offices && !editor.isEditMode && <OfficeSwitcher state={offices} />}
 
-        {!editor.isEditMode && (
-          <PeoplePanel
-            rows={peopleRows(people, lan.all())}
-            lan={lan}
-            officeState={officeState}
-            forceOpen={scene?.people === true}
-          />
-        )}
+        {/* Top right, stacked so nothing overlaps: update banner, install popup, people panel
+          (which takes the height left below them). */}
+        <div
+          style={{ zIndex: TOP_RIGHT_Z_INDEX, bottom: TOP_RIGHT_BOTTOM_RESERVE_PX }}
+          className="absolute mobile-safe-top max-lg:top-[calc(env(safe-area-inset-top,0px)+64px)] right-10 flex flex-col items-end gap-8 pointer-events-none max-w-[calc(100%-20px)]"
+        >
+          {!officeReadOnly && (
+            <UpdateBanner
+              update={update}
+              status={updateStatus}
+              onClearStatus={() => setUpdateStatus(null)}
+            />
+          )}
+          <InstallPrompt readOnly={officeReadOnly} />
+          {!editor.isEditMode && (
+            <PeoplePanel
+              rows={peopleRows(people, lan.all())}
+              lan={lan}
+              officeState={officeState}
+              forceOpen={scene?.people === true}
+            />
+          )}
+        </div>
 
         {officeReadOnly && (
           <div className="absolute mobile-safe-top left-1/2 -translate-x-1/2 z-10 text-sm text-text-muted pointer-events-none select-none whitespace-nowrap">
@@ -564,7 +615,9 @@ function App() {
             onToggleEditMode={officeReadOnly ? null : editor.handleToggleEditMode}
             isSettingsOpen={settingsOpen}
             onToggleSettings={() => setIsSettingsOpen((v) => !v)}
-          />
+          >
+            {editor.isEditMode && <EditActionBar editor={editor} editorState={editorState} />}
+          </BottomToolbar>
         )}
 
         {/* Mobile: Settings floats top-left (the layout editor stays desktop-
@@ -585,14 +638,13 @@ function App() {
 
         <ConnectionIndicator />
 
-        <InstallPrompt readOnly={officeReadOnly} />
-
-        {!officeReadOnly && (
-          <UpdateBanner
-            update={update}
-            status={updateStatus}
-            onClearStatus={() => setUpdateStatus(null)}
-          />
+        {restarting && (
+          <div
+            role="status"
+            className="absolute inset-0 z-60 flex items-center justify-center bg-bg-dark/80"
+          >
+            <div className="pixel-panel py-8 px-16 text-base">{t('app.restarting')}</div>
+          </div>
         )}
 
         {profile?.canEdit && (firstRun || profileOpen) && (
@@ -630,6 +682,7 @@ function App() {
           showAreasAvailable={areasAvailable}
           onExportLayout={handleExportLayout}
           onImportLayout={handleImportLayout}
+          onResetToDefaultLayout={officeReadOnly ? undefined : handleResetToDefaultLayout}
           autostart={autostart}
           offices={offices}
           officeReply={officeReply}

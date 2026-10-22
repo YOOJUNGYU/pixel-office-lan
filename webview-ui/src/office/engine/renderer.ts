@@ -1,6 +1,5 @@
 import type { ColorValue } from '../../components/ui/types.js';
 import {
-  AREA_ACTIVE_ALPHA_MULTIPLIER,
   AREA_LABEL_ALPHA,
   AREA_LABEL_FALLBACK_COLOR,
   AREA_LABEL_FONT_SIZE_PX,
@@ -22,9 +21,8 @@ import {
   DELETE_BUTTON_BG,
   FALLBACK_FLOOR_COLOR,
   FLOOR_CACHE_MAX_PIXELS,
-  GHOST_BORDER_HOVER_FILL,
-  GHOST_BORDER_HOVER_STROKE,
-  GHOST_BORDER_STROKE,
+  FLOOR_CHUNK_MIN_TILES,
+  FLOOR_CHUNK_PX,
   GHOST_INVALID_TINT,
   GHOST_PREVIEW_SPRITE_ALPHA,
   GHOST_PREVIEW_TINT_ALPHA,
@@ -82,6 +80,8 @@ import type {
 import { CharacterState, TILE_SIZE, TileType } from '../types.js';
 import { getWallInstances, hasWallSprites, wallColorToHex } from '../wallTiles.js';
 import { getCharacterSprite, getPetCharacterSprite } from './characters.js';
+import type { FloorData } from './floorChunks.js';
+import { changedFloorChunks } from './floorChunks.js';
 import { renderMatrixEffect } from './matrixEffect.js';
 
 // ── Settings ────────────────────────────────────────────────────
@@ -126,6 +126,8 @@ export function renderCarpetLayer(
   offsetX: number,
   offsetY: number,
   zoom: number,
+  /** Junction range (inclusive), default the whole grid. */
+  range: { c0: number; r0: number; c1: number; r1: number } = { c0: 0, r0: 0, c1: cols, r1: rows },
 ): void {
   if (!hasCarpetSprites()) return;
   if (!carpetTiles || carpetTiles.length === 0) return;
@@ -133,8 +135,8 @@ export function renderCarpetLayer(
   const s = TILE_SIZE * zoom;
   const halfS = s / 2;
 
-  for (let jy = 0; jy <= rows; jy++) {
-    for (let jx = 0; jx <= cols; jx++) {
+  for (let jy = range.r0; jy <= range.r1; jy++) {
+    for (let jx = range.c0; jx <= range.c1; jx++) {
       const localGroups = new Map<
         string,
         {
@@ -194,10 +196,7 @@ export function renderCarpetLayer(
 
 /**
  * Translucent per-tile color wash for Areas. Runs ABOVE carpets/floor and
- * BELOW seat indicators / characters / furniture. The active area (the one
- * the editor has currently selected) gets a multiplier-bumped alpha so users
- * can see which area they're editing without changing every other area's
- * visibility.
+ * BELOW seat indicators / characters / furniture (Settings → Show Areas).
  *
  * @internal
  */
@@ -210,7 +209,6 @@ export function renderAreaOverlay(
   offsetX: number,
   offsetY: number,
   zoom: number,
-  activeAreaLabel?: string | null,
 ): void {
   if (!areaTiles || areaTiles.length === 0) return;
   if (!areas || areas.length === 0) return;
@@ -220,16 +218,13 @@ export function renderAreaOverlay(
   for (const a of areas) colorMap.set(a.label, a.color);
 
   ctx.save();
+  ctx.globalAlpha = AREA_OVERLAY_ALPHA;
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const label = areaTiles[r * cols + c];
       if (!label) continue;
       const color = colorMap.get(label);
       if (!color) continue;
-      ctx.globalAlpha =
-        activeAreaLabel === label
-          ? AREA_OVERLAY_ALPHA * AREA_ACTIVE_ALPHA_MULTIPLIER
-          : AREA_OVERLAY_ALPHA;
       ctx.fillStyle = color;
       ctx.fillRect(offsetX + c * s, offsetY + r * s, s, s);
     }
@@ -305,6 +300,33 @@ export function renderAreaLabels(
   ctx.restore();
 }
 
+let roomTopsMemo: {
+  areaTiles: Array<string | null>;
+  cols: number;
+  tops: Map<string, { row: number; minCol: number; maxCol: number }>;
+} | null = null;
+
+/** label → top row and the column span on that row; scanned once per areaTiles array. */
+function roomTops(
+  areaTiles: Array<string | null>,
+  cols: number,
+  rows: number,
+): Map<string, { row: number; minCol: number; maxCol: number }> {
+  if (roomTopsMemo?.areaTiles === areaTiles && roomTopsMemo.cols === cols) return roomTopsMemo.tops;
+  const tops = new Map<string, { row: number; minCol: number; maxCol: number }>();
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const label = areaTiles[r * cols + c];
+      if (!label) continue;
+      const t = tops.get(label);
+      if (!t) tops.set(label, { row: r, minCol: c, maxCol: c });
+      else if (t.row === r) t.maxCol = c;
+    }
+  }
+  roomTopsMemo = { areaTiles, cols, tops };
+  return tops;
+}
+
 /**
  * Room names for everyday viewing: light text with a dark outline, centred
  * on each area's top tile row so seated characters don't cover it.
@@ -319,29 +341,21 @@ export function renderRoomNames(
   offsetX: number,
   offsetY: number,
   zoom: number,
+  /** Blit scale of this frame (fractional zoom): the minimum font is in screen px. */
+  scale = 1,
 ): void {
   if (!areaTiles || areaTiles.length === 0) return;
-  // label → top row and the column span on that row
-  const tops = new Map<string, { row: number; minCol: number; maxCol: number }>();
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      const label = areaTiles[r * cols + c];
-      if (!label) continue;
-      const t = tops.get(label);
-      if (!t) tops.set(label, { row: r, minCol: c, maxCol: c });
-      else if (t.row === r) t.maxCol = c;
-    }
-  }
+  const tops = roomTops(areaTiles, cols, rows);
   if (tops.size === 0) return;
 
   const s = TILE_SIZE * zoom;
-  const fontSize = Math.max(LAN_ROOM_LABEL_FONT_PX * zoom, LAN_ROOM_LABEL_MIN_FONT_PX);
+  const fontSize = Math.max(LAN_ROOM_LABEL_FONT_PX * zoom, LAN_ROOM_LABEL_MIN_FONT_PX / scale);
   ctx.save();
   ctx.font = `bold ${fontSize}px Pretendard`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.lineJoin = 'round';
-  ctx.lineWidth = LAN_ROOM_LABEL_OUTLINE_PX;
+  ctx.lineWidth = Math.max(LAN_ROOM_LABEL_OUTLINE_PX, LAN_ROOM_LABEL_OUTLINE_PX / scale);
   ctx.strokeStyle = LAN_ROOM_LABEL_OUTLINE_COLOR;
   ctx.fillStyle = LAN_ROOM_LABEL_COLOR;
   for (const [label, t] of tops) {
@@ -371,6 +385,8 @@ export function renderBackground(
   offsetX: number,
   offsetY: number,
   zoom: number,
+  /** Draw the zoom-`zoom` tile pattern shrunk by this (fractional zoom below 1, on screen). */
+  patternScale = 1,
 ): void {
   if (fill.kind === 'none') return;
   if (fill.kind === 'color') {
@@ -385,6 +401,8 @@ export function renderBackground(
   if (!sprite) return;
   const pattern = ctx.createPattern(getCachedSprite(sprite, zoom), 'repeat');
   if (!pattern) return;
+  if (patternScale !== 1)
+    pattern.setTransform(new DOMMatrix([patternScale, 0, 0, patternScale, 0, 0]));
   ctx.save();
   ctx.translate(offsetX, offsetY);
   ctx.fillStyle = pattern;
@@ -401,16 +419,19 @@ export function renderTileGrid(
   zoom: number,
   tileColors?: Array<ColorValue | null>,
   cols?: number,
+  /** Tile range (end-exclusive), default the whole grid. */
+  range?: { c0: number; r0: number; c1: number; r1: number },
 ): void {
   const s = TILE_SIZE * zoom;
   const useSpriteFloors = hasFloorSprites();
   const tmRows = tileMap.length;
   const tmCols = tmRows > 0 ? tileMap[0].length : 0;
   const layoutCols = cols ?? tmCols;
+  const { c0 = 0, r0 = 0, c1 = tmCols, r1 = tmRows } = range ?? {};
 
   // Floor tiles + wall base color
-  for (let r = 0; r < tmRows; r++) {
-    for (let c = 0; c < tmCols; c++) {
+  for (let r = r0; r < Math.min(r1, tmRows); r++) {
+    for (let c = c0; c < Math.min(c1, tmCols); c++) {
       const tile = tileMap[r][c];
 
       // Skip VOID tiles entirely (transparent)
@@ -439,15 +460,19 @@ export function renderTileGrid(
   }
 }
 
-let floorCache: { key: unknown[]; canvas: HTMLCanvasElement } | null = null;
+/** Floor chunk canvases by "i,j" (Map order = least recently used first). */
+const floorChunks = new Map<string, HTMLCanvasElement>();
+let floorChunksKey: unknown[] | null = null;
+let floorChunkPixels = 0;
 
 /**
  * Floor tiles, wall base colors and carpets: static between layout edits, so
- * they are drawn once per (layout arrays, zoom, loaded sprites) into an
- * offscreen canvas and blitted every frame — a 128×128 office is ~16k tile
- * draws otherwise. Too large a canvas (high zoom on a big office) draws
- * directly instead. The cache is padded by half a tile: carpet junction
- * sprites straddle the grid edge.
+ * they are drawn into square chunk canvases (about FLOOR_CHUNK_PX device px a
+ * side, whatever the zoom) once and blitted every frame. Only chunks on screen
+ * are built and drawn; least recently used ones are dropped beyond
+ * FLOOR_CACHE_MAX_PIXELS (chunks on screen are never dropped, so the cache
+ * never exceeds the cap plus one screenful). Edge chunks are padded by half a
+ * tile: carpet junction sprites straddle the grid edge.
  */
 function renderFloorLayer(
   ctx: CanvasRenderingContext2D,
@@ -460,23 +485,24 @@ function renderFloorLayer(
   offsetY: number,
   zoom: number,
 ): void {
-  const pad = (TILE_SIZE * zoom) / 2;
-  const w = cols * TILE_SIZE * zoom + 2 * pad;
-  const h = rows * TILE_SIZE * zoom + 2 * pad;
-  const draw = (c: CanvasRenderingContext2D, ox: number, oy: number) => {
-    renderTileGrid(c, tileMap, ox, oy, zoom, tileColors, cols);
-    if (carpetTiles && carpetTiles.length > 0) {
-      renderCarpetLayer(c, carpetTiles, cols, rows, ox, oy, zoom);
-    }
+  const s = TILE_SIZE * zoom;
+  const pad = s / 2;
+  const hasCarpets = !!carpetTiles && carpetTiles.length > 0;
+  const draw = (
+    c: CanvasRenderingContext2D,
+    ox: number,
+    oy: number,
+    tr?: { c0: number; r0: number; c1: number; r1: number },
+  ) => {
+    renderTileGrid(c, tileMap, ox, oy, zoom, tileColors, cols, tr);
+    if (hasCarpets) renderCarpetLayer(c, carpetTiles, cols, rows, ox, oy, zoom, tr);
   };
-  if (w * h > FLOOR_CACHE_MAX_PIXELS || typeof document === 'undefined') {
+  if (typeof document === 'undefined') {
     draw(ctx, offsetX, offsetY);
     return;
   }
+  const n = Math.max(FLOOR_CHUNK_MIN_TILES, Math.round(FLOOR_CHUNK_PX / s)); // tiles per side
   const key = [
-    tileMap,
-    tileColors,
-    carpetTiles,
     cols,
     rows,
     zoom,
@@ -485,17 +511,99 @@ function renderFloorLayer(
     getCarpetSetCount(),
     hasWallSprites(),
   ];
-  if (!floorCache || floorCache.key.some((k, i) => k !== key[i])) {
-    const canvas = floorCache?.canvas ?? document.createElement('canvas');
-    canvas.width = w;
-    canvas.height = h;
-    const c = canvas.getContext('2d')!;
-    c.imageSmoothingEnabled = false;
-    c.clearRect(0, 0, w, h);
-    draw(c, pad, pad);
-    floorCache = { key, canvas };
+  if (!floorChunksKey || floorChunksKey.some((k, i) => k !== key[i])) {
+    dropFloorChunks(() => true);
+    floorChunksKey = key;
+  } else if (
+    floorData &&
+    (floorData.tileMap !== tileMap ||
+      floorData.tileColors !== tileColors ||
+      floorData.carpetTiles !== carpetTiles)
+  ) {
+    // A layout edit: rebuild only the chunks whose tiles changed (a carpet
+    // tile's junction sprites reach one tile around it), not the whole floor.
+    const dirty = changedFloorChunks(
+      floorData,
+      { tileMap, tileColors, carpetTiles },
+      cols,
+      rows,
+      n,
+    );
+    dropFloorChunks((id) => dirty.has(id));
   }
-  ctx.drawImage(floorCache.canvas, offsetX - pad, offsetY - pad);
+  floorData = { tileMap, tileColors, carpetTiles };
+  const span = n * s;
+  const iMax = Math.min(
+    Math.ceil(cols / n) - 1,
+    Math.floor((ctx.canvas.width - offsetX + pad) / span),
+  );
+  const jMax = Math.min(
+    Math.ceil(rows / n) - 1,
+    Math.floor((ctx.canvas.height - offsetY + pad) / span),
+  );
+  const used = new Set<string>();
+  for (let j = Math.max(0, Math.floor((-offsetY - pad) / span)); j <= jMax; j++) {
+    for (let i = Math.max(0, Math.floor((-offsetX - pad) / span)); i <= iMax; i++) {
+      const id = `${i},${j}`;
+      used.add(id);
+      const c0 = i * n;
+      const r0 = j * n;
+      const c1 = Math.min(cols, c0 + n);
+      const r1 = Math.min(rows, r0 + n);
+      const padL = i === 0 ? pad : 0;
+      const padT = j === 0 ? pad : 0;
+      let canvas = floorChunks.get(id);
+      if (canvas) {
+        floorChunks.delete(id); // re-insert below: most recently used
+      } else {
+        canvas = document.createElement('canvas');
+        canvas.width = (c1 - c0) * s + padL + (c1 === cols ? pad : 0);
+        canvas.height = (r1 - r0) * s + padT + (r1 === rows ? pad : 0);
+        const c = canvas.getContext('2d')!;
+        c.imageSmoothingEnabled = false;
+        draw(c, padL - c0 * s, padT - r0 * s, { c0, r0, c1, r1 });
+        floorChunkPixels += canvas.width * canvas.height;
+      }
+      floorChunks.set(id, canvas);
+      ctx.drawImage(canvas, offsetX + c0 * s - padL, offsetY + r0 * s - padT);
+    }
+  }
+  for (const [id, canvas] of floorChunks) {
+    if (floorChunkPixels <= FLOOR_CACHE_MAX_PIXELS) break;
+    if (used.has(id)) continue;
+    floorChunks.delete(id);
+    floorChunkPixels -= canvas.width * canvas.height;
+  }
+}
+
+let floorData: FloorData | null = null;
+
+function dropFloorChunks(which: (id: string) => boolean): void {
+  for (const [id, canvas] of floorChunks) {
+    if (!which(id)) continue;
+    floorChunks.delete(id);
+    floorChunkPixels -= canvas.width * canvas.height;
+  }
+}
+
+/** Test/benchmark hook: cached floor chunks and their device pixels. */
+export function floorCacheStats(): { chunks: number; pixels: number } {
+  return { chunks: floorChunks.size, pixels: floorChunkPixels };
+}
+
+let wallMemo: { key: unknown[]; walls: FurnitureInstance[] } | null = null;
+
+/** Wall sprites change only with the layout (and loaded wall sprites): built once, not per frame. */
+function wallInstancesFor(
+  tileMap: TileTypeVal[][],
+  tileColors: Array<ColorValue | null> | undefined,
+  cols: number | undefined,
+): FurnitureInstance[] {
+  const key = [tileMap, tileColors, cols, hasWallSprites()];
+  if (!wallMemo || wallMemo.key.some((k, i) => k !== key[i])) {
+    wallMemo = { key, walls: hasWallSprites() ? getWallInstances(tileMap, tileColors, cols) : [] };
+  }
+  return wallMemo.walls;
 }
 
 interface ZDrawable {
@@ -515,12 +623,17 @@ export function renderScene(
   hoveredAgentId: number | null,
 ): void {
   const drawables: ZDrawable[] = [];
+  const viewW = ctx.canvas.width;
+  const viewH = ctx.canvas.height;
 
-  // Furniture
+  // Furniture (off-screen pieces skipped: a big office is mostly off screen when zoomed in)
   for (const f of furniture) {
-    const cached = getCachedSprite(f.sprite, zoom);
     const fx = offsetX + f.x * zoom;
     const fy = offsetY + f.y * zoom;
+    const spriteH = f.sprite.length;
+    const spriteW = spriteH > 0 ? f.sprite[0].length : 0;
+    if (fx > viewW || fy > viewH || fx + spriteW * zoom < 0 || fy + spriteH * zoom < 0) continue;
+    const cached = getCachedSprite(f.sprite, zoom);
     if (f.mirrored) {
       drawables.push({
         zY: f.zY,
@@ -720,50 +833,6 @@ export function renderGridOverlay(
   }
 }
 
-/** Draw faint expansion placeholders 1 tile outside grid bounds (ghost border). */
-function renderGhostBorder(
-  ctx: CanvasRenderingContext2D,
-  offsetX: number,
-  offsetY: number,
-  zoom: number,
-  cols: number,
-  rows: number,
-  ghostHoverCol: number,
-  ghostHoverRow: number,
-): void {
-  const s = TILE_SIZE * zoom;
-  ctx.save();
-
-  // Collect ghost border tiles: one ring around the grid
-  const ghostTiles: Array<{ c: number; r: number }> = [];
-  // Top and bottom rows
-  for (let c = -1; c <= cols; c++) {
-    ghostTiles.push({ c, r: -1 });
-    ghostTiles.push({ c, r: rows });
-  }
-  // Left and right columns (excluding corners already added)
-  for (let r = 0; r < rows; r++) {
-    ghostTiles.push({ c: -1, r });
-    ghostTiles.push({ c: cols, r });
-  }
-
-  for (const { c, r } of ghostTiles) {
-    const x = offsetX + c * s;
-    const y = offsetY + r * s;
-    const isHovered = c === ghostHoverCol && r === ghostHoverRow;
-    if (isHovered) {
-      ctx.fillStyle = GHOST_BORDER_HOVER_FILL;
-      ctx.fillRect(x, y, s, s);
-    }
-    ctx.strokeStyle = isHovered ? GHOST_BORDER_HOVER_STROKE : GHOST_BORDER_STROKE;
-    ctx.lineWidth = 1;
-    ctx.setLineDash(VOID_TILE_DASH_PATTERN);
-    ctx.strokeRect(x + 0.5, y + 0.5, s - 1, s - 1);
-  }
-
-  ctx.restore();
-}
-
 /** @internal */
 export function renderGhostPreview(
   ctx: CanvasRenderingContext2D,
@@ -948,12 +1017,6 @@ export interface EditorRenderState {
   deleteButtonBounds: DeleteButtonBounds | null;
   /** Updated each frame by renderRotateButton */
   rotateButtonBounds: RotateButtonBounds | null;
-  /** Whether to show ghost border (expansion tiles outside grid) */
-  showGhostBorder: boolean;
-  /** Hovered ghost border tile col (-1 to cols) */
-  ghostBorderHoverCol: number;
-  /** Hovered ghost border tile row (-1 to rows) */
-  ghostBorderHoverRow: number;
 }
 
 export interface SelectionRenderState {
@@ -983,7 +1046,6 @@ export function renderFrame(
   areas?: AreaDefinition[],
   areaTiles?: Array<string | null>,
   showAreas?: boolean,
-  activeAreaLabel?: string | null,
   background?: OfficeBackground,
 ): { offsetX: number; offsetY: number } {
   // Use layout dimensions (fallback to tileMap size)
@@ -996,34 +1058,48 @@ export function renderFrame(
   // returned offsets are screen device px, the frame overlays use.
   const view = mapOffset(screenWidth, screenHeight, cols, rows, viewZoom, panX, panY);
   const scaled = view.scale !== 1;
-  const canvasWidth = scaled ? Math.ceil(screenWidth / view.scale) : screenWidth;
-  const canvasHeight = scaled ? Math.ceil(screenHeight / view.scale) : screenHeight;
+  let canvasWidth = scaled ? Math.ceil(screenWidth / view.scale) : screenWidth;
+  let canvasHeight = scaled ? Math.ceil(screenHeight / view.scale) : screenHeight;
+  // Zoomed out below 1 the render space is bigger than the screen: render only
+  // the visible part of the map (plus a tile for edge sprites) and paint the
+  // background around it straight onto the screen.
+  let originX = 0;
+  let originY = 0;
+  if (view.scale < 1) {
+    const pad = TILE_SIZE * view.renderZoom;
+    const x0 = Math.max(0, view.renderOffsetX - pad);
+    const y0 = Math.max(0, view.renderOffsetY - pad);
+    const x1 = Math.min(canvasWidth, view.renderOffsetX + cols * TILE_SIZE * view.renderZoom + pad);
+    const y1 = Math.min(
+      canvasHeight,
+      view.renderOffsetY + rows * TILE_SIZE * view.renderZoom + pad,
+    );
+    if (x1 > x0 && y1 > y0) {
+      originX = x0;
+      originY = y0;
+      canvasWidth = x1 - x0;
+      canvasHeight = y1 - y0;
+    }
+  }
   const ctx = scaled ? offscreenContext(canvasWidth, canvasHeight) : screenCtx;
   const zoom = view.renderZoom;
-  const offsetX = view.renderOffsetX;
-  const offsetY = view.renderOffsetY;
+  const offsetX = view.renderOffsetX - originX;
+  const offsetY = view.renderOffsetY - originY;
+  const backgroundFill = resolveBackground(background, {
+    floorPatterns: getFloorPatternCount(),
+    carpetVariants: getCarpetSetCount(),
+  });
 
   ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
   // Background (outside the office + VOID tiles), then tiles (floor + wall base color)
-  renderBackground(
-    ctx,
-    resolveBackground(background, {
-      floorPatterns: getFloorPatternCount(),
-      carpetVariants: getCarpetSetCount(),
-    }),
-    canvasWidth,
-    canvasHeight,
-    offsetX,
-    offsetY,
-    zoom,
-  );
+  renderBackground(ctx, backgroundFill, canvasWidth, canvasHeight, offsetX, offsetY, zoom);
   // Floor + wall base + carpets (below seat indicators / furniture / characters)
   renderFloorLayer(ctx, tileMap, tileColors, carpetTiles, cols, rows, offsetX, offsetY, zoom);
 
   // Area overlay (translucent color wash) — above carpets, below seat indicators
   if (showAreas) {
-    renderAreaOverlay(ctx, areaTiles, areas, cols, rows, offsetX, offsetY, zoom, activeAreaLabel);
+    renderAreaOverlay(ctx, areaTiles, areas, cols, rows, offsetX, offsetY, zoom);
   }
 
   // Seat indicators (below furniture/characters, on top of floor)
@@ -1041,7 +1117,7 @@ export function renderFrame(
   }
 
   // Build wall instances for z-sorting with furniture and characters
-  const wallInstances = hasWallSprites() ? getWallInstances(tileMap, tileColors, layoutCols) : [];
+  const wallInstances = wallInstancesFor(tileMap, tileColors, layoutCols);
   const allFurniture = wallInstances.length > 0 ? [...wallInstances, ...furniture] : furniture;
 
   // Draw walls + furniture + characters (z-sorted)
@@ -1054,25 +1130,13 @@ export function renderFrame(
   if (showAreas) {
     renderAreaLabels(ctx, areaTiles, areas, cols, rows, offsetX, offsetY, zoom);
   } else {
-    renderRoomNames(ctx, areaTiles, cols, rows, offsetX, offsetY, zoom);
+    renderRoomNames(ctx, areaTiles, cols, rows, offsetX, offsetY, zoom, view.scale);
   }
 
   // Editor overlays
   if (editor) {
     if (editor.showGrid) {
       renderGridOverlay(ctx, offsetX, offsetY, zoom, cols, rows, tileMap);
-    }
-    if (editor.showGhostBorder) {
-      renderGhostBorder(
-        ctx,
-        offsetX,
-        offsetY,
-        zoom,
-        cols,
-        rows,
-        editor.ghostBorderHoverCol,
-        editor.ghostBorderHoverRow,
-      );
     }
     for (const ghost of editor.ghosts) {
       renderGhostPreview(
@@ -1131,10 +1195,24 @@ export function renderFrame(
   if (scaled) {
     screenCtx.clearRect(0, 0, screenWidth, screenHeight);
     screenCtx.imageSmoothingEnabled = false;
-    screenCtx.drawImage(ctx.canvas, 0, 0, canvasWidth * view.scale, canvasHeight * view.scale);
+    if (originX !== 0 || originY !== 0 || view.scale < 1) {
+      renderBackground(
+        screenCtx,
+        backgroundFill,
+        screenWidth,
+        screenHeight,
+        view.offsetX,
+        view.offsetY,
+        zoom,
+        view.scale,
+      );
+    }
+    const sx = originX * view.scale;
+    const sy = originY * view.scale;
+    screenCtx.drawImage(ctx.canvas, sx, sy, canvasWidth * view.scale, canvasHeight * view.scale);
     if (editor) {
-      editor.deleteButtonBounds = scaleBounds(editor.deleteButtonBounds, view.scale);
-      editor.rotateButtonBounds = scaleBounds(editor.rotateButtonBounds, view.scale);
+      editor.deleteButtonBounds = scaleBounds(editor.deleteButtonBounds, view.scale, sx, sy);
+      editor.rotateButtonBounds = scaleBounds(editor.rotateButtonBounds, view.scale, sx, sy);
     }
   }
 
@@ -1155,6 +1233,6 @@ function offscreenContext(width: number, height: number): CanvasRenderingContext
   return offscreen;
 }
 
-function scaleBounds(b: ButtonBounds | null, scale: number): ButtonBounds | null {
-  return b && { cx: b.cx * scale, cy: b.cy * scale, radius: b.radius * scale };
+function scaleBounds(b: ButtonBounds | null, scale: number, dx = 0, dy = 0): ButtonBounds | null {
+  return b && { cx: b.cx * scale + dx, cy: b.cy * scale + dy, radius: b.radius * scale };
 }

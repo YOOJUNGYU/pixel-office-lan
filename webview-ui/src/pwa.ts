@@ -1,11 +1,45 @@
 // PWA: service worker registration + the "install as app" prompt state.
 import { useSyncExternalStore } from 'react';
 
-import { INSTALL_DISMISSED_STORAGE_KEY } from './constants.js';
+import { INSTALL_DISMISSED_STORAGE_KEY, VERSION_RELOAD_KEY } from './constants.js';
 import type { InstallMode } from './lan/installMode.js';
 import { installMode } from './lan/installMode.js';
+import { reloadTarget } from './lan/versionReload.js';
 
 declare const __APP_VERSION__: string;
+
+/**
+ * officeAccess.version from the server: when it is another version (the page
+ * reconnected to an updated server), drop the service worker and its caches
+ * and reload, so this same window runs the new version. True = reloading.
+ */
+export function reloadIfNewVersion(serverVersion: unknown): boolean {
+  let tried: string | null = null;
+  try {
+    tried = sessionStorage.getItem(VERSION_RELOAD_KEY);
+  } catch {
+    /* no storage: still reload once per page */
+  }
+  const target = reloadTarget(serverVersion, __APP_VERSION__, tried);
+  if (!target) return false;
+  try {
+    sessionStorage.setItem(VERSION_RELOAD_KEY, target);
+  } catch {
+    /* see above */
+  }
+  const unregister =
+    'serviceWorker' in navigator
+      ? navigator.serviceWorker
+          .getRegistrations()
+          .then((rs) => Promise.all(rs.map((r) => r.unregister())))
+      : Promise.resolve();
+  const clearCaches =
+    'caches' in window
+      ? caches.keys().then((ks) => Promise.all(ks.map((k) => caches.delete(k))))
+      : Promise.resolve();
+  void Promise.allSettled([unregister, clearCaches]).then(() => window.location.reload());
+  return true;
+}
 
 /** Chromium's install event (not in lib.dom). */
 interface BeforeInstallPromptEvent extends Event {

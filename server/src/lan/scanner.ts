@@ -8,6 +8,7 @@ import type { AgentView, Provider } from '../../../core/src/lan.js';
 import {
   CHILD_ENDED_HIDE_MS,
   CHILD_IDLE_TTL_MS,
+  CODEX_ENDED_TTL_MS,
   CODEX_META_MAX_BYTES,
   DISCOVER_INTERVAL_MS,
   POLL_INTERVAL_MS,
@@ -16,6 +17,8 @@ import {
 } from '../constants.js';
 import { applyClaudeLine } from './claudeParser.js';
 import { applyCodexLine, codexSessionMeta } from './codexParser.js';
+import type { CheckPids, RegEntry } from './liveness.js';
+import { checkPids, domainOf, readRegistry } from './liveness.js';
 import type { Roots } from './roots.js';
 import type { SessionState } from './session.js';
 import { newSession, tick, toViews } from './session.js';
@@ -69,6 +72,29 @@ async function firstLine(file: string): Promise<string> {
   }
 }
 
+/**
+ * Claude session ids shown from each WSL distro, by distro. Only these are
+ * checked there, so a distro none of whose sessions is shown is never woken
+ * (no wsl.exe at all).
+ */
+export function wslSessionsToCheck(files: Array<[string, SessionState]>): Map<string, Set<string>> {
+  const out = new Map<string, Set<string>>();
+  for (const [file, s] of files) {
+    const domain = domainOf(file);
+    if (domain === 'local' || s.provider !== 'claude') continue;
+    const ids = out.get(domain) ?? new Set<string>();
+    ids.add(s.kind === 'main' ? s.id : (s.parentId ?? ''));
+    out.set(domain, ids);
+  }
+  return out;
+}
+
+/** How long after its last line a transcript stays: a finished Codex turn leaves sooner. */
+function ttl(s: SessionState): number {
+  if (s.kind !== 'main') return CHILD_IDLE_TTL_MS;
+  return s.provider === 'codex' && s.turnEnded ? CODEX_ENDED_TTL_MS : SESSION_TTL_MS;
+}
+
 // ponytail: 폴링 기반, WSL 9P 위 수천 파일에서 느리면 루트별 간격 조정
 export class Scanner {
   private files = new Map<string, Tracked>();
@@ -77,13 +103,58 @@ export class Scanner {
   private polling = false;
 
   private roots: Roots = { claude: [], codex: [] };
+  /** Claude session ids whose registry pids are all dead (closed): dropped at once, not after the TTL. */
+  private closed = new Set<string>();
+  /** file → mtime when it was turned away (closed / expired): skipped until it changes. */
+  private rejected = new Map<string, number>();
 
   /** A function is re-run every discover cycle (running WSL distros come and go). */
   constructor(
     private readonly rootsSource: Roots | (() => Promise<Roots>),
     private now: () => number = Date.now,
+    private readonly pids: CheckPids = checkPids,
   ) {
     if (typeof rootsSource !== 'function') this.roots = rootsSource;
+  }
+
+  /**
+   * Claude's `sessions/<pid>.json` registry: a session with a live pid is open,
+   * one whose pids are all dead is closed. No entry, or a check that failed
+   * (WSL unreachable): unknown, the transcript TTL decides as before.
+   */
+  private async refreshClosed(): Promise<void> {
+    const trackedWsl = wslSessionsToCheck(
+      [...this.files].map(([file, t]) => [file, t.s] as [string, SessionState]),
+    );
+    const byDomain = new Map<string, RegEntry[]>();
+    for (const root of this.roots.claude) {
+      const domain = domainOf(root);
+      if (domain !== 'local' && !trackedWsl.has(domain)) continue;
+      const wanted = trackedWsl.get(domain);
+      const entries = (await readRegistry(root)).filter((e) => !wanted || wanted.has(e.sessionId));
+      byDomain.set(domain, [...(byDomain.get(domain) ?? []), ...entries]);
+    }
+    const alive = new Set<string>();
+    const dead = new Set<string>();
+    for (const [domain, entries] of byDomain) {
+      if (entries.length === 0) continue;
+      const state = await this.pids(domain, entries).catch(() => new Map());
+      for (const e of entries) {
+        const st = state.get(e.pid) ?? 'unknown';
+        if (st === 'alive') alive.add(e.sessionId);
+        else if (st === 'dead') dead.add(e.sessionId);
+        else alive.add(e.sessionId); // unknown: never close on a failed check
+      }
+    }
+    // WSL sessions not checked this cycle keep their last verdict.
+    const kept = [...this.closed].filter((id) => !dead.has(id) && !alive.has(id));
+    this.closed = new Set([...kept, ...[...dead].filter((id) => !alive.has(id))]);
+  }
+
+  /** A Claude main session, or a child of one, that the registry says is closed. */
+  private isClosed(s: SessionState): boolean {
+    if (s.provider !== 'claude') return false;
+    return this.closed.has(s.kind === 'main' ? s.id : (s.parentId ?? ''));
   }
 
   async discover(): Promise<void> {
@@ -95,7 +166,11 @@ export class Scanner {
         if (!all.some((r) => file.startsWith(r))) this.files.delete(file);
       }
     }
-    for (const c of await this.candidates()) {
+    await this.refreshClosed();
+    const candidates = await this.candidates();
+    const present = new Set(candidates.map((c) => c.file));
+    for (const f of this.rejected.keys()) if (!present.has(f)) this.rejected.delete(f);
+    for (const c of candidates) {
       if (this.files.has(c.file)) continue;
       try {
         await this.register(c);
@@ -130,8 +205,9 @@ export class Scanner {
         if (!t.s.turnEnded) t.endedAt = null;
         else t.endedAt ??= now;
       }
-      if (now - t.mtimeMs > (t.s.kind === 'main' ? SESSION_TTL_MS : CHILD_IDLE_TTL_MS)) {
+      if (now - t.mtimeMs > ttl(t.s) || this.isClosed(t.s)) {
         this.files.delete(file);
+        this.rejected.set(file, t.mtimeMs);
       }
     }
   }
@@ -213,9 +289,21 @@ export class Scanner {
   private async register(c: Candidate): Promise<void> {
     const now = this.now();
     const st = await stat(c.file);
+    // Turned away before (closed, or a finished Codex turn past its TTL) and unchanged
+    // since: don't read its tail again every cycle.
+    if (this.rejected.get(c.file) === st.mtimeMs) return;
     let parentId = c.parentId;
     let id = parentId ? `${parentId}/sub/${jsonlBase(c.file)}` : jsonlBase(c.file);
     if (now - st.mtimeMs > (parentId ? CHILD_IDLE_TTL_MS : SESSION_TTL_MS)) return;
+    if (c.provider === 'claude' && this.closed.has(parentId ?? id)) {
+      if (domainOf(c.file) === 'local') {
+        this.rejected.set(c.file, st.mtimeMs); // checked this cycle: really closed
+        return;
+      }
+      // A WSL verdict may be stale (only shown sessions are checked there): the file
+      // changed, so show it and let the next cycle check it (resumed session).
+      this.closed.delete(parentId ?? id);
+    }
     if (c.provider === 'codex') {
       const meta = codexSessionMeta(await firstLine(c.file));
       parentId = meta?.parentId;
@@ -237,6 +325,10 @@ export class Scanner {
       endedAt: null,
     };
     await this.readNew(c.file, t, st.size, now);
+    if (this.isClosed(s) || now - st.mtimeMs > ttl(s)) {
+      this.rejected.set(c.file, st.mtimeMs);
+      return;
+    }
     // already-finished subagent: count from its last write, not from now
     if (s.kind === 'subagent' && s.turnEnded) t.endedAt = st.mtimeMs;
     this.files.set(c.file, t);

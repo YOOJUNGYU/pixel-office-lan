@@ -116,7 +116,7 @@ test('areaWorldRect bounds the tiles of a room label', () => {
 });
 
 test('visibleSteps: full tour on a desktop owner, fewer steps on smaller screens', () => {
-  const all = new Set<Capability>(['edit', 'switcher', 'profile', 'offices', 'areas', 'family']);
+  const all = new Set<Capability>(['edit', 'switcher', 'profile', 'offices', 'family']);
   assert.deepEqual(
     visibleSteps(all),
     STEPS.map((s) => s.id),
@@ -126,7 +126,7 @@ test('visibleSteps: full tour on a desktop owner, fewer steps on smaller screens
   assert.equal(full[full.indexOf('switcher') + 1], 'people');
   assert.ok(visibleSteps(new Set()).includes('people'));
   // Phone (no editor) without team offices: no editor, switcher or office steps.
-  const phone = visibleSteps(new Set<Capability>(['profile', 'areas']));
+  const phone = visibleSteps(new Set<Capability>(['profile']));
   for (const id of [
     'layoutButton',
     'floor',
@@ -139,9 +139,14 @@ test('visibleSteps: full tour on a desktop owner, fewer steps on smaller screens
     assert.ok(!phone.includes(id as never), id);
   }
   assert.ok(phone.includes('profile') && phone.includes('settingsButton'));
-  // Editor without areas drops only the areas step.
-  const noAreas = visibleSteps(new Set<Capability>(['edit', 'switcher', 'profile', 'offices']));
-  assert.ok(!noAreas.includes('areas') && noAreas.includes('background'));
+  // No area-painting step any more (rooms are fixed); the editor goes floor → walls → furniture → background.
+  const editor = visibleSteps(new Set<Capability>(['edit']));
+  assert.deepEqual(editor.slice(editor.indexOf('floor'), editor.indexOf('background') + 1), [
+    'floor',
+    'walls',
+    'furniture',
+    'background',
+  ]);
 });
 
 const texts = {

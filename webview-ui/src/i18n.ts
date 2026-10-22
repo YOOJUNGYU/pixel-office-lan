@@ -29,6 +29,16 @@ const ko = {
   'act.tool': '{t} 사용 중',
 
   'bubble.permission': '확인 필요',
+  'legend.title': '방 안내',
+  'legend.coding': '파일을 직접 고칠 때 (Edit·Write, Codex apply_patch)',
+  'legend.library':
+    '파일 읽기·코드 검색·웹 검색 (Read·Grep·WebSearch, rg·cat·git log 같은 읽기 명령)',
+  'legend.server': '명령 실행 — 빌드·테스트·설치·서버 (Bash, Codex 셸), 백그라운드 셸',
+  'legend.lounge': '입력·승인 대기, 작업 끝남 (머리 위 빨간 ! = 확인 필요)',
+  'tour.roomLegend.title': '방 안내',
+  'tour.roomLegend.body':
+    '어떤 일을 하면 어느 방으로 가는지 여기서 언제든 볼 수 있습니다. 제목을 누르면 접히고 펼쳐집니다.',
+  'app.restarting': '새 버전으로 다시 시작합니다…',
   'people.title': '접속 중 {n}명',
   'people.you': '(나)',
   'people.noAgents': '에이전트 없음',
@@ -47,6 +57,9 @@ const ko = {
   'app.readOnly': '보기 전용',
   'app.rotateHint': '회전 (R)',
   'app.importConfirm': '현재 레이아웃을 바꿀까요? 저장하지 않은 편집은 사라집니다.',
+  'app.resetDefaultConfirm':
+    '기본 사무실(128×128)로 바꿀까요? 지금 배치는 사라집니다(먼저 내보내기로 저장해 둘 수 있습니다).',
+  'settings.resetDefaultLayout': '기본 사무실로 되돌리기',
   'app.importInvalid': '올바른 레이아웃 파일이 아닙니다.',
   'app.layoutSaveRejected': '레이아웃을 저장하지 못했습니다 (올바르지 않은 레이아웃).',
   'app.importFailed': '레이아웃 파일을 읽지 못했습니다.',
@@ -161,8 +174,6 @@ const ko = {
   'editor.background.floor': '바닥',
   'editor.background.carpet': '카펫',
   'editor.backgroundHint': '지금은 기본 배경입니다. 종류를 고르세요.',
-  'editor.areas': '방 영역',
-  'editor.areasTitle': '방 영역 지정',
   'editor.erase': '지우기',
   'editor.eraseTitle': '타일을 빈 공간으로 지우기',
   'editor.copy': '복사',
@@ -182,10 +193,7 @@ const ko = {
   'editor.copyFurnitureTitle': '놓인 가구의 종류 복사',
   'editor.main': '기본',
   'editor.accent': '강조',
-  'editor.areasHint':
-    '방을 고른 뒤 타일에 칠하세요(칠한 타일을 다시 누르면 지워집니다). 방은 이 네 개로 고정입니다.',
   'editor.emptyRoom': '{room} 영역이 비어 있어 이 방에 갈 에이전트가 아무 곳에나 앉습니다',
-  'editor.areaColor': '영역 색상',
 
   'category.desks': '책상',
   'category.chairs': '의자',
@@ -279,9 +287,6 @@ const ko = {
   'tour.furniture.title': '가구',
   'tour.furniture.body':
     '목록에서 골라 놓고, 드래그로 옮기고, Alt+드래그로 복사합니다.\nR 은 회전, T 는 켜기/끄기(모니터 등), 색 버튼으로 색을 바꿉니다. 카펫도 여기 있습니다.',
-  'tour.areas.title': '방 영역',
-  'tour.areas.body':
-    '코딩실·자료실·서버실·대기실, 고정된 네 방을 타일에 칠합니다(방을 새로 만들지는 않습니다). 에이전트는 이 영역을 보고 어느 방으로 갈지 정합니다.\n걸을 수 있는 타일이 없는 방이 있으면 경고가 뜹니다.',
   'tour.background.title': '배경',
   'tour.background.body': '사무실 바깥을 단색, 바닥 무늬, 카펫 무늬 중 하나로 채웁니다.',
   'tour.editorMore.title': '지우기 · 실행 취소',
@@ -289,7 +294,7 @@ const ko = {
     '[지우기] 로 타일을 지울 수 있습니다. Ctrl+Z / Ctrl+Y 로 실행 취소 · 다시 실행.\n배치를 바꿔도 캐릭터는 있던 자리에 그대로 있습니다.',
   'tour.save.title': '저장',
   'tour.save.body':
-    '배치는 이 PC 에만 저장되고(공개·팀 오피스 모두), 다른 PC 의 화면은 바뀌지 않습니다. 편집한 내용은 바로바로 저장되고, 위쪽 막대의 [되돌리기] 는 마지막으로 [저장] 을 누른 때(또는 사무실을 연 때)의 배치로 돌아갑니다.\n배치를 나눠 쓰려면 설정 → [레이아웃 내보내기] 로 파일을 만들어 건네고, 받은 사람은 [레이아웃 가져오기] 로 엽니다.',
+    '배치는 이 PC 에만 저장되고(공개·팀 오피스 모두), 다른 PC 의 화면은 바뀌지 않습니다. 편집한 내용은 바로바로 저장되고, [레이아웃] 버튼 옆 막대의 [되돌리기] 는 마지막으로 [저장] 을 누른 때(또는 사무실을 연 때)의 배치로 돌아갑니다.\n배치를 나눠 쓰려면 설정 → [레이아웃 내보내기] 로 파일을 만들어 건네고, 받은 사람은 [레이아웃 가져오기] 로 엽니다.',
   'tour.install.title': '앱으로 설치',
   'tour.install.body':
     '이 PC의 브라우저에서는 Pixel Office 를 앱으로 설치할 수 있습니다(Edge·Chrome). 설치하면 바로가기가 탭이 아닌 앱 창으로 열립니다.\n안내 창을 닫았다면 주소창의 설치 아이콘을 쓰세요.',
@@ -325,6 +330,15 @@ const en: Record<Key, string> = {
   'act.tool': 'Using {t}',
 
   'bubble.permission': 'Needs attention',
+  'legend.title': 'Rooms',
+  'legend.coding': 'Editing files',
+  'legend.library': 'Reading, searching code and the web (incl. read-only shell commands)',
+  'legend.server': 'Running commands — build, test, install, servers; background shells',
+  'legend.lounge': 'Waiting for input/approval or done (red ! = needs you)',
+  'tour.roomLegend.title': 'Rooms',
+  'tour.roomLegend.body':
+    'Which activity sends an agent to which room, any time. Click the title to fold or unfold it.',
+  'app.restarting': 'Restarting into the new version…',
   'people.title': '{n} online',
   'people.you': '(you)',
   'people.noAgents': 'No agents',
@@ -343,6 +357,9 @@ const en: Record<Key, string> = {
   'app.readOnly': 'View only',
   'app.rotateHint': 'Rotate (R)',
   'app.importConfirm': 'Replace the current layout? Unsaved edits will be lost.',
+  'app.resetDefaultConfirm':
+    'Switch to the default office (128×128)? The current layout will be lost (export it first to keep a copy).',
+  'settings.resetDefaultLayout': 'Reset to the default office',
   'app.importInvalid': 'This is not a valid layout file.',
   'app.layoutSaveRejected': 'The layout was not saved (not a valid layout).',
   'app.importFailed': 'Could not read the layout file.',
@@ -456,8 +473,6 @@ const en: Record<Key, string> = {
   'editor.background.floor': 'Floor',
   'editor.background.carpet': 'Carpet',
   'editor.backgroundHint': 'Using the default background. Pick a kind.',
-  'editor.areas': 'Areas',
-  'editor.areasTitle': 'Define room areas',
   'editor.erase': 'Erase',
   'editor.eraseTitle': 'Erase tiles to void',
   'editor.copy': 'Copy',
@@ -477,10 +492,7 @@ const en: Record<Key, string> = {
   'editor.copyFurnitureTitle': 'Copy furniture type from placed item',
   'editor.main': 'Main',
   'editor.accent': 'Accent',
-  'editor.areasHint':
-    'Pick a room, then paint it onto tiles (paint a painted tile again to erase). These four rooms are fixed.',
   'editor.emptyRoom': 'The {room} area is empty, so agents headed there sit anywhere',
-  'editor.areaColor': 'Area color',
 
   'category.desks': 'Desks',
   'category.chairs': 'Chairs',
@@ -576,9 +588,6 @@ const en: Record<Key, string> = {
   'tour.furniture.title': 'Furniture',
   'tour.furniture.body':
     'Pick an item and place it, drag to move, Alt+drag to copy.\nR rotates, T toggles (monitors…), the color button recolors. Carpets live here too.',
-  'tour.areas.title': 'Room areas',
-  'tour.areas.body':
-    'Paint the four fixed rooms (coding room, library, server room, lounge) onto tiles; there is no adding rooms. Agents use these areas to decide where to go.\nA room with no walkable tile is warned about.',
   'tour.background.title': 'Background',
   'tour.background.body':
     'Fill the outside of the office with a solid color, a floor pattern or a carpet.',
@@ -587,7 +596,7 @@ const en: Record<Key, string> = {
     'Clear tiles with [Erase]. Ctrl+Z / Ctrl+Y undo and redo.\nChanging the layout never moves the characters.',
   'tour.save.title': 'Save',
   'tour.save.body':
-    'The layout is saved on this PC only (public and team offices alike); other PCs’ screens do not change. Every edit is saved right away, and [Reset] in the top bar goes back to the layout as of your last [Save] (or when you opened the office).\nTo share a layout, make a file with Settings → [Export layout] and hand it over; the other person opens it with [Import layout].',
+    'The layout is saved on this PC only (public and team offices alike); other PCs’ screens do not change. Every edit is saved right away, and [Reset] in the bar next to [Layout] goes back to the layout as of your last [Save] (or when you opened the office).\nTo share a layout, make a file with Settings → [Export layout] and hand it over; the other person opens it with [Import layout].',
   'tour.install.title': 'Install as an app',
   'tour.install.body':
     'On this PC’s browser you can install Pixel Office as an app (Edge, Chrome). Shortcuts then open it in its own window instead of a tab.\nIf you closed the prompt, use the install icon in the address bar.',

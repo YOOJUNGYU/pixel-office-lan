@@ -148,7 +148,7 @@ describe('/ws', () => {
     const access = waitForMessage(socket, 'officeAccess');
     const layoutLoaded = waitForMessage(socket, 'layoutLoaded');
     socket.send(JSON.stringify({ type: 'webviewReady' }));
-    expect(await access).toEqual({ type: 'officeAccess', readOnly: false });
+    expect(await access).toEqual({ type: 'officeAccess', readOnly: false, version: '0.0.0' });
     expect(await layoutLoaded).not.toBeNull();
 
     const layout = { version: 1, cols: 1, rows: 1, tiles: [1], furniture: [], marker: 'mine' };

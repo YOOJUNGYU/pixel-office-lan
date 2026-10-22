@@ -8,7 +8,7 @@ import type {
   PlacedFurniture,
   TileType as TileTypeVal,
 } from '../types.js';
-import { MAX_COLS, MAX_ROWS, TileType } from '../types.js';
+import { TileType } from '../types.js';
 
 /** Paint a single tile with pattern and color. Returns new layout (immutable). */
 export function paintTile(
@@ -525,7 +525,7 @@ export function canPlaceFurniture(
   return true;
 }
 
-/** Whether (col, row) is on the grid and neither VOID nor wall — where carpets and areas go. */
+/** Whether (col, row) is on the grid and neither VOID nor wall — where carpets go. */
 export function isFloorTile(layout: OfficeLayout, col: number, row: number): boolean {
   if (col < 0 || col >= layout.cols || row < 0 || row >= layout.rows) return false;
   const tileVal = layout.tiles[row * layout.cols + col];
@@ -562,16 +562,6 @@ export function recolorWalls(layout: OfficeLayout, color: ColorValue): OfficeLay
 /** Whether a wall stroke starting on (col, row) adds walls (it removes them when it starts on one). */
 export function wallStrokeAdds(layout: OfficeLayout, col: number, row: number): boolean {
   return layout.tiles[row * layout.cols + col] !== TileType.WALL;
-}
-
-/** Whether an area stroke starting on (col, row) erases: it does when that tile already carries `label`. */
-export function areaStrokeErases(
-  layout: OfficeLayout,
-  col: number,
-  row: number,
-  label: string,
-): boolean {
-  return (layout.areaTiles?.[row * layout.cols + col] ?? null) === label;
 }
 
 /**
@@ -622,131 +612,4 @@ export function eraseCarpet(layout: OfficeLayout, col: number, row: number): Off
   const carpetTiles = [...layout.carpetTiles];
   carpetTiles[idx] = null;
   return { ...layout, carpetTiles };
-}
-
-/**
- * Paint an area label onto (col, row). Walls / VOID are not paintable. The
- * area must already exist in `layout.areas`. Returns new layout (immutable).
- */
-export function paintArea(
-  layout: OfficeLayout,
-  col: number,
-  row: number,
-  areaLabel: string,
-): OfficeLayout {
-  if (col < 0 || col >= layout.cols || row < 0 || row >= layout.rows) return layout;
-  const idx = row * layout.cols + col;
-  if (idx < 0 || idx >= layout.tiles.length) return layout;
-  const tileVal = layout.tiles[idx];
-  if (tileVal === TileType.VOID || tileVal === TileType.WALL) return layout;
-  if (!(layout.areas ?? []).some((a) => a.label === areaLabel)) return layout;
-
-  const areaTiles = layout.areaTiles
-    ? [...layout.areaTiles]
-    : new Array<string | null>(layout.tiles.length).fill(null);
-  if (areaTiles[idx] === areaLabel) return layout;
-  areaTiles[idx] = areaLabel;
-  return { ...layout, areaTiles };
-}
-
-/** Clear the area label on (col, row). Returns new layout (immutable). No-op if untagged. */
-export function eraseArea(layout: OfficeLayout, col: number, row: number): OfficeLayout {
-  if (col < 0 || col >= layout.cols || row < 0 || row >= layout.rows) return layout;
-  const idx = row * layout.cols + col;
-  if (idx < 0 || idx >= layout.tiles.length) return layout;
-  if (!layout.areaTiles || layout.areaTiles[idx] == null) return layout;
-  const areaTiles = [...layout.areaTiles];
-  areaTiles[idx] = null;
-  return { ...layout, areaTiles };
-}
-
-/** Update an Area's display color. No-op if the area doesn't exist or color is unchanged. */
-export function updateAreaColor(layout: OfficeLayout, label: string, color: string): OfficeLayout {
-  const existing = layout.areas ?? [];
-  const idx = existing.findIndex((a) => a.label === label);
-  if (idx === -1) return layout;
-  if (existing[idx].color === color) return layout;
-  const areas = existing.map((a, i) => (i === idx ? { ...a, color } : a));
-  return { ...layout, areas };
-}
-
-export type ExpandDirection = 'left' | 'right' | 'up' | 'down';
-
-/**
- * Expand layout by 1 tile in the given direction. New tiles are VOID.
- * Furniture and tile indices are shifted when expanding left or up.
- * Returns { layout, shift } or null if exceeding MAX_COLS/MAX_ROWS.
- */
-export function expandLayout(
-  layout: OfficeLayout,
-  direction: ExpandDirection,
-): { layout: OfficeLayout; shift: { col: number; row: number } } | null {
-  const { cols, rows, tiles, furniture, tileColors, carpetTiles, areaTiles } = layout;
-  const existingColors = tileColors || new Array(tiles.length).fill(null);
-
-  let newCols = cols;
-  let newRows = rows;
-  let shiftCol = 0;
-  let shiftRow = 0;
-
-  if (direction === 'right') {
-    newCols = cols + 1;
-  } else if (direction === 'left') {
-    newCols = cols + 1;
-    shiftCol = 1;
-  } else if (direction === 'down') {
-    newRows = rows + 1;
-  } else if (direction === 'up') {
-    newRows = rows + 1;
-    shiftRow = 1;
-  }
-
-  if (newCols > MAX_COLS || newRows > MAX_ROWS) return null;
-
-  // Build new tile array
-  const newSize = newCols * newRows;
-  const newTiles: TileTypeVal[] = new Array(newSize).fill(TileType.VOID as TileTypeVal);
-  const newColors: Array<ColorValue | null> = new Array(newSize).fill(null);
-  const newCarpetTiles: Array<CarpetTile | null> | undefined = carpetTiles
-    ? new Array<CarpetTile | null>(newSize).fill(null)
-    : undefined;
-  const newAreaTiles: Array<string | null> | undefined = areaTiles
-    ? new Array<string | null>(newSize).fill(null)
-    : undefined;
-
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      const oldIdx = r * cols + c;
-      const newIdx = (r + shiftRow) * newCols + (c + shiftCol);
-      newTiles[newIdx] = tiles[oldIdx];
-      newColors[newIdx] = existingColors[oldIdx];
-      if (newCarpetTiles && carpetTiles) {
-        newCarpetTiles[newIdx] = carpetTiles[oldIdx] ?? null;
-      }
-      if (newAreaTiles && areaTiles) {
-        newAreaTiles[newIdx] = areaTiles[oldIdx] ?? null;
-      }
-    }
-  }
-
-  // Shift furniture positions
-  const newFurniture: PlacedFurniture[] = furniture.map((f) => ({
-    ...f,
-    col: f.col + shiftCol,
-    row: f.row + shiftRow,
-  }));
-
-  return {
-    layout: {
-      ...layout,
-      cols: newCols,
-      rows: newRows,
-      tiles: newTiles,
-      tileColors: newColors,
-      furniture: newFurniture,
-      ...(newCarpetTiles ? { carpetTiles: newCarpetTiles } : {}),
-      ...(newAreaTiles ? { areaTiles: newAreaTiles } : {}),
-    },
-    shift: { col: shiftCol, row: shiftRow },
-  };
 }

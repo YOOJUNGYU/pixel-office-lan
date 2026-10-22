@@ -6,6 +6,7 @@ import type { AutostartState } from './lan/autostart.js';
 import type { LanService } from './lan/office.js';
 import { validateProfileUpdate } from './lan/profile.js';
 import type { Updater } from './lan/updater.js';
+import { APP_VERSION } from './lan/updater.js';
 import {
   readLayoutFromFile,
   roomColorsOf,
@@ -91,7 +92,8 @@ export function handleClientMessage(
       break;
 
     case 'saveLayout': {
-      const layout = sanitizeLayout(msg.layout, roomColorsOf(ctx.cache?.defaultLayout));
+      const def = ctx.cache?.defaultLayout;
+      const layout = sanitizeLayout(msg.layout, roomColorsOf(def), def);
       if (layout) writeLayoutToFile(layout);
       else {
         console.warn('[Pixel Office] Refused an invalid layout save.');
@@ -280,7 +282,7 @@ function handleWebviewReady(send: WsSend, ctx: ClientMessageContext): void {
 
   // 0. Access, first: a read-only office hides every control that would send
   // a change (all refused by refuseReadOnly), so it must know before it draws them.
-  send({ type: 'officeAccess', readOnly: ctx.privileged !== true });
+  send({ type: 'officeAccess', readOnly: ctx.privileged !== true, version: APP_VERSION });
 
   // 1. Assets (from server cache, loaded at startup via pngjs)
   if (cache) {
@@ -321,7 +323,8 @@ function handleWebviewReady(send: WsSend, ctx: ClientMessageContext): void {
   // 3. Layout last: the webview builds the office once it arrives. Rooms are
   // normalized here too; a saved file that fails the checks is sent as is.
   const raw = readLayoutFromFile() ?? cache?.defaultLayout ?? null;
-  const layout = raw && (sanitizeLayout(raw, roomColorsOf(cache?.defaultLayout)) ?? raw);
+  const def = cache?.defaultLayout;
+  const layout = raw && (sanitizeLayout(raw, roomColorsOf(def), def) ?? raw);
   send({ type: 'layoutLoaded', layout });
 
   // 4. Agents right away rather than on the next 1 s tick.

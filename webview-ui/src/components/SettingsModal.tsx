@@ -27,6 +27,8 @@ interface SettingsModalProps {
   onExportLayout: () => void;
   /** Browser-native layout import from a chosen file. */
   onImportLayout: (file: File) => void;
+  /** Replace the layout with the bundled default office (absent = not offered). */
+  onResetToDefaultLayout?: () => void;
   /** Start at login on this PC; hidden when null or unsupported (dev run, Linux). */
   autostart: AutostartState | null;
   /** Team offices (this PC's browser only); the 오피스 section is hidden when null. */
@@ -47,6 +49,7 @@ export function SettingsModal({
   showAreasAvailable,
   onExportLayout,
   onImportLayout,
+  onResetToDefaultLayout,
   autostart,
   offices,
   officeReply,
@@ -126,6 +129,16 @@ export function SettingsModal({
           }
         }}
       />
+      {onResetToDefaultLayout && (
+        <MenuItem
+          onClick={() => {
+            onClose();
+            onResetToDefaultLayout();
+          }}
+        >
+          {t('settings.resetDefaultLayout')}
+        </MenuItem>
+      )}
       <Checkbox
         label={t('settings.sound')}
         checked={soundLocal}

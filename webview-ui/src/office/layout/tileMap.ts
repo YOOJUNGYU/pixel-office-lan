@@ -16,7 +16,7 @@ export function isWalkable(
   return true;
 }
 
-/** Get walkable tile positions (grid coords) for wandering */
+/** Get walkable tile positions (grid coords) (spawn and standing spots) */
 export function getWalkableTiles(
   tileMap: TileType[][],
   blockedTiles: Set<string>,
@@ -34,7 +34,10 @@ export function getWalkableTiles(
   return tiles;
 }
 
-/** BFS pathfinding on 4-connected grid (no diagonals). Returns path excluding start, including end. */
+/**
+ * BFS pathfinding on 4-connected grid (no diagonals). Returns path excluding start, including end.
+ * Index-based (typed arrays, head pointer): linear in the tiles visited, so the 128×128 office stays fast.
+ */
 export function findPath(
   startCol: number,
   startRow: number,
@@ -44,62 +47,44 @@ export function findPath(
   blockedTiles: Set<string>,
 ): Array<{ col: number; row: number }> {
   if (startCol === endCol && startRow === endRow) return [];
+  // The end must be walkable (a desk tile can't be pathed to).
+  if (!isWalkable(endCol, endRow, tileMap, blockedTiles)) return [];
 
-  const key = (c: number, r: number) => `${c},${r}`;
-  const startKey = key(startCol, startRow);
-  const endKey = key(endCol, endRow);
+  const rows = tileMap.length;
+  const cols = rows > 0 ? tileMap[0].length : 0;
+  if (startRow < 0 || startRow >= rows || startCol < 0 || startCol >= cols) return [];
+  const start = startRow * cols + startCol;
+  const end = endRow * cols + endCol;
+  // parent index + 1 (0 = unvisited); the start points at itself.
+  const parent = new Int32Array(rows * cols);
+  parent[start] = start + 1;
+  const queue = new Int32Array(rows * cols);
+  let head = 0;
+  let tail = 0;
+  queue[tail++] = start;
 
-  // End must be walkable (or be a chair tile which may be adjacent to desk)
-  // We allow the end tile even if it's not strictly walkable for chair positions
-  const endWalkable = isWalkable(endCol, endRow, tileMap, blockedTiles);
-  if (!endWalkable) {
-    // If the end is a desk tile, we still can't path there
-    return [];
-  }
-
-  const visited = new Set<string>();
-  visited.add(startKey);
-
-  const parent = new Map<string, string>();
-  const queue: Array<{ col: number; row: number }> = [{ col: startCol, row: startRow }];
-
-  const dirs = [
-    { dc: 0, dr: -1 }, // up
-    { dc: 0, dr: 1 }, // down
-    { dc: -1, dr: 0 }, // left
-    { dc: 1, dr: 0 }, // right
-  ];
-
-  while (queue.length > 0) {
-    const curr = queue.shift()!;
-    const currKey = key(curr.col, curr.row);
-
-    if (currKey === endKey) {
-      // Reconstruct path
+  while (head < tail) {
+    const curr = queue[head++];
+    if (curr === end) {
       const path: Array<{ col: number; row: number }> = [];
-      let k = endKey;
-      while (k !== startKey) {
-        const [c, r] = k.split(',').map(Number);
-        path.unshift({ col: c, row: r });
-        k = parent.get(k)!;
+      for (let k = end; k !== start; k = parent[k] - 1) {
+        path.push({ col: k % cols, row: Math.floor(k / cols) });
       }
-      return path;
+      return path.reverse();
     }
-
-    for (const d of dirs) {
-      const nc = curr.col + d.dc;
-      const nr = curr.row + d.dr;
-      const nk = key(nc, nr);
-
-      if (visited.has(nk)) continue;
+    const c = curr % cols;
+    const r = (curr - c) / cols;
+    for (let d = 0; d < 4; d++) {
+      // up, down, left, right
+      const nc = d === 2 ? c - 1 : d === 3 ? c + 1 : c;
+      const nr = d === 0 ? r - 1 : d === 1 ? r + 1 : r;
+      if (nc < 0 || nc >= cols || nr < 0 || nr >= rows) continue;
+      const n = nr * cols + nc;
+      if (parent[n] !== 0) continue;
       if (!isWalkable(nc, nr, tileMap, blockedTiles)) continue;
-
-      visited.add(nk);
-      parent.set(nk, currKey);
-      queue.push({ col: nc, row: nr });
+      parent[n] = curr + 1;
+      queue[tail++] = n;
     }
   }
-
-  // No path found
   return [];
 }

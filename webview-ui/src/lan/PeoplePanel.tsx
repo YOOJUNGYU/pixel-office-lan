@@ -2,16 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 
 import {
   MOBILE_MEDIA_QUERY,
-  PEOPLE_BOTTOM_RESERVE_PX,
   PEOPLE_COLLAPSED_KEY,
   PEOPLE_FACE_ROWS,
   PEOPLE_FACE_SCALE,
   PEOPLE_FACE_TOP,
   PEOPLE_HINT_MS,
   PEOPLE_PET_FACE_TOP,
-  PEOPLE_TOP_RESERVE_PX,
   PEOPLE_WIDE_MIN_PX,
-  PEOPLE_Z_INDEX,
 } from '../constants.js';
 import { t, useLang } from '../i18n.js';
 import type { OfficeState } from '../office/engine/officeState.js';
@@ -115,15 +112,8 @@ export function PeoplePanel({ rows: live, lan, officeState, forceOpen }: PeopleP
   const count = t('people.title', { n: String(rows.length) });
 
   return (
-    // The free band between the install popup and the update banner; the panel centres in it.
-    <div
-      style={{
-        zIndex: PEOPLE_Z_INDEX,
-        top: PEOPLE_TOP_RESERVE_PX,
-        bottom: PEOPLE_BOTTOM_RESERVE_PX,
-      }}
-      className="absolute right-10 flex items-center pointer-events-none max-w-[min(260px,calc(100%-20px))]"
-    >
+    // Whatever height the top-right stack leaves below the popups; the panel centres in it.
+    <div className="flex-1 min-h-0 flex items-center pointer-events-none max-w-[min(260px,100%)]">
       <div
         data-tour="people"
         className="pointer-events-auto pixel-panel flex flex-col text-sm max-w-full max-h-full min-h-0"
