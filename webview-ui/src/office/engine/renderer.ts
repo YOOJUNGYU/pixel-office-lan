@@ -383,6 +383,8 @@ export function renderBackground(
   offsetX: number,
   offsetY: number,
   zoom: number,
+  /** Draw the zoom-`zoom` tile pattern shrunk by this (fractional zoom below 1, on screen). */
+  patternScale = 1,
 ): void {
   if (fill.kind === 'none') return;
   if (fill.kind === 'color') {
@@ -397,6 +399,8 @@ export function renderBackground(
   if (!sprite) return;
   const pattern = ctx.createPattern(getCachedSprite(sprite, zoom), 'repeat');
   if (!pattern) return;
+  if (patternScale !== 1)
+    pattern.setTransform(new DOMMatrix([patternScale, 0, 0, patternScale, 0, 0]));
   ctx.save();
   ctx.translate(offsetX, offsetY);
   ctx.fillStyle = pattern;
@@ -495,10 +499,8 @@ function renderFloorLayer(
     draw(ctx, offsetX, offsetY);
     return;
   }
+  const n = Math.max(FLOOR_CHUNK_MIN_TILES, Math.round(FLOOR_CHUNK_PX / s)); // tiles per side
   const key = [
-    tileMap,
-    tileColors,
-    carpetTiles,
     cols,
     rows,
     zoom,
@@ -508,11 +510,26 @@ function renderFloorLayer(
     hasWallSprites(),
   ];
   if (!floorChunksKey || floorChunksKey.some((k, i) => k !== key[i])) {
-    floorChunks.clear();
-    floorChunkPixels = 0;
+    dropFloorChunks(() => true);
     floorChunksKey = key;
+  } else if (
+    floorData &&
+    (floorData.tileMap !== tileMap ||
+      floorData.tileColors !== tileColors ||
+      floorData.carpetTiles !== carpetTiles)
+  ) {
+    // A layout edit: rebuild only the chunks whose tiles changed (a carpet
+    // tile's junction sprites reach one tile around it), not the whole floor.
+    const dirty = changedFloorChunks(
+      floorData,
+      { tileMap, tileColors, carpetTiles },
+      cols,
+      rows,
+      n,
+    );
+    dropFloorChunks((id) => dirty.has(id));
   }
-  const n = Math.max(FLOOR_CHUNK_MIN_TILES, Math.round(FLOOR_CHUNK_PX / s)); // tiles per side
+  floorData = { tileMap, tileColors, carpetTiles };
   const span = n * s;
   const iMax = Math.min(
     Math.ceil(cols / n) - 1,
@@ -555,6 +572,72 @@ function renderFloorLayer(
     floorChunks.delete(id);
     floorChunkPixels -= canvas.width * canvas.height;
   }
+}
+
+interface FloorData {
+  tileMap: TileTypeVal[][];
+  tileColors: Array<ColorValue | null> | undefined;
+  carpetTiles: Array<CarpetTile | null> | undefined;
+}
+let floorData: FloorData | null = null;
+
+function dropFloorChunks(which: (id: string) => boolean): void {
+  for (const [id, canvas] of floorChunks) {
+    if (!which(id)) continue;
+    floorChunks.delete(id);
+    floorChunkPixels -= canvas.width * canvas.height;
+  }
+}
+
+const sameColor = (a: ColorValue | null | undefined, b: ColorValue | null | undefined): boolean =>
+  a === b ||
+  (!!a &&
+    !!b &&
+    a.h === b.h &&
+    a.s === b.s &&
+    a.b === b.b &&
+    a.c === b.c &&
+    a.colorize === b.colorize);
+
+const sameCarpet = (a: CarpetTile | null | undefined, b: CarpetTile | null | undefined): boolean =>
+  a === b ||
+  (!!a &&
+    !!b &&
+    a.variant === b.variant &&
+    a.order === b.order &&
+    sameColor(a.color, b.color) &&
+    sameColor(a.accentColor, b.accentColor));
+
+/** Chunk ids ("i,j", `n` tiles a side) touched by tiles that differ between two floors. */
+export function changedFloorChunks(
+  a: FloorData,
+  b: FloorData,
+  cols: number,
+  rows: number,
+  n: number,
+): Set<string> {
+  const dirty = new Set<string>();
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const i = r * cols + c;
+      if (
+        a.tileMap[r]?.[c] === b.tileMap[r]?.[c] &&
+        sameColor(a.tileColors?.[i], b.tileColors?.[i]) &&
+        sameCarpet(a.carpetTiles?.[i], b.carpetTiles?.[i])
+      ) {
+        continue;
+      }
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          const cc = c + dc;
+          const rr = r + dr;
+          if (cc < 0 || rr < 0 || cc >= cols || rr >= rows) continue;
+          dirty.add(`${Math.floor(cc / n)},${Math.floor(rr / n)}`);
+        }
+      }
+    }
+  }
+  return dirty;
 }
 
 /** Test/benchmark hook: cached floor chunks and their device pixels. */
@@ -1029,28 +1112,42 @@ export function renderFrame(
   // returned offsets are screen device px, the frame overlays use.
   const view = mapOffset(screenWidth, screenHeight, cols, rows, viewZoom, panX, panY);
   const scaled = view.scale !== 1;
-  const canvasWidth = scaled ? Math.ceil(screenWidth / view.scale) : screenWidth;
-  const canvasHeight = scaled ? Math.ceil(screenHeight / view.scale) : screenHeight;
+  let canvasWidth = scaled ? Math.ceil(screenWidth / view.scale) : screenWidth;
+  let canvasHeight = scaled ? Math.ceil(screenHeight / view.scale) : screenHeight;
+  // Zoomed out below 1 the render space is bigger than the screen: render only
+  // the visible part of the map (plus a tile for edge sprites) and paint the
+  // background around it straight onto the screen.
+  let originX = 0;
+  let originY = 0;
+  if (view.scale < 1) {
+    const pad = TILE_SIZE * view.renderZoom;
+    const x0 = Math.max(0, view.renderOffsetX - pad);
+    const y0 = Math.max(0, view.renderOffsetY - pad);
+    const x1 = Math.min(canvasWidth, view.renderOffsetX + cols * TILE_SIZE * view.renderZoom + pad);
+    const y1 = Math.min(
+      canvasHeight,
+      view.renderOffsetY + rows * TILE_SIZE * view.renderZoom + pad,
+    );
+    if (x1 > x0 && y1 > y0) {
+      originX = x0;
+      originY = y0;
+      canvasWidth = x1 - x0;
+      canvasHeight = y1 - y0;
+    }
+  }
   const ctx = scaled ? offscreenContext(canvasWidth, canvasHeight) : screenCtx;
   const zoom = view.renderZoom;
-  const offsetX = view.renderOffsetX;
-  const offsetY = view.renderOffsetY;
+  const offsetX = view.renderOffsetX - originX;
+  const offsetY = view.renderOffsetY - originY;
+  const backgroundFill = resolveBackground(background, {
+    floorPatterns: getFloorPatternCount(),
+    carpetVariants: getCarpetSetCount(),
+  });
 
   ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
   // Background (outside the office + VOID tiles), then tiles (floor + wall base color)
-  renderBackground(
-    ctx,
-    resolveBackground(background, {
-      floorPatterns: getFloorPatternCount(),
-      carpetVariants: getCarpetSetCount(),
-    }),
-    canvasWidth,
-    canvasHeight,
-    offsetX,
-    offsetY,
-    zoom,
-  );
+  renderBackground(ctx, backgroundFill, canvasWidth, canvasHeight, offsetX, offsetY, zoom);
   // Floor + wall base + carpets (below seat indicators / furniture / characters)
   renderFloorLayer(ctx, tileMap, tileColors, carpetTiles, cols, rows, offsetX, offsetY, zoom);
 
@@ -1152,10 +1249,24 @@ export function renderFrame(
   if (scaled) {
     screenCtx.clearRect(0, 0, screenWidth, screenHeight);
     screenCtx.imageSmoothingEnabled = false;
-    screenCtx.drawImage(ctx.canvas, 0, 0, canvasWidth * view.scale, canvasHeight * view.scale);
+    if (originX !== 0 || originY !== 0 || view.scale < 1) {
+      renderBackground(
+        screenCtx,
+        backgroundFill,
+        screenWidth,
+        screenHeight,
+        view.offsetX,
+        view.offsetY,
+        zoom,
+        view.scale,
+      );
+    }
+    const sx = originX * view.scale;
+    const sy = originY * view.scale;
+    screenCtx.drawImage(ctx.canvas, sx, sy, canvasWidth * view.scale, canvasHeight * view.scale);
     if (editor) {
-      editor.deleteButtonBounds = scaleBounds(editor.deleteButtonBounds, view.scale);
-      editor.rotateButtonBounds = scaleBounds(editor.rotateButtonBounds, view.scale);
+      editor.deleteButtonBounds = scaleBounds(editor.deleteButtonBounds, view.scale, sx, sy);
+      editor.rotateButtonBounds = scaleBounds(editor.rotateButtonBounds, view.scale, sx, sy);
     }
   }
 
@@ -1176,6 +1287,6 @@ function offscreenContext(width: number, height: number): CanvasRenderingContext
   return offscreen;
 }
 
-function scaleBounds(b: ButtonBounds | null, scale: number): ButtonBounds | null {
-  return b && { cx: b.cx * scale, cy: b.cy * scale, radius: b.radius * scale };
+function scaleBounds(b: ButtonBounds | null, scale: number, dx = 0, dy = 0): ButtonBounds | null {
+  return b && { cx: b.cx * scale + dx, cy: b.cy * scale + dy, radius: b.radius * scale };
 }

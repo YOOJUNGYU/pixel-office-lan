@@ -173,7 +173,10 @@ function App() {
       };
     };
     hooks.getShowAreas = () => effectiveShowAreas;
+    hooks.getZoom = () => editor.zoom;
+    hooks.setZoom = (z) => editor.handleZoomChange(z);
   }, [
+    editor.handleZoomChange,
     editor.handleEditorTileAction,
     editor.handleEditorEraseAction,
     editor.handleDrop,
@@ -455,7 +458,6 @@ function App() {
           onDeleteSelected={editor.handleDeleteSelected}
           onRotateSelected={editor.handleRotateSelected}
           onDrop={editor.handleDrop}
-          editorTick={editor.editorTick}
           zoom={editor.zoom}
           onZoomChange={editor.handleZoomChange}
           panRef={editor.panRef}

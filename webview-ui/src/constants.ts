@@ -13,7 +13,7 @@ export const DEFAULT_LAYOUT_ASSET = 'assets/default-layout-1.json';
 /** Floor chunk cache budget (device px², all chunks; chunks on screen are always kept). */
 export const FLOOR_CACHE_MAX_PIXELS = 4096 * 4096;
 /** Floor chunk side in device px (rounded to whole tiles) and its minimum in tiles. */
-export const FLOOR_CHUNK_PX = 1024;
+export const FLOOR_CHUNK_PX = 512;
 export const FLOOR_CHUNK_MIN_TILES = 4;
 /** Random tiles tried before scanning a whole room for a free one. */
 export const FREE_TILE_PROBES = 16;

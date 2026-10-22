@@ -48,7 +48,6 @@ interface OfficeCanvasProps {
   /** A furniture drag released with the item's top-left over (col,row);
    *  `duplicate` when Alt was held. The handler decides what that commits. */
   onDrop: (uid: string, col: number, row: number, opts: { duplicate: boolean }) => void;
-  editorTick: number;
   zoom: number;
   onZoomChange: (zoom: number) => void;
   panRef: React.MutableRefObject<{ x: number; y: number }>;
@@ -72,7 +71,6 @@ export function OfficeCanvas({
   onDeleteSelected,
   onRotateSelected,
   onDrop,
-  editorTick: _editorTick,
   zoom,
   onZoomChange,
   panRef,
@@ -122,8 +120,13 @@ export function OfficeCanvas({
     if (!canvas || !container) return;
     const rect = container.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
-    canvas.width = Math.round(rect.width * dpr);
-    canvas.height = Math.round(rect.height * dpr);
+    const w = Math.round(rect.width * dpr);
+    const h = Math.round(rect.height * dpr);
+    // Assigning width/height clears the canvas even when unchanged — and the
+    // ResizeObserver's first callback runs after this frame's draw, so a blind
+    // assignment painted a blank frame on every effect re-run (every edit).
+    if (canvas.width !== w) canvas.width = w;
+    if (canvas.height !== h) canvas.height = h;
     canvas.style.width = `${rect.width}px`;
     canvas.style.height = `${rect.height}px`;
     // No ctx.scale(dpr) — we render directly in device pixels
@@ -226,7 +229,8 @@ export function OfficeCanvas({
       stop();
       observer.disconnect();
     };
-  }, [officeState, resizeCanvas, isEditMode, editorState, _editorTick, zoom, panRef, showAreas]);
+    // No edit tick here: the loop reads the editor state every frame (a restart per edit is waste).
+  }, [officeState, resizeCanvas, isEditMode, editorState, zoom, panRef, showAreas]);
 
   // Convert CSS mouse coords to world (sprite pixel) coords
   const screenToWorld = useCallback(

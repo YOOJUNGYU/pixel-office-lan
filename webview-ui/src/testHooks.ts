@@ -103,6 +103,9 @@ declare global {
         parentToolId?: string;
       }>;
       selectAgent?: (id: number) => void;
+      /** Camera zoom (fps measurements at fixed zooms). */
+      getZoom?: () => number;
+      setZoom?: (zoom: number) => void;
     };
   }
 }
