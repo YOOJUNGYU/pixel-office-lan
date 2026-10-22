@@ -1,5 +1,6 @@
 import { type MutableRefObject, type RefObject, useEffect, useRef, useState } from 'react';
 
+import type { OfficeAgent } from '../../../core/src/lan.js';
 import {
   BUBBLE_SITTING_OFFSET_PX,
   BUBBLE_VERTICAL_OFFSET_PX,
@@ -11,6 +12,12 @@ import {
   LAN_KIND_BADGES,
   LAN_PERMISSION_Z_INDEX,
   LAN_PROVIDER_COLORS,
+  LAN_TAG_BADGE_CHROME_PX,
+  LAN_TAG_BADGE_FONT,
+  LAN_TAG_CHROME_PX,
+  LAN_TAG_FONT,
+  LAN_TAG_HEIGHT_PX,
+  LAN_TAG_STACK_GAP_PX,
   LAN_TAG_Z_INDEX,
   PET_HEAD_DROP_PX,
 } from '../constants.js';
@@ -19,8 +26,26 @@ import type { OfficeState } from '../office/engine/officeState.js';
 import { overlayProjection, renderScale } from '../office/projection.js';
 import { getCachedSprite } from '../office/sprites/spriteCache.js';
 import { BUBBLE_PERMISSION_SPRITE } from '../office/sprites/spriteData.js';
-import { CharacterState } from '../office/types.js';
+import { type Character, CharacterState } from '../office/types.js';
 import { type LanAgents, tagBadge, tagText } from './lanAgents.js';
+import { stackTags, type TagBox } from './tagStack.js';
+
+/** Text widths for tag stacking, measured once per string (cleared when web fonts finish loading). */
+const textWidths = new Map<string, number>();
+let measureCtx: CanvasRenderingContext2D | null = null;
+document.fonts?.addEventListener('loadingdone', () => textWidths.clear());
+function textWidth(text: string, font: string): number {
+  const key = `${font}|${text}`;
+  let w = textWidths.get(key);
+  if (w === undefined) {
+    measureCtx ??= document.createElement('canvas').getContext('2d');
+    if (!measureCtx) return 0;
+    measureCtx.font = font;
+    w = measureCtx.measureText(text).width;
+    textWidths.set(key, w);
+  }
+  return w;
+}
 
 /** The permission bubble sprite, blitted into a DOM canvas above the tags. */
 /** `scale` = fractional-zoom stretch on top of the integer-zoom sprite (see renderScale). */
@@ -97,12 +122,31 @@ export function LanOverlay({ officeState, lan, containerRef, zoom, panRef }: Lan
 
   const nodes = [];
   const byKey = new Map(lan.all().map((a) => [a.key, a] as const));
+  // Project every tag first, then stack the ones that collide (side-by-side characters).
+  const tags: Array<{ a: OfficeAgent; ch: Character; text: string }> = [];
+  const boxes: TagBox[] = [];
   for (const a of lan.all()) {
     const id = lan.idFor(a.key);
     const ch = id !== undefined ? officeState.characters.get(id) : undefined;
     if (!ch) continue;
+    const text = tagText(a, a.parentKey !== undefined ? byKey.get(a.parentKey) : undefined);
+    const badge = tagBadge(a);
     const typing = ch.state === CharacterState.TYPE;
-    const x = project.toScreenX(ch.x);
+    tags.push({ a, ch, text });
+    boxes.push({
+      x: project.toScreenX(ch.x),
+      y: project.toScreenY(ch.y + (typing ? CHARACTER_SITTING_OFFSET_PX : 0)),
+      w:
+        LAN_TAG_CHROME_PX +
+        textWidth(text, LAN_TAG_FONT) +
+        (badge ? LAN_TAG_BADGE_CHROME_PX + textWidth(badge, LAN_TAG_BADGE_FONT) : 0),
+    });
+  }
+  const tops = stackTags(boxes, LAN_TAG_HEIGHT_PX, LAN_TAG_STACK_GAP_PX);
+  for (let i = 0; i < tags.length; i++) {
+    const { a, ch, text } = tags[i];
+    const typing = ch.state === CharacterState.TYPE;
+    const x = boxes[i].x;
     const lit = a.peer.id === lan.highlightPeer;
     nodes.push(
       <div
@@ -111,7 +155,7 @@ export function LanOverlay({ officeState, lan, containerRef, zoom, panRef }: Lan
         className={`absolute -translate-x-1/2 flex items-center gap-4 whitespace-nowrap text-sm leading-none px-3 py-1 text-text pointer-events-none ${lit ? 'bg-accent outline-2 outline-accent-bright' : 'bg-bg/75'}`}
         style={{
           left: x,
-          top: project.toScreenY(ch.y + (typing ? CHARACTER_SITTING_OFFSET_PX : 0)),
+          top: tops[i],
           zIndex: lit ? LAN_PERMISSION_Z_INDEX : LAN_TAG_Z_INDEX,
         }}
       >
@@ -119,7 +163,7 @@ export function LanOverlay({ officeState, lan, containerRef, zoom, panRef }: Lan
           className="w-6 h-6 shrink-0"
           style={{ background: LAN_PROVIDER_COLORS[a.provider] }}
         />
-        {tagText(a, a.parentKey !== undefined ? byKey.get(a.parentKey) : undefined)}
+        {text}
         {a.kind !== 'main' && (
           <span
             data-badge={a.kind}

@@ -348,6 +348,13 @@ export const LAN_BUBBLE_MAX_WIDTH_PX = 300;
 /** Hover bubble sits this many world px above a character's feet (sprite height). */
 export const LAN_BUBBLE_HEAD_OFFSET = 32;
 export const LAN_TAG_Z_INDEX = 40;
+/** Name tag box for overlap stacking (CSS px): text-sm leading-none + py-1; side chrome = px-3 ×2 + dot 6 + gap 4; badge = gap 4 + px-2 ×2. */
+export const LAN_TAG_HEIGHT_PX = 15;
+export const LAN_TAG_STACK_GAP_PX = 2;
+export const LAN_TAG_CHROME_PX = 16;
+export const LAN_TAG_BADGE_CHROME_PX = 8;
+export const LAN_TAG_FONT = '13px Pretendard';
+export const LAN_TAG_BADGE_FONT = 'bold 11px Pretendard';
 export const LAN_PERMISSION_Z_INDEX = 41;
 export const LAN_BUBBLE_Z_INDEX = 42;
 /** Room names on the map outside Show Areas: light text, dark outline, top of each room. */
