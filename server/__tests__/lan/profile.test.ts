@@ -82,6 +82,16 @@ describe('loadProfile', () => {
     expect(publicKeyOf(p.identity.privateKeyPem)).toBe(p.identity.publicKey);
     if (posix) expect(mode(path.join(dir, 'profile.json'))).toBe(0o600);
   });
+  it('a corrupt key pair gets a new peerId with the new key (old pins would ignore it)', () => {
+    fs.writeFileSync(
+      path.join(dir, 'profile.json'),
+      JSON.stringify({ peerId: 'keep', identity: { publicKey: 'x', privateKeyPem: 'broken' } }),
+    );
+    const p = loadProfile(dir);
+    expect(p.peerId).not.toBe('keep');
+    expect(publicKeyOf(p.identity.privateKeyPem)).toBe(p.identity.publicKey);
+    expect(loadProfile(dir).peerId).toBe(p.peerId);
+  });
   it('replaces a peerId that is not a wire id', () => {
     fs.writeFileSync(path.join(dir, 'profile.json'), JSON.stringify({ peerId: 'a|b' }));
     expect(loadProfile(dir).peerId).toMatch(/^[0-9a-f-]{36}$/);

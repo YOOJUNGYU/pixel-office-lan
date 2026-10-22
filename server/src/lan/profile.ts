@@ -133,7 +133,7 @@ export function saveProfile(p: Profile, dir: string = defaultDir()): void {
  */
 export function loadProfile(dir: string = defaultDir()): Profile {
   const raw = readJsonObject(path.join(dir, PROFILE_FILE_NAME));
-  const peerId = isWireId(raw.peerId) ? raw.peerId : randomUUID();
+  let peerId = isWireId(raw.peerId) ? raw.peerId : randomUUID();
   const nick = typeof raw.nickname === 'string' ? raw.nickname.trim() : '';
   // nickname '' is a valid stored state (not yet chosen), so validate fields individually
   const valid = validateProfileUpdate({ ...raw, nickname: nick || 'x' });
@@ -146,6 +146,8 @@ export function loadProfile(dir: string = defaultDir()): Profile {
       ? raw.identity.privateKeyPem
       : '';
   const pk = publicKeyOf(pem);
+  // A new key under the old id would be ignored by every peer that pinned the old key.
+  if (!pk && raw.identity !== undefined) peerId = randomUUID();
   const { publicKey, privateKeyPem } = pk
     ? { publicKey: pk, privateKeyPem: pem }
     : createIdentity(peerId);

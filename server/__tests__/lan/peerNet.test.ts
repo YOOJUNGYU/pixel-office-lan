@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { PeerPacket } from '../../../core/src/lan.js';
 import { MAX_PACKET_BYTES, PUBLIC_VIEW } from '../../../core/src/lan.js';
-import { PACKET_PLAINTEXT_BUDGET } from '../../src/constants.js';
+import { MAX_WARN_KEYS, PACKET_PLAINTEXT_BUDGET } from '../../src/constants.js';
 import type { Identity } from '../../src/lan/crypto.js';
 import {
   createIdentity,
@@ -222,6 +222,63 @@ describe('PeerNet public office', () => {
       expect(Buffer.byteLength(text)).toBeLessThanOrEqual(MAX_PACKET_BYTES);
       expect(parseWire(text)).not.toBeNull();
     }
+  });
+});
+
+describe('PeerNet bounded state', () => {
+  type Internals = {
+    receive(text: string, rinfo: { address: string; port: number }): void;
+    seen: Map<string, Map<string, unknown>>;
+    warned: Set<string>;
+  };
+  const rinfo = { address: '127.0.0.1', port: 9 };
+
+  it('expires peers on the send tick even when no one views the office', async () => {
+    const [a] = await mkNodes(['A']);
+    const net = a.net as unknown as Internals;
+    const x = createIdentity('X');
+    for (let i = 0; i < 40; i++) {
+      const id = `X${i}`;
+      net.receive(JSON.stringify({ v: 2, t: 'hello', id, pk: x.publicKey }), rinfo);
+      const key = pairKey(x.privateKeyPem, a.id.publicKey, id, 'A')!;
+      const inner = JSON.stringify({ seq: 1, packet: pkt(id) });
+      net.receive(
+        JSON.stringify({ v: 2, t: 'pub', from: id, to: 'A', ...seal(key, pubAad(id, 'A'), inner) }),
+        rinfo,
+      );
+    }
+    expect(net.seen.get(PUBLIC_VIEW)?.size).toBe(40);
+    a.t += PEER_TTL_MS + 1;
+    a.net.sendNow();
+    expect(net.seen.get(PUBLIC_VIEW)?.size ?? 0).toBe(0);
+
+    // same for a joined team office nobody is looking at
+    const ch = channel(newInviteCode().secret);
+    a.offices = [ch];
+    for (let i = 0; i < 40; i++) {
+      const inner = JSON.stringify({ seq: 1, packet: pkt(`M${i}`) });
+      net.receive(
+        JSON.stringify({ v: 2, t: 'team', tag: ch.tag, ...seal(ch.key, teamAad(ch.tag), inner) }),
+        rinfo,
+      );
+    }
+    expect(net.seen.get(ch.tag)?.size).toBe(40);
+    a.t += PEER_TTL_MS + 1;
+    a.net.sendNow();
+    expect(net.seen.get(ch.tag)?.size ?? 0).toBe(0);
+  });
+
+  it('caps once-only warnings: 10k key mismatches → bounded set and log', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const [a] = await mkNodes(['A']);
+    const net = a.net as unknown as Internals;
+    const [k1, k2] = [createIdentity('k1').publicKey, createIdentity('k2').publicKey];
+    for (let i = 0; i < 10_000; i++) {
+      net.receive(JSON.stringify({ v: 2, t: 'hello', id: `Z${i}`, pk: k1 }), rinfo);
+      net.receive(JSON.stringify({ v: 2, t: 'hello', id: `Z${i}`, pk: k2 }), rinfo);
+    }
+    expect(net.warned.size).toBeLessThanOrEqual(MAX_WARN_KEYS + 1);
+    expect(warn.mock.calls.length).toBeLessThanOrEqual(MAX_WARN_KEYS + 1);
   });
 });
 

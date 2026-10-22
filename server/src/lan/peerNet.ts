@@ -6,6 +6,7 @@ import { parsePeerPacket, PUBLIC_VIEW } from '../../../core/src/lan.js';
 import {
   MAX_HELLO_PEERS,
   MAX_OFFICE_NAME,
+  MAX_WARN_KEYS,
   PACKET_PLAINTEXT_BUDGET,
   SEQ_MEMORY_MS,
 } from '../constants.js';
@@ -14,6 +15,7 @@ import { open, pairKey, parseWire, pubAad, seal, teamAad } from './crypto.js';
 
 export const PEER_TTL_MS = 5_000;
 export const SEND_INTERVAL_MS = 1_000;
+const WARN_OVERFLOW = '*';
 
 /** A joined team office as PeerNet needs it (key = teamKey(secret)). */
 export interface TeamChannel {
@@ -187,10 +189,8 @@ export class PeerNet {
     if (view === PUBLIC_VIEW ? this.opts.offices().length > 0 : !this.isJoined(view)) return [];
     const t = this.now();
     const out: PeerPacket[] = [];
-    for (const [id, e] of this.seen.get(view) ?? []) {
-      if (t - e.at > PEER_TTL_MS) this.seen.get(view)?.delete(id);
-      else out.push(e.packet);
-    }
+    for (const e of this.seen.get(view)?.values() ?? [])
+      if (t - e.at <= PEER_TTL_MS) out.push(e.packet);
     return out;
   }
 
@@ -216,8 +216,14 @@ export class PeerNet {
     });
   }
 
+  /** Once per key; keys come from the network, so past MAX_WARN_KEYS the rest go unlogged. */
   private warnOnce(key: string, message: string): void {
-    if (this.warned.has(key)) return;
+    if (this.warned.has(key) || this.warned.has(WARN_OVERFLOW)) return;
+    if (this.warned.size >= MAX_WARN_KEYS) {
+      this.warned.add(WARN_OVERFLOW);
+      console.warn('[Pixel Office] Too many UDP warnings; further ones are not logged.');
+      return;
+    }
     this.warned.add(key);
     console.warn(message);
   }
@@ -291,7 +297,10 @@ export class PeerNet {
     const live = new Set(offices.length ? offices.map((o) => o.tag) : [PUBLIC_VIEW]);
     if (offices.length) this.hellos.clear();
     for (const [id, h] of this.hellos) if (t - h.at > PEER_TTL_MS) this.hellos.delete(id);
-    for (const ch of this.seen.keys()) if (!live.has(ch)) this.seen.delete(ch);
+    for (const [ch, peers] of this.seen) {
+      if (!live.has(ch)) this.seen.delete(ch);
+      else for (const [id, e] of peers) if (t - e.at > PEER_TTL_MS) peers.delete(id);
+    }
     for (const tag of this.names.keys()) if (!live.has(tag)) this.names.delete(tag);
     // ponytail: a sender silent past SEQ_MEMORY_MS can be replayed once more; add a time window to seq if that matters
     for (const [k, s] of this.lastSeq) if (t - s.at > SEQ_MEMORY_MS) this.lastSeq.delete(k);

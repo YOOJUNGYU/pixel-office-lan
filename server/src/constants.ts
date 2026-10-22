@@ -107,6 +107,8 @@ export const MAX_KNOWN_PEERS = 1_000;
 export const PIN_SAVE_DELAY_MS = 1_000;
 /** Public-office peers tracked at once; hellos from further new ids are ignored. */
 export const MAX_HELLO_PEERS = 256;
+/** Distinct once-only UDP warnings (ids/addresses come from the network); then logging stops. */
+export const MAX_WARN_KEYS = 256;
 /** Replay guard: last seq per (channel, sender) is remembered this long. */
 export const SEQ_MEMORY_MS = 10 * 60_000;
 export const MAX_OFFICES = 10;
