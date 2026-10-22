@@ -7,7 +7,13 @@ import { EditActionBar } from './components/EditActionBar.js';
 import { SettingsModal } from './components/SettingsModal.js';
 import { Button } from './components/ui/Button.js';
 import { ZoomControls } from './components/ZoomControls.js';
-import { OFFICE_CANVAS_TEST_ID } from './constants.js';
+import {
+  OFFICE_CANVAS_TEST_ID,
+  TOUR_AUTOSTART_DELAY_MS,
+  TOUR_FIT_FILL,
+  ZOOM_MAX,
+  ZOOM_MIN,
+} from './constants.js';
 import { useEditorActions } from './hooks/useEditorActions.js';
 import { useEditorKeyboard } from './hooks/useEditorKeyboard.js';
 import { useExtensionMessages } from './hooks/useExtensionMessages.js';
@@ -30,6 +36,11 @@ import { getPetCount } from './office/sprites/petSpriteData.js';
 import { EditTool, type OfficeLayout, TILE_SIZE } from './office/types.js';
 import { isBrowserRuntime, isE2E } from './runtime.js';
 import { installTestHooks } from './testHooks.js';
+import { demoAgents, needsDemo } from './tour/demoAgents.js';
+import { fitZoom } from './tour/geometry.js';
+import { type Capability, stepById, visibleSteps } from './tour/steps.js';
+import { TourOverlay } from './tour/TourOverlay.js';
+import { useTour } from './tour/useTour.js';
 import { transport } from './transport/index.js';
 
 // Game state lives outside React — updated imperatively by message handlers
@@ -88,7 +99,7 @@ function App() {
   // Overlay geometry: the root div is the canvas container's size.
   const containerRef = useRef<HTMLDivElement>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  useLang();
+  const lang = useLang();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const firstRun = !!profile?.canEdit && profile.profile.nickname === '';
   // A save stays open until the server answers (profileLoaded): its echo closes the
@@ -202,6 +213,112 @@ function App() {
   // Areas authoring is available when the layout already defines areas.
   const areasAvailable = (officeState.getLayout().areas?.length ?? 0) > 0;
 
+  // ── Onboarding tour ──
+  // The current step's scene drives what is open (settings, profile, editor
+  // tool, action bar) and the client-only demo characters; when the tour ends
+  // everything falls back to the user's own state.
+  const tour = useTour();
+  const { dispatch: tourDispatch } = tour;
+  const step = tour.current ? stepById(tour.current) : null;
+  const scene = step?.scene;
+  const tourDemoRef = useRef(false);
+  // Camera: the user's before the tour (restored at the end) and the tour's
+  // whole-office view (re-applied on every step, undoing the "try it" step).
+  type Camera = { zoom: number; pan: { x: number; y: number } };
+  const tourUserCameraRef = useRef<Camera | null>(null);
+  const tourCameraRef = useRef<Camera | null>(null);
+  const { zoom, panRef, handleZoomChange } = editor;
+  const startTour = useCallback(() => {
+    tourUserCameraRef.current ??= { zoom, pan: { ...panRef.current } };
+    const box = containerRef.current?.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    const layout = getOfficeState().getLayout();
+    tourCameraRef.current = {
+      zoom: box
+        ? fitZoom(
+            { w: layout.cols * TILE_SIZE, h: layout.rows * TILE_SIZE },
+            { w: box.width * dpr, h: box.height * dpr },
+            TOUR_FIT_FILL,
+            ZOOM_MIN,
+            ZOOM_MAX,
+          )
+        : zoom,
+      pan: { x: 0, y: 0 },
+    };
+    const caps = new Set<Capability>();
+    if (!officeReadOnly && !isMobile) caps.add('edit');
+    if (!officeReadOnly && offices) caps.add('switcher').add('offices');
+    if (profile?.canEdit) caps.add('profile');
+    if (areasAvailable) caps.add('areas');
+    setIsSettingsOpen(false);
+    setIsProfileOpen(false);
+    tourDemoRef.current = needsDemo(lan.realAgents());
+    tourDispatch({ type: 'start', ids: visibleSteps(officeReadOnly ? 'readOnly' : 'full', caps) });
+  }, [officeReadOnly, isMobile, offices, profile, areasAvailable, lan, tourDispatch, zoom, panRef]);
+
+  // First run: right after the profile is saved (remote viewers: on first visit).
+  const tourCanAutostart =
+    layoutReady &&
+    (profile !== null || officeReadOnly) &&
+    !firstRun &&
+    !tour.state.done &&
+    step === null;
+  useEffect(() => {
+    if (!tourCanAutostart) return;
+    const timer = setTimeout(startTour, TOUR_AUTOSTART_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [tourCanAutostart, startTour]);
+
+  const touring = step !== null;
+  const walk = scene?.walk ?? 'coding';
+  useEffect(() => {
+    lan.setDemo(
+      touring && tourDemoRef.current
+        ? demoAgents(
+            {
+              nicknames: [t('tour.demo.a'), t('tour.demo.b'), t('tour.demo.c'), t('tour.demo.d')],
+              editReason: t('tour.demo.editReason'),
+              readReason: t('tour.demo.readReason'),
+              waitReason: t('tour.demo.waitReason'),
+            },
+            walk,
+          )
+        : [],
+    );
+  }, [lan, touring, walk, lang]);
+
+  // Editor steps open the editor with a tool; leaving them restores the tool
+  // and closes the editor if the tour opened it. Nothing is ever saved.
+  const tourEditorRef = useRef<{ opened: boolean; tool: EditTool } | null>(null);
+  const tourTool = scene?.editor;
+  const { isEditMode, handleToggleEditMode, handleToolChange } = editor;
+  useEffect(() => {
+    const saved = tourEditorRef.current;
+    if (tourTool !== undefined) {
+      if (!saved) {
+        tourEditorRef.current = { opened: !isEditMode, tool: editorState.activeTool };
+        if (!isEditMode) handleToggleEditMode();
+      }
+      if (editorState.activeTool !== tourTool) handleToolChange(tourTool);
+    } else if (saved) {
+      tourEditorRef.current = null;
+      if (editorState.activeTool !== saved.tool) handleToolChange(saved.tool);
+      if (saved.opened && isEditMode) handleToggleEditMode();
+    }
+  }, [tourTool, isEditMode, handleToggleEditMode, handleToolChange]);
+
+  const stepId = step?.id;
+  useEffect(() => {
+    const cam = stepId ? tourCameraRef.current : tourUserCameraRef.current;
+    if (!cam) return;
+    handleZoomChange(cam.zoom);
+    panRef.current = { ...cam.pan };
+    if (!stepId) tourUserCameraRef.current = tourCameraRef.current = null;
+  }, [stepId, handleZoomChange, panRef]);
+
+  const settingsOpen = touring ? scene?.settings === true : isSettingsOpen;
+  const profileOpen = touring ? scene?.profile === true : isProfileOpen;
+
   const handleExportLayout = useCallback(() => {
     exportLayoutToFile(getOfficeState().getLayout());
   }, []);
@@ -306,7 +423,7 @@ function App() {
         style={{ background: 'var(--vignette)' }}
       />
 
-      {editor.isEditMode && editor.isDirty && (
+      {editor.isEditMode && (editor.isDirty || scene?.actionBar) && (
         <EditActionBar editor={editor} editorState={editorState} />
       )}
 
@@ -387,7 +504,7 @@ function App() {
         <BottomToolbar
           isEditMode={editor.isEditMode}
           onToggleEditMode={officeReadOnly ? null : editor.handleToggleEditMode}
-          isSettingsOpen={isSettingsOpen}
+          isSettingsOpen={settingsOpen}
           onToggleSettings={() => setIsSettingsOpen((v) => !v)}
         />
       )}
@@ -398,9 +515,10 @@ function App() {
         <div className="absolute mobile-safe-top left-8 z-20">
           <Button
             size="sm"
-            variant={isSettingsOpen ? 'active' : 'default'}
+            variant={settingsOpen ? 'active' : 'default'}
             className="border-border! shadow-pixel"
             onClick={() => setIsSettingsOpen((v) => !v)}
+            data-tour="settings-button"
           >
             {t('toolbar.settings')}
           </Button>
@@ -419,7 +537,7 @@ function App() {
         />
       )}
 
-      {profile?.canEdit && (firstRun || isProfileOpen) && (
+      {profile?.canEdit && (firstRun || profileOpen) && (
         <ProfileModal
           profile={profile.profile}
           firstRun={firstRun}
@@ -437,7 +555,7 @@ function App() {
       )}
 
       <SettingsModal
-        isOpen={isSettingsOpen}
+        isOpen={settingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         readOnly={officeReadOnly}
         onOpenProfile={profile?.canEdit ? () => setIsProfileOpen(true) : null}
@@ -450,7 +568,24 @@ function App() {
         offices={officeReadOnly ? null : offices}
         officeReply={officeReply}
         onOfficeReplyHandled={clearOfficeReply}
+        onReplayTour={startTour}
       />
+
+      {step && (
+        <TourOverlay
+          step={step}
+          index={tour.state.index}
+          count={tour.state.ids.length}
+          officeState={officeState}
+          lan={lan}
+          containerRef={containerRef}
+          zoom={editor.zoom}
+          panRef={editor.panRef}
+          onNext={() => tourDispatch({ type: 'next' })}
+          onPrev={() => tourDispatch({ type: 'prev' })}
+          onSkip={() => tourDispatch({ type: 'skip' })}
+        />
+      )}
     </div>
   );
 }

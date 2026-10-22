@@ -41,6 +41,7 @@ It starts at every login (`~/Library/LaunchAgents/com.pixeloffice.agent.plist`, 
   - Mac: **Pixel Office** in **Applications** or **Launchpad**. Following macOS convention there is no desktop alias (drag it to the Dock if you like).
   - On any PC: `http://localhost:47801` in a browser
 - On Windows a shortcut starts the office if needed and opens, in this order: **the installed Pixel Office app** (Edge, else Chrome) → a new Edge (or Chrome) window, where the install popup appears → the default browser. On a Mac it opens the default browser.
+- The first time you open it, a short tour walks through every feature. Replay it any time from **Settings → Replay tour**.
 
 ### Install as an app (PWA)
 

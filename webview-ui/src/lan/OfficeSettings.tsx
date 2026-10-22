@@ -88,113 +88,117 @@ export function OfficeSettings({ state, reply, onReplyHandled }: OfficeSettingsP
 
   return (
     <div className="flex flex-col gap-6 py-4 px-10 text-sm border-t-2 border-border mt-4">
-      <div className="text-accent-bright">{t('settings.offices')}</div>
+      <div data-tour="settings-offices" className="flex flex-col gap-6">
+        <div className="text-accent-bright">{t('settings.offices')}</div>
 
-      <label htmlFor="office-name">{t('office.create')}</label>
-      <div className="flex gap-4">
-        <input
-          id="office-name"
-          type="text"
-          value={name}
-          maxLength={MAX_OFFICE_NAME}
-          placeholder={t('office.namePlaceholder')}
-          onChange={(e) => setName(e.target.value)}
-          className={INPUT}
-        />
-        <Button size="sm" variant={nameOk ? 'accent' : 'disabled'} onClick={create}>
-          {t('office.createButton')}
-        </Button>
-      </div>
-      {created && (
-        <div className="flex flex-col gap-4 p-6 border-2 border-accent bg-bg-dark">
-          <span>{t('office.shareHint')}</span>
-          <div className="flex items-center gap-8">
-            <code data-testid="office-created-code" className="flex-1 select-all break-all">
-              {created.code}
-            </code>
-            <Button size="sm" onClick={() => copy(CREATED, created.code)}>
-              {copied === CREATED ? t('office.copied') : t('office.copy')}
-            </Button>
-          </div>
+        <label htmlFor="office-name">{t('office.create')}</label>
+        <div className="flex gap-4">
+          <input
+            id="office-name"
+            type="text"
+            value={name}
+            maxLength={MAX_OFFICE_NAME}
+            placeholder={t('office.namePlaceholder')}
+            onChange={(e) => setName(e.target.value)}
+            className={INPUT}
+          />
+          <Button size="sm" variant={nameOk ? 'accent' : 'disabled'} onClick={create}>
+            {t('office.createButton')}
+          </Button>
         </div>
-      )}
-
-      <label htmlFor="office-code">{t('office.join')}</label>
-      <input
-        id="office-code"
-        type="text"
-        value={code}
-        placeholder="PO2-…"
-        autoComplete="off"
-        spellCheck={false}
-        onChange={(e) => setCode(normalizeCodeInput(e.target.value))}
-        className={INPUT}
-      />
-      <div className="flex gap-4">
-        <input
-          type="text"
-          value={joinName}
-          maxLength={MAX_OFFICE_NAME}
-          aria-label={t('office.joinNamePlaceholder')}
-          placeholder={t('office.joinNamePlaceholder')}
-          onChange={(e) => setJoinName(e.target.value)}
-          className={INPUT}
-        />
-        <Button size="sm" variant={code ? 'accent' : 'disabled'} onClick={join}>
-          {t('office.joinButton')}
-        </Button>
-      </div>
-
-      {error && (
-        <span role="alert" className="text-xs text-danger">
-          {t(`office.error.${error}`)}
-        </span>
-      )}
-      {leftPublic && <span className="text-xs text-accent-bright">{t('office.leftPublic')}</span>}
-
-      <div>{t('office.list')}</div>
-      {state.offices.length === 0 && <div className="text-text-muted">{t('office.none')}</div>}
-      {state.offices.map((o) => {
-        const label = o.name || t('office.unnamed');
-        return (
-          <div key={o.tag} className="flex flex-col gap-2">
-            <div className="flex items-center gap-4">
-              <span className="flex-1 min-w-0 truncate">🔒 {label}</span>
-              <Button
-                size="sm"
-                onClick={() =>
-                  codes[o.tag]
-                    ? copy(o.tag, codes[o.tag])
-                    : transport.send({ type: 'getOfficeCode', tag: o.tag })
-                }
-              >
-                {copied === o.tag ? t('office.copied') : t('office.copy')}
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => {
-                  if (window.confirm(t('office.leaveConfirm', { name: label }))) {
-                    transport.send({ type: 'leaveOffice', tag: o.tag });
-                  }
-                }}
-              >
-                {t('office.leave')}
+        {created && (
+          <div className="flex flex-col gap-4 p-6 border-2 border-accent bg-bg-dark">
+            <span>{t('office.shareHint')}</span>
+            <div className="flex items-center gap-8">
+              <code data-testid="office-created-code" className="flex-1 select-all break-all">
+                {created.code}
+              </code>
+              <Button size="sm" onClick={() => copy(CREATED, created.code)}>
+                {copied === CREATED ? t('office.copied') : t('office.copy')}
               </Button>
             </div>
-            {codes[o.tag] && (
-              <code className="text-xs text-text-muted select-all break-all">{codes[o.tag]}</code>
-            )}
           </div>
-        );
-      })}
+        )}
 
-      <Checkbox
-        label={t('office.remoteView')}
-        checked={state.remoteView}
-        onChange={() => transport.send({ type: 'setRemoteView', enabled: !state.remoteView })}
-        className="px-0!"
-      />
-      <div className="text-xs text-text-muted">{t('office.remoteViewWarning')}</div>
+        <label htmlFor="office-code">{t('office.join')}</label>
+        <input
+          id="office-code"
+          type="text"
+          value={code}
+          placeholder="PO2-…"
+          autoComplete="off"
+          spellCheck={false}
+          onChange={(e) => setCode(normalizeCodeInput(e.target.value))}
+          className={INPUT}
+        />
+        <div className="flex gap-4">
+          <input
+            type="text"
+            value={joinName}
+            maxLength={MAX_OFFICE_NAME}
+            aria-label={t('office.joinNamePlaceholder')}
+            placeholder={t('office.joinNamePlaceholder')}
+            onChange={(e) => setJoinName(e.target.value)}
+            className={INPUT}
+          />
+          <Button size="sm" variant={code ? 'accent' : 'disabled'} onClick={join}>
+            {t('office.joinButton')}
+          </Button>
+        </div>
+
+        {error && (
+          <span role="alert" className="text-xs text-danger">
+            {t(`office.error.${error}`)}
+          </span>
+        )}
+        {leftPublic && <span className="text-xs text-accent-bright">{t('office.leftPublic')}</span>}
+
+        <div>{t('office.list')}</div>
+        {state.offices.length === 0 && <div className="text-text-muted">{t('office.none')}</div>}
+        {state.offices.map((o) => {
+          const label = o.name || t('office.unnamed');
+          return (
+            <div key={o.tag} className="flex flex-col gap-2">
+              <div className="flex items-center gap-4">
+                <span className="flex-1 min-w-0 truncate">🔒 {label}</span>
+                <Button
+                  size="sm"
+                  onClick={() =>
+                    codes[o.tag]
+                      ? copy(o.tag, codes[o.tag])
+                      : transport.send({ type: 'getOfficeCode', tag: o.tag })
+                  }
+                >
+                  {copied === o.tag ? t('office.copied') : t('office.copy')}
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    if (window.confirm(t('office.leaveConfirm', { name: label }))) {
+                      transport.send({ type: 'leaveOffice', tag: o.tag });
+                    }
+                  }}
+                >
+                  {t('office.leave')}
+                </Button>
+              </div>
+              {codes[o.tag] && (
+                <code className="text-xs text-text-muted select-all break-all">{codes[o.tag]}</code>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <div data-tour="settings-remote" className="flex flex-col gap-6">
+        <Checkbox
+          label={t('office.remoteView')}
+          checked={state.remoteView}
+          onChange={() => transport.send({ type: 'setRemoteView', enabled: !state.remoteView })}
+          className="px-0!"
+        />
+        <div className="text-xs text-text-muted">{t('office.remoteViewWarning')}</div>
+      </div>
     </div>
   );
 }

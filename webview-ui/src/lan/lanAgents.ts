@@ -41,6 +41,9 @@ export class LanAgents {
   /** `${parentKey}@${room}` → ghost character id */
   private readonly ghosts = new Map<string, number>();
   private agents: OfficeAgent[] = [];
+  /** Latest snapshot agents and client-only tour demos; shown together. */
+  private real: OfficeAgent[] = [];
+  private demo: OfficeAgent[] = [];
   private nextId = 1;
   private readonly os: OfficeState;
 
@@ -48,7 +51,25 @@ export class LanAgents {
     this.os = os;
   }
 
+  /** A fresh `officeSnapshot`. */
   apply(agents: OfficeAgent[]): void {
+    this.real = agents;
+    this.reconcile();
+  }
+
+  /** Client-only tour demo agents (never sent anywhere); [] removes them. */
+  setDemo(agents: OfficeAgent[]): void {
+    this.demo = agents;
+    this.reconcile();
+  }
+
+  /** Snapshot agents only (no tour demos). */
+  realAgents(): OfficeAgent[] {
+    return this.real;
+  }
+
+  private reconcile(): void {
+    const agents = this.demo.length ? [...this.real, ...this.demo] : this.real;
     const os = this.os;
     const prevByKey = new Map<string, OfficeAgent>();
     for (const a of this.agents) prevByKey.set(a.key, a);
@@ -147,6 +168,11 @@ export class LanAgents {
     this.os.setAgentActive(id, tool !== null);
     this.os.setAgentTool(id, tool);
     this.os.moveToArea(id, ROOM_LABELS[room]);
+  }
+
+  /** The ghost of `parentKey` leading its children in `room`, if any. */
+  ghostIdFor(parentKey: string, room: Room): number | undefined {
+    return this.ghosts.get(`${parentKey}@${room}`);
   }
 
   idFor(key: string): number | undefined {

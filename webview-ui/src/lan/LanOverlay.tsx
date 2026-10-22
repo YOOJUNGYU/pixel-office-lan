@@ -102,6 +102,7 @@ export function LanOverlay({ officeState, lan, containerRef, zoom, panRef }: Lan
     nodes.push(
       <div
         key={a.key}
+        data-agent-key={a.key}
         className="absolute -translate-x-1/2 flex items-center gap-4 whitespace-nowrap text-sm leading-none px-3 py-1 bg-bg/75 text-text pointer-events-none"
         style={{
           left: x,
@@ -148,6 +149,7 @@ export function LanOverlay({ officeState, lan, containerRef, zoom, panRef }: Lan
     nodes.push(
       <div
         key="hover"
+        data-tour="hover-bubble"
         className="absolute -translate-x-1/2 -translate-y-full pixel-panel px-8 py-6 flex flex-col gap-4 w-max text-sm leading-snug break-words pointer-events-none"
         style={{
           left: project.toScreenX(hoveredCh.x),

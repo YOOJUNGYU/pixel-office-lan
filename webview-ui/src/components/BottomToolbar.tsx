@@ -22,6 +22,7 @@ export function BottomToolbar({
         <Button
           variant={isEditMode ? 'active' : 'default'}
           onClick={onToggleEditMode}
+          data-tour="layout-button"
           title={t('toolbar.layoutTitle')}
         >
           {t('toolbar.layout')}
@@ -30,6 +31,7 @@ export function BottomToolbar({
       <Button
         variant={isSettingsOpen ? 'active' : 'default'}
         onClick={onToggleSettings}
+        data-tour="settings-button"
         title={t('toolbar.settings')}
       >
         {t('toolbar.settings')}

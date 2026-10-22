@@ -106,6 +106,7 @@ export function ProfileModal({ profile, firstRun, saveError, onSave, onClose }: 
       isOpen
       onClose={firstRun ? () => {} : onClose}
       hideClose={firstRun}
+      dataTour="profile-modal"
       title={firstRun ? t('profile.firstRunTitle') : t('profile.title')}
     >
       <div className="flex flex-col gap-8 py-4 px-10 text-sm">

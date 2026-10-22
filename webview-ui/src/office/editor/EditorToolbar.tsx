@@ -263,7 +263,10 @@ export function EditorToolbar({
   };
 
   return (
-    <div className="absolute bottom-76 left-10 z-10 pixel-panel p-4 flex flex-col-reverse gap-4 max-w-[calc(100vw-20px)]">
+    <div
+      data-tour="editor-toolbar"
+      className="absolute bottom-76 left-10 z-10 pixel-panel p-4 flex flex-col-reverse gap-4 max-w-[calc(100vw-20px)]"
+    >
       {/* Tool row — at the bottom */}
       <div className="flex gap-4 flex-wrap">
         <Button
@@ -294,6 +297,7 @@ export function EditorToolbar({
           variant={isPetsActive ? 'active' : 'default'}
           size="md"
           onClick={() => onToolChange(EditTool.PETS)}
+          data-tour="editor-pets"
           title={t('editor.petsTitle')}
         >
           {t('editor.pets')}
@@ -320,6 +324,7 @@ export function EditorToolbar({
           variant={isEraseActive ? 'active' : 'default'}
           size="md"
           onClick={() => onToolChange(EditTool.ERASE)}
+          data-tour="editor-erase"
           title={t('editor.eraseTitle')}
         >
           {t('editor.erase')}

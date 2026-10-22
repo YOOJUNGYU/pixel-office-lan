@@ -376,3 +376,26 @@ export const LAN_ROOM_LABEL_MIN_FONT_PX = 13;
 export const MAX_OFFICE_NAME = 20;
 /** How long "copied" stays next to a Copy button. */
 export const OFFICE_COPIED_MS = 2_000;
+
+// ── Onboarding tour ──────────────────────────────────────────
+/** localStorage flag: this browser finished or skipped the tour. */
+export const TOUR_STORAGE_KEY = 'pixel-office.tour.v1';
+/** Peer id prefix of the client-only demo characters (never sent anywhere). */
+export const TOUR_DEMO_PREFIX = 'tour-demo:';
+/** Fewer visible agents than this → the tour adds demo characters. */
+export const TOUR_DEMO_MIN_AGENTS = 3;
+/** Wait for the first snapshot before deciding on demos. */
+export const TOUR_AUTOSTART_DELAY_MS = 800;
+export const TOUR_DIM_COLOR = 'rgba(0, 0, 0, 0.62)';
+export const TOUR_Z_INDEX = 100;
+/** Spotlight padding around a target, and the gap every hole/tooltip keeps from the viewport edge. */
+export const TOUR_SPOTLIGHT_PAD_PX = 6;
+export const TOUR_VIEWPORT_MARGIN_PX = 8;
+export const TOUR_TOOLTIP_GAP_PX = 12;
+export const TOUR_TOOLTIP_MAX_WIDTH_PX = 340;
+/** Fraction of the remaining distance a spotlight hole moves per frame. */
+export const TOUR_SPOTLIGHT_EASE = 0.25;
+/** Spotlight outline width (CSS px). */
+export const TOUR_OUTLINE_PX = 2;
+/** The tour fits the whole office into this fraction of the screen. */
+export const TOUR_FIT_FILL = 0.92;

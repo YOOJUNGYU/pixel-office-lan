@@ -33,6 +33,8 @@ interface SettingsModalProps {
   offices: Omit<OfficesState, 'type'> | null;
   officeReply: OfficeReply | null;
   onOfficeReplyHandled: () => void;
+  /** Settings → 사용법 다시 보기 (restarts the onboarding tour). */
+  onReplayTour: () => void;
 }
 
 export function SettingsModal({
@@ -49,13 +51,17 @@ export function SettingsModal({
   offices,
   officeReply,
   onOfficeReplyHandled,
+  onReplayTour,
 }: SettingsModalProps) {
   const [soundLocal, setSoundLocal] = useState(isSoundEnabled);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const lang = useLang();
 
   const languageSelect = (
-    <label className="flex items-center justify-between gap-8 py-4 px-10 text-base">
+    <label
+      data-tour="settings-language"
+      className="flex items-center justify-between gap-8 py-4 px-10 text-base"
+    >
       {t('settings.language')}
       <select
         value={lang}
@@ -71,10 +77,13 @@ export function SettingsModal({
     </label>
   );
 
+  const replayTour = <MenuItem onClick={onReplayTour}>{t('settings.replayTour')}</MenuItem>;
+
   if (readOnly) {
     return (
       <Modal isOpen={isOpen} onClose={onClose} title={t('toolbar.settings')}>
         {languageSelect}
+        {replayTour}
       </Modal>
     );
   }
@@ -129,11 +138,13 @@ export function SettingsModal({
       />
       {autostart?.supported && (
         // Not optimistic: the server answers with the real state (autostartState).
-        <Checkbox
-          label={t('settings.autostart')}
-          checked={autostart.enabled}
-          onChange={() => transport.send({ type: 'setAutostart', enabled: !autostart.enabled })}
-        />
+        <div data-tour="settings-autostart">
+          <Checkbox
+            label={t('settings.autostart')}
+            checked={autostart.enabled}
+            onChange={() => transport.send({ type: 'setAutostart', enabled: !autostart.enabled })}
+          />
+        </div>
       )}
       {showAreasAvailable && (
         <Checkbox
@@ -142,14 +153,17 @@ export function SettingsModal({
           onChange={onToggleShowAreas}
         />
       )}
-      <MenuItem
-        onClick={() => {
-          transport.send({ type: 'checkUpdate' });
-          onClose();
-        }}
-      >
-        {t('settings.checkUpdate')}
-      </MenuItem>
+      <div data-tour="settings-update">
+        <MenuItem
+          onClick={() => {
+            transport.send({ type: 'checkUpdate' });
+            onClose();
+          }}
+        >
+          {t('settings.checkUpdate')}
+        </MenuItem>
+      </div>
+      {replayTour}
       {offices && (
         <OfficeSettings state={offices} reply={officeReply} onReplyHandled={onOfficeReplyHandled} />
       )}

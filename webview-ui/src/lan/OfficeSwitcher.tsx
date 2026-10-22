@@ -10,6 +10,7 @@ export function OfficeSwitcher({ state }: { state: Omit<OfficesState, 'type'> })
   return (
     <div
       role="tablist"
+      data-tour="switcher"
       aria-label={t('office.label')}
       className="absolute mobile-safe-top left-1/2 -translate-x-1/2 z-10 pixel-panel p-4 flex flex-wrap justify-center gap-4 max-w-[calc(100%-180px)]"
     >

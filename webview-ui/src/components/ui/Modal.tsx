@@ -12,6 +12,8 @@ interface ModalProps {
   className?: string;
   /** Hide the close button (the modal must be completed to proceed). */
   hideClose?: boolean;
+  /** `data-tour` id of the panel (onboarding tour target). */
+  dataTour?: string;
 }
 
 export function Modal({
@@ -22,6 +24,7 @@ export function Modal({
   zIndex = 50,
   className = '',
   hideClose = false,
+  dataTour,
 }: ModalProps) {
   if (!isOpen) return null;
 
@@ -40,6 +43,7 @@ export function Modal({
         style={{ zIndex: zIndex + 1 }}
       >
         <div
+          data-tour={dataTour}
           className={`pointer-events-auto bg-bg border-2 border-border rounded-none shadow-pixel p-4 min-w-[min(320px,100%)] max-w-full max-h-full overflow-y-auto overflow-x-hidden ${className}`}
         >
           {/* Sticky so the close button stays reachable while long content

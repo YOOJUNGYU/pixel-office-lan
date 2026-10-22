@@ -203,6 +203,89 @@ const ko = {
   'color.copyTitle': '다른 물건의 색상 복사 — 사무실에서 하나를 클릭하세요',
   'color.reset': '초기화',
   'color.resetTitle': '기본값으로 되돌리기',
+  'settings.replayTour': '사용법 다시 보기',
+
+  'tour.skip': '건너뛰기',
+  'tour.prev': '이전',
+  'tour.next': '다음',
+  'tour.finish': '시작하기',
+  'tour.demo.a': '민지',
+  'tour.demo.b': '준호',
+  'tour.demo.c': '서연',
+  'tour.demo.d': '도윤',
+  'tour.demo.editReason': '로그인 버그 고치는 중',
+  'tour.demo.readReason': 'API 문서 확인',
+  'tour.demo.waitReason': '배포 명령을 실행해도 될까요?',
+  'tour.welcome.title': 'Pixel Office LAN 에 오신 걸 환영합니다',
+  'tour.welcome.body':
+    '같은 망의 PC들에서 돌고 있는 Claude Code · Codex 에이전트가 이 픽셀 사무실의 캐릭터로 나타납니다.\n지금 보이는 캐릭터 중 일부는 안내용 예시이며, 안내가 끝나면 사라집니다.',
+  'tour.roomCoding.title': '코딩실',
+  'tour.roomCoding.body':
+    '에이전트는 하는 일에 따라 방을 옮겨 다닙니다. 파일을 고치거나 쓰는 동안은 코딩실 책상에 앉아 있습니다.',
+  'tour.roomLibrary.title': '자료실',
+  'tour.roomLibrary.body':
+    '파일을 읽거나 검색하고, 웹을 찾아볼 때는 자료실로 갑니다. 지금 캐릭터 하나가 걸어가는 게 보이죠?',
+  'tour.roomServer.title': '서버실',
+  'tour.roomServer.body': '명령을 실행하거나 테스트·빌드를 돌릴 때는 서버실에서 일합니다.',
+  'tour.roomLounge.title': '대기실',
+  'tour.roomLounge.body':
+    '할 일을 기다리거나 확인을 기다릴 때는 대기실에서 쉽니다.\n방 이동은 3초 정도 상태가 이어져야 일어나서, 잠깐씩 바뀌는 작업에 캐릭터가 왔다 갔다 하지 않습니다.',
+  'tour.tag.title': '이름표',
+  'tour.tag.body':
+    '캐릭터 아래 이름표는 "닉네임 · Claude/Codex #번호" 입니다. 앞의 색 점은 제공자예요 — 주황은 Claude, 초록은 Codex.\n서브에이전트와 셸은 "↳" 로 표시됩니다.',
+  'tour.bubble.title': '말풍선',
+  'tour.bubble.body':
+    '캐릭터에 마우스를 올리면 어느 방에서 무엇을 하는지, 그리고 이유가 보입니다.\n머리 위 ❗ 는 사용자의 확인(권한 승인이나 답변)을 기다린다는 뜻입니다.',
+  'tour.family.title': '서브에이전트와 셸',
+  'tour.family.body':
+    '에이전트가 만든 서브에이전트와 셸은 부모와 손을 잡고 다닙니다.\n부모가 다른 방에 있으면 반투명한 부모의 분신이 대신 손을 잡아 줍니다.',
+  'tour.map.title': '지도 움직이기',
+  'tour.map.body':
+    '드래그로 지도를 옮기고, 휠로 커서 위치를 중심으로 확대·축소합니다. 왼쪽 위 + / − 버튼도 됩니다. 휴대폰에서는 두 손가락으로 확대하세요.\n지금 직접 해 보세요 — 다음으로 넘어가면 원래 화면으로 돌아옵니다.',
+  'tour.switcher.title': '오피스 전환',
+  'tour.switcher.body':
+    '🌐 공개 오피스에는 같은 망의 모든 PC가 보입니다. 🔒 팀 오피스는 코드를 가진 팀원끼리만 보입니다.\n팀 오피스에 참여한 PC는 공개 오피스에서 빠집니다.',
+  'tour.settingsButton.title': '설정',
+  'tour.settingsButton.body': '언어, 프로필, 팀 오피스 같은 설정은 모두 여기에 있습니다.',
+  'tour.language.title': '언어',
+  'tour.language.body':
+    '화면 언어는 브라우저마다 따로 고릅니다. 다른 PC의 에이전트 활동도 내가 고른 언어로 보입니다.',
+  'tour.profile.title': '내 프로필',
+  'tour.profile.body':
+    '이 PC 에이전트들의 닉네임, 캐릭터, 색을 정합니다.\n"상세 내용 숨기기" 를 켜면 다른 사람에게는 파일 이름이나 이유 없이 방과 활동 종류만 보입니다.',
+  'tour.offices.title': '팀 오피스',
+  'tour.offices.body':
+    '팀 이름을 정해 만들면 초대 코드(PO2-…)가 나옵니다. 팀원은 그 코드로 참여합니다.\n팀 오피스의 내용은 팀원끼리만 암호화되어 오가고, 언제든 나갈 수 있습니다.',
+  'tour.remote.title': '다른 브라우저에서 보기',
+  'tour.remote.body':
+    '기본은 꺼짐입니다. 켜면 같은 망의 다른 기기 브라우저가 이 PC의 공개 오피스를 볼 수 있습니다(보기 전용).\n평문(HTTP)으로 전송되니 믿을 수 있는 망에서만 켜세요.',
+  'tour.system.title': '자동 실행 · 업데이트',
+  'tour.system.body':
+    '로그인할 때 자동으로 켜지게 하거나, 새 버전이 있는지 바로 확인할 수 있습니다. 새 버전이 나오면 화면에 알림도 뜹니다.',
+  'tour.layoutButton.title': '레이아웃 편집',
+  'tour.layoutButton.body': '사무실 배치를 직접 꾸밀 수 있습니다. 편집기를 열어 볼게요.',
+  'tour.floor.title': '바닥',
+  'tour.floor.body':
+    '바닥 무늬를 고르고 색을 정해 타일 위를 칠합니다. 스포이트로 칠해진 바닥을 집어 올 수도 있습니다.',
+  'tour.walls.title': '벽',
+  'tour.walls.body': '벽 모양과 색을 고르고, 칠해서 세우거나 다시 클릭해 없앱니다.',
+  'tour.furniture.title': '가구',
+  'tour.furniture.body':
+    '목록에서 골라 놓고, 드래그로 옮기고, Alt+드래그로 복사합니다.\nR 은 회전, T 는 켜기/끄기(모니터 등), 색 버튼으로 색을 바꿉니다. 카펫도 여기 있습니다.',
+  'tour.areas.title': '방 영역',
+  'tour.areas.body':
+    '코딩실·자료실·서버실·대기실 영역을 타일에 칠합니다. 에이전트는 이 영역을 보고 어느 방으로 갈지 정합니다.',
+  'tour.background.title': '배경',
+  'tour.background.body': '사무실 바깥을 단색, 바닥 무늬, 카펫 무늬 중 하나로 채웁니다.',
+  'tour.editorMore.title': '반려동물 · 지우기 · 저장',
+  'tour.editorMore.body':
+    '반려동물을 풀어 놓거나 지우개로 지울 수 있습니다. Ctrl+Z / Ctrl+Y 로 실행 취소 · 다시 실행.\n바꾼 내용은 위쪽 막대의 [저장] 을 누르기 전까지 이 화면에만 있고, [되돌리기] 로 취소할 수 있습니다.',
+  'tour.install.title': '앱으로 설치',
+  'tour.install.body':
+    '이 PC의 브라우저에서는 Pixel Office 를 앱으로 설치할 수 있습니다(Edge·Chrome). 설치하면 바로가기가 탭이 아닌 앱 창으로 열립니다.\n안내 창을 닫았다면 주소창의 설치 아이콘을 쓰세요.',
+  'tour.done.title': '준비 끝!',
+  'tour.done.body':
+    '이제 에이전트를 실행하면 사무실에 나타납니다. 안내 캐릭터는 사라집니다.\n이 안내는 설정 → "사용법 다시 보기" 에서 언제든 다시 볼 수 있습니다.',
 };
 
 export type Key = keyof typeof ko;
@@ -403,6 +486,91 @@ const en: Record<Key, string> = {
   'color.copyTitle': 'Copy color from another item — click one in the office',
   'color.reset': 'Reset',
   'color.resetTitle': 'Reset to default',
+  'settings.replayTour': 'Replay tour',
+
+  'tour.skip': 'Skip',
+  'tour.prev': 'Back',
+  'tour.next': 'Next',
+  'tour.finish': 'Get started',
+  'tour.demo.a': 'Mina',
+  'tour.demo.b': 'Jun',
+  'tour.demo.c': 'Sara',
+  'tour.demo.d': 'Leo',
+  'tour.demo.editReason': 'Fixing the login bug',
+  'tour.demo.readReason': 'Checking the API docs',
+  'tour.demo.waitReason': 'OK to run the deploy command?',
+  'tour.welcome.title': 'Welcome to Pixel Office LAN',
+  'tour.welcome.body':
+    'Claude Code and Codex agents running on the PCs of your network show up as characters in this pixel office.\nSome characters you see now are examples for this tour; they leave when it ends.',
+  'tour.roomCoding.title': 'Coding room',
+  'tour.roomCoding.body':
+    'Agents move between rooms by what they are doing. While editing or writing files they sit at a desk in the coding room.',
+  'tour.roomLibrary.title': 'Library',
+  'tour.roomLibrary.body':
+    'Reading, searching files or browsing the web takes them to the library. See the character walking over?',
+  'tour.roomServer.title': 'Server room',
+  'tour.roomServer.body': 'Running commands, tests or builds happens in the server room.',
+  'tour.roomLounge.title': 'Lounge',
+  'tour.roomLounge.body':
+    'Idle agents, and agents waiting for you, rest in the lounge.\nA move only happens after the new activity lasts about 3 seconds, so characters do not bounce around on quick tasks.',
+  'tour.tag.title': 'Name tags',
+  'tour.tag.body':
+    'The tag under a character reads "nickname · Claude/Codex #number". The dot is the provider: orange = Claude, green = Codex.\nSubagents and shells are marked "↳".',
+  'tour.bubble.title': 'Hover bubble',
+  'tour.bubble.body':
+    'Hover a character to see its room, what it is doing and why.\nA ❗ over its head means it is waiting for you (a permission or an answer).',
+  'tour.family.title': 'Subagents and shells',
+  'tour.family.body':
+    'Subagents and shells an agent starts walk hand in hand with it.\nWhen the parent is in another room, a see-through ghost of the parent holds their hand instead.',
+  'tour.map.title': 'Moving the map',
+  'tour.map.body':
+    'Drag to pan, scroll to zoom at the cursor, or use the + / − buttons at the top left. On a phone, pinch to zoom.\nTry it now — the view goes back when you continue.',
+  'tour.switcher.title': 'Office switcher',
+  'tour.switcher.body':
+    '🌐 The public office shows every PC on the network. 🔒 A team office is shared only by teammates who have its code.\nA PC in a team office leaves the public office.',
+  'tour.settingsButton.title': 'Settings',
+  'tour.settingsButton.body': 'Language, profile, team offices and more live here.',
+  'tour.language.title': 'Language',
+  'tour.language.body':
+    'Each browser picks its own language. Activity of agents on other PCs is shown in your language too.',
+  'tour.profile.title': 'My profile',
+  'tour.profile.body':
+    'Nickname, character and colour of this PC’s agents.\n"Hide details" shows others only the room and the kind of activity — no file names or reasons.',
+  'tour.offices.title': 'Team offices',
+  'tour.offices.body':
+    'Create a team to get an invite code (PO2-…); teammates join with it.\nA team office is encrypted between its members, and you can leave any time.',
+  'tour.remote.title': 'Viewing from other browsers',
+  'tour.remote.body':
+    'Off by default. When on, browsers on other devices of the network can view this PC’s public office (read-only).\nIt travels as plain HTTP, so turn it on only on a network you trust.',
+  'tour.system.title': 'Start at login · Updates',
+  'tour.system.body':
+    'Start Pixel Office when you log in, or check for a new version right away. New versions are also announced on screen.',
+  'tour.layoutButton.title': 'Layout editor',
+  'tour.layoutButton.body': 'Arrange the office yourself. Let’s open the editor.',
+  'tour.floor.title': 'Floor',
+  'tour.floor.body':
+    'Pick a floor pattern and a colour, then paint tiles. The eyedropper picks up a painted floor.',
+  'tour.walls.title': 'Walls',
+  'tour.walls.body':
+    'Pick a wall style and colour; paint to build walls, click again to remove them.',
+  'tour.furniture.title': 'Furniture',
+  'tour.furniture.body':
+    'Pick an item and place it, drag to move, Alt+drag to copy.\nR rotates, T toggles (monitors…), the colour button recolours. Carpets live here too.',
+  'tour.areas.title': 'Room areas',
+  'tour.areas.body':
+    'Paint the coding room, library, server room and lounge onto tiles. Agents use these areas to decide where to go.',
+  'tour.background.title': 'Background',
+  'tour.background.body':
+    'Fill the outside of the office with a solid colour, a floor pattern or a carpet.',
+  'tour.editorMore.title': 'Pets · Erase · Save',
+  'tour.editorMore.body':
+    'Let pets roam, or erase with the eraser. Ctrl+Z / Ctrl+Y undo and redo.\nChanges stay on this screen until you press [Save] in the top bar; [Reset] throws them away.',
+  'tour.install.title': 'Install as an app',
+  'tour.install.body':
+    'On this PC’s browser you can install Pixel Office as an app (Edge, Chrome). Shortcuts then open it in its own window instead of a tab.\nIf you closed the prompt, use the install icon in the address bar.',
+  'tour.done.title': 'All set!',
+  'tour.done.body':
+    'Start an agent and it walks into the office. The tour characters leave now.\nReplay this tour any time from Settings → "Replay tour".',
 };
 
 export const DICT: Record<Lang, Record<Key, string>> = { ko, en };
