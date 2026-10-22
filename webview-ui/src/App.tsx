@@ -11,6 +11,7 @@ import { ZoomControls } from './components/ZoomControls.js';
 import {
   DEFAULT_LAYOUT_ASSET,
   FIRST_OPEN_FIT_FILL,
+  FIT_TOP_MARGIN_PX,
   LAYOUT_REJECTED_TOAST_MS,
   OFFICE_CANVAS_TEST_ID,
   TOP_RIGHT_BOTTOM_RESERVE_PX,
@@ -293,15 +294,21 @@ function App() {
     fittedRef.current = true;
     const dpr = window.devicePixelRatio || 1;
     const layout = getOfficeState().getLayout();
+    // Fit below the office switcher (top centre) so the room names along the
+    // top edge are never under it: fit in the height left, then pan down.
+    const top = FIT_TOP_MARGIN_PX * dpr;
     const fit = fitZoom(
       { w: layout.cols * TILE_SIZE, h: layout.rows * TILE_SIZE },
-      { w: box.width * dpr, h: box.height * dpr },
+      { w: box.width * dpr, h: box.height * dpr - top },
       FIRST_OPEN_FIT_FILL,
       ZOOM_MIN,
       ZOOM_MAX,
     );
-    if (fit < zoom) handleZoomChange(fit);
-  }, [layoutReady, zoom, handleZoomChange]);
+    if (fit < zoom) {
+      panRef.current = { x: 0, y: top / 2 };
+      handleZoomChange(fit);
+    }
+  }, [layoutReady, zoom, handleZoomChange, panRef]);
 
   // First run: right after the profile is saved.
   const tourCanAutostart =

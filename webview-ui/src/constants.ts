@@ -385,6 +385,8 @@ export const TOUR_OUTLINE_PX = 2;
 export const TOUR_FIT_FILL = 0.92;
 /** First open: share of the window the whole office fills when it would not fit at the default zoom. */
 export const FIRST_OPEN_FIT_FILL = 0.95;
+/** First-open fit leaves this much room at the top (CSS px): the office switcher + a gap. */
+export const FIT_TOP_MARGIN_PX = 56;
 /** How long the "layout not saved" toast stays. */
 export const LAYOUT_REJECTED_TOAST_MS = 4_000;
 
