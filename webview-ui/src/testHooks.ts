@@ -15,6 +15,11 @@ declare global {
         waitingAwaitingInput?: boolean;
         isHeadless?: boolean;
         isGreeter?: boolean;
+        /** World-pixel position and tile (layout-edit stability checks). */
+        x: number;
+        y: number;
+        tileCol: number;
+        tileRow: number;
       }>;
       /** The character the camera follows (null = free camera). */
       getCameraFollowId?: () => number | null;
@@ -152,6 +157,10 @@ export function installTestHooks(officeStateRef: { current: OfficeState | null }
       waitingAwaitingInput: ch.waitingAwaitingInput,
       isHeadless: ch.isHeadless,
       isGreeter: ch.isGreeter,
+      x: ch.x,
+      y: ch.y,
+      tileCol: ch.tileCol,
+      tileRow: ch.tileRow,
     }));
   };
 

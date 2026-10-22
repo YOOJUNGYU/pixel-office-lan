@@ -136,9 +136,12 @@ export class OfficeState {
     this.rebuildPetsFromLayout(this.layout);
   }
 
-  /** Rebuild all derived state from a new layout. Reassigns existing characters.
-   *  @param shift Optional pixel shift to apply when grid expands left/up */
+  /** Rebuild all derived state from a new layout (every editor edit). Characters
+   *  stay where they are: walkers keep their destination, sitters their seat;
+   *  only those whose tile or seat the edit took away move — nearby, on foot.
+   *  @param shift Optional tile shift to apply when grid expands left/up */
   rebuildFromLayout(layout: OfficeLayout, shift?: { col: number; row: number }): void {
+    const oldSeats = this.seats;
     this.layout = layout;
     this.tileMap = layoutToTileMap(layout);
     this.seats = layoutToSeats(layout.furniture);
@@ -147,112 +150,144 @@ export class OfficeState {
     this.walkableTiles = getWalkableTiles(this.tileMap, this.blockedTiles);
     this.indexAreaTiles();
 
-    // Shift character positions when grid expands left/up
-    if (shift && (shift.col !== 0 || shift.row !== 0)) {
-      for (const ch of this.characters.values()) {
-        ch.tileCol += shift.col;
-        ch.tileRow += shift.row;
-        ch.x += shift.col * TILE_SIZE;
-        ch.y += shift.row * TILE_SIZE;
-        // Clear path since tile coords changed
-        ch.path = [];
-        ch.moveProgress = 0;
-      }
+    const dc = shift?.col ?? 0;
+    const dr = shift?.row ?? 0;
+    // Shift positions (and paths) when the grid expands left/up
+    for (const e of [...this.characters.values(), ...this.pets]) {
+      e.tileCol += dc;
+      e.tileRow += dr;
+      e.x += dc * TILE_SIZE;
+      e.y += dr * TILE_SIZE;
+      e.path = e.path.map((t) => ({ col: t.col + dc, row: t.row + dr }));
     }
 
-    // Shift pet positions when grid expands left/up
-    if (shift && (shift.col !== 0 || shift.row !== 0)) {
-      for (const pet of this.pets) {
-        pet.tileCol += shift.col;
-        pet.tileRow += shift.row;
-        pet.x += shift.col * TILE_SIZE;
-        pet.y += shift.row * TILE_SIZE;
-        pet.path = [];
-        pet.moveProgress = 0;
-      }
-    }
-
-    // Reassign characters to new seats, preserving existing assignments when possible
-    for (const seat of this.seats.values()) {
-      seat.assigned = false;
-    }
-
-    // First pass: try to keep characters at their existing seats
+    // Where each character was headed before the edit: its seat (sitting or
+    // walking there), else the end of its path, else nowhere.
+    const toSeat = new Map<Character, boolean>();
     for (const ch of this.characters.values()) {
-      if (ch.seatId && this.seats.has(ch.seatId)) {
-        const seat = this.seats.get(ch.seatId)!;
-        if (!seat.assigned) {
-          seat.assigned = true;
-          // Snap character to seat position
-          ch.tileCol = seat.seatCol;
-          ch.tileRow = seat.seatRow;
-          const cx = seat.seatCol * TILE_SIZE + TILE_SIZE / 2;
-          const cy = seat.seatRow * TILE_SIZE + TILE_SIZE / 2;
-          ch.x = cx;
-          ch.y = cy;
-          ch.dir = seat.facingDir;
+      const old = ch.seatId ? oldSeats.get(ch.seatId) : undefined;
+      const end = ch.path[ch.path.length - 1];
+      toSeat.set(
+        ch,
+        !!old &&
+          (end
+            ? end.col === old.seatCol + dc && end.row === old.seatRow + dr
+            : ch.state === CharacterState.TYPE),
+      );
+    }
+
+    // Keep seat claims; a character whose seat is gone loses it
+    for (const seat of this.seats.values()) seat.assigned = false;
+    const seatless: Character[] = [];
+    for (const ch of this.characters.values()) {
+      if (!ch.seatId) continue;
+      const seat = this.seats.get(ch.seatId);
+      if (seat && !seat.assigned) {
+        seat.assigned = true;
+      } else {
+        ch.seatId = null;
+        seatless.push(ch);
+      }
+    }
+
+    for (const ch of this.characters.values()) {
+      const end = ch.path[ch.path.length - 1];
+      this.unstrand(ch);
+      if (seatless.includes(ch)) {
+        if (ch.homeArea) {
+          this.moveToArea(ch.id, ch.homeArea);
           continue;
         }
-      }
-      ch.seatId = null; // will be reassigned below
-    }
-
-    // Second pass: assign remaining characters to free seats (followers never sit)
-    for (const ch of this.characters.values()) {
-      if (ch.seatId || ch.followId !== undefined || ch.ghostOf !== undefined) continue;
-      const seatId = this.findFreeSeat(ch.directoryName, ch.homeArea);
-      if (seatId) {
-        this.seats.get(seatId)!.assigned = true;
-        ch.seatId = seatId;
-        const seat = this.seats.get(seatId)!;
-        ch.tileCol = seat.seatCol;
-        ch.tileRow = seat.seatRow;
-        ch.x = seat.seatCol * TILE_SIZE + TILE_SIZE / 2;
-        ch.y = seat.seatRow * TILE_SIZE + TILE_SIZE / 2;
-        ch.dir = seat.facingDir;
-      }
-    }
-
-    // Relocate any characters that ended up outside bounds or on non-walkable tiles
-    for (const ch of this.characters.values()) {
-      if (ch.seatId) continue; // seated characters are fine
-      if (
-        ch.tileCol < 0 ||
-        ch.tileCol >= layout.cols ||
-        ch.tileRow < 0 ||
-        ch.tileRow >= layout.rows
-      ) {
-        this.relocateCharacterToWalkable(ch);
-      }
-    }
-
-    // Relocate any pets that ended up outside bounds or on non-walkable tiles
-    for (const pet of this.pets) {
-      if (
-        pet.tileCol < 0 ||
-        pet.tileCol >= layout.cols ||
-        pet.tileRow < 0 ||
-        pet.tileRow >= layout.rows ||
-        !isWalkable(pet.tileCol, pet.tileRow, this.tileMap, this.blockedTiles)
-      ) {
-        if (this.walkableTiles.length > 0) {
-          const spawn = this.walkableTiles[Math.floor(Math.random() * this.walkableTiles.length)];
-          pet.tileCol = spawn.col;
-          pet.tileRow = spawn.row;
-          pet.x = spawn.col * TILE_SIZE + TILE_SIZE / 2;
-          pet.y = spawn.row * TILE_SIZE + TILE_SIZE / 2;
-          pet.path = [];
-          pet.moveProgress = 0;
-          pet.state = PetState.IDLE;
-          pet.frame = 0;
-          pet.frameTimer = 0;
-          pet.followTargetId = null;
+        if (toSeat.get(ch)) {
+          const seatId = this.findFreeSeat(ch.directoryName);
+          if (seatId) {
+            this.seats.get(seatId)!.assigned = true;
+            ch.seatId = seatId;
+          }
         }
       }
+      const seat = ch.seatId && toSeat.get(ch) ? this.seats.get(ch.seatId) : undefined;
+      const dest = seat ? { col: seat.seatCol, row: seat.seatRow } : end;
+      if (!dest) continue; // standing or sitting without a seat: stays put
+      const last = ch.path[ch.path.length - 1] ?? { col: ch.tileCol, row: ch.tileRow };
+      const pathOk = this.withOwnSeatUnblocked(ch, () =>
+        ch.path.every((t) => isWalkable(t.col, t.row, this.tileMap, this.blockedTiles)),
+      );
+      if (last.col === dest.col && last.row === dest.row && pathOk) continue;
+      this.walkTo(ch, dest);
+      if (ch.path.length > 0) {
+        if (ch.state !== CharacterState.WALK) {
+          ch.state = CharacterState.WALK;
+          ch.frame = 0;
+          ch.frameTimer = 0;
+        }
+      } else if (seat && ch.tileCol === seat.seatCol && ch.tileRow === seat.seatRow) {
+        ch.state = CharacterState.TYPE;
+        ch.dir = seat.facingDir;
+      } else if (ch.state === CharacterState.WALK) {
+        ch.state = CharacterState.IDLE;
+      }
+    }
+
+    // Pets left outside the grid or on a blocked tile go to the closest open one
+    for (const pet of this.pets) {
+      if (isWalkable(pet.tileCol, pet.tileRow, this.tileMap, this.blockedTiles)) continue;
+      const spot = this.closestFreeWalkableTile(pet.tileCol, pet.tileRow);
+      if (!spot) continue;
+      pet.tileCol = spot.col;
+      pet.tileRow = spot.row;
+      pet.x = spot.col * TILE_SIZE + TILE_SIZE / 2;
+      pet.y = spot.row * TILE_SIZE + TILE_SIZE / 2;
+      pet.path = [];
+      pet.moveProgress = 0;
+      pet.state = PetState.IDLE;
+      pet.frame = 0;
+      pet.frameTimer = 0;
+      pet.followTargetId = null;
     }
 
     // Reconcile pets against the layout roster (handles editor add/remove)
     this.rebuildPetsFromLayout(layout);
+  }
+
+  /** A character on a tile the edit took away (blocked, wall, erased, outside
+   *  the grid) steps to the closest open tile, in its room when it has one. */
+  private unstrand(ch: Character): void {
+    const ok = this.withOwnSeatUnblocked(ch, () =>
+      isWalkable(ch.tileCol, ch.tileRow, this.tileMap, this.blockedTiles),
+    );
+    if (ok) return;
+    const inGrid =
+      ch.tileCol >= 0 &&
+      ch.tileCol < this.layout.cols &&
+      ch.tileRow >= 0 &&
+      ch.tileRow < this.layout.rows;
+    const area = (inGrid ? this.areaAt(ch.tileCol, ch.tileRow) : null) ?? ch.homeArea;
+    const inArea = area ? this.areaWalkable.get(area) : undefined;
+    const spot =
+      (inArea && this.closestFreeWalkableTile(ch.tileCol, ch.tileRow, ch, inArea)) ||
+      this.closestFreeWalkableTile(ch.tileCol, ch.tileRow, ch);
+    if (spot) this.placeAt(ch, spot);
+  }
+
+  /** Path `ch` to `dest` from where it stands, finishing a step already under way. */
+  private walkTo(ch: Character, dest: { col: number; row: number }): void {
+    const next = ch.moveProgress > 0 ? ch.path[0] : undefined;
+    this.withOwnSeatUnblocked(ch, () => {
+      const step =
+        next && isWalkable(next.col, next.row, this.tileMap, this.blockedTiles) ? next : null;
+      const from = step ?? { col: ch.tileCol, row: ch.tileRow };
+      const rest = findPath(
+        from.col,
+        from.row,
+        dest.col,
+        dest.row,
+        this.tileMap,
+        this.blockedTiles,
+      );
+      ch.path = step ? [step, ...rest] : rest;
+      if (!step) ch.moveProgress = 0;
+    });
   }
 
   private indexAreaTiles(): void {
@@ -266,18 +301,6 @@ export class OfficeState {
       if (!list) this.areaWalkable.set(label, (list = []));
       list.push(t);
     }
-  }
-
-  /** Move a character to a random walkable tile */
-  private relocateCharacterToWalkable(ch: Character): void {
-    if (this.walkableTiles.length === 0) return;
-    const spawn = this.walkableTiles[Math.floor(Math.random() * this.walkableTiles.length)];
-    ch.tileCol = spawn.col;
-    ch.tileRow = spawn.row;
-    ch.x = spawn.col * TILE_SIZE + TILE_SIZE / 2;
-    ch.y = spawn.row * TILE_SIZE + TILE_SIZE / 2;
-    ch.path = [];
-    ch.moveProgress = 0;
   }
 
   getLayout(): OfficeLayout {
@@ -763,7 +786,7 @@ export class OfficeState {
     ch.homeArea = areaLabel;
     const seatId = standing ? null : this.findFreeSeat(undefined, areaLabel);
     const seat = seatId ? this.seats.get(seatId)! : null;
-    let target: { col: number; row: number } | null = null;
+    let target: { col: number; row: number } | null;
     if (seat) {
       seat.assigned = true;
       ch.seatId = seatId;
@@ -775,13 +798,10 @@ export class OfficeState {
 
     ch.frame = 0;
     ch.frameTimer = 0;
-    ch.moveProgress = 0;
     if (ch.matrixEffect === 'spawn') {
       this.placeAt(ch, target);
     } else {
-      ch.path = this.withOwnSeatUnblocked(ch, () =>
-        findPath(ch.tileCol, ch.tileRow, target.col, target.row, this.tileMap, this.blockedTiles),
-      );
+      this.walkTo(ch, target);
     }
     if (ch.path.length > 0) {
       ch.state = CharacterState.WALK;
