@@ -227,9 +227,21 @@ function App() {
   type Camera = { zoom: number; pan: { x: number; y: number } };
   const tourUserCameraRef = useRef<Camera | null>(null);
   const tourCameraRef = useRef<Camera | null>(null);
-  const { zoom, panRef, handleZoomChange } = editor;
+  /** Selection/camera follow before the tour (a click in the map step must not outlive it). */
+  const tourUserFollowRef = useRef<{ selected: number | null; follow: number | null } | null>(null);
+  /** The layout editor was open when the tour started: closed meanwhile, reopened after. */
+  const tourUserEditorRef = useRef<{ tool: EditTool } | null>(null);
+  const { zoom, panRef, handleZoomChange, isEditMode, handleToggleEditMode, handleToolChange } =
+    editor;
   const startTour = useCallback(() => {
+    const os = getOfficeState();
     tourUserCameraRef.current ??= { zoom, pan: { ...panRef.current } };
+    tourUserFollowRef.current ??= { selected: os.selectedAgentId, follow: os.cameraFollowId };
+    // No editing under the tour (the map step's clicks would paint and autosave).
+    if (isEditMode && !tourUserEditorRef.current) {
+      tourUserEditorRef.current = { tool: editorState.activeTool };
+      handleToggleEditMode();
+    }
     const box = containerRef.current?.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
     const layout = getOfficeState().getLayout();
@@ -253,8 +265,23 @@ function App() {
     setIsSettingsOpen(false);
     setIsProfileOpen(false);
     tourDemoRef.current = needsDemo(lan.realAgents());
+    if (tourDemoRef.current || lan.realAgents().some((a) => a.parentKey !== undefined)) {
+      caps.add('family');
+    }
     tourDispatch({ type: 'start', ids: visibleSteps(officeReadOnly ? 'readOnly' : 'full', caps) });
-  }, [officeReadOnly, isMobile, offices, profile, areasAvailable, lan, tourDispatch, zoom, panRef]);
+  }, [
+    officeReadOnly,
+    isMobile,
+    offices,
+    profile,
+    areasAvailable,
+    lan,
+    tourDispatch,
+    zoom,
+    panRef,
+    isEditMode,
+    handleToggleEditMode,
+  ]);
 
   // First run: right after the profile is saved (remote viewers: on first visit).
   const tourCanAutostart =
@@ -270,7 +297,7 @@ function App() {
   }, [tourCanAutostart, startTour]);
 
   const touring = step !== null;
-  const walk = scene?.walk ?? 'coding';
+  const walk = scene?.walk ?? 'lounge';
   useEffect(() => {
     lan.setDemo(
       touring && tourDemoRef.current
@@ -291,7 +318,6 @@ function App() {
   // and closes the editor if the tour opened it. Nothing is ever saved.
   const tourEditorRef = useRef<{ opened: boolean; tool: EditTool } | null>(null);
   const tourTool = scene?.editor;
-  const { isEditMode, handleToggleEditMode, handleToolChange } = editor;
   useEffect(() => {
     const saved = tourEditorRef.current;
     if (tourTool !== undefined) {
@@ -307,13 +333,28 @@ function App() {
     }
   }, [tourTool, isEditMode, handleToggleEditMode, handleToolChange]);
 
+  // Tour over: reopen the editor the user had open (once the tour's own close has landed).
+  useEffect(() => {
+    const user = tourUserEditorRef.current;
+    if (touring || !user || isEditMode) return;
+    tourUserEditorRef.current = null;
+    handleToggleEditMode();
+    if (editorState.activeTool !== user.tool) handleToolChange(user.tool);
+  }, [touring, isEditMode, handleToggleEditMode, handleToolChange]);
+
   const stepId = step?.id;
   useEffect(() => {
     const cam = stepId ? tourCameraRef.current : tourUserCameraRef.current;
     if (!cam) return;
     handleZoomChange(cam.zoom);
     panRef.current = { ...cam.pan };
-    if (!stepId) tourUserCameraRef.current = tourCameraRef.current = null;
+    // Every step starts unfollowed; the end gives the user's selection back.
+    const os = getOfficeState();
+    const user = tourUserFollowRef.current;
+    os.selectedAgentId = stepId ? null : (user?.selected ?? null);
+    os.cameraFollowId = stepId ? null : (user?.follow ?? null);
+    if (!stepId)
+      tourUserCameraRef.current = tourCameraRef.current = tourUserFollowRef.current = null;
   }, [stepId, handleZoomChange, panRef]);
 
   const settingsOpen = touring ? scene?.settings === true : isSettingsOpen;
@@ -387,190 +428,192 @@ function App() {
   }
 
   return (
-    <div ref={containerRef} className="w-full h-full relative overflow-hidden">
-      <OfficeCanvas
-        officeState={officeState}
-        isEditMode={editor.isEditMode}
-        editorState={editorState}
-        onEditorTileAction={editor.handleEditorTileAction}
-        onEditorEraseAction={editor.handleEditorEraseAction}
-        onEditorSelectionChange={editor.handleEditorSelectionChange}
-        onDeleteSelected={editor.handleDeleteSelected}
-        onRotateSelected={editor.handleRotateSelected}
-        onDrop={editor.handleDrop}
-        editorTick={editor.editorTick}
-        zoom={editor.zoom}
-        onZoomChange={editor.handleZoomChange}
-        panRef={editor.panRef}
-        showAreas={effectiveShowAreas}
-        activeAreaLabel={activeAreaLabel}
-        tapSelectsFirst={isMobile}
-      />
-
-      <LanOverlay
-        officeState={officeState}
-        lan={lan}
-        containerRef={containerRef}
-        zoom={editor.zoom}
-        panRef={editor.panRef}
-      />
-
-      {!isMobile && <ZoomControls zoom={editor.zoom} onZoomChange={editor.handleZoomChange} />}
-
-      {/* Vignette overlay */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{ background: 'var(--vignette)' }}
-      />
-
-      {editor.isEditMode && (editor.isDirty || scene?.actionBar) && (
-        <EditActionBar editor={editor} editorState={editorState} />
-      )}
-
-      {showRotateHint && (
-        <div
-          className="absolute left-1/2 -translate-x-1/2 z-11 bg-accent-bright text-white text-sm py-3 px-8 rounded-none border-2 border-accent shadow-pixel pointer-events-none whitespace-nowrap"
-          style={{ top: editor.isDirty ? 64 : 8 }}
-        >
-          {t('app.rotateHint')}
-        </div>
-      )}
-
-      {editor.isEditMode &&
-        (() => {
-          const selUid = editorState.selectedFurnitureUid;
-          const selColor = selUid
-            ? (officeState.getLayout().furniture.find((f) => f.uid === selUid)?.color ?? null)
-            : null;
-          return (
-            <EditorToolbar
-              activeTool={editorState.activeTool}
-              selectedTileType={editorState.selectedTileType}
-              selectedFurnitureType={editorState.placingType}
-              selectedFurnitureUid={selUid}
-              selectedFurnitureColor={selColor}
-              floorColor={editorState.floorColor}
-              wallColor={editorState.wallColor}
-              selectedWallSet={editorState.selectedWallSet}
-              onToolChange={editor.handleToolChange}
-              onTileTypeChange={editor.handleTileTypeChange}
-              onFloorColorChange={editor.handleFloorColorChange}
-              onWallColorChange={editor.handleWallColorChange}
-              onWallSetChange={editor.handleWallSetChange}
-              onSelectedFurnitureColorChange={editor.handleSelectedFurnitureColorChange}
-              pickedFurnitureColor={editorState.pickedFurnitureColor}
-              onPickedFurnitureColorChange={editor.handlePickedFurnitureColorChange}
-              onColorPickToggle={editor.handleColorPickToggle}
-              onFurnitureTypeChange={editor.handleFurnitureTypeChange}
-              loadedAssets={loadedAssets}
-              activePetTypes={officeState.getActivePetTypes()}
-              petCount={getPetCount()}
-              onPetToggle={editor.handlePetToggle}
-              carpetVariant={editor.carpetVariant}
-              carpetColor={editor.carpetColor}
-              carpetAccentColor={editor.carpetAccentColor}
-              onCarpetVariantChange={editor.handleCarpetVariantChange}
-              onCarpetColorChange={editor.handleCarpetColorChange}
-              onCarpetAccentColorChange={editor.handleCarpetAccentColorChange}
-              areas={officeState.getLayout().areas ?? []}
-              selectedAreaLabel={editor.selectedAreaLabel}
-              directories={[]}
-              areasAvailable={areasAvailable}
-              areaMappings={areaMappings}
-              onSelectArea={editor.handleSelectArea}
-              onAddArea={editor.handleAddArea}
-              onRemoveArea={editor.handleRemoveArea}
-              onRenameArea={editor.handleRenameArea}
-              onAreaColorChange={editor.handleAreaColorChange}
-              onAreaMappingChange={handleAreaMappingChange}
-              background={officeState.getLayout().background}
-              onBackgroundChange={editor.handleBackgroundChange}
-            />
-          );
-        })()}
-
-      {/* Read-only viewers only ever see the public office: no switcher. */}
-      {!officeReadOnly && offices && !editor.isEditMode && <OfficeSwitcher state={offices} />}
-
-      {officeReadOnly && (
-        <div className="absolute mobile-safe-top left-1/2 -translate-x-1/2 z-10 text-sm text-text-muted pointer-events-none select-none whitespace-nowrap">
-          {t('app.readOnly')}
-        </div>
-      )}
-
-      {/* A read-only office gets no layout button and only the language
-          setting: everything else would be refused by the server anyway. */}
-      {!isMobile && (
-        <BottomToolbar
+    <>
+      <div ref={containerRef} className="w-full h-full relative overflow-hidden">
+        <OfficeCanvas
+          officeState={officeState}
           isEditMode={editor.isEditMode}
-          onToggleEditMode={officeReadOnly ? null : editor.handleToggleEditMode}
-          isSettingsOpen={settingsOpen}
-          onToggleSettings={() => setIsSettingsOpen((v) => !v)}
+          editorState={editorState}
+          onEditorTileAction={editor.handleEditorTileAction}
+          onEditorEraseAction={editor.handleEditorEraseAction}
+          onEditorSelectionChange={editor.handleEditorSelectionChange}
+          onDeleteSelected={editor.handleDeleteSelected}
+          onRotateSelected={editor.handleRotateSelected}
+          onDrop={editor.handleDrop}
+          editorTick={editor.editorTick}
+          zoom={editor.zoom}
+          onZoomChange={editor.handleZoomChange}
+          panRef={editor.panRef}
+          showAreas={effectiveShowAreas}
+          activeAreaLabel={activeAreaLabel}
+          tapSelectsFirst={isMobile}
         />
-      )}
 
-      {/* Mobile: Settings floats top-left (the layout editor stays desktop-
-          only — its tools are drag/hover-driven). */}
-      {isMobile && (
-        <div className="absolute mobile-safe-top left-8 z-20">
-          <Button
-            size="sm"
-            variant={settingsOpen ? 'active' : 'default'}
-            className="border-border! shadow-pixel"
-            onClick={() => setIsSettingsOpen((v) => !v)}
-            data-tour="settings-button"
+        <LanOverlay
+          officeState={officeState}
+          lan={lan}
+          containerRef={containerRef}
+          zoom={editor.zoom}
+          panRef={editor.panRef}
+        />
+
+        {!isMobile && <ZoomControls zoom={editor.zoom} onZoomChange={editor.handleZoomChange} />}
+
+        {/* Vignette overlay */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{ background: 'var(--vignette)' }}
+        />
+
+        {editor.isEditMode && (editor.isDirty || scene?.actionBar) && (
+          <EditActionBar editor={editor} editorState={editorState} />
+        )}
+
+        {showRotateHint && (
+          <div
+            className="absolute left-1/2 -translate-x-1/2 z-11 bg-accent-bright text-white text-sm py-3 px-8 rounded-none border-2 border-accent shadow-pixel pointer-events-none whitespace-nowrap"
+            style={{ top: editor.isDirty ? 64 : 8 }}
           >
-            {t('toolbar.settings')}
-          </Button>
-        </div>
-      )}
+            {t('app.rotateHint')}
+          </div>
+        )}
 
-      <ConnectionIndicator />
+        {editor.isEditMode &&
+          (() => {
+            const selUid = editorState.selectedFurnitureUid;
+            const selColor = selUid
+              ? (officeState.getLayout().furniture.find((f) => f.uid === selUid)?.color ?? null)
+              : null;
+            return (
+              <EditorToolbar
+                activeTool={editorState.activeTool}
+                selectedTileType={editorState.selectedTileType}
+                selectedFurnitureType={editorState.placingType}
+                selectedFurnitureUid={selUid}
+                selectedFurnitureColor={selColor}
+                floorColor={editorState.floorColor}
+                wallColor={editorState.wallColor}
+                selectedWallSet={editorState.selectedWallSet}
+                onToolChange={editor.handleToolChange}
+                onTileTypeChange={editor.handleTileTypeChange}
+                onFloorColorChange={editor.handleFloorColorChange}
+                onWallColorChange={editor.handleWallColorChange}
+                onWallSetChange={editor.handleWallSetChange}
+                onSelectedFurnitureColorChange={editor.handleSelectedFurnitureColorChange}
+                pickedFurnitureColor={editorState.pickedFurnitureColor}
+                onPickedFurnitureColorChange={editor.handlePickedFurnitureColorChange}
+                onColorPickToggle={editor.handleColorPickToggle}
+                onFurnitureTypeChange={editor.handleFurnitureTypeChange}
+                loadedAssets={loadedAssets}
+                activePetTypes={officeState.getActivePetTypes()}
+                petCount={getPetCount()}
+                onPetToggle={editor.handlePetToggle}
+                carpetVariant={editor.carpetVariant}
+                carpetColor={editor.carpetColor}
+                carpetAccentColor={editor.carpetAccentColor}
+                onCarpetVariantChange={editor.handleCarpetVariantChange}
+                onCarpetColorChange={editor.handleCarpetColorChange}
+                onCarpetAccentColorChange={editor.handleCarpetAccentColorChange}
+                areas={officeState.getLayout().areas ?? []}
+                selectedAreaLabel={editor.selectedAreaLabel}
+                directories={[]}
+                areasAvailable={areasAvailable}
+                areaMappings={areaMappings}
+                onSelectArea={editor.handleSelectArea}
+                onAddArea={editor.handleAddArea}
+                onRemoveArea={editor.handleRemoveArea}
+                onRenameArea={editor.handleRenameArea}
+                onAreaColorChange={editor.handleAreaColorChange}
+                onAreaMappingChange={handleAreaMappingChange}
+                background={officeState.getLayout().background}
+                onBackgroundChange={editor.handleBackgroundChange}
+              />
+            );
+          })()}
 
-      <InstallPrompt readOnly={officeReadOnly} />
+        {/* Read-only viewers only ever see the public office: no switcher. */}
+        {!officeReadOnly && offices && !editor.isEditMode && <OfficeSwitcher state={offices} />}
 
-      {!officeReadOnly && (
-        <UpdateBanner
-          update={update}
-          status={updateStatus}
-          onClearStatus={() => setUpdateStatus(null)}
+        {officeReadOnly && (
+          <div className="absolute mobile-safe-top left-1/2 -translate-x-1/2 z-10 text-sm text-text-muted pointer-events-none select-none whitespace-nowrap">
+            {t('app.readOnly')}
+          </div>
+        )}
+
+        {/* A read-only office gets no layout button and only the language
+          setting: everything else would be refused by the server anyway. */}
+        {!isMobile && (
+          <BottomToolbar
+            isEditMode={editor.isEditMode}
+            onToggleEditMode={officeReadOnly ? null : editor.handleToggleEditMode}
+            isSettingsOpen={settingsOpen}
+            onToggleSettings={() => setIsSettingsOpen((v) => !v)}
+          />
+        )}
+
+        {/* Mobile: Settings floats top-left (the layout editor stays desktop-
+          only — its tools are drag/hover-driven). */}
+        {isMobile && (
+          <div className="absolute mobile-safe-top left-8 z-20">
+            <Button
+              size="sm"
+              variant={settingsOpen ? 'active' : 'default'}
+              className="border-border! shadow-pixel"
+              onClick={() => setIsSettingsOpen((v) => !v)}
+              data-tour="settings-button"
+            >
+              {t('toolbar.settings')}
+            </Button>
+          </div>
+        )}
+
+        <ConnectionIndicator />
+
+        <InstallPrompt readOnly={officeReadOnly} />
+
+        {!officeReadOnly && (
+          <UpdateBanner
+            update={update}
+            status={updateStatus}
+            onClearStatus={() => setUpdateStatus(null)}
+          />
+        )}
+
+        {profile?.canEdit && (firstRun || profileOpen) && (
+          <ProfileModal
+            profile={profile.profile}
+            firstRun={firstRun}
+            saveError={profileSaveError}
+            onSave={(p) => {
+              transport.send({ type: 'saveProfile', profile: p });
+              setProfileSave({ sent: p, before: profile });
+              setProfileSaveError(false);
+            }}
+            onClose={() => {
+              setIsProfileOpen(false);
+              setProfileSaveError(false);
+            }}
+          />
+        )}
+
+        <SettingsModal
+          isOpen={settingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          readOnly={officeReadOnly}
+          onOpenProfile={profile?.canEdit ? () => setIsProfileOpen(true) : null}
+          showAreas={showAreas}
+          onToggleShowAreas={onToggleShowAreas}
+          showAreasAvailable={areasAvailable}
+          onExportLayout={handleExportLayout}
+          onImportLayout={handleImportLayout}
+          autostart={autostart}
+          offices={officeReadOnly ? null : offices}
+          officeReply={officeReply}
+          onOfficeReplyHandled={clearOfficeReply}
+          onReplayTour={startTour}
         />
-      )}
-
-      {profile?.canEdit && (firstRun || profileOpen) && (
-        <ProfileModal
-          profile={profile.profile}
-          firstRun={firstRun}
-          saveError={profileSaveError}
-          onSave={(p) => {
-            transport.send({ type: 'saveProfile', profile: p });
-            setProfileSave({ sent: p, before: profile });
-            setProfileSaveError(false);
-          }}
-          onClose={() => {
-            setIsProfileOpen(false);
-            setProfileSaveError(false);
-          }}
-        />
-      )}
-
-      <SettingsModal
-        isOpen={settingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        readOnly={officeReadOnly}
-        onOpenProfile={profile?.canEdit ? () => setIsProfileOpen(true) : null}
-        showAreas={showAreas}
-        onToggleShowAreas={onToggleShowAreas}
-        showAreasAvailable={areasAvailable}
-        onExportLayout={handleExportLayout}
-        onImportLayout={handleImportLayout}
-        autostart={autostart}
-        offices={officeReadOnly ? null : offices}
-        officeReply={officeReply}
-        onOfficeReplyHandled={clearOfficeReply}
-        onReplayTour={startTour}
-      />
-
+      </div>
+      {/* Outside the app root: the overlay makes the root inert while it runs. */}
       {step && (
         <TourOverlay
           step={step}
@@ -584,9 +627,14 @@ function App() {
           onNext={() => tourDispatch({ type: 'next' })}
           onPrev={() => tourDispatch({ type: 'prev' })}
           onSkip={() => tourDispatch({ type: 'skip' })}
+          context={{
+            demo: tourDemoRef.current,
+            autostart: autostart?.supported === true,
+            touch: isMobile,
+          }}
         />
       )}
-    </div>
+    </>
   );
 }
 

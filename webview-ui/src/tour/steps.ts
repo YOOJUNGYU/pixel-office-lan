@@ -2,6 +2,7 @@
 // Text lives in i18n.ts as `tour.<id>.title` / `tour.<id>.body`.
 
 import type { Room } from '../../../core/src/lan.js';
+import type { Key } from '../i18n.js';
 import { EditTool } from '../office/types.js';
 
 /** What a step spotlights. Several targets = several holes. */
@@ -37,7 +38,14 @@ export interface Scene {
 }
 
 /** Things a step needs on this screen; steps whose needs are unmet are dropped. */
-export type Capability = 'edit' | 'switcher' | 'profile' | 'offices' | 'areas';
+export type Capability =
+  | 'edit'
+  | 'switcher'
+  | 'profile'
+  | 'offices'
+  | 'areas'
+  /** A subagent or shell is on the map (real, or the demos). */
+  | 'family';
 
 export interface Step {
   id: StepId;
@@ -90,7 +98,12 @@ export const STEPS: Step[] = [
     scene: { hover: true },
     readOnly: true,
   },
-  { id: 'family', targets: [{ agent: 'child' }, { agent: 'ghost' }], readOnly: true },
+  {
+    id: 'family',
+    targets: [{ agent: 'child' }, { agent: 'ghost' }],
+    requires: ['family'],
+    readOnly: true,
+  },
   {
     id: 'map',
     targets: [{ map: true }, { dom: 'zoom' }],
@@ -176,3 +189,23 @@ export function visibleSteps(variant: Variant, caps: ReadonlySet<Capability>): S
 
 const BY_ID = new Map(STEPS.map((s) => [s.id, s]));
 export const stepById = (id: StepId): Step => BY_ID.get(id)!;
+
+/** What is true on this screen, for copy that would otherwise describe absent things. */
+export interface BodyContext {
+  /** Demo characters were added. */
+  demo: boolean;
+  /** Start at login is offered (Windows/Mac install). */
+  autostart: boolean;
+  /** Phone/tablet: pinch instead of the +/− buttons. */
+  touch: boolean;
+}
+
+/** The i18n key of a step's body text. */
+export function bodyKey(id: StepId, ctx: BodyContext): Key {
+  if ((id === 'welcome' || id === 'roomLibrary' || id === 'done') && ctx.demo) {
+    return `tour.${id}.bodyDemo`;
+  }
+  if (id === 'map' && ctx.touch) return 'tour.map.bodyTouch';
+  if (id === 'system' && !ctx.autostart) return 'tour.system.bodyNoAutostart';
+  return `tour.${id}.body`;
+}

@@ -28,7 +28,7 @@ import {
   spotlightRect,
   unionRect,
 } from '../src/tour/geometry.js';
-import { type Capability, STEPS, visibleSteps } from '../src/tour/steps.js';
+import { bodyKey, type Capability, STEPS, visibleSteps } from '../src/tour/steps.js';
 import { tourReducer, type TourState } from '../src/tour/useTour.js';
 
 const view = { w: 800, h: 600 };
@@ -116,12 +116,12 @@ test('areaWorldRect bounds the tiles of a room label', () => {
 });
 
 test('visibleSteps: full tour on a desktop owner, short one for remote viewers', () => {
-  const all = new Set<Capability>(['edit', 'switcher', 'profile', 'offices', 'areas']);
+  const all = new Set<Capability>(['edit', 'switcher', 'profile', 'offices', 'areas', 'family']);
   assert.deepEqual(
     visibleSteps('full', all),
     STEPS.map((s) => s.id),
   );
-  const ro = visibleSteps('readOnly', new Set());
+  const ro = visibleSteps('readOnly', new Set<Capability>(['family']));
   assert.deepEqual(ro, [
     'welcome',
     'roomCoding',
@@ -136,7 +136,15 @@ test('visibleSteps: full tour on a desktop owner, short one for remote viewers',
   ]);
   // Phone (no editor) without team offices: no editor, switcher or office steps.
   const phone = visibleSteps('full', new Set<Capability>(['profile', 'areas']));
-  for (const id of ['layoutButton', 'floor', 'editorMore', 'switcher', 'offices', 'remote']) {
+  for (const id of [
+    'layoutButton',
+    'floor',
+    'editorMore',
+    'switcher',
+    'offices',
+    'remote',
+    'family',
+  ]) {
     assert.ok(!phone.includes(id as never), id);
   }
   assert.ok(phone.includes('profile') && phone.includes('settingsButton'));
@@ -167,15 +175,24 @@ test('demoAgents: prefixed keys, rooms, a same-room child, a ghost-led child, a 
   assert.notEqual(byKey.get(DEMO_KEYS.runnerSub)!.room, byKey.get(DEMO_KEYS.runner)!.room);
   assert.equal(byKey.get(DEMO_KEYS.waiter)!.room, 'lounge');
   assert.ok(byKey.get(DEMO_KEYS.waiter)!.permission);
-  // The rooms steps walk the coder around.
-  assert.equal(demoAgents(texts, 'server').find((a) => a.key === DEMO_KEYS.coder)!.room, 'server');
-  assert.ok(needsDemo(agents.slice(0, 2)));
-  assert.ok(!needsDemo(agents.slice(0, 3)));
+  // The coder stands alone in 코딩실 (the name-tag step's target).
+  assert.deepEqual(
+    agents.filter((a) => a.room === 'coding').map((a) => a.key),
+    [DEMO_KEYS.coder],
+  );
+  // The rooms steps walk the waiter around; ❗ only once it is back in 대기실.
+  const walked = demoAgents(texts, 'server').find((a) => a.key === DEMO_KEYS.waiter)!;
+  assert.equal(walked.room, 'server');
+  assert.equal(walked.permission, false);
+  // Only main agents count: two mains plus subagents still need demos.
+  const mains = agents.filter((a) => a.kind === 'main');
+  assert.ok(needsDemo([...mains.slice(0, 2), ...agents.filter((a) => a.kind !== 'main')]));
+  assert.ok(!needsDemo(mains.slice(0, 3)));
 });
 
 test('roleAgents prefers demos and falls back to matching real agents', () => {
   const demo = demoAgents(texts);
-  assert.equal(roleAgents('tag', demo)!.focus.key, DEMO_KEYS.reader);
+  assert.equal(roleAgents('tag', demo)!.focus.key, DEMO_KEYS.coder);
   assert.equal(roleAgents('bubble', demo)!.focus.key, DEMO_KEYS.waiter);
   assert.equal(roleAgents('child', demo)!.parent!.key, DEMO_KEYS.reader);
   assert.equal(roleAgents('ghost', demo)!.focus.key, DEMO_KEYS.runnerSub);
@@ -195,6 +212,16 @@ test('roleAgents prefers demos and falls back to matching real agents', () => {
     null,
   );
   assert.equal(roleAgents('tag', []), null);
+});
+
+test('bodyKey picks the text matching what is on screen', () => {
+  const ctx = { demo: false, autostart: true, touch: false };
+  assert.equal(bodyKey('welcome', ctx), 'tour.welcome.body');
+  assert.equal(bodyKey('welcome', { ...ctx, demo: true }), 'tour.welcome.bodyDemo');
+  assert.equal(bodyKey('done', { ...ctx, demo: true }), 'tour.done.bodyDemo');
+  assert.equal(bodyKey('map', { ...ctx, touch: true }), 'tour.map.bodyTouch');
+  assert.equal(bodyKey('system', { ...ctx, autostart: false }), 'tour.system.bodyNoAutostart');
+  assert.equal(bodyKey('floor', { demo: true, autostart: false, touch: true }), 'tour.floor.body');
 });
 
 test('tourReducer: start, next, prev, skip, finish', () => {
@@ -228,7 +255,9 @@ test('LanAgents.setDemo adds client-only characters and removes them all', () =>
     key: 'p1:s',
     peer: { ...demoAgents(texts)[0].peer, id: 'p1' },
   };
-  lan.apply([realAgent]);
+  // A peer sending a demo-prefixed key is dropped.
+  lan.apply([realAgent, { ...realAgent, key: `${TOUR_DEMO_PREFIX}x:main` }]);
+  assert.deepEqual(lan.realAgents(), [realAgent]);
   lan.setDemo(demoAgents(texts));
   assert.equal(lan.all().length, 7);
   assert.deepEqual(lan.realAgents(), [realAgent]);

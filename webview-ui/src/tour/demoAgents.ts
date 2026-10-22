@@ -14,9 +14,9 @@ export interface DemoTexts {
   waitReason: string;
 }
 
-/** Whether the office is too empty to show the tour's character steps without demos. */
+/** Whether the office is too empty (fewer than 3 main agents) to show the character steps without demos. */
 export const needsDemo = (realAgents: OfficeAgent[]): boolean =>
-  realAgents.length < TOUR_DEMO_MIN_AGENTS;
+  realAgents.filter((a) => a.kind === 'main').length < TOUR_DEMO_MIN_AGENTS;
 
 export const isDemoKey = (key: string): boolean => key.startsWith(TOUR_DEMO_PREFIX);
 
@@ -30,13 +30,21 @@ export const DEMO_KEYS = {
   waiter: `${TOUR_DEMO_PREFIX}d:main`,
 } as const;
 
+/** What the walker does in each room it visits during the rooms steps. */
+const WALK_ACT: Record<Room, { act: OfficeAgent['act']; target: string }> = {
+  coding: { act: 'edit', target: 'src/app.ts' },
+  library: { act: 'read', target: 'README.md' },
+  server: { act: 'run', target: 'npm run build' },
+  lounge: { act: 'ask', target: '' },
+};
+
 /**
- * The demo office: a coder in `coderRoom` (코딩실 except while the rooms steps
- * walk it around), a reader in 자료실 with a subagent beside it, a runner in
- * 서버실 whose subagent works in 자료실 (so it holds a ghost's hand), and a
- * Codex agent in 대기실 waiting for approval (❗).
+ * The demo office: a lone coder in 코딩실 (editing, with a reason), a reader in
+ * 자료실 with a subagent beside it, a Codex runner in 서버실 whose subagent
+ * works in 대기실 (so it holds a ghost's hand), and a walker that the rooms
+ * steps send to `walkerRoom`; back home in 대기실 it waits for approval (❗).
  */
-export function demoAgents(texts: DemoTexts, coderRoom: Room = 'coding'): OfficeAgent[] {
+export function demoAgents(texts: DemoTexts, walkerRoom: Room = 'lounge'): OfficeAgent[] {
   const peer = (n: number, palette: number, hueShift: number): PeerInfo => ({
     id: `${TOUR_DEMO_PREFIX}${'abcd'[n]}`,
     nickname: texts.nicknames[n],
@@ -78,7 +86,7 @@ export function demoAgents(texts: DemoTexts, coderRoom: Room = 'coding'): Office
     act,
     target,
   });
-  const coder = main(a, coderRoom, {
+  const coder = main(a, 'coding', {
     act: 'edit',
     target: 'src/login.ts',
     reason: texts.editReason,
@@ -89,18 +97,19 @@ export function demoAgents(texts: DemoTexts, coderRoom: Room = 'coding'): Office
     reason: texts.readReason,
   });
   const runner = main(c, 'server', { provider: 'codex', act: 'run', target: 'npm test' });
-  const waiter = main(d, 'lounge', {
+  const waiting = walkerRoom === 'lounge';
+  const waiter = main(d, walkerRoom, {
     num: 2,
-    permission: true,
-    act: 'ask',
-    reason: texts.waitReason,
+    permission: waiting,
+    ...WALK_ACT[walkerRoom],
+    reason: waiting ? texts.waitReason : '',
   });
   return [
     coder,
     reader,
     child(reader, 'explore', 'library', 'search', 'TODO'),
     runner,
-    child(runner, 'test', 'library', 'read', 'test/login.test.ts'),
+    child(runner, 'test', 'lounge', 'read', 'test/login.test.ts'),
     waiter,
   ];
 }
@@ -113,7 +122,7 @@ export function roleAgents(
   const byKey = new Map(agents.map((a) => [a.key, a]));
   const mains = agents.filter((a) => a.kind === 'main');
   if (role === 'tag') {
-    const focus = byKey.get(DEMO_KEYS.reader) ?? mains[0];
+    const focus = byKey.get(DEMO_KEYS.coder) ?? mains[0];
     return focus ? { focus } : null;
   }
   if (role === 'bubble') {

@@ -30,7 +30,7 @@ import {
   spotlightRect,
   unionRect,
 } from './geometry.js';
-import type { Step, Target } from './steps.js';
+import { type BodyContext, bodyKey, type Step, type Target } from './steps.js';
 
 interface TourOverlayProps {
   step: Step;
@@ -44,6 +44,8 @@ interface TourOverlayProps {
   onNext: () => void;
   onPrev: () => void;
   onSkip: () => void;
+  /** What is true on this screen (picks the step text variant). */
+  context: BodyContext;
 }
 
 /** Screen rect of a character sprite (world px → container px). */
@@ -113,6 +115,9 @@ function resolveTarget(
   return some([...agentRects(pick.focus), ...(pick.parent ? agentRects(pick.parent) : [])]);
 }
 
+const REDUCED_MOTION = (): boolean =>
+  window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+
 /** Even-odd path: the whole viewport minus every hole. */
 function dimPath(w: number, h: number, holes: Rect[]): string {
   let d = `M0 0H${w}V${h}H0Z`;
@@ -138,6 +143,7 @@ export function TourOverlay({
   onNext,
   onPrev,
   onSkip,
+  context,
 }: TourOverlayProps) {
   useLang();
   const [, setTick] = useState(0);
@@ -167,6 +173,32 @@ export function TourOverlay({
     };
   }, [step, officeState]);
 
+  // Focus belongs to the tooltip while the tour runs, and goes back afterwards.
+  useEffect(() => {
+    const prev = document.activeElement;
+    return () => {
+      if (prev instanceof HTMLElement && prev.isConnected) prev.focus();
+    };
+  }, []);
+
+  // The app is inert (no focus, no clicks, no keys) under the tour. On "try it"
+  // steps only the map and the zoom buttons stay live, so the spotlight never
+  // reaches the switcher or the toolbars that sit inside it.
+  const interactive = step.interactive === true;
+  useEffect(() => {
+    const root = containerRef.current;
+    if (!root) return;
+    const live = (c: Element) =>
+      c.querySelector('canvas') !== null || c.matches('[data-tour="zoom"]');
+    const els = (interactive ? [...root.children].filter((c) => !live(c)) : [root]).filter(
+      (c): c is HTMLElement => c instanceof HTMLElement,
+    );
+    for (const e of els) e.inert = true;
+    return () => {
+      for (const e of els) e.inert = false;
+    };
+  }, [interactive, containerRef]);
+
   // Scroll a target inside a scrolling panel (Settings) into view, once per step.
   useEffect(() => {
     for (const tg of step.targets) {
@@ -184,6 +216,21 @@ export function TourOverlay({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       e.stopPropagation();
+      const tg = e.target;
+      const typing =
+        tg instanceof HTMLElement &&
+        (tg.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(tg.tagName));
+      if (typing && e.key !== 'Escape') return;
+      // Tab cycles inside the tooltip.
+      if (e.key === 'Tab') {
+        const btns = [...(tipRef.current?.querySelectorAll('button') ?? [])];
+        if (btns.length === 0) return;
+        e.preventDefault();
+        const i = btns.indexOf(document.activeElement as HTMLButtonElement);
+        const n = btns.length;
+        btns[i < 0 ? (e.shiftKey ? n - 1 : 0) : (i + (e.shiftKey ? n - 1 : 1)) % n].focus();
+        return;
+      }
       const k = keyRef.current;
       const keys: Record<string, (() => void) | undefined> = {
         Escape: k.onSkip,
@@ -222,7 +269,7 @@ export function TourOverlay({
   // Glide from the previous holes; a different number of holes snaps.
   const prev = holesRef.current;
   const shown =
-    prev.length === holes.length
+    prev.length === holes.length && !REDUCED_MOTION()
       ? holes.map((h, i) => approachRect(prev[i], h, TOUR_SPOTLIGHT_EASE))
       : holes;
   holesRef.current = shown;
@@ -263,6 +310,7 @@ export function TourOverlay({
         role="dialog"
         aria-modal="true"
         aria-labelledby="tour-title"
+        aria-describedby="tour-body"
         data-testid="tour-tooltip"
         className="absolute pixel-panel pointer-events-auto flex flex-col gap-6 py-8 px-12 text-sm leading-snug"
         style={{
@@ -280,7 +328,9 @@ export function TourOverlay({
             {index + 1} / {count}
           </span>
         </div>
-        <p className="m-0 whitespace-pre-line">{t(`tour.${step.id}.body`)}</p>
+        <p id="tour-body" aria-live="polite" className="m-0 whitespace-pre-line">
+          {t(bodyKey(step.id, context))}
+        </p>
         <div className="flex items-center gap-4 justify-end flex-wrap">
           {!last && (
             <Button size="sm" variant="ghost" className="mr-auto" onClick={onSkip}>

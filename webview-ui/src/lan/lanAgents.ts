@@ -8,6 +8,7 @@ import {
 } from '../constants.js';
 import { t } from '../i18n.js';
 import type { OfficeState } from '../office/engine/officeState.js';
+import { isDemoKey } from '../tour/demoAgents.js';
 
 /** Text of an agent's name tag (the provider dot is drawn separately). */
 export function tagText(a: OfficeAgent): string {
@@ -53,7 +54,8 @@ export class LanAgents {
 
   /** A fresh `officeSnapshot`. */
   apply(agents: OfficeAgent[]): void {
-    this.real = agents;
+    // A peer can never impersonate a tour demo (their keys are client-only).
+    this.real = agents.filter((a) => !isDemoKey(a.key));
     this.reconcile();
   }
 
