@@ -58,7 +58,7 @@ const ko = {
   'app.rotateHint': '회전 (R)',
   'app.importConfirm': '현재 레이아웃을 바꿀까요? 저장하지 않은 편집은 사라집니다.',
   'app.resetDefaultConfirm':
-    '기본 사무실(128×128)로 바꿀까요? 지금 배치는 사라집니다(먼저 내보내기로 저장해 둘 수 있습니다).',
+    '기본 사무실(90×60)로 바꿀까요? 지금 배치는 사라집니다(먼저 내보내기로 저장해 둘 수 있습니다).',
   'settings.resetDefaultLayout': '기본 사무실로 되돌리기',
   'app.resetEditorConfirm': '기본 레이아웃으로 되돌릴까요? 직접 꾸민 내용이 모두 사라집니다.',
   'app.importInvalid': '올바른 레이아웃 파일이 아닙니다.',
@@ -246,13 +246,13 @@ const ko = {
     '할 일을 기다리거나 확인을 기다릴 때는 대기실에서 쉽니다.\n방 이동은 3초 정도 상태가 이어져야 일어나서, 잠깐씩 바뀌는 작업에 캐릭터가 왔다 갔다 하지 않습니다.',
   'tour.tag.title': '이름표',
   'tour.tag.body':
-    '캐릭터 아래 이름표는 "PC 계정 (닉네임) · Claude/Codex #번호" 입니다. 닉네임은 정한 사람만 보입니다. 앞의 색 점은 제공자예요 — 주황은 Claude, 초록은 Codex.\n서브에이전트와 셸은 부모의 이름표 뒤에 SUB / SHELL 배지가 붙습니다.',
+    '캐릭터 아래 이름표는 "PC 계정 (닉네임) · Claude/Codex #번호" 입니다. 닉네임은 정한 사람만 보입니다. 앞의 색 점은 제공자예요 — 주황은 Claude, 초록은 Codex.\n메인 에이전트는 이름표 뒤에 MAIN 배지가, 서브에이전트와 셸은 부모의 이름표 뒤에 SUB / SHELL 배지가 붙습니다.',
   'tour.bubble.title': '말풍선',
   'tour.bubble.body':
     '캐릭터에 마우스를 올리면 어느 방에서 무엇을 하는지, 그리고 이유가 보입니다.\n머리 위 빨간 ! 는 사용자의 확인(권한 승인이나 답변)을 기다린다는 뜻입니다.',
   'tour.family.title': '서브에이전트와 셸',
   'tour.family.body':
-    '에이전트가 만든 서브에이전트와 셸은 부모와 손을 잡고 다닙니다. 일을 맡기고 쉬는 부모는 아이들이 일하는 방으로 직접 걸어가 함께 있습니다.\n아이들이 여러 방에 흩어져 있으면 부모는 가장 많은 쪽에 가고, 나머지 방에서는 반투명한 부모의 분신이 손을 잡아 줍니다.',
+    '에이전트가 만든 서브에이전트와 셸은 같은 방에 있는 부모와 손을 잡고 다닙니다.\n다른 방에서 일하는 아이는 그 방에서 따로 일합니다.',
   'tour.map.title': '지도 움직이기',
   'tour.map.body':
     '드래그로 지도를 옮기고, 휠로 커서 위치를 중심으로 확대·축소합니다. 왼쪽 위 + / − 버튼도 됩니다.\n지금 직접 해 보세요 — 다음으로 넘어가면 원래 화면으로 돌아옵니다.',
@@ -361,7 +361,7 @@ const en: Record<Key, string> = {
   'app.rotateHint': 'Rotate (R)',
   'app.importConfirm': 'Replace the current layout? Unsaved edits will be lost.',
   'app.resetDefaultConfirm':
-    'Switch to the default office (128×128)? The current layout will be lost (export it first to keep a copy).',
+    'Switch to the default office (90×60)? The current layout will be lost (export it first to keep a copy).',
   'settings.resetDefaultLayout': 'Reset to the default office',
   'app.resetEditorConfirm': 'Reset to the default layout? All your customizations will be lost.',
   'app.importInvalid': 'This is not a valid layout file.',
@@ -549,13 +549,13 @@ const en: Record<Key, string> = {
     'Idle agents, and agents waiting for you, rest in the lounge.\nA move only happens after the new activity lasts about 3 seconds, so characters do not bounce around on quick tasks.',
   'tour.tag.title': 'Name tags',
   'tour.tag.body':
-    'The tag under a character reads "PC account (nickname) · Claude/Codex #number"; the nickname only when one is set. The dot is the provider: orange = Claude, green = Codex.\nSubagents and shells show their parent\'s tag followed by a SUB / SHELL badge.',
+    'The tag under a character reads "PC account (nickname) · Claude/Codex #number"; the nickname only when one is set. The dot is the provider: orange = Claude, green = Codex.\nMain agents get a MAIN badge; subagents and shells show their parent\'s tag followed by a SUB / SHELL badge.',
   'tour.bubble.title': 'Hover bubble',
   'tour.bubble.body':
     'Hover a character to see its room, what it is doing and why.\nA red ! over its head means it is waiting for you (a permission or an answer).',
   'tour.family.title': 'Subagents and shells',
   'tour.family.body':
-    'Subagents and shells an agent starts walk hand in hand with it. A parent that is only waiting on them walks over to the room where they work.\nWhen they are spread over several rooms, the parent joins the busiest one and a see-through ghost of the parent holds hands in the others.',
+    'Subagents and shells an agent starts walk hand in hand with it while they are in the same room.\nOne working in another room acts on its own there.',
   'tour.map.title': 'Moving the map',
   'tour.map.body':
     'Drag to pan, scroll to zoom at the cursor, or use the + / − buttons at the top left.\nTry it now — the view goes back when you continue.',

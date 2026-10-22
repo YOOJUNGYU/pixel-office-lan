@@ -13,7 +13,6 @@ import { test } from 'vitest';
 
 import { buildFurnitureCatalog } from '../../core/src/assets/build.ts';
 import { decodeAllFurniture } from '../../core/src/assets/loader.ts';
-import type { Room } from '../../core/src/lan.ts';
 import { TOUR_DEMO_PREFIX } from '../src/constants.js';
 import { LanAgents } from '../src/lan/lanAgents.js';
 import { OfficeState } from '../src/office/engine/officeState.js';
@@ -157,7 +156,7 @@ const texts = {
   waitReason: 'w',
 };
 
-test('demoAgents: prefixed keys, rooms, a same-room child, a ghost-led child, a ❗ agent', () => {
+test('demoAgents: prefixed keys, rooms, a same-room child, a ❗ agent', () => {
   const agents = demoAgents(texts);
   assert.ok(agents.every((a) => isDemoKey(a.key) && a.peer.id.startsWith(TOUR_DEMO_PREFIX)));
   assert.equal(new Set(agents.map((a) => a.key)).size, agents.length);
@@ -166,12 +165,7 @@ test('demoAgents: prefixed keys, rooms, a same-room child, a ghost-led child, a 
   assert.equal(byKey.get(DEMO_KEYS.coder)!.room, 'coding');
   assert.equal(byKey.get(DEMO_KEYS.coder)!.reason, 'e');
   assert.equal(byKey.get(DEMO_KEYS.readerSub)!.room, byKey.get(DEMO_KEYS.reader)!.room);
-  // The runner delegates from 대기실; its subagent and shell work in two other rooms.
-  assert.equal(byKey.get(DEMO_KEYS.runner)!.act, 'delegate');
-  assert.equal(byKey.get(DEMO_KEYS.runner)!.room, 'lounge');
-  assert.equal(byKey.get(DEMO_KEYS.runnerSub)!.room, 'server');
-  assert.equal(byKey.get(DEMO_KEYS.runnerShell)!.room, 'library');
-  assert.equal(byKey.get(DEMO_KEYS.runnerShell)!.kind, 'shell');
+  assert.equal(byKey.get(DEMO_KEYS.runner)!.room, 'server');
   assert.equal(byKey.get(DEMO_KEYS.waiter)!.room, 'lounge');
   assert.ok(byKey.get(DEMO_KEYS.waiter)!.permission);
   // The coder stands alone in 코딩실 (the name-tag step's target).
@@ -193,9 +187,8 @@ test('roleAgents prefers demos and falls back to matching real agents', () => {
   const demo = demoAgents(texts);
   assert.equal(roleAgents('tag', demo)!.focus.key, DEMO_KEYS.coder);
   assert.equal(roleAgents('bubble', demo)!.focus.key, DEMO_KEYS.waiter);
-  assert.equal(roleAgents('child', demo)!.focus.key, DEMO_KEYS.runnerSub);
-  assert.equal(roleAgents('child', demo)!.parent!.key, DEMO_KEYS.runner);
-  assert.equal(roleAgents('ghost', demo)!.focus.key, DEMO_KEYS.runnerShell);
+  assert.equal(roleAgents('child', demo)!.focus.key, DEMO_KEYS.readerSub);
+  assert.equal(roleAgents('child', demo)!.parent!.key, DEMO_KEYS.reader);
   const real = demo.map((a) => ({
     ...a,
     key: a.key.replace(TOUR_DEMO_PREFIX, 'p'),
@@ -203,10 +196,6 @@ test('roleAgents prefers demos and falls back to matching real agents', () => {
   }));
   assert.equal(roleAgents('bubble', real)!.focus.key, 'pd:main');
   assert.equal(roleAgents('child', real)!.focus.key, 'pb:main/sub/explore');
-  assert.equal(roleAgents('ghost', real)!.focus.key, 'pc:main/sub/test');
-  // With display rooms: the delegating parent stands with its subagent, so the shell is the ghost-led one.
-  const shown = (a: { key: string; room: Room }): Room => (a.key === 'pc:main' ? 'server' : a.room);
-  assert.equal(roleAgents('ghost', real, shown)!.focus.key, 'pc:main/sh/build');
   assert.equal(
     roleAgents(
       'child',
@@ -263,19 +252,14 @@ test('LanAgents.setDemo adds client-only characters and removes them all', () =>
   lan.apply([realAgent, { ...realAgent, key: `${TOUR_DEMO_PREFIX}x:main` }]);
   assert.deepEqual(lan.realAgents(), [realAgent]);
   lan.setDemo(demoAgents(texts));
-  assert.equal(lan.all().length, 8);
+  assert.equal(lan.all().length, 6);
   assert.deepEqual(lan.realAgents(), [realAgent]);
-  // The runner walks to its subagent's room (no ghost there); a ghost leads the shell.
-  const runner = lan.all().find((a) => a.key === DEMO_KEYS.runner)!;
-  assert.equal(lan.displayRoom(runner), 'server');
-  assert.equal(lan.ghostIdFor(DEMO_KEYS.runner, 'server'), undefined);
-  assert.ok(lan.ghostIdFor(DEMO_KEYS.runner, 'library') !== undefined);
   // A snapshot while the tour runs keeps the demos.
   lan.apply([realAgent]);
-  assert.equal(lan.all().length, 8);
+  assert.equal(lan.all().length, 6);
   lan.setDemo([]);
   assert.deepEqual(lan.all(), [realAgent]);
-  // Every demo and ghost character despawns; only the real agent's stays.
+  // Every demo character despawns; only the real agent's stays.
   const staying = [...os.characters.values()].filter((c) => c.matrixEffect !== 'despawn');
   assert.equal(staying.length, 1);
 });

@@ -85,7 +85,7 @@ export const CAMERA_FOLLOW_LERP = 0.1;
 export const CAMERA_FOLLOW_SNAP_THRESHOLD = 0.5;
 
 // ── Zoom ─────────────────────────────────────────────────────
-/** Low enough that the whole 128×128 office fits a 1280×720 screen. */
+/** Low enough that the whole 128×128 grid fits a 1280×720 screen. */
 export const ZOOM_MIN = 0.25;
 export const ZOOM_MAX = 10;
 /** Wheel/pinch zoom: zoom *= exp(-deltaY × this). A 100-px mouse notch ≈ ×1.16. */
@@ -299,8 +299,6 @@ export const LAN_ROOM_TOOL: Record<Room, string | null> = {
 export const LAN_READING_TOOLS = ['Read'];
 /** Subagents wear their PC's palette, hue-rotated by this much. */
 export const LAN_SUBAGENT_HUE_OFFSET = 120;
-/** A delegating parent's display room (joining its children, or going back) changes only after the wish held this long. */
-export const PARENT_FOLLOW_DEBOUNCE_MS = 3_000;
 export const MAX_HUE_DEG = 360;
 /** Skin colors of char_0..5.png (measured); exempt from a character's hue shift. */
 export const CHARACTER_SKIN_COLORS: ReadonlySet<string> = new Set([
@@ -321,8 +319,6 @@ export const CHARACTER_SKIN_COLORS: ReadonlySet<string> = new Set([
   '#B67352',
   '#8C583F',
 ]);
-/** A parent's ghost, leading its children in a room the parent is not in. */
-export const LAN_GHOST_ALPHA = 0.45;
 /** Shell characters share one fixed look. */
 export const LAN_SHELL_PALETTE = 3;
 /** Provider badge dot in a main agent's name tag. */
@@ -330,14 +326,17 @@ export const LAN_PROVIDER_COLORS: Record<Provider, string> = {
   claude: '#D97757',
   codex: '#10A37F',
 };
-/** Badge after a subagent's / shell's name tag (which shows the parent's label). */
+/** Badge after a name tag: SUB / SHELL on children (which show the parent's label), MAIN on main agents. */
 export const LAN_KIND_BADGES: Record<
-  'subagent' | 'shell',
+  'main' | 'subagent' | 'shell',
   { text: string; bg: string; fg: string }
 > = {
+  main: { text: 'MAIN', bg: '#feca57', fg: '#1e1e2e' },
   subagent: { text: 'SUB', bg: '#5f27cd', fg: '#ffffff' },
   shell: { text: 'SHELL', bg: '#576574', fg: '#ffffff' },
 };
+/** Light-theme override of the MAIN badge (the gold above is too pale on paper). */
+export const LAN_MAIN_BADGE_LIGHT = { bg: '#8a5a00', fg: '#ffffff' } as const;
 /** Waiting/permission "!" over a character's head: red glyph, 1px dark outline. */
 export const LAN_ALERT_COLOR = '#e8202a';
 export const LAN_ALERT_OUTLINE_COLOR = '#2b0608';

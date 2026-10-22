@@ -10,6 +10,7 @@ import {
   LAN_BUBBLE_MAX_WIDTH_PX,
   LAN_BUBBLE_Z_INDEX,
   LAN_KIND_BADGES,
+  LAN_MAIN_BADGE_LIGHT,
   LAN_PERMISSION_Z_INDEX,
   LAN_PROVIDER_COLORS,
   LAN_TAG_BADGE_CHROME_PX,
@@ -27,6 +28,7 @@ import { overlayProjection, renderScale } from '../office/projection.js';
 import { getCachedSprite } from '../office/sprites/spriteCache.js';
 import { BUBBLE_PERMISSION_SPRITE } from '../office/sprites/spriteData.js';
 import { type Character, CharacterState } from '../office/types.js';
+import { getTheme } from '../theme.js';
 import { type LanAgents, tagBadge, tagText } from './lanAgents.js';
 import { stackTags, type TagBox } from './tagStack.js';
 
@@ -91,9 +93,15 @@ interface LanOverlayProps {
  * Name tags under every LAN character, permission bubbles over waiting ones,
  * and the hover bubble (room, activity, reason) in the viewer's language. Re-rendered every animation
  * frame so the DOM follows walking sprites; tags are keyed so React only
- * moves them. Ghost parents get no tag (the real parent has one) but hovering
- * one shows the parent's bubble. All text is React text nodes.
+ * moves them. All text is React text nodes.
  */
+/** Badge colors; MAIN has its own pair in the light theme. */
+const badgeColors = (kind: OfficeAgent['kind']) => {
+  const k = LAN_KIND_BADGES[kind];
+  const c = kind === 'main' && getTheme() === 'light' ? LAN_MAIN_BADGE_LIGHT : k;
+  return { background: c.bg, color: c.fg };
+};
+
 export function LanOverlay({ officeState, lan, containerRef, zoom, panRef }: LanOverlayProps) {
   const [, setTick] = useState(0);
   useEffect(() => {
@@ -139,7 +147,8 @@ export function LanOverlay({ officeState, lan, containerRef, zoom, panRef }: Lan
       w:
         LAN_TAG_CHROME_PX +
         textWidth(text, LAN_TAG_FONT) +
-        (badge ? LAN_TAG_BADGE_CHROME_PX + textWidth(badge, LAN_TAG_BADGE_FONT) : 0),
+        LAN_TAG_BADGE_CHROME_PX +
+        textWidth(badge, LAN_TAG_BADGE_FONT),
     });
   }
   const tops = stackTags(boxes, LAN_TAG_HEIGHT_PX, LAN_TAG_STACK_GAP_PX);
@@ -164,15 +173,13 @@ export function LanOverlay({ officeState, lan, containerRef, zoom, panRef }: Lan
           style={{ background: LAN_PROVIDER_COLORS[a.provider] }}
         />
         {text}
-        {a.kind !== 'main' && (
-          <span
-            data-badge={a.kind}
-            className="shrink-0 px-2 text-2xs font-bold leading-none"
-            style={{ background: LAN_KIND_BADGES[a.kind].bg, color: LAN_KIND_BADGES[a.kind].fg }}
-          >
-            {tagBadge(a)}
-          </span>
-        )}
+        <span
+          data-badge={a.kind}
+          className="shrink-0 px-2 text-2xs font-bold leading-none"
+          style={badgeColors(a.kind)}
+        >
+          {tagBadge(a)}
+        </span>
       </div>,
     );
     if (a.permission) {
@@ -199,7 +206,6 @@ export function LanOverlay({ officeState, lan, containerRef, zoom, panRef }: Lan
     }
   }
 
-  // Hovering a ghost resolves to its real parent's agent (absent parent → nothing).
   const hoveredId = officeState.hoveredAgentId;
   const hovered = hoveredId !== null ? lan.agentFor(hoveredId) : undefined;
   const hoveredCh = hoveredId !== null ? officeState.characters.get(hoveredId) : undefined;

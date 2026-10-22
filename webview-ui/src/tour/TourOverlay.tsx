@@ -96,21 +96,12 @@ function resolveTarget(
       world(areaWorldRect(layout.areaTiles, layout.cols, ROOM_LABELS[target.room], TILE_SIZE)),
     ]);
   }
-  const pick = roleAgents(target.agent, lan.all(), (a) => lan.displayRoom(a));
+  const pick = roleAgents(target.agent, lan.all());
   if (!pick) return [];
   const agentRects = (a: OfficeAgent) => [
     shift(characterRect(os, lan.idFor(a.key), p)),
     tagRect(a.key),
   ];
-  if (target.agent === 'ghost') {
-    const ghost = pick.focus.parentKey
-      ? lan.ghostIdFor(pick.focus.parentKey, pick.focus.room)
-      : undefined;
-    return [
-      ...some([...agentRects(pick.focus), shift(characterRect(os, ghost, p))]),
-      ...(pick.parent ? some(agentRects(pick.parent)) : []),
-    ];
-  }
   return some([...agentRects(pick.focus), ...(pick.parent ? agentRects(pick.parent) : [])]);
 }
 

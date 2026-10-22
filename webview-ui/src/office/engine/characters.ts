@@ -136,8 +136,8 @@ export function updateCharacter(
     case CharacterState.IDLE: {
       // No idle animation — static pose
       ch.frame = 0;
-      // Followers and ghosts never sit: OfficeState walks followers to their leader.
-      if (ch.followId !== undefined || ch.ghostOf !== undefined) break;
+      // Followers never sit: OfficeState walks followers to their leader.
+      if (ch.followId !== undefined) break;
       const seat = ch.seatId ? seats.get(ch.seatId) : undefined;
       if (seat) {
         walkOrSit(
@@ -169,7 +169,6 @@ export function updateCharacter(
         const seat = ch.seatId ? seats.get(ch.seatId) : undefined;
         if (
           ch.followId === undefined &&
-          ch.ghostOf === undefined &&
           seat &&
           ch.tileCol === seat.seatCol &&
           ch.tileRow === seat.seatRow

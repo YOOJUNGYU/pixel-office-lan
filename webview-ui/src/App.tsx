@@ -293,7 +293,7 @@ function App() {
     return () => clearTimeout(timer);
   }, [saveError]);
 
-  // First open: a big office (the 128×128 default) is zoomed out to fit the
+  // First open: a big office (e.g. a 128×128 layout) is zoomed out to fit the
   // window when the default zoom would not show all of it. Once per session.
   const fittedRef = useRef(false);
   useEffect(() => {

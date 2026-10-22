@@ -16,13 +16,11 @@ export type Target =
   /**
    * Characters with their name tags: `tag` = a main agent, `bubble` = one
    * waiting for approval (else one with a reason), `child` = a subagent beside
-   * its parent (one that walked over to it while delegating, in the demo),
-   * `ghost` = a child holding its parent's ghost in another room (plus the
-   * real parent).
+   * its parent.
    */
   | { agent: AgentRole };
 
-export type AgentRole = 'tag' | 'bubble' | 'child' | 'ghost';
+export type AgentRole = 'tag' | 'bubble' | 'child';
 
 /** UI the step shows while it is current; everything returns to the user's state afterwards. */
 export interface Scene {
@@ -101,7 +99,7 @@ export const STEPS: Step[] = [
   },
   {
     id: 'family',
-    targets: [{ agent: 'child' }, { agent: 'ghost' }],
+    targets: [{ agent: 'child' }],
     requires: ['family'],
   },
   {

@@ -256,11 +256,8 @@ export interface Character {
   // -- LAN rooms --
   /** Area label of the agent's room: seats and standing spots stay inside it. */
   homeArea?: string;
-  /** Leader (parent or its ghost) this child walks beside, hand in hand; never sits. */
+  /** Leader (its parent) this child walks beside, hand in hand; never sits. */
   followId?: number;
-  /** Set on a parent's ghost: the real parent's character id (its own id when the
-   *  parent is absent). Drawn translucent; stands still at the head of the line. */
-  ghostOf?: number;
 
   // -- Agent Teams --
   /** Team name this agent belongs to */

@@ -781,8 +781,8 @@ export class OfficeState {
   }
 
   /**
-   * Make a child walk hand in hand beside `leaderId` (its parent, or the
-   * parent's ghost in another room): it gives up its seat and room and never
+   * Make a child walk hand in hand beside `leaderId` (its parent in the
+   * same room): it gives up its seat and room and never
    * sits (see update()). `null` stops following and leaves
    * `homeArea` unset so the caller re-homes it.
    */
@@ -822,12 +822,6 @@ export class OfficeState {
     if (free) return { col, row };
     const tiles = (area && this.areaWalkable.get(area)) || this.walkableTiles;
     return this.closestFreeWalkableTile(anchor.tileCol, anchor.tileRow, self, tiles);
-  }
-
-  /** The room (area label) a character stands in now, null outside every room. */
-  characterArea(id: number): string | null {
-    const ch = this.characters.get(id);
-    return ch ? this.areaAt(ch.tileCol, ch.tileRow) : null;
   }
 
   private areaAt(col: number, row: number): string | null {
