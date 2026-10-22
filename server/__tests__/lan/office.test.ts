@@ -137,6 +137,24 @@ describe('LanService', () => {
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
+  it('pet: announced in self() and people(); a save without one goes back to the human', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pxl-lan-'));
+    const lan = new LanService({ ...profile }, { views: () => [] }, dir);
+    lan.net = { peers: () => [], sendNow: () => {}, teamName: () => undefined };
+    const { peerId: _, ...rest } = profile;
+    expect(lan.self()).not.toHaveProperty('pet');
+    lan.saveProfile({ ...rest, pet: 'gitcat' });
+    expect(lan.self().pet).toBe('gitcat');
+    expect(lan.people('public')[0].pet).toBe('gitcat');
+    expect(lan.packet().peer.pet).toBe('gitcat');
+    lan.saveProfile({ ...rest });
+    expect(lan.self()).not.toHaveProperty('pet');
+    expect(JSON.parse(fs.readFileSync(path.join(dir, 'profile.json'), 'utf-8'))).not.toHaveProperty(
+      'pet',
+    );
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
   describe('nickname uniqueness', () => {
     const pkt = (id: string, nickname: string): PeerPacket => ({
       v: 1,

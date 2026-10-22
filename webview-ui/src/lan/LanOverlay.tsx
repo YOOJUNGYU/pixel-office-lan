@@ -10,6 +10,7 @@ import {
   LAN_PERMISSION_Z_INDEX,
   LAN_PROVIDER_COLORS,
   LAN_TAG_Z_INDEX,
+  PET_HEAD_DROP_PX,
 } from '../constants.js';
 import { actText, t } from '../i18n.js';
 import type { OfficeState } from '../office/engine/officeState.js';
@@ -129,7 +130,10 @@ export function LanOverlay({ officeState, lan, containerRef, zoom, panRef }: Lan
             left: x,
             top:
               project.toScreenY(
-                ch.y + (typing ? BUBBLE_SITTING_OFFSET_PX : 0) - BUBBLE_VERTICAL_OFFSET_PX,
+                ch.y +
+                  (typing ? BUBBLE_SITTING_OFFSET_PX : 0) +
+                  (ch.pet ? PET_HEAD_DROP_PX : 0) -
+                  BUBBLE_VERTICAL_OFFSET_PX,
               ) -
               (permissionSprite.height * scale + zoom) / dpr,
             zIndex: LAN_PERMISSION_Z_INDEX,
@@ -155,7 +159,10 @@ export function LanOverlay({ officeState, lan, containerRef, zoom, panRef }: Lan
         style={{
           left: project.toScreenX(hoveredCh.x),
           top: project.toScreenY(
-            hoveredCh.y + (typing ? CHARACTER_SITTING_OFFSET_PX : 0) - LAN_BUBBLE_HEAD_OFFSET,
+            hoveredCh.y +
+              (typing ? CHARACTER_SITTING_OFFSET_PX : 0) +
+              (hoveredCh.pet ? PET_HEAD_DROP_PX : 0) -
+              LAN_BUBBLE_HEAD_OFFSET,
           ),
           maxWidth: LAN_BUBBLE_MAX_WIDTH_PX,
           zIndex: LAN_BUBBLE_Z_INDEX,

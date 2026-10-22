@@ -148,6 +148,16 @@ describe('validateProfileUpdate', () => {
       ['hideDetails', 'hueShift', 'manualPeers', 'nickname', 'palette'].sort(),
     );
   });
+  it('pet: a bundled id is kept; an unknown one is ignored (the palette human), not an error', () => {
+    expect(validateProfileUpdate({ ...ok, pet: 'gitcat' })?.pet).toBe('gitcat');
+    expect(validateProfileUpdate({ ...ok, pet: 'claudio' })?.pet).toBe('claudio');
+    for (const bad of ['dragon', '', 3, null]) {
+      const r = validateProfileUpdate({ ...ok, pet: bad });
+      expect(r).not.toBeNull();
+      expect(r).not.toHaveProperty('pet');
+      expect(r?.palette).toBe(1);
+    }
+  });
   it.each([
     [{ ...ok, nickname: 'x'.repeat(21) }],
     [{ ...ok, palette: 7 }],

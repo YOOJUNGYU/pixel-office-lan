@@ -211,6 +211,7 @@ async function main(): Promise<void> {
         type: 'petSpritesLoaded',
         pets: pets.pets,
         petNames: pets.manifests.map((m) => m.name),
+        petIds: pets.manifests.map((m) => m.id),
       });
     }
     if (furniture) {

@@ -184,7 +184,7 @@ components:
       description: Pet sprite frame sets and display names, sent once after webviewReady (between characterSpritesLoaded and floorTilesLoaded).
       type: object
       additionalProperties: false
-      required: [type, pets, petNames]
+      required: [type, pets, petNames, petIds]
       properties:
         type:
           const: petSpritesLoaded
@@ -196,6 +196,11 @@ components:
         petNames:
           type: array
           description: Display names parallel-indexed to `pets` (sourced from each pet's manifest.json).
+          items:
+            type: string
+        petIds:
+          type: array
+          description: Manifest ids parallel-indexed to `pets` (what a profile's `pet` names).
           items:
             type: string
 
@@ -556,6 +561,8 @@ components:
           type: integer
         hueShift:
           type: integer
+        pet:
+          $ref: '#/components/schemas/PetId'
         self:
           type: boolean
           description: This server's own PC.
@@ -599,6 +606,8 @@ components:
           type: integer
           minimum: 0
           maximum: 360
+        pet:
+          $ref: '#/components/schemas/PetId'
         hideDetails:
           type: boolean
         manualPeers:
@@ -667,8 +676,18 @@ components:
             it (then the smallest peer id); absent = unknown, loses.
         palette:
           type: integer
+          description: Human character 0-5; also the fallback when `pet` is unknown to a viewer.
         hueShift:
           type: integer
+        pet:
+          $ref: '#/components/schemas/PetId'
+
+    PetId:
+      type: string
+      description: >-
+        A bundled pet the PC picked as its character (instead of the `palette`
+        human). Optional; a peer that does not know the field shows the human.
+      enum: [claudio, gitcat]
 
     AgentProvider:
       type: string

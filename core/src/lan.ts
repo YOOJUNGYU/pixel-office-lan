@@ -108,6 +108,8 @@ export interface PeerInfo {
   nickSince?: number;
   palette: number;
   hueShift: number;
+  /** Pet character instead of the `palette` human; absent = human. Unknown ids are dropped. */
+  pet?: PetId;
 }
 export interface PeerPacket {
   v: 1;
@@ -234,6 +236,7 @@ export function parsePeerPacket(text: string): PeerPacket | null {
       nickname = '';
     }
     const peer: PeerInfo = { id, account, nickname, palette, hueShift };
+    if (isPetId(raw.peer.pet)) peer.pet = raw.peer.pet;
     const since = raw.peer.nickSince;
     if (typeof since === 'number' && Number.isSafeInteger(since) && since >= 0) {
       peer.nickSince = since;

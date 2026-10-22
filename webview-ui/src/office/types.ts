@@ -210,6 +210,8 @@ export interface Character {
   palette: number;
   /** Hue shift in degrees (0 = no shift, ≥45 for repeated palettes) */
   hueShift: number;
+  /** Bundled pet id drawn instead of the `palette` human (absent, or not loaded = human). */
+  pet?: string;
   /** Animation frame index */
   frame: number;
   /** Time accumulator for animation */

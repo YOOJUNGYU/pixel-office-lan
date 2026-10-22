@@ -244,13 +244,14 @@ function autostartMessage(state: AutostartState) {
 
 /** profileLoaded. Manual peer IPs are LAN-internal: privileged clients only. */
 export function profileMessage(lan: LanService, privileged: boolean) {
-  const { nickname, palette, hueShift, hideDetails, manualPeers } = lan.profile;
+  const { nickname, palette, hueShift, pet, hideDetails, manualPeers } = lan.profile;
   return {
     type: 'profileLoaded',
     profile: {
       nickname,
       palette,
       hueShift,
+      ...(pet && { pet }),
       hideDetails,
       manualPeers: privileged ? manualPeers : [],
     },
@@ -288,6 +289,7 @@ function handleWebviewReady(send: WsSend, ctx: ClientMessageContext): void {
         type: 'petSpritesLoaded',
         pets: cache.pets.pets,
         petNames: cache.pets.manifests.map((m) => m.name),
+        petIds: cache.pets.manifests.map((m) => m.id),
       });
     }
     if (cache.floorTiles) {

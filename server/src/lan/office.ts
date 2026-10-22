@@ -67,13 +67,14 @@ export class LanService {
   ) {}
 
   self(): PeerInfo {
-    const { peerId, nickname, palette, hueShift, nicknameSince } = this.profile;
+    const { peerId, nickname, palette, hueShift, pet, nicknameSince } = this.profile;
     return {
       id: peerId,
       account: this.account,
       nickname,
       palette,
       hueShift,
+      ...(pet && { pet }),
       ...(nickname !== '' && { nickSince: nicknameSince }),
     };
   }
@@ -124,6 +125,7 @@ export class LanService {
       ...(p.nickSince !== undefined && { nickSince: p.nickSince }),
       palette: p.palette,
       hueShift: p.hueShift,
+      ...(p.pet && { pet: p.pet }),
       self: i === 0,
     }));
   }
@@ -217,6 +219,7 @@ export class LanService {
     const changed = nicknameKey(update.nickname) !== nicknameKey(this.profile.nickname);
     this.update({
       ...update,
+      pet: update.pet, // absent in the update = back to the human
       setUp: true,
       nicknameSince: !changed
         ? this.profile.nicknameSince

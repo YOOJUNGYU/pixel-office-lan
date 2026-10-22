@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { isValidManualPeer, nicknameKey } from '../../../core/src/lan.js';
+import type { PetId } from '../../../core/src/lan.js';
+import { isValidManualPeer, nicknameKey, PET_IDS } from '../../../core/src/lan.js';
 import type { ProfileErrorReason, ProfileMessage } from '../../../core/src/messages.js';
 import { Button } from '../components/ui/Button.js';
 import { Checkbox } from '../components/ui/Checkbox.js';
@@ -8,6 +9,7 @@ import { Modal } from '../components/ui/Modal.js';
 import { CHARACTER_SKIN_COLORS, MAX_HUE_DEG, PALETTE_COUNT } from '../constants.js';
 import { t, useLang } from '../i18n.js';
 import { adjustSprite } from '../office/colorize.js';
+import { getPetSprites } from '../office/sprites/petSpriteData.js';
 import { getCharacterSprites } from '../office/sprites/spriteData.js';
 import { Direction } from '../office/types.js';
 
@@ -20,16 +22,19 @@ const PREVIEW_SCALE = 4;
 const IME_KEYCODE = 229;
 const SWATCH_SCALE = 2;
 
-/** One standing frame of a character, drawn at an integer scale (pixel-perfect).
+/** One standing frame of a character, drawn at an integer scale (pixel-perfect):
+ *  the pet's front idle frame when `pet` is a loaded pet, else the palette human.
  *  `crop` = only sprite rows [top, top + rows) (the people panel's face). */
 export function CharacterPreview({
   palette,
   hueShift,
+  pet,
   scale,
   crop,
 }: {
   palette: number;
   hueShift: number;
+  pet?: string;
   scale: number;
   crop?: { top: number; rows: number };
 }) {
@@ -40,11 +45,15 @@ export function CharacterPreview({
     const canvas = ref.current;
     if (!canvas) return;
     // Shift just this frame, uncached: slider ticks must not fill the shared sprite cache.
-    const base = getCharacterSprites(palette).walk[Direction.DOWN][1];
+    // Pets have no skin to keep.
+    const petFrames = pet ? getPetSprites(pet) : null;
+    const base = petFrames
+      ? petFrames.idleDown[0]
+      : getCharacterSprites(palette).walk[Direction.DOWN][1];
     const sprite = adjustSprite(
       base,
       { h: hueShift, s: 0, b: 0, c: 0 },
-      CHARACTER_SKIN_COLORS,
+      petFrames ? undefined : CHARACTER_SKIN_COLORS,
     ).slice(top, rows === undefined ? undefined : top + rows);
     canvas.width = sprite[0].length * scale;
     canvas.height = sprite.length * scale;
@@ -57,7 +66,7 @@ export function CharacterPreview({
         ctx.fillRect(x * scale, y * scale, scale, scale);
       }),
     );
-  }, [palette, hueShift, scale, top, rows]);
+  }, [palette, hueShift, pet, scale, top, rows]);
   return <canvas ref={ref} style={{ imageRendering: 'pixelated' }} />;
 }
 
@@ -88,6 +97,7 @@ export function ProfileModal({
   const [nickname, setNickname] = useState(profile.nickname);
   const [palette, setPalette] = useState(profile.palette);
   const [hueShift, setHueShift] = useState(profile.hueShift);
+  const [pet, setPet] = useState<PetId | undefined>(profile.pet);
   const [hideDetails, setHideDetails] = useState(profile.hideDetails);
   const [peersText, setPeersText] = useState(profile.manualPeers.join('\n'));
   // Advanced (manual peers) starts collapsed unless some are already set.
@@ -119,7 +129,7 @@ export function ProfileModal({
 
   const save = () => {
     if (!valid) return;
-    onSave({ nickname: trimmed, palette, hueShift, hideDetails, manualPeers });
+    onSave({ nickname: trimmed, palette, hueShift, ...(pet && { pet }), hideDetails, manualPeers });
   };
 
   return (
@@ -133,7 +143,12 @@ export function ProfileModal({
       <div className="flex flex-col gap-8 py-4 px-10 text-sm">
         <div className="flex gap-12 items-start">
           <div className="shrink-0 border-2 border-border bg-bg-dark p-4">
-            <CharacterPreview palette={palette} hueShift={hueShift} scale={PREVIEW_SCALE} />
+            <CharacterPreview
+              palette={palette}
+              hueShift={hueShift}
+              pet={pet}
+              scale={PREVIEW_SCALE}
+            />
           </div>
           <div className="flex-1 min-w-0 flex flex-col gap-4">
             <div>
@@ -173,11 +188,34 @@ export function ProfileModal({
               key={i}
               type="button"
               aria-label={`${t('profile.character')} ${i + 1}`}
-              aria-pressed={palette === i}
-              onClick={() => setPalette(i)}
-              className={`p-2 rounded-none cursor-pointer bg-bg-dark border-2 ${palette === i ? 'border-accent-bright' : 'border-border'}`}
+              aria-pressed={!pet && palette === i}
+              onClick={() => {
+                setPalette(i);
+                setPet(undefined);
+              }}
+              className={`p-2 rounded-none cursor-pointer bg-bg-dark border-2 ${!pet && palette === i ? 'border-accent-bright' : 'border-border'}`}
             >
               <CharacterPreview palette={i} hueShift={hueShift} scale={SWATCH_SCALE} />
+            </button>
+          ))}
+          {/* Pets: the palette stays as the look for peers that do not know pets. */}
+          {PET_IDS.filter((id) => getPetSprites(id)).map((id) => (
+            <button
+              key={id}
+              type="button"
+              aria-label={t(`profile.pet.${id}`)}
+              title={t(`profile.pet.${id}`)}
+              aria-pressed={pet === id}
+              data-testid={`profile-pet-${id}`}
+              onClick={() => setPet(id)}
+              className={`p-2 rounded-none cursor-pointer bg-bg-dark border-2 flex items-end ${pet === id ? 'border-accent-bright' : 'border-border'}`}
+            >
+              <CharacterPreview
+                palette={palette}
+                hueShift={hueShift}
+                pet={id}
+                scale={SWATCH_SCALE}
+              />
             </button>
           ))}
         </div>
@@ -193,7 +231,7 @@ export function ProfileModal({
               onClick={() => setHueShift(h)}
               className={`p-2 rounded-none cursor-pointer bg-bg-dark border-2 ${hueShift === h ? 'border-accent-bright' : 'border-border'}`}
             >
-              <CharacterPreview palette={palette} hueShift={h} scale={SWATCH_SCALE} />
+              <CharacterPreview palette={palette} hueShift={h} pet={pet} scale={SWATCH_SCALE} />
             </button>
           ))}
         </div>

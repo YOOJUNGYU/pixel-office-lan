@@ -98,6 +98,37 @@ test('a changed peer look is applied to existing characters and ghosts', () => {
   for (const g of ghosts(os)) assert.equal(g.palette, 4);
 });
 
+test('a pet profile: main, subagent (hue-offset) and ghost wear the pet; the shell stays human; switching back to the human', () => {
+  const { os, lan } = setup();
+  const pet = { ...peer, pet: 'gitcat' as const };
+  const shell = (p: typeof peer) => ({
+    ...agent('h', 'server', { kind: 'shell', num: 0, parentId: 'a', parentKey: 'p1:a' }),
+    peer: p,
+  });
+  const snap = (p: typeof peer) => [
+    agent('a', 'coding', { peer: p }),
+    { ...child('c', 'a', 'server'), peer: p },
+    shell(p),
+  ];
+  lan.apply(snap(pet));
+  const main = os.characters.get(lan.idFor('p1:a')!)!;
+  const sub = os.characters.get(lan.idFor('p1:c')!)!;
+  const sh = os.characters.get(lan.idFor('p1:h')!)!;
+  assert.equal(main.pet, 'gitcat');
+  assert.equal(main.hueShift, 30);
+  assert.equal(sub.pet, 'gitcat');
+  assert.equal(sub.hueShift, 150);
+  assert.equal(sh.pet, undefined, 'shells keep the shell look');
+  const [ghost] = ghosts(os);
+  assert.equal(ghost.pet, 'gitcat', 'the ghost parent is the pet too');
+
+  lan.apply(snap(peer)); // profile switched back to the human
+  assert.equal(main.pet, undefined);
+  assert.equal(sub.pet, undefined);
+  for (const g of ghosts(os)) assert.equal(g.pet, undefined);
+  assert.equal(main.palette, 2);
+});
+
 test('more lounge agents than lounge seats all land inside 대기실', () => {
   const { os, lan } = setup();
   let seats = 0;

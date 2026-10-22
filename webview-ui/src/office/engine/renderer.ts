@@ -65,6 +65,7 @@ import {
   getCarpetSetCount,
   hasCarpetSprites,
 } from '../sprites/carpetTiles.js';
+import { getPetSprites } from '../sprites/petSpriteData.js';
 import { getCachedSprite, getOutlineSprite } from '../sprites/spriteCache.js';
 import { getCharacterSprites } from '../sprites/spriteData.js';
 import type {
@@ -79,7 +80,7 @@ import type {
 } from '../types.js';
 import { CharacterState, TILE_SIZE, TileType } from '../types.js';
 import { getWallInstances, hasWallSprites, wallColorToHex } from '../wallTiles.js';
-import { getCharacterSprite } from './characters.js';
+import { getCharacterSprite, getPetCharacterSprite } from './characters.js';
 import { renderMatrixEffect } from './matrixEffect.js';
 
 // ── Settings ────────────────────────────────────────────────────
@@ -481,10 +482,15 @@ export function renderScene(
     }
   }
 
-  // Characters
+  // Characters (a pet character uses its pet sheet; unknown/unloaded pet = the palette human)
+  const nowSec = performance.now() / 1000;
   for (const ch of characters) {
-    const sprites = getCharacterSprites(ch.palette, ch.hueShift);
-    const spriteData = getCharacterSprite(ch, sprites);
+    const pet = ch.pet ? getPetSprites(ch.pet, ch.hueShift) : null;
+    const spriteData = pet
+      ? ch.matrixEffect
+        ? pet.idleDown[0] // 16 px wide, like the matrix effect's column sweep
+        : getPetCharacterSprite(ch, pet, nowSec)
+      : getCharacterSprite(ch, getCharacterSprites(ch.palette, ch.hueShift));
     const cached = getCachedSprite(spriteData, zoom);
     // Sitting offset: shift character down when seated so they visually sit in the chair
     const sittingOffset = ch.state === CharacterState.TYPE ? CHARACTER_SITTING_OFFSET_PX : 0;

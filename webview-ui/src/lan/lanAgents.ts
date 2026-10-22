@@ -18,16 +18,29 @@ export function tagText(a: OfficeAgent): string {
   return `${peerLabel(a.peer)} · ${a.provider === 'claude' ? 'Claude' : 'Codex'} #${a.num}`;
 }
 
-/** Look of an agent's character: main = its PC's, subagent = hue-rotated, shell = fixed. */
-function looks(a: OfficeAgent): { palette: number; hueShift: number } {
+/** A character's look: the palette human, or a pet (`pet` set). */
+export interface Look {
+  palette: number;
+  hueShift: number;
+  pet?: string;
+}
+
+/** The PC's own look (main agents and ghost parents). */
+const peerLook = (p: OfficeAgent['peer']): Look => ({
+  palette: p.palette,
+  hueShift: p.hueShift,
+  pet: p.pet,
+});
+
+/** Look of an agent's character: main = its PC's (human or pet), subagent = the
+ *  same, hue-rotated, shell = fixed human. */
+export function looks(a: OfficeAgent): Look {
   if (a.kind === 'shell') return { palette: LAN_SHELL_PALETTE, hueShift: 0 };
+  const look = peerLook(a.peer);
   if (a.kind === 'subagent') {
-    return {
-      palette: a.peer.palette,
-      hueShift: (a.peer.hueShift + LAN_SUBAGENT_HUE_OFFSET) % MAX_HUE_DEG,
-    };
+    look.hueShift = (look.hueShift + LAN_SUBAGENT_HUE_OFFSET) % MAX_HUE_DEG;
   }
-  return { palette: a.peer.palette, hueShift: a.peer.hueShift };
+  return look;
 }
 
 /**
@@ -86,8 +99,9 @@ export class LanAgents {
       if (id === undefined) {
         id = this.nextId++;
         this.ids.set(a.key, id);
-        const { palette, hueShift } = looks(a);
-        os.addAgent(id, palette, hueShift);
+        const look = looks(a);
+        os.addAgent(id, look.palette, look.hueShift);
+        this.restyle(id, look);
       } else {
         this.restyle(id, looks(a));
       }
@@ -149,7 +163,7 @@ export class LanAgents {
       this.os.addAgent(id, child.peer.palette, child.peer.hueShift);
       this.os.moveToArea(id, ROOM_LABELS[child.room], true);
     }
-    this.restyle(id, child.peer);
+    this.restyle(id, peerLook(child.peer));
     const parentId = child.parentKey !== undefined ? this.ids.get(child.parentKey) : undefined;
     const ch = this.os.characters.get(id);
     if (ch) ch.ghostOf = parentId ?? id;
@@ -159,11 +173,12 @@ export class LanAgents {
   }
 
   /** A PC edited its profile: existing characters take the new look. */
-  private restyle(id: number, look: { palette: number; hueShift: number }): void {
+  private restyle(id: number, look: Look): void {
     const ch = this.os.characters.get(id);
     if (!ch) return;
     ch.palette = look.palette;
     ch.hueShift = look.hueShift;
+    ch.pet = look.pet;
   }
 
   /** Lounge idles (wanders in the room); every other room works at a desk. */

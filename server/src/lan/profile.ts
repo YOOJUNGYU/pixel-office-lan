@@ -3,8 +3,10 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
+import type { PetId } from '../../../core/src/lan.js';
 import {
   cleanAccount,
+  isPetId,
   isValidManualPeer,
   MAX_ACCOUNT,
   PUBLIC_VIEW,
@@ -34,6 +36,8 @@ export interface Profile {
   nickname: string;
   palette: number;
   hueShift: number;
+  /** Pet character instead of the `palette` human; absent = human. */
+  pet?: PetId;
   hideDetails: boolean;
   manualPeers: string[];
   identity: { publicKey: string; privateKeyPem: string };
@@ -49,7 +53,7 @@ export interface Profile {
 /** What saveProfile may change; identity/offices/views change only via their own messages. */
 export type EditableProfile = Pick<
   Profile,
-  'nickname' | 'palette' | 'hueShift' | 'hideDetails' | 'manualPeers'
+  'nickname' | 'palette' | 'hueShift' | 'pet' | 'hideDetails' | 'manualPeers'
 >;
 
 const PROFILE_FILE_NAME = 'profile.json';
@@ -106,7 +110,8 @@ function parseOffices(x: unknown): TeamOffice[] {
   return out;
 }
 
-/** Validates a client-supplied update. Returns a fresh object, or null if anything is off. */
+/** Validates a client-supplied update. Returns a fresh object, or null if anything is off.
+ *  `pet` is optional: an unknown id is ignored (the palette human), not an error. */
 export function validateProfileUpdate(x: unknown): EditableProfile | null {
   if (!isObj(x)) return null;
   const o = x;
@@ -127,6 +132,7 @@ export function validateProfileUpdate(x: unknown): EditableProfile | null {
     nickname,
     palette: o.palette,
     hueShift: o.hueShift,
+    ...(isPetId(o.pet) && { pet: o.pet }),
     hideDetails: o.hideDetails,
     manualPeers,
   };

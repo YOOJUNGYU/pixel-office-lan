@@ -13,6 +13,9 @@ import {
   GREETER_TILE_MARGIN,
   INACTIVE_SEAT_TIMER_MIN_SEC,
   INACTIVE_SEAT_TIMER_RANGE_SEC,
+  PET_HIT_HALF_WIDTH,
+  PET_HIT_HALF_WIDTH_SIDE,
+  PET_HIT_HEIGHT,
   WAITING_BUBBLE_DURATION_SEC,
 } from '../../constants.js';
 import { getAnimationFrames, getCatalogEntry, getOnStateType } from '../layout/furnitureCatalog.js';
@@ -1228,13 +1231,19 @@ export class OfficeState {
     for (const ch of chars) {
       // Skip characters that are despawning
       if (ch.matrixEffect === 'despawn') continue;
-      // Character sprite is 16x24, anchored bottom-center
-      // Apply sitting offset to match visual position
+      // Sprites are anchored bottom-center; apply the sitting offset to match
+      // the visual position. Pets are wider sideways and a bit shorter.
       const sittingOffset = ch.state === CharacterState.TYPE ? CHARACTER_SITTING_OFFSET_PX : 0;
       const anchorY = ch.y + sittingOffset;
-      const left = ch.x - CHARACTER_HIT_HALF_WIDTH;
-      const right = ch.x + CHARACTER_HIT_HALF_WIDTH;
-      const top = anchorY - CHARACTER_HIT_HEIGHT;
+      const side = ch.dir === Direction.LEFT || ch.dir === Direction.RIGHT;
+      const half = ch.pet
+        ? side && ch.state === CharacterState.WALK
+          ? PET_HIT_HALF_WIDTH_SIDE
+          : PET_HIT_HALF_WIDTH
+        : CHARACTER_HIT_HALF_WIDTH;
+      const left = ch.x - half;
+      const right = ch.x + half;
+      const top = anchorY - (ch.pet ? PET_HIT_HEIGHT : CHARACTER_HIT_HEIGHT);
       const bottom = anchorY;
       if (worldX >= left && worldX <= right && worldY >= top && worldY <= bottom) {
         return ch.id;

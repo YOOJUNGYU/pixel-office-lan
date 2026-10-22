@@ -135,6 +135,8 @@ const ko = {
   'profile.nicknameHint': '비워 두면 PC 계정 이름({account})만 표시됩니다',
   'profile.nicknameTooLong': '닉네임은 20자 이하여야 합니다.',
   'profile.character': '캐릭터',
+  'profile.pet.claudio': '클로디오 (반려동물)',
+  'profile.pet.gitcat': '깃캣 (반려동물)',
   'profile.color': '색상',
   'profile.hideDetails': '상세 내용 숨기기',
   'profile.hideDetailsHint':
@@ -426,6 +428,8 @@ const en: Record<Key, string> = {
   'profile.nicknameHint': 'Leave empty to show only your PC account name ({account})',
   'profile.nicknameTooLong': 'Nickname must be 20 characters or fewer.',
   'profile.character': 'Character',
+  'profile.pet.claudio': 'Claudio (pet)',
+  'profile.pet.gitcat': 'Gitcat (pet)',
   'profile.color': 'Color',
   'profile.hideDetails': 'Hide details',
   'profile.hideDetailsHint':

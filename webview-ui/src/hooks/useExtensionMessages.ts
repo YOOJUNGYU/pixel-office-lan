@@ -207,7 +207,7 @@ export function useExtensionMessages(
         if (!Array.isArray(pets)) {
           return;
         }
-        const petNames = Array.isArray(msg.petNames) ? (msg.petNames as string[]) : undefined;
+        const petIds = Array.isArray(msg.petIds) ? (msg.petIds as string[]) : [];
         console.log(`[Webview] Received ${pets.length} pet sprites`);
         setPetTemplates(
           pets as Array<{
@@ -217,7 +217,7 @@ export function useExtensionMessages(
             idleUp: string[][][];
             walkRight: string[][][];
           }>,
-          petNames,
+          petIds,
         );
       } else if (msg.type === 'floorTilesLoaded') {
         const sprites = msg.sprites as string[][][];

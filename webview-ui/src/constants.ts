@@ -237,6 +237,13 @@ export const AUTO_ON_FACING_DEPTH = 3;
 export const AUTO_ON_SIDE_DEPTH = 2;
 export const CHARACTER_HIT_HALF_WIDTH = 8;
 export const CHARACTER_HIT_HEIGHT = 24;
+/** Pet character hit box (measured on claudio/gitcat): front/back frames are
+ *  16 px wide, side frames 32; the animal is 16 (sitting) to 21 (walking) px tall. */
+export const PET_HIT_HALF_WIDTH = 7;
+export const PET_HIT_HALF_WIDTH_SIDE = 11;
+export const PET_HIT_HEIGHT = 19;
+/** A pet's head is this much lower than a human's: bubbles and the "!" sit lower. */
+export const PET_HEAD_DROP_PX = 8;
 
 // ── Greeter + Intro bubble ──────────────────────────────────
 /** Reserved character id for the Intro's greeter. Far outside both real agent
@@ -377,6 +384,8 @@ export const PEOPLE_WIDE_MIN_PX = 1100;
 /** Face crop of the standing frame (sprite rows) and its integer scale. */
 export const PEOPLE_FACE_TOP = 10;
 export const PEOPLE_FACE_ROWS = 14;
+/** Pet face crop (rows of the front idle frame; the animal starts at row 15). */
+export const PEOPLE_PET_FACE_TOP = 15;
 export const PEOPLE_FACE_SCALE = 2;
 /** How long the "no agents" hint stays after clicking an agentless row. */
 export const PEOPLE_HINT_MS = 2_000;

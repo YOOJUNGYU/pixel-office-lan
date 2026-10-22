@@ -97,6 +97,7 @@ export interface PetSpritesLoaded {
   type: 'petSpritesLoaded';
   pets: PetSpriteFrameSet[];
   petNames: string[];
+  petIds: string[];
 }
 
 export interface PetSpriteFrameSet {
@@ -191,7 +192,10 @@ export interface PeerInfoMessage {
   nickSince?: number;
   palette: number;
   hueShift: number;
+  pet?: PetId;
 }
+
+export type PetId = 'claudio' | 'gitcat';
 
 export interface OfficePersonMessage {
   peerId: string;
@@ -200,6 +204,7 @@ export interface OfficePersonMessage {
   nickSince?: number;
   palette: number;
   hueShift: number;
+  pet?: PetId;
   self: boolean;
 }
 
@@ -215,6 +220,7 @@ export interface ProfileMessage {
   nickname: string;
   palette: number;
   hueShift: number;
+  pet?: PetId;
   hideDetails: boolean;
   manualPeers: string[];
 }
