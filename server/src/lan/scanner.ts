@@ -8,6 +8,7 @@ import type { AgentView, Provider } from '../../../core/src/lan.js';
 import {
   CHILD_ENDED_HIDE_MS,
   CHILD_IDLE_TTL_MS,
+  CODEX_ENDED_TTL_MS,
   CODEX_META_MAX_BYTES,
   DISCOVER_INTERVAL_MS,
   POLL_INTERVAL_MS,
@@ -16,6 +17,8 @@ import {
 } from '../constants.js';
 import { applyClaudeLine } from './claudeParser.js';
 import { applyCodexLine, codexSessionMeta } from './codexParser.js';
+import type { CheckPids, RegEntry } from './liveness.js';
+import { checkPids, domainOf, readRegistry } from './liveness.js';
 import type { Roots } from './roots.js';
 import type { SessionState } from './session.js';
 import { newSession, tick, toViews } from './session.js';
@@ -69,6 +72,12 @@ async function firstLine(file: string): Promise<string> {
   }
 }
 
+/** How long after its last line a transcript stays: a finished Codex turn leaves sooner. */
+function ttl(s: SessionState): number {
+  if (s.kind !== 'main') return CHILD_IDLE_TTL_MS;
+  return s.provider === 'codex' && s.turnEnded ? CODEX_ENDED_TTL_MS : SESSION_TTL_MS;
+}
+
 // ponytail: 폴링 기반, WSL 9P 위 수천 파일에서 느리면 루트별 간격 조정
 export class Scanner {
   private files = new Map<string, Tracked>();
@@ -77,13 +86,49 @@ export class Scanner {
   private polling = false;
 
   private roots: Roots = { claude: [], codex: [] };
+  /** Claude session ids whose registry pids are all dead (closed): dropped at once, not after the TTL. */
+  private closed = new Set<string>();
 
   /** A function is re-run every discover cycle (running WSL distros come and go). */
   constructor(
     private readonly rootsSource: Roots | (() => Promise<Roots>),
     private now: () => number = Date.now,
+    private readonly pids: CheckPids = checkPids,
   ) {
     if (typeof rootsSource !== 'function') this.roots = rootsSource;
+  }
+
+  /**
+   * Claude's `sessions/<pid>.json` registry: a session with a live pid is open,
+   * one whose pids are all dead is closed. No entry, or a check that failed
+   * (WSL unreachable): unknown, the transcript TTL decides as before.
+   */
+  private async refreshClosed(): Promise<void> {
+    const byDomain = new Map<string, RegEntry[]>();
+    for (const root of this.roots.claude) {
+      const list = byDomain.get(domainOf(root)) ?? [];
+      list.push(...(await readRegistry(root)));
+      byDomain.set(domainOf(root), list);
+    }
+    const alive = new Set<string>();
+    const dead = new Set<string>();
+    for (const [domain, entries] of byDomain) {
+      if (entries.length === 0) continue;
+      const state = await this.pids(domain, entries).catch(() => new Map());
+      for (const e of entries) {
+        const st = state.get(e.pid) ?? 'unknown';
+        if (st === 'alive') alive.add(e.sessionId);
+        else if (st === 'dead') dead.add(e.sessionId);
+        else alive.add(e.sessionId); // unknown: never close on a failed check
+      }
+    }
+    this.closed = new Set([...dead].filter((id) => !alive.has(id)));
+  }
+
+  /** A Claude main session, or a child of one, that the registry says is closed. */
+  private isClosed(s: SessionState): boolean {
+    if (s.provider !== 'claude') return false;
+    return this.closed.has(s.kind === 'main' ? s.id : (s.parentId ?? ''));
   }
 
   async discover(): Promise<void> {
@@ -95,6 +140,7 @@ export class Scanner {
         if (!all.some((r) => file.startsWith(r))) this.files.delete(file);
       }
     }
+    await this.refreshClosed();
     for (const c of await this.candidates()) {
       if (this.files.has(c.file)) continue;
       try {
@@ -130,9 +176,7 @@ export class Scanner {
         if (!t.s.turnEnded) t.endedAt = null;
         else t.endedAt ??= now;
       }
-      if (now - t.mtimeMs > (t.s.kind === 'main' ? SESSION_TTL_MS : CHILD_IDLE_TTL_MS)) {
-        this.files.delete(file);
-      }
+      if (now - t.mtimeMs > ttl(t.s) || this.isClosed(t.s)) this.files.delete(file);
     }
   }
 
@@ -237,6 +281,7 @@ export class Scanner {
       endedAt: null,
     };
     await this.readNew(c.file, t, st.size, now);
+    if (this.isClosed(s) || now - st.mtimeMs > ttl(s)) return;
     // already-finished subagent: count from its last write, not from now
     if (s.kind === 'subagent' && s.turnEnded) t.endedAt = st.mtimeMs;
     this.files.set(c.file, t);

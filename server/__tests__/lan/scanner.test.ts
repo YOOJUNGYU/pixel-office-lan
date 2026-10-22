@@ -1,9 +1,19 @@
-import { appendFileSync, mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
+import {
+  appendFileSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  utimesSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import type { CheckPids, PidState } from '../../src/lan/liveness.js';
+import { checkPids, domainOf, parseWslProc, statStart } from '../../src/lan/liveness.js';
 import { discoverRoots, Scanner } from '../../src/lan/scanner.js';
 
 const assistant = (content: unknown[]) =>
@@ -218,5 +228,124 @@ describe('discoverRoots', () => {
       'Ubuntu',
       'Debian',
     ]);
+  });
+});
+
+describe('closed sessions (Claude sessions/<pid>.json registry)', () => {
+  const reg = (pid: number, sessionId: string, procStart?: string) => {
+    mkdirSync(join(dir, 'sessions'), { recursive: true });
+    writeFileSync(
+      join(dir, 'sessions', `${pid}.json`),
+      JSON.stringify({ pid, sessionId, procStart }),
+    );
+  };
+  let state: PidState | 'throw';
+  const pids: CheckPids = async (_domain, entries) => {
+    if (state === 'throw') throw new Error('wsl.exe timed out');
+    return new Map(entries.map((e) => [e.pid, state as PidState]));
+  };
+  beforeEach(() => {
+    state = 'alive';
+    scanner = new Scanner(
+      { claude: [join(dir, 'claude')], codex: [join(dir, 'codex')] },
+      () => t,
+      pids,
+    );
+  });
+
+  it('a live session stays; once its pid is dead it leaves on the next poll, with its subagents', async () => {
+    writeFileSync(join(proj, 's1.jsonl'), edit('a.ts'));
+    mkdirSync(join(proj, 's1', 'subagents'), { recursive: true });
+    writeFileSync(join(proj, 's1', 'subagents', 'agent-x.jsonl'), edit('b.ts'));
+    writeFileSync(join(proj, 'other.jsonl'), edit('c.ts')); // no registry entry: TTL as before
+    reg(100, 's1');
+    await scanner.discover();
+    await advance(1_000);
+    expect(
+      scanner
+        .views()
+        .map((v) => v.id)
+        .sort(),
+    ).toEqual(['other', 's1', 's1/sub/agent-x']);
+    state = 'dead';
+    await scanner.discover();
+    await advance(1_000);
+    expect(scanner.views().map((v) => v.id)).toEqual(['other']);
+  });
+
+  it('a failed check never closes anything (falls back to the TTL)', async () => {
+    writeFileSync(join(proj, 's1.jsonl'), edit('a.ts'));
+    reg(100, 's1');
+    for (const s of ['throw', 'unknown'] as const) {
+      state = s;
+      await scanner.discover();
+      await advance(1_000);
+      expect(scanner.views().map((v) => v.id)).toEqual(['s1']);
+    }
+  });
+
+  it('one live process of a resumed session keeps it open', async () => {
+    writeFileSync(join(proj, 's1.jsonl'), edit('a.ts'));
+    reg(100, 's1');
+    reg(200, 's1');
+    const mixed: CheckPids = async (_d, entries) =>
+      new Map(entries.map((e) => [e.pid, e.pid === 200 ? 'alive' : 'dead']));
+    scanner = new Scanner({ claude: [join(dir, 'claude')], codex: [] }, () => t, mixed);
+    await scanner.discover();
+    expect(scanner.views().map((v) => v.id)).toEqual(['s1']);
+  });
+
+  it('a finished Codex turn leaves after 10 minutes, a running one after 30', async () => {
+    const d = new Date(t);
+    const day = join(
+      dir,
+      'codex',
+      String(d.getFullYear()),
+      String(d.getMonth() + 1).padStart(2, '0'),
+      String(d.getDate()).padStart(2, '0'),
+    );
+    mkdirSync(day, { recursive: true });
+    const meta = (id: string) =>
+      JSON.stringify({ type: 'session_meta', payload: { id, source: 'cli' } }) + '\n';
+    const done = JSON.stringify({ type: 'event_msg', payload: { type: 'task_complete' } }) + '\n';
+    writeFileSync(join(day, 'rollout-done.jsonl'), meta('done') + done);
+    writeFileSync(join(day, 'rollout-busy.jsonl'), meta('busy'));
+    ago(join(day, 'rollout-done.jsonl'), 11 * 60_000);
+    ago(join(day, 'rollout-busy.jsonl'), 11 * 60_000);
+    await scanner.discover();
+    expect(scanner.views().map((v) => v.id)).toEqual(['busy']);
+  });
+});
+
+describe('liveness', () => {
+  it('statStart/parseWslProc read field 22, even with spaces and parens in comm', () => {
+    const fields = Array.from({ length: 50 }, (_, i) => String(i + 3)); // field 3 = '3'
+    expect(statStart(`42 (a) b (c)) ${fields.join(' ')}`)).toBe('22');
+    const out = `10 ${fields.join(' ')}\r\n11 -\nnot a line\n`;
+    expect([...parseWslProc(out)]).toEqual([
+      [10, '22'],
+      [11, null],
+    ]);
+  });
+
+  it('a reused pid with another start time is dead; this process is alive', async () => {
+    const entry = { pid: process.pid, sessionId: 's' };
+    expect((await checkPids('local', [entry])).get(process.pid)).toBe('alive');
+    if (process.platform === 'linux') {
+      const real = statStart(readFileSync(`/proc/${process.pid}/stat`, 'utf8'))!;
+      const st = await checkPids('local', [{ ...entry, procStart: real }]);
+      expect(st.get(process.pid)).toBe('alive');
+      const reused = await checkPids('local', [{ ...entry, procStart: `${real}9` }]);
+      expect(reused.get(process.pid)).toBe('dead');
+    }
+    expect(
+      (await checkPids('local', [{ pid: 999_999_999, sessionId: 's' }])).get(999_999_999),
+    ).toBe('dead');
+  });
+
+  it('domainOf: WSL roots by distro, everything else local', () => {
+    expect(domainOf('\\\\wsl.localhost\\Ubuntu\\home\\me\\.claude\\projects')).toBe('Ubuntu');
+    expect(domainOf('\\\\wsl$\\Debian\\root\\.claude\\projects')).toBe('Debian');
+    expect(domainOf('/home/me/.claude/projects')).toBe('local');
   });
 });

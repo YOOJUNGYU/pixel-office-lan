@@ -47,6 +47,12 @@ export const CODEX_META_MAX_BYTES = 256 * 1024;
 export const DISCOVER_INTERVAL_MS = 10_000;
 export const POLL_INTERVAL_MS = 1_000;
 export const WSL_LIST_TIMEOUT_MS = 3_000;
+/** Claude's live-session registry: `<CLAUDE_CONFIG_DIR>/sessions/<pid>.json` (sibling of `projects`). */
+export const CLAUDE_SESSIONS_DIR_NAME = 'sessions';
+/** One `wsl.exe` per running distro per discover cycle checks the registry pids in that distro. */
+export const WSL_PROC_TIMEOUT_MS = 3_000;
+/** A Codex session whose turn ended (task_complete / turn_aborted) leaves after this since its last line. */
+export const CODEX_ENDED_TTL_MS = 10 * 60_000;
 
 // ── LAN office wiring ──────────────────────────────────────
 /** `GET /api/ping` answer that marks a running Pixel Office (single-instance check). */
