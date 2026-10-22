@@ -82,6 +82,7 @@ export type StepId =
   | 'areas'
   | 'background'
   | 'editorMore'
+  | 'save'
   | 'install'
   | 'done';
 
@@ -162,6 +163,12 @@ export const STEPS: Step[] = [
   {
     id: 'editorMore',
     targets: [{ dom: 'editor-erase' }, { dom: 'edit-actions' }],
+    scene: { editor: EditTool.SELECT, actionBar: true },
+    requires: ['edit'],
+  },
+  {
+    id: 'save',
+    targets: [{ dom: 'edit-actions' }],
     scene: { editor: EditTool.SELECT, actionBar: true },
     requires: ['edit'],
   },

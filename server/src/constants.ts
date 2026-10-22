@@ -109,8 +109,20 @@ export const CROCKFORD_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 export const WIRE_MAX_ID = 64;
 
 // ── v2 peer protocol / offices (lan/peerNet.ts, lan/profile.ts) ──
-/** Max JSON bytes of the encrypted plaintext, so seal + base64 + wire JSON stays ≤ MAX_PACKET_BYTES. */
-export const PACKET_PLAINTEXT_BUDGET = 44_000;
+/** Every PeerNet datagram fits this on the wire: below 1472 (1500 MTU − IP/UDP) and
+ *  typical VPN MTUs, so nothing relies on IP fragments (some networks drop them). */
+export const MAX_DATAGRAM_BYTES = 1_200;
+/** Deflated presence bytes per `pub`/`team` part (a pub with 64-char ids still fits MAX_DATAGRAM_BYTES). */
+export const PRESENCE_PART_BYTES = 420;
+/** Parts per presence; fitPacket trims trailing views until it fits (with room for seq/office). */
+export const MAX_PRESENCE_PARTS = 48;
+export const PRESENCE_MAX_COMPRESSED = MAX_PRESENCE_PARTS * PRESENCE_PART_BYTES - 512;
+/** Presence JSON cap before deflate (the receiver inflates at most MAX_PACKET_BYTES). */
+export const PRESENCE_MAX_JSON = 58_000;
+/** A split presence must complete within this; otherwise the last complete one stays. */
+export const PRESENCE_ASSEMBLY_MS = 2_000;
+/** Split presences being assembled at once (one per channel + sender). */
+export const MAX_PRESENCE_ASSEMBLIES = 256;
 /** TOFU pins: peer id → public key (0600), oldest dropped past MAX_KNOWN_PEERS. */
 export const KNOWN_PEERS_FILE_NAME = 'known-peers.json';
 export const MAX_KNOWN_PEERS = 1_000;

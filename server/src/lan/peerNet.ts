@@ -1,18 +1,28 @@
 import * as dgram from 'dgram';
 import * as os from 'os';
+import * as zlib from 'zlib';
 
 import type { PeerPacket } from '../../../core/src/lan.js';
-import { parsePeerPacket, PUBLIC_VIEW } from '../../../core/src/lan.js';
+import { MAX_PACKET_BYTES, parsePeerPacket, PUBLIC_VIEW } from '../../../core/src/lan.js';
 import {
+  GCM_NONCE_BYTES,
+  GCM_TAG_BYTES,
   HELLO_REPLY_MS,
+  MAX_DATAGRAM_BYTES,
   MAX_HELLO_PEERS,
   MAX_OFFICE_NAME,
+  MAX_PRESENCE_ASSEMBLIES,
+  MAX_PRESENCE_PARTS,
   MAX_WARN_KEYS,
-  PACKET_PLAINTEXT_BUDGET,
+  PRESENCE_ASSEMBLY_MS,
+  PRESENCE_MAX_COMPRESSED,
+  PRESENCE_MAX_JSON,
+  PRESENCE_PART_BYTES,
   SEQ_MEMORY_MS,
+  WIRE_MAX_ID,
 } from '../constants.js';
 import type { Identity, Wire } from './crypto.js';
-import { open, pairKey, parseWire, pubAad, seal, teamAad } from './crypto.js';
+import { isWireId, open, pairKey, parseWire, pubAad, seal, teamAad } from './crypto.js';
 
 export const PEER_TTL_MS = 5_000;
 export const SEND_INTERVAL_MS = 1_000;
@@ -25,8 +35,8 @@ export interface TeamChannel {
   name: string;
 }
 
-/** Encrypted payload of `pub` and `team` datagrams. */
-interface Inner {
+/** Encrypted payload of `pub` and `team` datagrams (single form). */
+export interface Inner {
   seq: number;
   packet: PeerPacket;
   office?: { name: string };
@@ -52,16 +62,76 @@ export function broadcastAddresses(
   return [...out];
 }
 
-/** Drops trailing views until the serialized packet fits the encrypted-plaintext budget. */
+/** Drops trailing views until the presence fits MAX_PRESENCE_PARTS deflated parts
+ *  (and PRESENCE_MAX_JSON before deflate). */
 export function fitPacket(p: PeerPacket): PeerPacket {
   const views = [...p.views];
-  while (
-    views.length &&
-    Buffer.byteLength(JSON.stringify({ ...p, views })) > PACKET_PLAINTEXT_BUDGET
-  ) {
-    views.pop();
-  }
+  const fits = (): boolean => {
+    const text = JSON.stringify({ ...p, views });
+    return (
+      Buffer.byteLength(text) <= PRESENCE_MAX_JSON &&
+      zlib.deflateSync(text).length <= PRESENCE_MAX_COMPRESSED
+    );
+  };
+  while (views.length && !fits()) views.pop();
   return { ...p, views };
+}
+
+/** base64 length of a sealed plaintext (ciphertext + GCM tag). */
+const sealedLength = (plain: string): number =>
+  4 * Math.ceil((Buffer.byteLength(plain) + GCM_TAG_BYTES) / 3);
+
+/** Wire bytes around `c` for a datagram (n filled to its real length). */
+const envelope = (wire: Record<string, unknown>): number =>
+  Buffer.byteLength(
+    JSON.stringify({ ...wire, n: 'x'.repeat(4 * Math.ceil(GCM_NONCE_BYTES / 3)), c: '' }),
+  );
+
+/**
+ * Plaintexts of one presence. Fits one datagram → the single 0.4.x form (the
+ * Inner itself, so older peers still see this PC). Otherwise deflated and split
+ * into ≤ MAX_PRESENCE_PARTS parts `{seq, from, part, parts, d}` (0.4.x peers miss those).
+ */
+export function presencePlains(inner: Inner, from: string, around: number): string[] {
+  const text = JSON.stringify(inner);
+  if (around + sealedLength(text) <= MAX_DATAGRAM_BYTES) return [text];
+  const z = zlib.deflateSync(text);
+  const parts = Math.ceil(z.length / PRESENCE_PART_BYTES);
+  if (parts > MAX_PRESENCE_PARTS) return [];
+  return Array.from({ length: parts }, (_, part) =>
+    JSON.stringify({
+      seq: inner.seq,
+      from,
+      part,
+      parts,
+      d: z
+        .subarray(part * PRESENCE_PART_BYTES, (part + 1) * PRESENCE_PART_BYTES)
+        .toString('base64'),
+    }),
+  );
+}
+
+interface Part {
+  seq: number;
+  from: string;
+  part: number;
+  parts: number;
+  d: Buffer;
+}
+
+/** A presence part, else null (a single-form Inner has no `parts`). */
+function parsePart(o: Record<string, unknown>): Part | null {
+  const { seq, from, part, parts, d } = o;
+  if (!Number.isSafeInteger(seq) || !isWireId(from)) return null;
+  if (!Number.isInteger(parts) || (parts as number) < 2 || (parts as number) > MAX_PRESENCE_PARTS)
+    return null;
+  if (!Number.isInteger(part) || (part as number) < 0 || (part as number) >= (parts as number))
+    return null;
+  if (typeof d !== 'string') return null;
+  const buf = Buffer.from(d, 'base64');
+  if (buf.length < 1 || buf.length > PRESENCE_PART_BYTES || buf.toString('base64') !== d)
+    return null;
+  return { seq: seq as number, from, part: part as number, parts: parts as number, d: buf };
 }
 
 /** Decrypted text → validated inner payload, else null. */
@@ -100,6 +170,11 @@ export class PeerNet {
   private readonly seen = new Map<string, Map<string, { packet: PeerPacket; at: number }>>();
   /** `${channel}|${sender}` → last accepted seq. */
   private readonly lastSeq = new Map<string, { seq: number; at: number }>();
+  /** `${channel}|${sender}` → the split presence being assembled (one per sender). */
+  private readonly assemblies = new Map<
+    string,
+    { seq: number; parts: (Buffer | undefined)[]; got: number; at: number }
+  >();
   /** Team names as members announce them (shown when joined without a name). */
   private readonly names = new Map<string, string>();
   private readonly warned = new Set<string>();
@@ -167,21 +242,28 @@ export class PeerNet {
           packet,
           ...(o.name && { office: { name: o.name } }),
         };
-        const sealed = seal(o.key, teamAad(o.tag), JSON.stringify(inner));
-        const wire: Wire = { v: 2, t: 'team', tag: o.tag, ...sealed };
-        for (const t of broadcast) this.send(sock, wire, t);
+        const around = envelope({ v: 2, t: 'team', tag: o.tag });
+        for (const plain of presencePlains(inner, identity.id, around)) {
+          const wire: Wire = { v: 2, t: 'team', tag: o.tag, ...seal(o.key, teamAad(o.tag), plain) };
+          for (const t of broadcast) this.send(sock, wire, t);
+        }
       }
       return;
     }
     const hello: Wire = { v: 2, t: 'hello', id: identity.id, pk: identity.publicKey };
     for (const t of broadcast) this.send(sock, hello, t);
+    // One presence (one seq, deflated once) sealed per peer; sized for the longest peer id.
+    const inner: Inner = { seq: ++this.seq, packet };
+    const longest = { v: 2, t: 'pub', from: identity.id, to: 'x'.repeat(WIRE_MAX_ID) };
+    const plains = this.hellos.size ? presencePlains(inner, identity.id, envelope(longest)) : [];
     for (const [id, h] of this.hellos) {
       h.key ??= pairKey(identity.privateKeyPem, h.pk, identity.id, id);
       if (!h.key) continue;
-      const inner: Inner = { seq: ++this.seq, packet };
-      const sealed = seal(h.key, pubAad(identity.id, id), JSON.stringify(inner));
-      const wire: Wire = { v: 2, t: 'pub', from: identity.id, to: id, ...sealed };
-      this.send(sock, wire, `${h.address}:${h.port.toString()}`);
+      for (const plain of plains) {
+        const sealed = seal(h.key, pubAad(identity.id, id), plain);
+        const wire: Wire = { v: 2, t: 'pub', from: identity.id, to: id, ...sealed };
+        this.send(sock, wire, `${h.address}:${h.port.toString()}`);
+      }
     }
   }
 
@@ -275,15 +357,64 @@ export class PeerNet {
       if (inTeam || w.to !== me || !h) return;
       h.key ??= pairKey(this.opts.identity.privateKeyPem, h.pk, me, w.from);
       if (!h.key) return;
-      const inner = parseInner(open(h.key, pubAad(w.from, w.to), w.n, w.c));
+      const inner = this.unpack(PUBLIC_VIEW, open(h.key, pubAad(w.from, w.to), w.n, w.c), w.from);
       if (inner?.packet.peer.id === w.from) this.accept(PUBLIC_VIEW, inner);
       return;
     }
     const office = this.opts.offices().find((o) => o.tag === w.tag);
     if (!office) return;
-    const inner = parseInner(open(office.key, teamAad(w.tag), w.n, w.c));
+    const inner = this.unpack(w.tag, open(office.key, teamAad(w.tag), w.n, w.c));
     if (!inner || inner.packet.peer.id === me) return;
     if (this.accept(w.tag, inner) && inner.office?.name) this.names.set(w.tag, inner.office.name);
+  }
+
+  /**
+   * Decrypted presence → Inner: the single form as is, or a part added to its
+   * sender's assembly (complete → inflated, parsed, checked against the part
+   * header). `sender` (pub: the wire `from`) must match the part's `from`.
+   * One assembly per (channel, sender), MAX_PRESENCE_ASSEMBLIES in all; a newer
+   * seq replaces an unfinished one, replays of a complete seq are dropped.
+   */
+  private unpack(channel: string, text: string | null, sender?: string): Inner | null {
+    if (text === null) return null;
+    let o: unknown;
+    try {
+      o = JSON.parse(text);
+    } catch {
+      return null;
+    }
+    if (!o || typeof o !== 'object' || Array.isArray(o)) return null;
+    if (!('parts' in o)) return parseInner(text);
+    const p = parsePart(o as Record<string, unknown>);
+    if (!p || (sender !== undefined && p.from !== sender)) return null;
+    const key = `${channel}|${p.from}`;
+    const last = this.lastSeq.get(key);
+    if (last && p.seq <= last.seq) return null;
+    const t = this.now();
+    let a = this.assemblies.get(key);
+    if (a && t - a.at > PRESENCE_ASSEMBLY_MS) {
+      this.assemblies.delete(key);
+      a = undefined;
+    }
+    if (a && p.seq < a.seq) return null;
+    if (!a || p.seq > a.seq) {
+      if (!a && this.assemblies.size >= MAX_PRESENCE_ASSEMBLIES) return null;
+      a = { seq: p.seq, parts: new Array<Buffer | undefined>(p.parts), got: 0, at: t };
+      this.assemblies.set(key, a);
+    }
+    if (a.parts.length !== p.parts || a.parts[p.part]) return null;
+    a.parts[p.part] = p.d;
+    if (++a.got < p.parts) return null;
+    this.assemblies.delete(key);
+    try {
+      const z = Buffer.concat(a.parts as Buffer[]);
+      const inner = parseInner(
+        zlib.inflateSync(z, { maxOutputLength: MAX_PACKET_BYTES }).toString('utf8'),
+      );
+      return inner && inner.seq === p.seq && inner.packet.peer.id === p.from ? inner : null;
+    } catch {
+      return null;
+    }
   }
 
   /** Stores the packet unless its seq is not newer than the sender's last on this channel. */
@@ -312,6 +443,10 @@ export class PeerNet {
       else for (const [id, e] of peers) if (t - e.at > PEER_TTL_MS) peers.delete(id);
     }
     for (const tag of this.names.keys()) if (!live.has(tag)) this.names.delete(tag);
+    for (const [k, a] of this.assemblies) {
+      if (t - a.at > PRESENCE_ASSEMBLY_MS || !live.has(k.slice(0, k.indexOf('|'))))
+        this.assemblies.delete(k);
+    }
     // ponytail: a sender silent past SEQ_MEMORY_MS can be replayed once more; add a time window to seq if that matters
     for (const [k, s] of this.lastSeq) if (t - s.at > SEQ_MEMORY_MS) this.lastSeq.delete(k);
   }

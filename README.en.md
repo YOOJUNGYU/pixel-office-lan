@@ -27,27 +27,27 @@ At a glance you see who (PC account name and nickname), with which agent (Claude
 
 The original [pixel-agents](https://github.com/pixel-agents-hq/pixel-agents) shows the Claude Code agents of **one PC** in a VS Code panel or a browser. Pixel Office LAN turns it into **an office the whole team on the network shares**.
 
-|                     | pixel-agents (original)                                     | Pixel Office LAN                                                                                                                         |
-| ------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| Scope               | Agents on your own PC                                       | Agents of **every installed PC on the network**, in one office                                                                           |
-| Sharing             | None (at most, opening your own screen in a browser)        | **Serverless P2P**: PCs find each other; anyone can shut down without affecting the rest                                                 |
-| Transport security  | n/a                                                         | **Automatic encryption** between PCs (X25519 key agreement + AES-256-GCM), impersonation detection                                       |
-| Groups              | None                                                        | **Team offices**: private offices visible only to people with the invite code                                                            |
-| Agents              | Claude Code                                                 | Claude Code **+ Codex** (CLI · Desktop · VS Code extension)                                                                              |
-| Install             | VS Code extension / `npx` (needs Node)                      | **One installer** (Windows `.exe` · macOS `.pkg`, Node bundled); **WSL sessions are read from Windows too**                              |
-| Detection           | Installs Claude hooks (edits `settings.json`) + transcripts | **Reads transcripts only** — never touches the tools' settings                                                                           |
-| Character placement | Fixed seat, state shown by animation                        | **Walks between rooms by activity** (Coding Room · Library · Server Room · Lounge)                                                       |
-| Activity            | Status text                                                 | Name tag (`account (nickname) · Claude #1`) + **hover bubble** (which file and why, what it searches)                                    |
-| Subagents           | Appear next to the parent                                   | **Hold hands in a line**; in another room a **translucent ghost of the parent** leads them · **background shells** become characters too |
-| Privacy             | n/a                                                         | **Hide details** (on by default): paths, IPs, tokens and command arguments never leave the PC                                            |
-| Your character      | Auto-assigned                                               | Pick **character · color** (skin tone kept) + optional nickname; the name is the PC account                                              |
-| Language · font     | English · pixel font                                        | **Korean/English** per viewer, **Pretendard**                                                                                            |
-| Map controls        | Middle-button pan, integer zoom                             | **Drag to pan + smooth wheel zoom**                                                                                                      |
-| Layout              | Floors, walls, furniture, areas                             | + **background outside the map** (solid · tiles · carpet), a four-room default layout                                                    |
-| App-like use        | —                                                           | **Installable PWA** (install popup), shortcut opens the app window, optional start at login                                              |
-| Updates             | Marketplace / npm                                           | In-app **Update button** (GitHub Releases)                                                                                               |
-| Who is online       | —                                                           | **People panel**: people without agents too; click to jump to them                                                                       |
-| First run           | —                                                           | **Onboarding tour** that walks through every feature on the real UI                                                                      |
+|                     | pixel-agents (original)                                     | Pixel Office LAN                                                                                                                                                                                                                                              |
+| ------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Scope               | Agents on your own PC                                       | Agents of **every installed PC on the network**, in one office                                                                                                                                                                                                |
+| Sharing             | None (at most, opening your own screen in a browser)        | **Serverless P2P**: PCs find each other; anyone can shut down without affecting the rest                                                                                                                                                                      |
+| Transport security  | n/a                                                         | **Automatic encryption** between PCs (X25519 key agreement + AES-256-GCM), impersonation detection                                                                                                                                                            |
+| Groups              | None                                                        | **Team offices**: private offices visible only to people with the invite code                                                                                                                                                                                 |
+| Agents              | Claude Code                                                 | Claude Code **+ Codex** (CLI · Desktop · VS Code extension)                                                                                                                                                                                                   |
+| Install             | VS Code extension / `npx` (needs Node)                      | **One installer** (Windows `.exe` · macOS `.pkg`, Node bundled); **WSL sessions are read from Windows too**                                                                                                                                                   |
+| Detection           | Installs Claude hooks (edits `settings.json`) + transcripts | **Reads transcripts only** — never touches the tools' settings                                                                                                                                                                                                |
+| Character placement | Fixed seat, state shown by animation                        | **Walks between rooms by activity** (Coding Room · Library · Server Room · Lounge)                                                                                                                                                                            |
+| Activity            | Status text                                                 | Name tag (`account (nickname) · Claude #1`) + **hover bubble** (which file and why, what it searches)                                                                                                                                                         |
+| Subagents           | Appear next to the parent                                   | **Hold hands in a line**; in another room a **translucent ghost of the parent** leads them · **background shells** become characters too; name tag = the parent's name + a **SUB / SHELL badge**                                                              |
+| Privacy             | n/a                                                         | **Hide details** (on by default): paths, IPs, tokens and command arguments never leave the PC                                                                                                                                                                 |
+| Your character      | Auto-assigned                                               | **Six people or a pet (Claudio · Gitcat)** + color (people keep their skin tone), optional nickname; the name is the PC account                                                                                                                               |
+| Language · font     | English · pixel font                                        | **Korean/English** per viewer, **Pretendard**                                                                                                                                                                                                                 |
+| Map controls        | Middle-button pan, integer zoom                             | **Drag to pan + smooth wheel zoom**                                                                                                                                                                                                                           |
+| Layout              | Floors, walls, furniture, areas                             | + **background outside the map** (solid · tiles · carpet), **four fixed rooms** (paint only), 90×60 by default · up to **128×128**, fitted to the screen at first, edits never move characters · layouts are **per PC** (share by exporting/importing a file) |
+| App-like use        | —                                                           | **Installable PWA** (install popup), shortcut opens the app window, optional start at login                                                                                                                                                                   |
+| Updates             | Marketplace / npm                                           | In-app **Update button** (GitHub Releases)                                                                                                                                                                                                                    |
+| Who is online       | —                                                           | **People panel**: people without agents too; click to jump to them                                                                                                                                                                                            |
+| First run           | —                                                           | **Onboarding tour** that walks through every feature on the real UI                                                                                                                                                                                           |
 
 On the other hand, the original's **agent launching, terminal attach and VS Code extension** were removed. This app focuses on _watching_; agents keep running in whatever CLI or desktop app each person already uses.
 
@@ -68,7 +68,8 @@ When an agent switches activity, its character walks to the matching room. So th
 
 - Every character carries a tag: `account (nickname) · Claude #1` / `account · Codex #1`. The account is the PC login name (cannot be changed); the nickname shows only when set.
 - Hover a character to see **what it is doing right now**: which file it is editing and why, what it is searching for, which command it runs.
-- A ❗ appears above an agent that is waiting for a person.
+- A **red !** appears above an agent that is waiting for a person.
+- Subagent and shell name tags are the parent's name tag with a **SUB** / **SHELL** badge.
 
 ![Hover bubble](docs/images/hover-en.png)
 
@@ -119,12 +120,13 @@ Switch the office you are looking at with the office switcher at the top of the 
 ### And more
 
 - 📲 **Install as an app (PWA)**: open the office in this PC's browser and an **Install Pixel Office as an app** popup appears top right. **Install** (Edge/Chrome) installs it as a tab-less app window, and the Windows shortcuts then open that app (a Mac opens the default browser). **Later** hides it for 7 days. Safari: **Share → Add to Dock / Add to Home Screen**; Firefox can't install apps.
-- 👤 **Profile**: on first run pick a character (6 kinds) and a color (8 swatches + slider), and optionally a nickname. Skin tone stays; clothes and hair change color. Your PC login account name always shows first and cannot be changed.
+- 👤 **Profile**: on first run pick a character (six people or the pets **Claudio · Gitcat**) and a color (8 swatches + slider), and optionally a nickname. People keep their skin tone while clothes and hair change color; a pet's body changes color. Subagents are the same pet in a slightly shifted color. 0.4.x PCs show pets as people. Your PC login account name always shows first and cannot be changed.
 - Nicknames must be unique (ignoring case and spaces): saving one that another PC you can see uses is refused. If two PCs picked the same one while apart, **whoever set it first keeps it**; the later one shows with a short tag (`Mina · a1b2`) and gets a one-time prompt to change it.
 - 🌐 **한국어 / English**: each viewer chooses (Settings → Language). Text the agent wrote itself (reasons, file names, commands) is shown as-is.
 - 🖱️ **Map controls**: drag an empty spot to pan; the mouse wheel (or trackpad pinch) zooms smoothly around the cursor.
 - 🔄 **Updates**: when a new version is published on GitHub Releases, an **Update** button appears; it downloads and runs the installer.
-- 🏗️ **Layout editor** (from the original): paint floors and walls, place furniture, define rooms (Areas). The **Background** tab fills the area around the office with a solid colour, a floor pattern or a carpet.
+- 🏗️ **Layout editor** (from the original): paint floors and walls and place furniture. **Room areas** only paint the four fixed rooms (Coding Room · Library · Server Room · Lounge) onto tiles (no adding, renaming or deleting); a room with no walkable tile is warned about. The **Background** tab fills the area around the office with a solid colour, a floor pattern or a carpet. The default office is 90×60 and can grow to 128×128; it is fitted to the screen when first opened. Changing the layout never moves the characters.
+- 🗺️ **Layouts are per PC.** In the public office and in team offices alike, your edits are saved right away **on this PC only**; nobody else's screen changes. To use the same layout, hand over a file from **Settings → Export layout**; the other person opens it with **Import layout**.
 - 👥 **People panel**: the right edge lists everyone connected to the office you are viewing, including people with no agents, with their Claude/Codex agent counts and status (❗ needs attention, working, idle). Click a name to move the camera to their agent.
 - 🧭 **Onboarding tour**: on first run it spotlights the real UI one part at a time (the rest dimmed) and shows every feature live — rooms, bubbles, offices, settings and the layout editor. Replay it any time from **Settings → Replay tour**.
 
@@ -160,6 +162,12 @@ Claude Code and Codex running inside WSL are read by the Windows app; there is n
 - **Mac**: **Pixel Office** in **Applications** or **Launchpad** (no desktop alias, following macOS convention)
 - Anywhere: `http://localhost:47801` in a browser
 
+### Updating from 0.4.x
+
+- Settings and layouts are kept. Decorative pets in old layouts are removed (pets are now chosen as characters), and room areas are tidied into the four fixed rooms.
+- Layouts stay per PC, as before.
+- 0.4.x PCs can't see a PC with very many agents and show pets as people. Update every PC on the network.
+
 Details, what to do when other PCs don't show up, and how to uninstall: **[Install guide](docs/INSTALL.en.md)**.
 
 > If corporate security software (EDR, AppLocker, …) blocks it, ask your IT team for an exception.
@@ -180,6 +188,8 @@ Details, what to do when other PCs don't show up, and how to uninstall: **[Insta
 - On UDP port **47800** it broadcasts a hello carrying only its public key, and sends the state **encrypted**: to each discovered PC separately for the public office (pair keys), under the team key for team offices. While in a team office it sends neither hellos nor public-office state.
 - The **local server** (HTTP **47801**) merges your state with what it received for the office you are viewing and streams it to the browser, which renders sentences in the viewer's language. It listens on `127.0.0.1` only, so other PCs cannot connect.
 - The browser's service worker caches only the page files (for app install); office state (`/ws`) and `/api` are never cached.
+- Every UDP datagram is **at most 1200 bytes** (for networks and VPNs that drop fragmented packets). A state that fits one datagram goes in the old (0.4.x) form; a larger one (many agents) is compressed, split into up to 48 encrypted parts and reassembled by the receiver. If a part is lost, the previous state stays until the next send (a second later).
+- Layouts (office arrangements) are never sent over the network.
 - A PC that has been silent for 5 seconds disappears from the office.
 
 | Port      | Purpose                                                                |
@@ -187,7 +197,7 @@ Details, what to do when other PCs don't show up, and how to uninstall: **[Insta
 | UDP 47800 | State exchange between PCs (encrypted; broadcast + manually added IPs) |
 | TCP 47801 | Browser UI (`http://localhost:47801`, this PC only)                    |
 
-Data is stored only in `~/.pixel-office/` (profile, keys and team codes, layout, remembered PC public keys, downloaded updates). Files holding keys and codes are readable by you only (0600).
+Data is stored only in `~/.pixel-office/` (profile, keys and team codes, layout (`layout.json`, this PC only), remembered PC public keys, downloaded updates). Files holding keys and codes are readable by you only (0600).
 
 ## Known limitations
 
@@ -197,6 +207,8 @@ Data is stored only in `~/.pixel-office/` (profile, keys and team codes, layout,
 - The public office cannot stop people who installed the app from joining.
 - There is no watching from another PC's browser without the app (remote viewing was removed in v0.4.0).
 - v0.1.0 PCs and 0.2.0 PCs don't see each other; everyone needs 0.2.0 or later.
+- **0.4.x PCs** can't see a PC with very many agents (a state larger than one datagram) and show pets as people. Update every PC.
+- Layouts are not shared automatically; exchange an exported file to use the same one.
 - Characters whose outfits are near-greyscale barely change with the color setting.
 
 ## Development

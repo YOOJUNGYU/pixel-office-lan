@@ -260,7 +260,7 @@ const ko = {
     '화면 언어는 브라우저마다 따로 고릅니다. 다른 PC의 에이전트 활동도 내가 고른 언어로 보입니다.',
   'tour.profile.title': '내 프로필',
   'tour.profile.body':
-    '이 PC 에이전트들의 캐릭터, 색과 선택 닉네임을 정합니다. 이름은 항상 PC 계정 이름이 먼저 보이고, 계정 이름은 바꿀 수 없습니다.\n"상세 내용 숨기기" 를 켜면 다른 사람에게는 파일 이름이나 이유 없이 방과 활동 종류만 보입니다.',
+    '이 PC 에이전트들의 캐릭터(사람 6종 또는 펫 Claudio · Gitcat)와 색, 선택 닉네임을 정합니다. 이름은 항상 PC 계정 이름이 먼저 보이고, 계정 이름은 바꿀 수 없습니다.\n"상세 내용 숨기기" 를 켜면 다른 사람에게는 파일 이름이나 이유 없이 방과 활동 종류만 보입니다.',
   'tour.offices.title': '팀 오피스',
   'tour.offices.body':
     '팀 이름을 정해 만들면 초대 코드(PO2-…)가 나옵니다. 팀원은 그 코드로 참여합니다.\n팀 오피스의 내용은 팀원끼리만 암호화되어 오가고, 언제든 나갈 수 있습니다.',
@@ -281,12 +281,15 @@ const ko = {
     '목록에서 골라 놓고, 드래그로 옮기고, Alt+드래그로 복사합니다.\nR 은 회전, T 는 켜기/끄기(모니터 등), 색 버튼으로 색을 바꿉니다. 카펫도 여기 있습니다.',
   'tour.areas.title': '방 영역',
   'tour.areas.body':
-    '코딩실·자료실·서버실·대기실, 고정된 네 방을 타일에 칠합니다(방을 새로 만들지는 않습니다). 에이전트는 이 영역을 보고 어느 방으로 갈지 정합니다.',
+    '코딩실·자료실·서버실·대기실, 고정된 네 방을 타일에 칠합니다(방을 새로 만들지는 않습니다). 에이전트는 이 영역을 보고 어느 방으로 갈지 정합니다.\n걸을 수 있는 타일이 없는 방이 있으면 경고가 뜹니다.',
   'tour.background.title': '배경',
   'tour.background.body': '사무실 바깥을 단색, 바닥 무늬, 카펫 무늬 중 하나로 채웁니다.',
-  'tour.editorMore.title': '지우기 · 저장',
+  'tour.editorMore.title': '지우기 · 실행 취소',
   'tour.editorMore.body':
-    '[지우기] 로 타일을 지울 수 있습니다. Ctrl+Z / Ctrl+Y 로 실행 취소 · 다시 실행.\n편집한 내용은 바로바로 저장됩니다. 위쪽 막대의 [되돌리기] 는 마지막으로 [저장] 을 누른 때(또는 사무실을 연 때)의 배치로 돌아가고, [저장] 은 지금 배치를 그 기준으로 삼습니다.',
+    '[지우기] 로 타일을 지울 수 있습니다. Ctrl+Z / Ctrl+Y 로 실행 취소 · 다시 실행.\n배치를 바꿔도 캐릭터는 있던 자리에 그대로 있습니다.',
+  'tour.save.title': '저장',
+  'tour.save.body':
+    '배치는 이 PC 에만 저장되고(공개·팀 오피스 모두), 다른 PC 의 화면은 바뀌지 않습니다. 편집한 내용은 바로바로 저장되고, 위쪽 막대의 [되돌리기] 는 마지막으로 [저장] 을 누른 때(또는 사무실을 연 때)의 배치로 돌아갑니다.\n배치를 나눠 쓰려면 설정 → [레이아웃 내보내기] 로 파일을 만들어 건네고, 받은 사람은 [레이아웃 가져오기] 로 엽니다.',
   'tour.install.title': '앱으로 설치',
   'tour.install.body':
     '이 PC의 브라우저에서는 Pixel Office 를 앱으로 설치할 수 있습니다(Edge·Chrome). 설치하면 바로가기가 탭이 아닌 앱 창으로 열립니다.\n안내 창을 닫았다면 주소창의 설치 아이콘을 쓰세요.',
@@ -553,7 +556,7 @@ const en: Record<Key, string> = {
     'Each browser picks its own language. Activity of agents on other PCs is shown in your language too.',
   'tour.profile.title': 'My profile',
   'tour.profile.body':
-    'Character, color and optional nickname of this PC’s agents. Your PC account name always shows first and cannot be changed.\n"Hide details" shows others only the room and the kind of activity — no file names or reasons.',
+    'Character (six people or the pets Claudio and Gitcat), color and optional nickname of this PC’s agents. Your PC account name always shows first and cannot be changed.\n"Hide details" shows others only the room and the kind of activity — no file names or reasons.',
   'tour.offices.title': 'Team offices',
   'tour.offices.body':
     'Create a team to get an invite code (PO2-…); teammates join with it.\nA team office is encrypted between its members, and you can leave any time.',
@@ -575,13 +578,16 @@ const en: Record<Key, string> = {
     'Pick an item and place it, drag to move, Alt+drag to copy.\nR rotates, T toggles (monitors…), the color button recolors. Carpets live here too.',
   'tour.areas.title': 'Room areas',
   'tour.areas.body':
-    'Paint the four fixed rooms (coding room, library, server room, lounge) onto tiles; there is no adding rooms. Agents use these areas to decide where to go.',
+    'Paint the four fixed rooms (coding room, library, server room, lounge) onto tiles; there is no adding rooms. Agents use these areas to decide where to go.\nA room with no walkable tile is warned about.',
   'tour.background.title': 'Background',
   'tour.background.body':
     'Fill the outside of the office with a solid color, a floor pattern or a carpet.',
-  'tour.editorMore.title': 'Erase · Save',
+  'tour.editorMore.title': 'Erase · Undo',
   'tour.editorMore.body':
-    'Clear tiles with [Erase]. Ctrl+Z / Ctrl+Y undo and redo.\nEvery edit is saved right away. [Reset] in the top bar goes back to the layout as of your last [Save] (or when you opened the office); [Save] makes the current layout that point.',
+    'Clear tiles with [Erase]. Ctrl+Z / Ctrl+Y undo and redo.\nChanging the layout never moves the characters.',
+  'tour.save.title': 'Save',
+  'tour.save.body':
+    'The layout is saved on this PC only (public and team offices alike); other PCs’ screens do not change. Every edit is saved right away, and [Reset] in the top bar goes back to the layout as of your last [Save] (or when you opened the office).\nTo share a layout, make a file with Settings → [Export layout] and hand it over; the other person opens it with [Import layout].',
   'tour.install.title': 'Install as an app',
   'tour.install.body':
     'On this PC’s browser you can install Pixel Office as an app (Edge, Chrome). Shortcuts then open it in its own window instead of a tab.\nIf you closed the prompt, use the install icon in the address bar.',

@@ -127,7 +127,15 @@ test('visibleSteps: full tour on a desktop owner, fewer steps on smaller screens
   assert.ok(visibleSteps(new Set()).includes('people'));
   // Phone (no editor) without team offices: no editor, switcher or office steps.
   const phone = visibleSteps(new Set<Capability>(['profile', 'areas']));
-  for (const id of ['layoutButton', 'floor', 'editorMore', 'switcher', 'offices', 'family']) {
+  for (const id of [
+    'layoutButton',
+    'floor',
+    'editorMore',
+    'save',
+    'switcher',
+    'offices',
+    'family',
+  ]) {
     assert.ok(!phone.includes(id as never), id);
   }
   assert.ok(phone.includes('profile') && phone.includes('settingsButton'));
@@ -201,6 +209,7 @@ test('bodyKey picks the text matching what is on screen', () => {
   assert.equal(bodyKey('done', { ...ctx, demo: true }), 'tour.done.bodyDemo');
   assert.equal(bodyKey('map', { ...ctx, touch: true }), 'tour.map.bodyTouch');
   assert.equal(bodyKey('system', { ...ctx, autostart: false }), 'tour.system.bodyNoAutostart');
+  assert.equal(bodyKey('save', ctx), 'tour.save.body');
   assert.equal(bodyKey('floor', { demo: true, autostart: false, touch: true }), 'tour.floor.body');
 });
 

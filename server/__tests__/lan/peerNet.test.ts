@@ -1,9 +1,17 @@
+import { randomUUID } from 'crypto';
 import * as dgram from 'dgram';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import * as zlib from 'zlib';
 
 import type { PeerPacket } from '../../../core/src/lan.js';
 import { MAX_PACKET_BYTES, PUBLIC_VIEW } from '../../../core/src/lan.js';
-import { MAX_WARN_KEYS, PACKET_PLAINTEXT_BUDGET } from '../../src/constants.js';
+import {
+  MAX_DATAGRAM_BYTES,
+  MAX_PRESENCE_ASSEMBLIES,
+  MAX_PRESENCE_PARTS,
+  MAX_WARN_KEYS,
+  PRESENCE_MAX_COMPRESSED,
+} from '../../src/constants.js';
 import type { Identity } from '../../src/lan/crypto.js';
 import {
   createIdentity,
@@ -16,8 +24,14 @@ import {
   teamKey,
   teamTag,
 } from '../../src/lan/crypto.js';
-import type { TeamChannel } from '../../src/lan/peerNet.js';
-import { broadcastAddresses, fitPacket, PEER_TTL_MS, PeerNet } from '../../src/lan/peerNet.js';
+import type { Inner, TeamChannel } from '../../src/lan/peerNet.js';
+import {
+  broadcastAddresses,
+  fitPacket,
+  PEER_TTL_MS,
+  PeerNet,
+  presencePlains,
+} from '../../src/lan/peerNet.js';
 
 const pkt = (id: string, nickname = id): PeerPacket => ({
   v: 1,
@@ -218,7 +232,7 @@ describe('PeerNet public office', () => {
     expect(warn.mock.calls.some((m) => String(m[0]).includes('구버전'))).toBe(true);
   });
 
-  it('a max-size packet still fits one datagram that parseWire accepts', () => {
+  it('a max-size presence splits into ≤ MAX_PRESENCE_PARTS datagrams of ≤ MAX_DATAGRAM_BYTES', () => {
     const view = (i: number) => ({
       id: `s${i}`.padEnd(200, 'x'),
       provider: 'claude' as const,
@@ -228,7 +242,7 @@ describe('PeerNet public office', () => {
       permission: false,
       act: 'run' as const,
       target: '"'.repeat(120),
-      reason: '가'.repeat(200),
+      reason: randomUUID().repeat(5).slice(0, 180) + '가'.repeat(20),
     });
     const id = 'i'.repeat(64);
     const packet = fitPacket({
@@ -236,19 +250,28 @@ describe('PeerNet public office', () => {
       peer: { id, account: '가'.repeat(32), nickname: '가'.repeat(20), palette: 0, hueShift: 0 },
       views: Array.from({ length: 300 }, (_, i) => view(i)),
     });
-    const inner = JSON.stringify({
+    expect(packet.views.length).toBeGreaterThan(10);
+    const inner: Inner = {
       seq: Number.MAX_SAFE_INTEGER,
       packet,
       office: { name: '가'.repeat(20) },
-    });
+    };
     const key = Buffer.alloc(32, 1);
-    for (const wire of [
-      { v: 2, t: 'pub', from: id, to: id, ...seal(key, pubAad(id, id), inner) },
-      { v: 2, t: 'team', tag: 'AAAAAAAAAAA', ...seal(key, teamAad('AAAAAAAAAAA'), inner) },
-    ]) {
-      const text = JSON.stringify(wire);
-      expect(Buffer.byteLength(text)).toBeLessThanOrEqual(MAX_PACKET_BYTES);
-      expect(parseWire(text)).not.toBeNull();
+    const around = (w: object) =>
+      Buffer.byteLength(JSON.stringify({ ...w, n: 'x'.repeat(16), c: '' }));
+    const forms = [
+      { wire: { v: 2, t: 'pub', from: id, to: id }, aad: pubAad(id, id) },
+      { wire: { v: 2, t: 'team', tag: 'AAAAAAAAAAA' }, aad: teamAad('AAAAAAAAAAA') },
+    ];
+    for (const { wire, aad } of forms) {
+      const plains = presencePlains(inner, id, around(wire));
+      expect(plains.length).toBeGreaterThan(1);
+      expect(plains.length).toBeLessThanOrEqual(MAX_PRESENCE_PARTS);
+      for (const plain of plains) {
+        const text = JSON.stringify({ ...wire, ...seal(key, aad, plain) });
+        expect(Buffer.byteLength(text)).toBeLessThanOrEqual(MAX_DATAGRAM_BYTES);
+        expect(parseWire(text)).not.toBeNull();
+      }
     }
   });
 });
@@ -409,6 +432,134 @@ describe('fitPacket', () => {
     const r = fitPacket(big);
     expect(r.views.length).toBeLessThan(300);
     expect(r.views[0].id).toBe('s0');
-    expect(Buffer.byteLength(JSON.stringify(r))).toBeLessThanOrEqual(PACKET_PLAINTEXT_BUDGET);
+    expect(zlib.deflateSync(JSON.stringify(r)).length).toBeLessThanOrEqual(PRESENCE_MAX_COMPRESSED);
+  });
+});
+
+describe('PeerNet split presence', () => {
+  /** 40 agents with long, distinct reasons: far more than one datagram. */
+  const busy = (id: string, tag = ''): PeerPacket => ({
+    ...pkt(id),
+    views: Array.from({ length: 40 }, (_, i) => ({
+      id: `${tag}session-${i}-${randomUUID()}`,
+      provider: 'claude' as const,
+      kind: 'main' as const,
+      num: i + 1,
+      room: 'coding' as const,
+      permission: false,
+      act: 'run' as const,
+      target: `npm run build -- --filter ${randomUUID()}`,
+      reason: `${randomUUID()} 긴 설명 `.repeat(4).slice(0, 200),
+    })),
+  });
+
+  it('a 40-agent presence reaches team and public peers; every datagram ≤ MAX_DATAGRAM_BYTES', async () => {
+    const raw = await rawSocket();
+    const sizes: number[] = [];
+    const [a, b, c, d] = await mkNodes(['A', 'B', 'C', 'D'], [`127.0.0.1:${raw.port}`]);
+    const secret = newInviteCode().secret;
+    a.offices = [channel(secret)];
+    b.offices = [channel(Buffer.from(secret))];
+    const big = busy('A');
+    const bigC = busy('C');
+    (a.net as unknown as { opts: { getPacket: () => PeerPacket } }).opts.getPacket = () => big;
+    (c.net as unknown as { opts: { getPacket: () => PeerPacket } }).opts.getPacket = () => bigC;
+    const spy = vi.spyOn(dgram.Socket.prototype, 'send');
+    const { tag } = a.offices[0];
+    await pump(
+      [a, b, c, d],
+      () =>
+        (b.net.peers(tag)[0]?.views.length ?? 0) === 40 &&
+        (d.net.peers(PUBLIC_VIEW).find((p) => p.peer.id === 'C')?.views.length ?? 0) === 40,
+    );
+    expect(b.net.peers(tag)[0].views).toEqual(big.views);
+    expect(d.net.peers(PUBLIC_VIEW).find((p) => p.peer.id === 'C')!.views).toEqual(bigC.views);
+    for (const call of spy.mock.calls) sizes.push((call[0] as Buffer).length);
+    expect(Buffer.byteLength(JSON.stringify(big))).toBeGreaterThan(10 * MAX_DATAGRAM_BYTES);
+    expect(Math.max(...sizes)).toBeLessThanOrEqual(MAX_DATAGRAM_BYTES);
+    expect(raw.got.every((g) => Buffer.byteLength(g) <= MAX_DATAGRAM_BYTES)).toBe(true);
+  });
+
+  describe('assembly (team channel, crafted parts)', () => {
+    const secret = newInviteCode().secret;
+    const ch = channel(secret);
+    const around = Buffer.byteLength(
+      JSON.stringify({ v: 2, t: 'team', tag: ch.tag, n: 'x'.repeat(16), c: '' }),
+    );
+    const wires = (seq: number, packet: PeerPacket, from = 'X') =>
+      presencePlains({ seq, packet }, from, around).map((plain) =>
+        JSON.stringify({ v: 2, t: 'team', tag: ch.tag, ...seal(ch.key, teamAad(ch.tag), plain) }),
+      );
+    type Internals = {
+      receive(text: string, rinfo: { address: string; port: number }): void;
+      assemblies: Map<string, unknown>;
+    };
+    const rinfo = { address: '127.0.0.1', port: 9 };
+    const setup = async () => {
+      const [a] = await mkNodes(['A']);
+      a.offices = [channel(Buffer.from(secret))];
+      const net = a.net as unknown as Internals;
+      const views = () => a.net.peers(ch.tag)[0]?.views.map((v) => v.id);
+      return { a, net, views, rx: (w: string) => net.receive(w, rinfo) };
+    };
+
+    it('single-part (0.4.x) and split forms are both accepted', async () => {
+      const { a, rx } = await setup();
+      const small = wires(1, pkt('X', 'small'));
+      expect(small).toHaveLength(1);
+      // The single form is the 0.4.x Inner itself: no part fields.
+      expect(presencePlains({ seq: 1, packet: pkt('X') }, 'X', around)[0]).not.toContain('"parts"');
+      small.forEach(rx);
+      expect(nick(a.net.peers(ch.tag), 'X')).toBe('small');
+      const big = busy('X');
+      const split = wires(2, big);
+      expect(split.length).toBeGreaterThan(1);
+      split.forEach(rx);
+      expect(a.net.peers(ch.tag)[0].views).toEqual(big.views);
+    });
+
+    it('a lost part keeps the previous state; the next seq still lands', async () => {
+      const { a, net, views, rx } = await setup();
+      const first = busy('X', 'one-');
+      wires(1, first).forEach(rx);
+      const second = wires(2, busy('X', 'two-'));
+      second.slice(1).forEach(rx); // part 0 lost
+      expect(views()).toEqual(first.views.map((v) => v.id));
+      a.t += 3_000; // past PRESENCE_ASSEMBLY_MS: the half-built seq 2 is dropped
+      const third = busy('X', 'three-');
+      wires(3, third).reverse().forEach(rx); // reordered
+      expect(views()).toEqual(third.views.map((v) => v.id));
+      expect(net.assemblies.size).toBe(0);
+    });
+
+    it('drops duplicates, replays, forged parts and a sender mismatch', async () => {
+      const { a, views, rx } = await setup();
+      const p1 = busy('X', 'one-');
+      const w1 = wires(5, p1);
+      rx(w1[0]);
+      rx(w1[0]); // duplicate
+      w1.slice(1).forEach(rx);
+      expect(views()).toEqual(p1.views.map((v) => v.id));
+      w1.forEach(rx); // replay of a complete seq: no new assembly
+      // A part forged with another key, or claiming another sender, never completes anything.
+      const evil = presencePlains({ seq: 9, packet: busy('X', 'evil-') }, 'X', around);
+      const bad = Buffer.alloc(32, 3);
+      evil.forEach((plain) =>
+        rx(JSON.stringify({ v: 2, t: 'team', tag: ch.tag, ...seal(bad, teamAad(ch.tag), plain) })),
+      );
+      wires(10, busy('X', 'liar-'), 'Y').forEach(rx); // parts say Y, packet says X
+      expect(views()).toEqual(p1.views.map((v) => v.id));
+      expect(a.net.peers(ch.tag).map((p) => p.peer.id)).toEqual(['X']);
+    });
+
+    it('caps assemblies: one per sender, MAX_PRESENCE_ASSEMBLIES in all', async () => {
+      const { net, rx } = await setup();
+      for (let i = 0; i < MAX_PRESENCE_ASSEMBLIES + 50; i++) {
+        const id = `P${i}`;
+        rx(wires(1, busy(id), id)[0]); // first part only
+        rx(wires(2, busy(id), id)[0]); // newer seq replaces, never adds
+      }
+      expect(net.assemblies.size).toBe(MAX_PRESENCE_ASSEMBLIES);
+    });
   });
 });
