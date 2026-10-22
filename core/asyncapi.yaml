@@ -74,6 +74,7 @@ components:
       oneOf:
         # Layout
         - $ref: '#/components/schemas/LayoutLoaded'
+        - $ref: '#/components/schemas/LayoutSaveRejected'
         # Assets
         - $ref: '#/components/schemas/FurnitureAssetsLoaded'
         - $ref: '#/components/schemas/CharacterSpritesLoaded'
@@ -476,6 +477,17 @@ components:
     OfficeErrorReason:
       type: string
       enum: [invalidCode, alreadyJoined, nameInvalid, full]
+
+    LayoutSaveRejected:
+      description: >-
+        A saveLayout was refused (not a v1 grid within 128×128 whose tiles
+        match it), to the requesting socket only. Nothing was written.
+      type: object
+      additionalProperties: false
+      required: [type]
+      properties:
+        type:
+          const: layoutSaveRejected
 
     ProfileError:
       description: >-

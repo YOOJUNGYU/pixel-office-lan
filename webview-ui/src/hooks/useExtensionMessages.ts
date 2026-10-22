@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { OfficeAgent } from '../../../core/src/lan.js';
+import { isLayoutGrid } from '../../../core/src/lan.js';
 import type {
   AutostartState,
   OfficeCode,
@@ -76,6 +77,8 @@ interface ExtensionMessageState {
   /** Why the last saveProfile was refused (profileError); null = none / cleared. */
   profileError: ProfileErrorReason | null;
   clearProfileError: () => void;
+  /** Bumped each time the server refuses a saveLayout (the toast shows on change). */
+  layoutSaveRejections: number;
   /** Other people's nickname keys in the viewed office, and whether this PC lost a same-name tie-break. */
   nicknames: { taken: ReadonlySet<string>; selfLost: string | null };
   /** A newer release (this PC's browser only); null when none is known. */
@@ -112,6 +115,7 @@ export function useExtensionMessages(
   const [people, setPeople] = useState<OfficePersonMessage[]>([]);
   const [profile, setProfile] = useState<Omit<ProfileLoaded, 'type'> | null>(null);
   const [profileError, setProfileError] = useState<ProfileErrorReason | null>(null);
+  const [layoutSaveRejections, setLayoutSaveRejections] = useState(0);
   const clearProfileError = useCallback(() => setProfileError(null), []);
   const [nicknames, setNicknames] = useState<ExtensionMessageState['nicknames']>({
     taken: new Set(),
@@ -152,8 +156,10 @@ export function useExtensionMessages(
           console.log('[Webview] Skipping external layout update — editor has unsaved changes');
           return;
         }
-        const rawLayout = msg.layout as OfficeLayout | null;
-        const layout = rawLayout && rawLayout.version === 1 ? migrateLayoutColors(rawLayout) : null;
+        // Same grid check as the server (a broken or huge file falls back to the default).
+        const layout = isLayoutGrid(msg.layout)
+          ? migrateLayoutColors(msg.layout as unknown as OfficeLayout)
+          : null;
         if (layout) {
           os.rebuildFromLayout(layout);
           onLayoutLoaded?.(layout);
@@ -177,6 +183,9 @@ export function useExtensionMessages(
       } else if (msg.type === 'profileLoaded') {
         const { profile, canEdit, account, firstRun } = msg as ProfileLoaded;
         setProfile({ profile, canEdit, account, firstRun });
+      } else if (msg.type === 'layoutSaveRejected') {
+        console.warn('[Webview] The server refused the layout save.');
+        setLayoutSaveRejections((n) => n + 1);
       } else if (msg.type === 'profileError') {
         setProfileError((msg as ProfileError).reason);
       } else if (msg.type === 'updateAvailable') {
@@ -279,6 +288,7 @@ export function useExtensionMessages(
     people,
     profile,
     profileError,
+    layoutSaveRejections,
     clearProfileError,
     nicknames,
     update,

@@ -10,7 +10,12 @@ import assert from 'node:assert/strict';
 import { test } from 'vitest';
 
 import type { RoomAreasLayout } from '../../core/src/lan.js';
-import { normalizeRoomAreas, ROOM_LABELS } from '../../core/src/lan.js';
+import {
+  isLayoutGrid,
+  normalizeRoomAreas,
+  ROOM_DEFAULT_COLORS,
+  ROOM_LABELS,
+} from '../../core/src/lan.js';
 import { ROOM_AREA_COLORS } from '../src/constants.js';
 import { OfficeState } from '../src/office/engine/officeState.js';
 import { migrateLayoutColors } from '../src/office/layout/layoutSerializer.js';
@@ -67,6 +72,39 @@ test('odd areas/areaTiles never throw: wrong types and sizes become empty rooms'
     assert.equal(out.areas?.length, 4);
     assert.equal(out.areas?.[0].color, ROOM_AREA_COLORS.coding, 'invalid color → default');
     assert.deepEqual(out.areaTiles, [null, null]);
+  }
+});
+
+test('a missing room never gets an empty color: no or invalid defaults → ROOM_DEFAULT_COLORS', () => {
+  for (const colors of [undefined, {}, { coding: '', library: 'red' }]) {
+    const out = normalizeRoomAreas({ cols: 1, rows: 1 } as RoomAreasLayout, colors);
+    assert.deepEqual(
+      out.areas?.map((a) => a.color),
+      Object.values(ROOM_DEFAULT_COLORS),
+    );
+  }
+});
+
+test('isLayoutGrid (import + layoutLoaded + server): v1 grid within 128×128, tiles match', () => {
+  const ok = { version: 1, cols: 2, rows: 1, tiles: [1, 1], furniture: [] };
+  assert.equal(isLayoutGrid(ok), true);
+  assert.equal(isLayoutGrid({ ...ok, cols: 128, rows: 128, tiles: new Array(128 * 128) }), true);
+  for (const bad of [
+    null,
+    [],
+    'x',
+    { ...ok, version: 2 },
+    { ...ok, cols: 0 },
+    { ...ok, cols: 1.5 },
+    { ...ok, cols: '2' },
+    { ...ok, cols: 129, tiles: new Array(129) },
+    // Huge dimensions are refused on the numbers alone (nothing is allocated).
+    { ...ok, cols: 1e9, rows: 1e9 },
+    { ...ok, tiles: [1] },
+    { ...ok, tiles: 'xx' },
+    { ...ok, furniture: {} },
+  ]) {
+    assert.equal(isLayoutGrid(bad), false, JSON.stringify(bad)?.slice(0, 60));
   }
 });
 

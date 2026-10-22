@@ -24,16 +24,44 @@ export interface RoomAreasLayout {
 
 const HEX_RGB = /^#[0-9a-f]{6}$/i;
 
+/** Room overlay colors of the bundled default layout: the last-resort color of a missing room. */
+/* eslint-disable pixel-agents/no-inline-colors -- shared default, used by server and webview */
+export const ROOM_DEFAULT_COLORS: Readonly<Record<Room, string>> = {
+  coding: '#48dbfb',
+  library: '#1dd1a1',
+  server: '#ff6b6b',
+  lounge: '#feca57',
+};
+/* eslint-enable pixel-agents/no-inline-colors */
+
+/** A layout grid worth building: v1, cols/rows integers within MAX_LAYOUT_COLS×ROWS,
+ *  `tiles` exactly cols*rows long, `furniture` an array. Cheap: never walks the
+ *  arrays, so a hostile huge cols×rows is refused before anything allocates. */
+export function isLayoutGrid(
+  x: unknown,
+): x is { version: 1; cols: number; rows: number; tiles: unknown[]; furniture: unknown[] } {
+  if (!isObj(x) || x.version !== 1) return false;
+  const { cols, rows } = x;
+  return (
+    int(cols, 1, MAX_LAYOUT_COLS) !== null &&
+    int(rows, 1, MAX_LAYOUT_ROWS) !== null &&
+    Array.isArray(x.tiles) &&
+    x.tiles.length === (cols as number) * (rows as number) &&
+    Array.isArray(x.furniture)
+  );
+}
+
 /**
  * Exactly the four fixed rooms: `areas` = the four definitions in ROOM_ORDER
- * (a room's existing valid color is kept, a missing room gets `colors[room]`),
+ * (a room's existing valid color is kept, a missing room gets a valid
+ * `colors[room]`, else ROOM_DEFAULT_COLORS — never an empty color),
  * `areaTiles` = cols*rows labels with everything but the four room labels
  * cleared (a missing or mis-sized array becomes all null). Never throws on odd
  * `areas`/`areaTiles`; cols/rows must already be validated.
  */
 export function normalizeRoomAreas<T extends RoomAreasLayout>(
   layout: T,
-  colors: Partial<Record<Room, string>>,
+  colors: Partial<Record<Room, string>> = {},
 ): T {
   const have = new Map<string, string>();
   for (const a of Array.isArray(layout.areas) ? (layout.areas as unknown[]) : []) {
@@ -43,7 +71,9 @@ export function normalizeRoomAreas<T extends RoomAreasLayout>(
   }
   const areas = ROOM_ORDER.map((r) => ({
     label: ROOM_LABELS[r],
-    color: have.get(ROOM_LABELS[r]) ?? colors[r] ?? '',
+    color:
+      have.get(ROOM_LABELS[r]) ??
+      (HEX_RGB.test(colors[r] ?? '') ? colors[r]! : ROOM_DEFAULT_COLORS[r]),
   }));
   const labels = new Set<unknown>(Object.values(ROOM_LABELS));
   const n = layout.cols * layout.rows;

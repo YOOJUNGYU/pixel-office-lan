@@ -4,6 +4,7 @@ import {
   BUBBLE_SITTING_OFFSET_PX,
   BUBBLE_VERTICAL_OFFSET_PX,
   CHARACTER_SITTING_OFFSET_PX,
+  LAN_ALERT_COLOR,
   LAN_BUBBLE_HEAD_OFFSET,
   LAN_BUBBLE_MAX_WIDTH_PX,
   LAN_BUBBLE_Z_INDEX,
@@ -178,7 +179,11 @@ export function LanOverlay({ officeState, lan, containerRef, zoom, panRef }: Lan
         }}
       >
         <span className="font-bold">
-          {hovered.permission && `${t('bubble.permission')} · `}
+          {hovered.permission && (
+            <>
+              <span style={{ color: LAN_ALERT_COLOR }}>!</span> {t('bubble.permission')} ·{' '}
+            </>
+          )}
           {t(`room.${hovered.room}`)}
         </span>
         <span>{actText(hovered.act, hovered.target)}</span>

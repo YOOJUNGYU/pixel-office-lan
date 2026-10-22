@@ -42,7 +42,7 @@ const WALK_ACT: Record<Room, { act: OfficeAgent['act']; target: string }> = {
  * The demo office: a lone coder in 코딩실 (editing, with a reason), a reader (a
  * pet) in 자료실 with a subagent beside it, a Codex runner in 서버실 whose subagent
  * works in 대기실 (so it holds a ghost's hand), and a walker that the rooms
- * steps send to `walkerRoom`; back home in 대기실 it waits for approval (❗).
+ * steps send to `walkerRoom`; back home in 대기실 it waits for approval (the red "!").
  */
 export function demoAgents(texts: DemoTexts, walkerRoom: Room = 'lounge'): OfficeAgent[] {
   const peer = (n: number, palette: number, hueShift: number, pet?: PetId): PeerInfo => ({

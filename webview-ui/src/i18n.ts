@@ -28,7 +28,7 @@ const ko = {
   'act.image': '이미지 보는 중',
   'act.tool': '{t} 사용 중',
 
-  'bubble.permission': '❗ 확인 필요',
+  'bubble.permission': '확인 필요',
   'people.title': '접속 중 {n}명',
   'people.you': '(나)',
   'people.noAgents': '에이전트 없음',
@@ -48,6 +48,7 @@ const ko = {
   'app.rotateHint': '회전 (R)',
   'app.importConfirm': '현재 레이아웃을 바꿀까요? 저장하지 않은 편집은 사라집니다.',
   'app.importInvalid': '올바른 레이아웃 파일이 아닙니다.',
+  'app.layoutSaveRejected': '레이아웃을 저장하지 못했습니다 (올바르지 않은 레이아웃).',
   'app.importFailed': '레이아웃 파일을 읽지 못했습니다.',
 
   'conn.connecting': '연결 중…',
@@ -320,7 +321,7 @@ const en: Record<Key, string> = {
   'act.image': 'Viewing an image',
   'act.tool': 'Using {t}',
 
-  'bubble.permission': '❗ Needs attention',
+  'bubble.permission': 'Needs attention',
   'people.title': '{n} online',
   'people.you': '(you)',
   'people.noAgents': 'No agents',
@@ -340,6 +341,7 @@ const en: Record<Key, string> = {
   'app.rotateHint': 'Rotate (R)',
   'app.importConfirm': 'Replace the current layout? Unsaved edits will be lost.',
   'app.importInvalid': 'This is not a valid layout file.',
+  'app.layoutSaveRejected': 'The layout was not saved (not a valid layout).',
   'app.importFailed': 'Could not read the layout file.',
 
   'conn.connecting': 'Connecting…',

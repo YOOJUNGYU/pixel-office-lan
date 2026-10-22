@@ -3,6 +3,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { ROOM_DEFAULT_COLORS } from '../../core/src/lan.js';
 import {
   type AssetCache,
   type ClientMessageContext,
@@ -146,7 +147,7 @@ describe('clientMessageHandler', () => {
       expect('pets' in layout).toBe(false);
     });
 
-    it('ignores odd input without throwing or writing', () => {
+    it('refuses odd input without throwing or writing, and tells the browser', () => {
       const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
       for (const layout of [
         null,
@@ -161,8 +162,12 @@ describe('clientMessageHandler', () => {
         expect(() => send({ type: 'saveLayout', layout }, ctx(true))).not.toThrow();
       }
       warn.mockRestore();
-      // Only the last one is a valid grid: odd areas just become the four rooms.
-      expect((saved().areas as unknown[]).length).toBe(4);
+      // Every one but the last (a valid grid with odd areas) was refused.
+      expect(sent.filter((m) => m.type === 'layoutSaveRejected')).toHaveLength(7);
+      // Odd areas just become the four rooms, with their default colors.
+      expect((saved().areas as Array<{ color: string }>).map((a) => a.color)).toEqual(
+        Object.values(ROOM_DEFAULT_COLORS),
+      );
       expect(saved().areaTiles).toEqual([null, null]);
     });
 

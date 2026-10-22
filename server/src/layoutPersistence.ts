@@ -3,19 +3,11 @@ import * as os from 'os';
 import * as path from 'path';
 
 import type { Room, RoomAreasLayout } from '../../core/src/lan.js';
-import {
-  MAX_LAYOUT_COLS,
-  MAX_LAYOUT_ROWS,
-  normalizeRoomAreas,
-  ROOM_LABELS,
-  ROOM_ORDER,
-} from '../../core/src/lan.js';
+import { isLayoutGrid, normalizeRoomAreas, ROOM_LABELS, ROOM_ORDER } from '../../core/src/lan.js';
 import { LAYOUT_FILE_DIR, LAYOUT_FILE_NAME } from './constants.js';
 
 const isObj = (x: unknown): x is Record<string, unknown> =>
   typeof x === 'object' && x !== null && !Array.isArray(x);
-const isInt = (x: unknown, min: number, max: number): x is number =>
-  typeof x === 'number' && Number.isInteger(x) && x >= min && x <= max;
 
 /** Room colors of a layout (the bundled default), for rooms another layout lacks. */
 export function roomColorsOf(layout: unknown): Partial<Record<Room, string>> {
@@ -37,15 +29,10 @@ export function sanitizeLayout(
   raw: unknown,
   colors: Partial<Record<Room, string>>,
 ): Record<string, unknown> | null {
-  if (!isObj(raw) || raw.version !== 1) return null;
-  const { cols, rows, tiles } = raw;
-  if (!isInt(cols, 1, MAX_LAYOUT_COLS) || !isInt(rows, 1, MAX_LAYOUT_ROWS)) return null;
-  if (!Array.isArray(tiles) || tiles.length !== cols * rows || !Array.isArray(raw.furniture)) {
-    return null;
-  }
+  if (!isLayoutGrid(raw)) return null;
   // normalizeRoomAreas checks every areas/areaTiles entry itself.
   const out: Record<string, unknown> = normalizeRoomAreas(
-    { ...raw, cols, rows } as RoomAreasLayout & Record<string, unknown>,
+    raw as RoomAreasLayout & Record<string, unknown>,
     colors,
   );
   delete out.pets;

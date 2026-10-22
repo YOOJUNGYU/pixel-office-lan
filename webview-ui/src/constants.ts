@@ -1,5 +1,5 @@
 import type { Provider, Room } from '../../core/src/lan.js';
-import { MAX_LAYOUT_COLS, MAX_LAYOUT_ROWS } from '../../core/src/lan.js';
+import { MAX_LAYOUT_COLS, MAX_LAYOUT_ROWS, ROOM_DEFAULT_COLORS } from '../../core/src/lan.js';
 import type { ColorValue } from './components/ui/types.js';
 
 // ── Grid & Layout ────────────────────────────────────────────
@@ -158,12 +158,7 @@ export const KEY_CARPET_PICK = 'p';
 
 // ── Areas (the four fixed rooms) ─────────────────────────────
 /** Room overlay colors of the bundled default layout: a layout missing a room gets these. */
-export const ROOM_AREA_COLORS: Record<Room, string> = {
-  coding: '#48dbfb',
-  library: '#1dd1a1',
-  server: '#ff6b6b',
-  lounge: '#feca57',
-};
+export const ROOM_AREA_COLORS: Readonly<Record<Room, string>> = ROOM_DEFAULT_COLORS;
 /** Translucent overlay alpha for area tile fills. */
 export const AREA_OVERLAY_ALPHA = 0.25;
 /** Alpha multiplier applied to the actively-selected area's overlay. */
@@ -397,6 +392,8 @@ export const TOUR_OUTLINE_PX = 2;
 export const TOUR_FIT_FILL = 0.92;
 /** First open: share of the window the whole office fills when it would not fit at the default zoom. */
 export const FIRST_OPEN_FIT_FILL = 0.95;
+/** How long the "layout not saved" toast stays. */
+export const LAYOUT_REJECTED_TOAST_MS = 4_000;
 
 // ── People panel ─────────────────────────────────────────────
 /** localStorage: '1' = collapsed, '0' = expanded (per viewer); unset = by screen width. */
