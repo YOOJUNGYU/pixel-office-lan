@@ -39,7 +39,7 @@ It starts at every login (`~/Library/LaunchAgents/com.pixeloffice.agent.plist`, 
 - **Open the office**
   - Windows: the **Pixel Office** desktop shortcut, or Start → **Pixel Office 열기**
   - Mac: **Pixel Office** in **Applications** or **Launchpad**. Following macOS convention there is no desktop alias (drag it to the Dock if you like).
-  - On any PC: `http://localhost:47801` in a browser
+  - On any PC: `http://localhost:47801` in that PC's browser (the UI opens on your own PC only; other PCs' browsers can't view it)
 - On Windows a shortcut starts the office if needed and opens, in this order: **the installed Pixel Office app** (Edge, else Chrome) → a new Edge (or Chrome) window, where the install popup appears → the default browser. On a Mac it opens the default browser.
 - The first time you open it, a short tour walks through every feature. Replay it any time from **Settings → Replay tour**.
 
@@ -50,17 +50,17 @@ Open the office in this PC's browser and an **Install Pixel Office as an app** p
 - **Edge / Chrome**: **Install** → **Install** in the browser's dialog. From then on the Windows shortcuts and Start menu open a tab-less app window (a Mac opens the default browser). The install icon at the right of the address bar works too.
 - **Safari**: **Share → Add to Dock** (Mac) / **Add to Home Screen** (iPhone, iPad)
 - **Firefox**: can't install apps; open it in Edge or Chrome.
-- **Later** hides it for 7 days. It never shows inside the app, after installing, or for remote viewers.
+- **Later** hides it for 7 days. It never shows inside the app or after installing.
 - To remove the app, uninstall Pixel Office from `edge://apps` (Edge) or `chrome://apps` (Chrome). Shortcuts then open a new Edge (or Chrome) window again.
 
-## 4-1. Public office, team offices, remote viewing
+## 4-1. Public office and team offices
 
 - You start in the 🌐 **public office** with everyone on the network who installed the app. Nothing to set up; what PCs exchange is encrypted automatically (an X25519 key per PC, AES-256-GCM under a key per pair of PCs).
 - 🔒 **Create a team office**: **Settings → Offices → Create a team office**, enter a team name, **Create** → **Copy code** of the invite code (`PO2-…`) and send it to your teammates.
 - **Join**: paste it under **Settings → Offices → Join with a code** and press **Join**. Switch offices with the office buttons at the top of the screen.
 - **While you are in any team office you leave the public office** (neither sending nor seeing). To return, **Leave** every office in **Your team offices**.
 - Team office traffic is encrypted under a key derived from the invite code. If a code leaks, create a new team office and move.
-- **Remote viewing** (watching via `http://<your IP>:47801` without the app) is off by default. Turning on **Settings → Offices → Allow viewing from other browsers** shows only the public office, as plain HTTP, and nothing while you are in a team office.
+- Watching from another PC's browser without the app (remote viewing) was removed in v0.4.0. Install the app on that PC instead.
 
 ## 5. Other PCs do not show up
 
@@ -68,10 +68,10 @@ Open the office in this PC's browser and an **Install Pixel Office as an app** p
 - Only for PCs on another floor or network: add the other PC's IP under **Settings → My profile → Advanced: when a PC isn't found automatically → PC IPs to connect directly** (one per line) and save. Listing it on one side is enough to see each other; listing it on both is more reliable.
 - Make sure **both PCs run 0.2.0 or later**: 0.2.0 does not talk to the unencrypted 0.1.0.
 - If either of you is in a **team office**, you don't see each other in the public office. Join the same team office, or both leave your teams.
-- Make sure UDP 47800 and TCP 47801 are not blocked.
-- If **corporate security software** (antivirus, EDR, AppLocker, company firewall) blocks it, ask IT for an exception rather than working around it: program `C:\Program Files\PixelOffice\node.exe` / `/Applications/Pixel Office.app`, ports UDP 47800 and TCP 47801, LAN only.
+- Make sure UDP 47800 is not blocked (the Windows installer adds an inbound UDP 47800 rule; a Mac needs the "Allow" from step 3). TCP 47801 is used only inside your PC and needs no opening.
+- If **corporate security software** (antivirus, EDR, AppLocker, company firewall) blocks it, ask IT for an exception rather than working around it: program `C:\Program Files\PixelOffice\node.exe` / `/Applications/Pixel Office.app`, port UDP 47800 (the only inbound one; the TCP 47801 UI stays on the PC), LAN only.
 
-Other people's offices are **read-only**: nobody can run or change anything on your PC. Remote viewers (if you allow them) are read-only too.
+Other people's offices are **read-only**: nobody can run or change anything on your PC, or open your UI.
 
 ## 6. Uninstall
 

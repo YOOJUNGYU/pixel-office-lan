@@ -17,7 +17,7 @@ The adapter that serves the office to a browser from a local server, independent
 _Avoid_: CLI (that's the entry command, not the adapter), browser mode
 
 **Read-only office**:
-An office opened from anywhere but a loopback browser on the host itself (another PC on the LAN, or a non-localhost host name). It shows everything live, but changes nothing: no layout edits, no settings.
+A connection that is not a loopback browser on the host itself. Since v0.4.0 the server refuses those outright (403 / WS 4003); `officeAccess {readOnly}` and the read-only gate remain only as a safety net.
 _Avoid_: guest mode, watch-only
 
 ## Agents & Teams

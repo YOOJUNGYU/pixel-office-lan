@@ -17,7 +17,7 @@ core/
 server/src/
   cli.ts                 Entry (dist/cli.js): --port/--host/--open, single-instance check, Scanner + PeerNet, start server
   server.ts              PixelAgentsServer.start({host, port, staticDir, assetCache}) / stop()
-  httpServer.ts          Fastify: GET /api/health, /api/ping, POST /api/quit (loopback), GET /ws (+1 s officeSnapshot), SPA static; isLoopback(req)
+  httpServer.ts          Fastify: GET /api/health, /api/ping, POST /api/quit, GET /ws (+1 s officeSnapshot), SPA static — all loopback only; isLoopback(req)
   lan/office.ts          buildOffice, checkExisting (single instance), LanService (profile + scanner + peers + team offices; office(view) snapshot)
   lan/peerNet.ts         UDP v2: plaintext hello + encrypted pairwise pub (public office) / encrypted team broadcast; TOFU pins, per-channel seq replay guard
   lan/crypto.ts          X25519 identity, HKDF pair/team keys, AES-256-GCM seal/open, invite codes (PO2-…), parseWire
@@ -47,21 +47,21 @@ VS Code adapter, PTY/xterm terminal, hook providers + consent flow, JSONL transc
 
 ## Handshake (`webviewReady`)
 
-`officeAccess {readOnly}` → asset messages (characters, pets, floor, walls, carpets, furniture) → `settingsLoaded` → `profileLoaded {profile, canEdit}` → `officesState` (loopback only; names, never secrets/codes) → `areaMappingsLoaded` → `layoutLoaded` (saved layout, else bundled default) → first `officeSnapshot` → `autostartState` (loopback only) → `updateAvailable` (loopback only, when known). After that `officeSnapshot {agents, people, selfPeerId}` (`people` = every PC live in that office, agents or not, self first — the right-edge people panel, `webview-ui/src/lan/PeoplePanel.tsx` + pure `peopleModel.ts`) is pushed every second to every socket (this PC's agents redacted for read-only viewers when `hideDetails`). Office replies (`officeCreated`, `officeCode`, `officeError {reason}`) go to the requesting socket only; `officesState` + a fresh snapshot follow every office change, and `officesState` is re-sent when a member announces a team's name.
+`officeAccess {readOnly}` (always false in practice; safety net) → asset messages (characters, pets, floor, walls, carpets, furniture) → `settingsLoaded` → `profileLoaded {profile, canEdit}` → `officesState` (names, never secrets/codes) → `areaMappingsLoaded` → `layoutLoaded` (saved layout, else bundled default) → first `officeSnapshot` → `autostartState` → `updateAvailable` (when known). Privileged-only parts are skipped for a read-only ctx. After that `officeSnapshot {agents, people, selfPeerId}` (`people` = every PC live in that office, agents or not, self first — the right-edge people panel, `webview-ui/src/lan/PeoplePanel.tsx` + pure `peopleModel.ts`) is pushed every second to every socket (this PC's agents verbatim; `hideDetails` only redacts what goes to peers). Office replies (`officeCreated`, `officeCode`, `officeError {reason}`) go to the requesting socket only; `officesState` + a fresh snapshot follow every office change, and `officesState` is re-sent when a member announces a team's name.
 
-## Privilege rule
+## Privilege rule (this PC only)
 
-A `/ws` connection may write (save layout, settings, area mappings, asset dirs, profile) — and `POST /api/quit` is accepted — only when `isLoopback(req)` (`server/src/httpServer.ts`):
+The UI is served to this PC's browser only (remote viewing was removed in v0.4.0). The CLI binds `127.0.0.1` by default, and every HTTP request (`/api/ping` and `POST /api/quit` included) gets 403 and `/ws` closes with 4003 unless `isLoopback(req)` (`server/src/httpServer.ts`):
 
 - remote address is `127.0.0.1`, `::1` or `::ffff:127.0.0.1`, AND
 - `Host` header host is `localhost`, `127.0.0.1` or `[::1]`, AND
 - `Origin`, if present, has the same host as `Host`.
 
-Everyone else is read-only: the single gate at the top of `handleClientMessage` refuses every message except `webviewReady` (new message types are privileged by default) and re-sends the true state where the UI updated optimistically. A cross-origin handshake is closed with 4003. Remote viewing (`profile.remoteView`, default off): when off, every non-`isLoopback` HTTP request but `GET /api/ping` gets 403 and `/ws` closes with 4003; when on, remote sockets only ever get the public office (empty while this PC is in a team office). The office snapshot for this PC's browser follows `profile.activeView`. Never execute or write anything based on data from peers or remote browsers.
+This holds regardless of `profile.json` (a pre-0.4 `remoteView` key is dropped on load). Safety net: `ctx.privileged` (defaults to false) still drives the single gate at the top of `handleClientMessage`, which refuses every message except `webviewReady` (new message types are privileged by default) and re-sends the true state where the UI updated optimistically; the webview keeps a minimal "보기 전용" display for `officeAccess {readOnly: true}`. The office snapshot follows `profile.activeView`. Never execute or write anything based on data from peers.
 
 ## Data
 
-`~/.pixel-office/` — `layout.json`, `config.json`, `profile.json` (0600: X25519 key pair, team office secrets), `known-peers.json` (0600, TOFU peer id → public key). Ports: UDP 47800 (peers), HTTP 47801 (UI); the CLI defaults to `--host 0.0.0.0 --port 47801`. A UDP bind failure only disables peers. Two instances on one host (tests only): `PIXEL_OFFICE_UDP_PORT=47810 PIXEL_OFFICE_UDP_TARGETS=127.0.0.1:47811` and the mirror for the other.
+`~/.pixel-office/` — `layout.json`, `config.json`, `profile.json` (0600: X25519 key pair, team office secrets), `known-peers.json` (0600, TOFU peer id → public key). Ports: UDP 47800 (peers; the only inbound port — Windows firewall rule `protocol=UDP localport=47800`), HTTP 47801 (UI, this PC only); the CLI defaults to `--host 127.0.0.1 --port 47801` (`--host` is kept for dev; non-loopback requests are refused anyway). A UDP bind failure only disables peers. Two instances on one host (tests only): `PIXEL_OFFICE_UDP_PORT=47810 PIXEL_OFFICE_UDP_TARGETS=127.0.0.1:47811` and the mirror for the other.
 
 ## Build & test
 

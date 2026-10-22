@@ -84,7 +84,7 @@ When an agent switches activity, its character walks to the matching room. So th
 - **There is no server.** When someone shuts down their PC, only their characters disappear after a few seconds; everyone else is unaffected.
 - PCs on the same network appear automatically, no IP needed. Only when they can't (different floors or VLANs), add the other PC's IP under **Settings → My profile → Advanced: when a PC isn't found automatically**.
 - Everything PCs exchange is **encrypted** (see [Encryption](#encryption)). Nothing to set up.
-- Watching from another PC's browser without the app (**remote viewing**) is **off by default**. See [Remote viewing](#remote-viewing).
+- The UI opens **only in the browser on your own PC** (`http://localhost:47801`). There is no watching from another PC's browser; install the app there instead.
 
 ### Public and team offices
 
@@ -108,12 +108,6 @@ Switch the office you are looking at with the office switcher at the top of the 
 - A PC's public key is remembered the first time it is seen; a different key under the same PC id is ignored (anti-impersonation). Replayed packets are dropped.
 - **Limits**: the public office stops eavesdropping, but cannot stop someone who installed the app (or mimics the protocol) from joining. To choose who joins, use a team office. A team office is only as safe as its code.
 - v0.2.0 does not talk to v0.1.0 (old unencrypted packets are ignored). Update every PC to 0.2.0 or later.
-
-### Remote viewing
-
-- **Off** by default: browsers that are not on this PC (`http://<your IP>:47801`) are refused.
-- Turn on **Settings → Offices → Allow viewing from other browsers** to let people without the app watch. That page travels over the network **unencrypted (HTTP)**.
-- Even when on, remote viewers only ever see the **public office**, and nothing while you are in a team office. Remote viewers are always read-only.
 
 ### Security and privacy
 
@@ -182,14 +176,14 @@ Details, what to do when other PCs don't show up, and how to uninstall: **[Insta
 - The **reporter** reads sessions changed in the last 30 minutes under `~/.claude/projects` and `~/.codex/sessions` (and the same places in running WSL distributions).
 - It turns each line into `{room, act, target, reason}` and applies the hide rules.
 - On UDP port **47800** it broadcasts a hello carrying only its public key, and sends the state **encrypted**: to each discovered PC separately for the public office (pair keys), under the team key for team offices. While in a team office it sends neither hellos nor public-office state.
-- The **local server** (HTTP **47801**) merges your state with what it received for the office you are viewing and streams it to the browser, which renders sentences in the viewer's language. Browsers on other PCs can connect only when remote viewing is on.
+- The **local server** (HTTP **47801**) merges your state with what it received for the office you are viewing and streams it to the browser, which renders sentences in the viewer's language. It listens on `127.0.0.1` only, so other PCs cannot connect.
 - The browser's service worker caches only the page files (for app install); office state (`/ws`) and `/api` are never cached.
 - A PC that has been silent for 5 seconds disappears from the office.
 
 | Port      | Purpose                                                                |
 | --------- | ---------------------------------------------------------------------- |
 | UDP 47800 | State exchange between PCs (encrypted; broadcast + manually added IPs) |
-| TCP 47801 | Browser UI (`http://localhost:47801`)                                  |
+| TCP 47801 | Browser UI (`http://localhost:47801`, this PC only)                    |
 
 Data is stored only in `~/.pixel-office/` (profile, keys and team codes, layout, remembered PC public keys, downloaded updates). Files holding keys and codes are readable by you only (0600).
 
@@ -198,7 +192,8 @@ Data is stored only in `~/.pixel-office/` (profile, keys and team codes, layout,
 - Broadcasts reach **only the same subnet**. Across subnets, add PC IPs under **Settings → My profile → Advanced: when a PC isn't found automatically**.
 - Codex doesn't record approval requests, so ❗ for Codex appears only when it asks you a question. Codex subagents are not yet verified against real transcripts.
 - Hide details filters paths, addresses and token shapes, but may not catch every password fragment an agent writes in prose.
-- The public office cannot stop people who installed the app from joining. With remote viewing on, the public office page is visible on the network as plain HTTP.
+- The public office cannot stop people who installed the app from joining.
+- There is no watching from another PC's browser without the app (remote viewing was removed in v0.4.0).
 - v0.1.0 PCs and 0.2.0 PCs don't see each other; everyone needs 0.2.0 or later.
 - Characters whose outfits are near-greyscale barely change with the color setting.
 
