@@ -267,7 +267,6 @@ function App() {
     isMobile,
     offices,
     profile,
-    areasAvailable,
     lan,
     tourDispatch,
     zoom,
