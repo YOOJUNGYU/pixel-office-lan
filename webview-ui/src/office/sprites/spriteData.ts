@@ -1,9 +1,14 @@
 import type { ColorValue } from '../../components/ui/types.js';
-import { CHARACTER_SKIN_COLORS, PALETTE_COUNT } from '../../constants.js';
+import {
+  CHARACTER_SKIN_COLORS,
+  LAN_ALERT_COLOR,
+  LAN_ALERT_GLYPH,
+  LAN_ALERT_OUTLINE_COLOR,
+  PALETTE_COUNT,
+} from '../../constants.js';
 import { adjustSprite } from '../colorize.js';
 import type { Direction, SpriteData } from '../types.js';
 import { Direction as Dir } from '../types.js';
-import bubblePermissionData from './bubble-permission.json';
 import bubbleWaitingData from './bubble-waiting.json';
 
 // ── Speech Bubble Sprites ───────────────────────────────────────
@@ -17,8 +22,28 @@ function resolveBubbleSprite(data: BubbleSpriteJson): SpriteData {
   return data.pixels.map((row) => row.map((key) => data.palette[key] ?? key));
 }
 
-/** Permission bubble: white square with "..." in amber, and a tail pointer (11x13) */
-export const BUBBLE_PERMISSION_SPRITE: SpriteData = resolveBubbleSprite(bubblePermissionData);
+/** A glyph ('#' = filled) in `fill`, wrapped in a 1px `outline` (8-neighbourhood). */
+export function outlinedGlyph(rows: readonly string[], fill: string, outline: string): SpriteData {
+  const h = rows.length + 2;
+  const w = rows[0].length + 2;
+  const on = (x: number, y: number) => rows[y - 1]?.[x - 1] === '#';
+  return Array.from({ length: h }, (_, y) =>
+    Array.from({ length: w }, (_, x) => {
+      if (on(x, y)) return fill;
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) if (on(x + dx, y + dy)) return outline;
+      }
+      return '';
+    }),
+  );
+}
+
+/** Waiting/permission indicator: a red "!" with a dark outline, no bubble. */
+export const BUBBLE_PERMISSION_SPRITE: SpriteData = outlinedGlyph(
+  LAN_ALERT_GLYPH,
+  LAN_ALERT_COLOR,
+  LAN_ALERT_OUTLINE_COLOR,
+);
 
 /** Waiting bubble: white square with green checkmark, and a tail pointer (11x13) */
 export const BUBBLE_WAITING_SPRITE: SpriteData = resolveBubbleSprite(bubbleWaitingData);

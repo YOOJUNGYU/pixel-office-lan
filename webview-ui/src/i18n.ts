@@ -28,8 +28,6 @@ const ko = {
   'act.image': '이미지 보는 중',
   'act.tool': '{t} 사용 중',
 
-  'tag.subagent': '↳ 서브에이전트',
-  'tag.shell': '↳ 셸',
   'bubble.permission': '❗ 확인 필요',
   'people.title': '접속 중 {n}명',
   'people.you': '(나)',
@@ -236,10 +234,10 @@ const ko = {
     '할 일을 기다리거나 확인을 기다릴 때는 대기실에서 쉽니다.\n방 이동은 3초 정도 상태가 이어져야 일어나서, 잠깐씩 바뀌는 작업에 캐릭터가 왔다 갔다 하지 않습니다.',
   'tour.tag.title': '이름표',
   'tour.tag.body':
-    '캐릭터 아래 이름표는 "PC 계정 (닉네임) · Claude/Codex #번호" 입니다. 닉네임은 정한 사람만 보입니다. 앞의 색 점은 제공자예요 — 주황은 Claude, 초록은 Codex.\n서브에이전트와 셸은 "↳" 로 표시됩니다.',
+    '캐릭터 아래 이름표는 "PC 계정 (닉네임) · Claude/Codex #번호" 입니다. 닉네임은 정한 사람만 보입니다. 앞의 색 점은 제공자예요 — 주황은 Claude, 초록은 Codex.\n서브에이전트와 셸은 부모의 이름표 뒤에 SUB / SHELL 배지가 붙습니다.',
   'tour.bubble.title': '말풍선',
   'tour.bubble.body':
-    '캐릭터에 마우스를 올리면 어느 방에서 무엇을 하는지, 그리고 이유가 보입니다.\n머리 위 ❗ 는 사용자의 확인(권한 승인이나 답변)을 기다린다는 뜻입니다.',
+    '캐릭터에 마우스를 올리면 어느 방에서 무엇을 하는지, 그리고 이유가 보입니다.\n머리 위 빨간 ! 는 사용자의 확인(권한 승인이나 답변)을 기다린다는 뜻입니다.',
   'tour.family.title': '서브에이전트와 셸',
   'tour.family.body':
     '에이전트가 만든 서브에이전트와 셸은 부모와 손을 잡고 다닙니다.\n부모가 다른 방에 있으면 반투명한 부모의 분신이 대신 손을 잡아 줍니다.',
@@ -322,8 +320,6 @@ const en: Record<Key, string> = {
   'act.image': 'Viewing an image',
   'act.tool': 'Using {t}',
 
-  'tag.subagent': '↳ Subagent',
-  'tag.shell': '↳ Shell',
   'bubble.permission': '❗ Needs attention',
   'people.title': '{n} online',
   'people.you': '(you)',
@@ -530,10 +526,10 @@ const en: Record<Key, string> = {
     'Idle agents, and agents waiting for you, rest in the lounge.\nA move only happens after the new activity lasts about 3 seconds, so characters do not bounce around on quick tasks.',
   'tour.tag.title': 'Name tags',
   'tour.tag.body':
-    'The tag under a character reads "PC account (nickname) · Claude/Codex #number"; the nickname only when one is set. The dot is the provider: orange = Claude, green = Codex.\nSubagents and shells are marked "↳".',
+    'The tag under a character reads "PC account (nickname) · Claude/Codex #number"; the nickname only when one is set. The dot is the provider: orange = Claude, green = Codex.\nSubagents and shells show their parent\'s tag followed by a SUB / SHELL badge.',
   'tour.bubble.title': 'Hover bubble',
   'tour.bubble.body':
-    'Hover a character to see its room, what it is doing and why.\nA ❗ over its head means it is waiting for you (a permission or an answer).',
+    'Hover a character to see its room, what it is doing and why.\nA red ! over its head means it is waiting for you (a permission or an answer).',
   'tour.family.title': 'Subagents and shells',
   'tour.family.body':
     'Subagents and shells an agent starts walk hand in hand with it.\nWhen the parent is in another room, a see-through ghost of the parent holds their hand instead.',

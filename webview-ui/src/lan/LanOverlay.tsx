@@ -7,6 +7,7 @@ import {
   LAN_BUBBLE_HEAD_OFFSET,
   LAN_BUBBLE_MAX_WIDTH_PX,
   LAN_BUBBLE_Z_INDEX,
+  LAN_KIND_BADGES,
   LAN_PERMISSION_Z_INDEX,
   LAN_PROVIDER_COLORS,
   LAN_TAG_Z_INDEX,
@@ -18,7 +19,7 @@ import { overlayProjection, renderScale } from '../office/projection.js';
 import { getCachedSprite } from '../office/sprites/spriteCache.js';
 import { BUBBLE_PERMISSION_SPRITE } from '../office/sprites/spriteData.js';
 import { CharacterState } from '../office/types.js';
-import { type LanAgents, tagText } from './lanAgents.js';
+import { type LanAgents, tagBadge, tagText } from './lanAgents.js';
 
 /** The permission bubble sprite, blitted into a DOM canvas above the tags. */
 /** `scale` = fractional-zoom stretch on top of the integer-zoom sprite (see renderScale). */
@@ -94,6 +95,7 @@ export function LanOverlay({ officeState, lan, containerRef, zoom, panRef }: Lan
   const permissionSprite = getCachedSprite(BUBBLE_PERMISSION_SPRITE, renderZoom);
 
   const nodes = [];
+  const byKey = new Map(lan.all().map((a) => [a.key, a] as const));
   for (const a of lan.all()) {
     const id = lan.idFor(a.key);
     const ch = id !== undefined ? officeState.characters.get(id) : undefined;
@@ -112,13 +114,20 @@ export function LanOverlay({ officeState, lan, containerRef, zoom, panRef }: Lan
           zIndex: lit ? LAN_PERMISSION_Z_INDEX : LAN_TAG_Z_INDEX,
         }}
       >
-        {a.kind === 'main' && (
+        <span
+          className="w-6 h-6 shrink-0"
+          style={{ background: LAN_PROVIDER_COLORS[a.provider] }}
+        />
+        {tagText(a, a.parentKey !== undefined ? byKey.get(a.parentKey) : undefined)}
+        {a.kind !== 'main' && (
           <span
-            className="w-6 h-6 shrink-0"
-            style={{ background: LAN_PROVIDER_COLORS[a.provider] }}
-          />
+            data-badge={a.kind}
+            className="shrink-0 px-2 text-2xs font-bold leading-none"
+            style={{ background: LAN_KIND_BADGES[a.kind].bg, color: LAN_KIND_BADGES[a.kind].fg }}
+          >
+            {tagBadge(a)}
+          </span>
         )}
-        {tagText(a)}
       </div>,
     );
     if (a.permission) {

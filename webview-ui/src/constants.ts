@@ -331,6 +331,19 @@ export const LAN_PROVIDER_COLORS: Record<Provider, string> = {
   claude: '#D97757',
   codex: '#10A37F',
 };
+/** Badge after a subagent's / shell's name tag (which shows the parent's label). */
+export const LAN_KIND_BADGES: Record<
+  'subagent' | 'shell',
+  { text: string; bg: string; fg: string }
+> = {
+  subagent: { text: 'SUB', bg: '#5f27cd', fg: '#ffffff' },
+  shell: { text: 'SHELL', bg: '#576574', fg: '#ffffff' },
+};
+/** Waiting/permission "!" over a character's head: red glyph, 1px dark outline. */
+export const LAN_ALERT_COLOR = '#e8202a';
+export const LAN_ALERT_OUTLINE_COLOR = '#2b0608';
+/** The "!" glyph (sprite pixels, before the outline): bar, gap, dot. */
+export const LAN_ALERT_GLYPH = ['###', '###', '###', '###', '.#.', '...', '###', '###'];
 /** Hover bubble wraps long summaries/reasons at this width (CSS px). */
 export const LAN_BUBBLE_MAX_WIDTH_PX = 300;
 /** Hover bubble sits this many world px above a character's feet (sprite height). */

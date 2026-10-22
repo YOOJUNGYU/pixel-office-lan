@@ -1,22 +1,33 @@
 import type { OfficeAgent, Room } from '../../../core/src/lan.js';
 import { ROOM_LABELS } from '../../../core/src/lan.js';
 import {
+  LAN_KIND_BADGES,
   LAN_ROOM_TOOL,
   LAN_SHELL_PALETTE,
   LAN_SUBAGENT_HUE_OFFSET,
   MAX_HUE_DEG,
 } from '../constants.js';
-import { t } from '../i18n.js';
 import type { OfficeState } from '../office/engine/officeState.js';
 import { isDemoKey } from '../tour/demoAgents.js';
 import { peerLabel } from './nicknames.js';
 
-/** Text of an agent's name tag (the provider dot is drawn separately). */
-export function tagText(a: OfficeAgent): string {
-  if (a.kind === 'subagent') return t('tag.subagent');
-  if (a.kind === 'shell') return t('tag.shell');
-  return `${peerLabel(a.peer)} · ${a.provider === 'claude' ? 'Claude' : 'Codex'} #${a.num}`;
+const providerName = (a: OfficeAgent): string => (a.provider === 'claude' ? 'Claude' : 'Codex');
+
+/**
+ * Text of an agent's name tag (the provider dot and the SUB/SHELL badge are
+ * drawn separately): `account (nickname) · Provider #n`. A subagent or shell
+ * shows its parent's label (`parent` = the parent's agent; without it, the
+ * same PC and provider, no number).
+ */
+export function tagText(a: OfficeAgent, parent?: OfficeAgent): string {
+  const main = a.kind === 'main' ? a : parent;
+  if (!main) return `${peerLabel(a.peer)} · ${providerName(a)}`;
+  return `${peerLabel(main.peer)} · ${providerName(main)} #${main.num}`;
 }
+
+/** The badge after a child's tag (i18n-neutral), null for a main agent. */
+export const tagBadge = (a: OfficeAgent): string | null =>
+  a.kind === 'main' ? null : LAN_KIND_BADGES[a.kind].text;
 
 /** A character's look: the palette human, or a pet (`pet` set). */
 export interface Look {
