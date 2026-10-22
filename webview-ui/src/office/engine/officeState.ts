@@ -13,9 +13,6 @@ import {
   GREETER_TILE_MARGIN,
   INACTIVE_SEAT_TIMER_MIN_SEC,
   INACTIVE_SEAT_TIMER_RANGE_SEC,
-  MAX_PET_ID_LENGTH,
-  PET_HIT_HALF_WIDTH,
-  PET_HIT_HEIGHT,
   WAITING_BUBBLE_DURATION_SEC,
 } from '../../constants.js';
 import { getAnimationFrames, getCatalogEntry, getOnStateType } from '../layout/furnitureCatalog.js';
@@ -27,22 +24,18 @@ import {
   layoutToTileMap,
 } from '../layout/layoutSerializer.js';
 import { findPath, getWalkableTiles, isWalkable } from '../layout/tileMap.js';
-import { getPetCount, getPetName } from '../sprites/petSpriteData.js';
 import { getLoadedCharacterCount } from '../sprites/spriteData.js';
 import type {
   Character,
   FurnitureInstance,
   OfficeLayout,
-  Pet,
   PlacedFurniture,
-  PlacedPet,
   Seat,
   TileType as TileTypeVal,
 } from '../types.js';
-import { CharacterState, Direction, PetState, TILE_SIZE } from '../types.js';
+import { CharacterState, Direction, TILE_SIZE } from '../types.js';
 import { createCharacter, updateCharacter } from './characters.js';
 import { advanceMatrixEffect, startMatrixEffect } from './matrixEffectState.js';
-import { createPet, updatePet } from './petEntity.js';
 import { anchorTile, closestFreeSeat } from './seatPlacement.js';
 
 /** Internal helper: facing-tile coords for a seat. Returns null for invalid direction. */
@@ -63,7 +56,6 @@ export class OfficeState {
   /** Walkable tiles per area label (rooms confine seats, floor spots and wander). */
   areaWalkable: Map<string, Array<{ col: number; row: number }>> = new Map();
   characters: Map<number, Character> = new Map();
-  pets: Pet[] = [];
   /** Accumulated time for furniture animation frame cycling */
   furnitureAnimTimer = 0;
   private _selectedAgentId: number | null = null;
@@ -122,8 +114,6 @@ export class OfficeState {
     this.furniture = layoutToFurnitureInstances(this.layout.furniture);
     this.walkableTiles = getWalkableTiles(this.tileMap, this.blockedTiles);
     this.indexAreaTiles();
-    // Pets are built last because they need walkableTiles populated for spawn.
-    this.rebuildPetsFromLayout(this.layout);
   }
 
   /** Rebuild all derived state from a new layout (every editor edit). Characters
@@ -143,7 +133,7 @@ export class OfficeState {
     const dc = shift?.col ?? 0;
     const dr = shift?.row ?? 0;
     // Shift positions (and paths) when the grid expands left/up
-    for (const e of [...this.characters.values(), ...this.pets]) {
+    for (const e of this.characters.values()) {
       e.tileCol += dc;
       e.tileRow += dr;
       e.x += dc * TILE_SIZE;
@@ -218,26 +208,6 @@ export class OfficeState {
         ch.state = CharacterState.IDLE;
       }
     }
-
-    // Pets left outside the grid or on a blocked tile go to the closest open one
-    for (const pet of this.pets) {
-      if (isWalkable(pet.tileCol, pet.tileRow, this.tileMap, this.blockedTiles)) continue;
-      const spot = this.closestFreeWalkableTile(pet.tileCol, pet.tileRow);
-      if (!spot) continue;
-      pet.tileCol = spot.col;
-      pet.tileRow = spot.row;
-      pet.x = spot.col * TILE_SIZE + TILE_SIZE / 2;
-      pet.y = spot.row * TILE_SIZE + TILE_SIZE / 2;
-      pet.path = [];
-      pet.moveProgress = 0;
-      pet.state = PetState.IDLE;
-      pet.frame = 0;
-      pet.frameTimer = 0;
-      pet.followTargetId = null;
-    }
-
-    // Reconcile pets against the layout roster (handles editor add/remove)
-    this.rebuildPetsFromLayout(layout);
   }
 
   /** A character on a tile the edit took away (blocked, wall, erased, outside
@@ -1125,130 +1095,6 @@ export class OfficeState {
     }
   }
 
-  // ── Pets ──────────────────────────────────────────────────────
-
-  /**
-   * Add a pet to the live runtime. Spawns at a uniformly-random walkable tile.
-   * Mirror in `this.layout.pets` so debounced saveLayout serialises the roster.
-   * Bounds-checks petType against the loaded sprite count to defend against stale layouts.
-   */
-  addPet(placedPet: PlacedPet): void {
-    // Defensive guards (upstream 5e6c0a0)
-    if (
-      typeof placedPet.id !== 'string' ||
-      placedPet.id.length === 0 ||
-      placedPet.id.length > MAX_PET_ID_LENGTH
-    ) {
-      return;
-    }
-    if (
-      !Number.isInteger(placedPet.petType) ||
-      placedPet.petType < 0 ||
-      placedPet.petType >= getPetCount()
-    ) {
-      return;
-    }
-    if (this.pets.some((p) => p.id === placedPet.id)) return; // de-dupe
-    if (this.walkableTiles.length === 0) return; // no spawn space — silently drop
-
-    const spawn = this.walkableTiles[Math.floor(Math.random() * this.walkableTiles.length)];
-    const pet = createPet(placedPet.id, placedPet.petType, spawn.col, spawn.row);
-    pet.name = getPetName(placedPet.petType);
-    this.pets.push(pet);
-    this.syncLayoutPets();
-  }
-
-  /** Remove a pet by id. Idempotent. */
-  removePet(id: string): void {
-    const before = this.pets.length;
-    this.pets = this.pets.filter((p) => p.id !== id);
-    if (this.pets.length !== before) {
-      this.syncLayoutPets();
-    }
-  }
-
-  /** Shallow snapshot for external consumers (renderer, hooks). */
-  getPets(): Pet[] {
-    return this.pets.slice();
-  }
-
-  /** Unique petType values currently placed. Used by the Pets toolbar to mark active rows. */
-  getActivePetTypes(): number[] {
-    const seen = new Set<number>();
-    for (const p of this.pets) seen.add(p.petType);
-    return Array.from(seen);
-  }
-
-  /**
-   * Hit-test pets at a pixel world position. Sorts back-to-front (largest y wins on tie)
-   * so the visually-frontmost pet receives the click.
-   * Returns the pet id or null.
-   */
-  getPetAt(worldX: number, worldY: number): string | null {
-    const ordered = this.pets.slice().sort((a, b) => b.y - a.y);
-    for (const pet of ordered) {
-      const left = pet.x - PET_HIT_HALF_WIDTH;
-      const right = pet.x + PET_HIT_HALF_WIDTH;
-      const top = pet.y - PET_HIT_HEIGHT;
-      const bottom = pet.y;
-      if (worldX >= left && worldX <= right && worldY >= top && worldY <= bottom) {
-        return pet.id;
-      }
-    }
-    return null;
-  }
-
-  /** Show the heart bubble on a pet for WAITING_BUBBLE_DURATION_SEC. */
-  showPetBubble(petId: string): void {
-    const pet = this.pets.find((p) => p.id === petId);
-    if (!pet) return;
-    pet.bubbleType = 'heart';
-    pet.bubbleTimer = WAITING_BUBBLE_DURATION_SEC;
-  }
-
-  /** Dismiss the heart bubble on click; collapses timer to a fast fade. */
-  dismissPetBubble(petId: string): void {
-    const pet = this.pets.find((p) => p.id === petId);
-    if (!pet || !pet.bubbleType) return;
-    pet.bubbleTimer = Math.min(pet.bubbleTimer, DISMISS_BUBBLE_FAST_FADE_SEC);
-  }
-
-  /**
-   * Reconcile `this.pets` to match the layout's placed-pet roster.
-   * - Pets in layout but not in runtime → spawn via addPet().
-   * - Pets in runtime but not in layout → remove.
-   * - Pets in both → keep existing runtime state (position, FSM).
-   *
-   * Called from constructor and rebuildFromLayout. Always runs AFTER walkableTiles
-   * is populated.
-   */
-  private rebuildPetsFromLayout(layout: OfficeLayout): void {
-    const placed = layout.pets ?? [];
-    const placedIds = new Set(placed.map((p) => p.id));
-
-    // 1. Remove pets no longer in layout
-    this.pets = this.pets.filter((p) => placedIds.has(p.id));
-
-    // 2. Add pets that exist in layout but not in runtime
-    const existingIds = new Set(this.pets.map((p) => p.id));
-    for (const p of placed) {
-      if (existingIds.has(p.id)) continue;
-      this.addPet(p); // pushes onto this.pets, calls syncLayoutPets()
-    }
-    // syncLayoutPets() inside addPet keeps this.layout.pets coherent; one final
-    // sync handles the removal-only branch where addPet was never called.
-    this.syncLayoutPets();
-  }
-
-  /**
-   * Re-export the current pet roster into `this.layout.pets`. Called only from
-   * mutating methods (addPet / removePet / rebuildPetsFromLayout) — NEVER from
-   * getLayout(), which runs on every render frame.
-   */
-  private syncLayoutPets(): void {
-    this.layout.pets = this.pets.map((p) => ({ id: p.id, petType: p.petType }));
-  }
-
   setTeamInfo(
     id: number,
     teamName?: string,
@@ -1346,20 +1192,6 @@ export class OfficeState {
     // Remove characters that finished despawn
     for (const id of toDelete) {
       this.characters.delete(id);
-    }
-
-    // ── Pet FSM ────────────────────────────────────────────────
-    for (const pet of this.pets) {
-      updatePet(pet, dt, this.walkableTiles, this.characters, this.tileMap, this.blockedTiles);
-
-      // Tick heart bubble timer (mirrors character waiting-bubble pattern)
-      if (pet.bubbleType) {
-        pet.bubbleTimer -= dt;
-        if (pet.bubbleTimer <= 0) {
-          pet.bubbleType = null;
-          pet.bubbleTimer = 0;
-        }
-      }
     }
   }
 

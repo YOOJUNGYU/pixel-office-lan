@@ -15,9 +15,6 @@ import {
   CANVAS_FALLBACK_TILE_COLOR,
   CARPET_DEFAULT_ACCENT_COLOR,
   CARPET_DEFAULT_COLOR,
-  EMPTY_SPRITE_THUMBNAIL_BG,
-  PET_THUMB_SCALE_MARGIN,
-  PET_THUMB_ZOOM,
 } from '../../constants.js';
 import { areaName, t, useLang } from '../../i18n.js';
 import type { BackgroundFill } from '../background.js';
@@ -36,7 +33,6 @@ import {
   getCarpetSetCount,
   hasCarpetSprites,
 } from '../sprites/carpetTiles.js';
-import { getPetName, getPetSprites } from '../sprites/petSpriteData.js';
 import { getCachedSprite } from '../sprites/spriteCache.js';
 import type {
   AreaDefinition,
@@ -76,9 +72,6 @@ interface EditorToolbarProps {
   onColorPickToggle: () => void;
   onFurnitureTypeChange: (type: string) => void;
   loadedAssets?: LoadedAssetData;
-  activePetTypes: number[];
-  petCount: number;
-  onPetToggle: (petType: number, active: boolean) => void;
   // Carpet state + handlers
   carpetVariant: number;
   carpetColor: ColorValue;
@@ -123,9 +116,6 @@ export function EditorToolbar({
   onColorPickToggle,
   onFurnitureTypeChange,
   loadedAssets,
-  activePetTypes,
-  petCount,
-  onPetToggle,
   carpetVariant,
   carpetColor,
   carpetAccentColor,
@@ -199,7 +189,6 @@ export function EditorToolbar({
     // them, so it has to stay open while the user goes to click an item.
     (activeTool === EditTool.COLOR_PICK && !selectedFurnitureUid) ||
     isCarpetActive;
-  const isPetsActive = activeTool === EditTool.PETS;
   const isBackgroundActive = activeTool === EditTool.BACKGROUND;
   const isColorPicking = activeTool === EditTool.COLOR_PICK;
   const carpetVariantCount = getCarpetSetCount();
@@ -281,15 +270,6 @@ export function EditorToolbar({
           title={t('editor.wallsTitle')}
         >
           {t('editor.walls')}
-        </Button>
-        <Button
-          variant={isPetsActive ? 'active' : 'default'}
-          size="md"
-          onClick={() => onToolChange(EditTool.PETS)}
-          data-tour="editor-pets"
-          title={t('editor.petsTitle')}
-        >
-          {t('editor.pets')}
         </Button>
         {areasAvailable && (
           <Button
@@ -433,42 +413,6 @@ export function EditorToolbar({
           floorPatterns={floorPatterns}
           carpetVariantCount={carpetVariantCount}
         />
-      )}
-
-      {/* Sub-panel: Pets — thumbnail grid above tool row */}
-      {isPetsActive && petCount > 0 && (
-        <div className="flex flex-col-reverse gap-4">
-          <div className="carousel" data-testid="pets-carousel">
-            {Array.from({ length: petCount }, (_, i) => {
-              const sprites = getPetSprites(i);
-              const isActive = activePetTypes.includes(i);
-              return (
-                <ItemSelect
-                  key={i}
-                  width={32}
-                  height={64}
-                  selected={isActive}
-                  onClick={() => onPetToggle(i, !isActive)}
-                  title={getPetName(i)}
-                  deps={[i, isActive]}
-                  draw={(ctx, w, h) => {
-                    if (!sprites) {
-                      ctx.fillStyle = EMPTY_SPRITE_THUMBNAIL_BG;
-                      ctx.fillRect(0, 0, w, h);
-                      return;
-                    }
-                    const cached = getCachedSprite(sprites.idleDown[0], PET_THUMB_ZOOM);
-                    const scale =
-                      Math.min(w / cached.width, h / cached.height) * PET_THUMB_SCALE_MARGIN;
-                    const dw = cached.width * scale;
-                    const dh = cached.height * scale;
-                    ctx.drawImage(cached, (w - dw) / 2, (h - dh) / 2, dw, dh);
-                  }}
-                />
-              );
-            })}
-          </div>
-        </div>
       )}
 
       {/* Sub-panel: Areas — the four fixed rooms (paint/erase only) */}

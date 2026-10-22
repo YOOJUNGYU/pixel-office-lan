@@ -9,7 +9,6 @@ import {
   AREA_LABEL_SHADOW_COLOR,
   AREA_OVERLAY_ALPHA,
   BACKGROUND_CARPET_PATCH_TILES,
-  BUBBLE_FADE_DURATION_SEC,
   BUTTON_ICON_COLOR,
   BUTTON_ICON_SIZE_FACTOR,
   BUTTON_LINE_WIDTH_MIN,
@@ -66,16 +65,14 @@ import {
   getCarpetSetCount,
   hasCarpetSprites,
 } from '../sprites/carpetTiles.js';
-import { getPetSprites } from '../sprites/petSpriteData.js';
 import { getCachedSprite, getOutlineSprite } from '../sprites/spriteCache.js';
-import { BUBBLE_HEART_SPRITE, getCharacterSprites } from '../sprites/spriteData.js';
+import { getCharacterSprites } from '../sprites/spriteData.js';
 import type {
   AreaDefinition,
   CarpetTile,
   Character,
   FurnitureInstance,
   OfficeBackground,
-  Pet,
   Seat,
   SpriteData,
   TileType as TileTypeVal,
@@ -84,7 +81,6 @@ import { CharacterState, TILE_SIZE, TileType } from '../types.js';
 import { getWallInstances, hasWallSprites, wallColorToHex } from '../wallTiles.js';
 import { getCharacterSprite } from './characters.js';
 import { renderMatrixEffect } from './matrixEffect.js';
-import { getPetSpriteData } from './petEntity.js';
 
 // ── Settings ────────────────────────────────────────────────────
 
@@ -456,7 +452,6 @@ export function renderScene(
   zoom: number,
   selectedAgentId: number | null,
   hoveredAgentId: number | null,
-  pets: Pet[] = [],
 ): void {
   const drawables: ZDrawable[] = [];
 
@@ -561,29 +556,6 @@ export function renderScene(
         c.globalAlpha = alpha;
         c.drawImage(cached, drawX, drawY);
         c.restore();
-      },
-    });
-  }
-
-  // ── Pets ──────────────────────────────────────────────
-  for (const pet of pets) {
-    const petSprites = getPetSprites(pet.petType);
-    const spriteData = getPetSpriteData(pet, petSprites);
-    if (!spriteData) continue;
-
-    const cached = getCachedSprite(spriteData, zoom);
-    // Anchor at bottom-center at (pet.x, pet.y) — round to integer device pixels
-    const drawX = Math.round(offsetX + pet.x * zoom - cached.width / 2);
-    const drawY = Math.round(offsetY + pet.y * zoom - cached.height);
-
-    // Z-sort key: matches the chair/character "row boundary" formula.
-    // pet.y is the pixel center, so + TILE_SIZE/2 lifts us to the row's bottom edge.
-    const petZY = pet.y + TILE_SIZE / 2;
-
-    drawables.push({
-      zY: petZY,
-      draw: (c) => {
-        c.drawImage(cached, drawX, drawY);
       },
     });
   }
@@ -868,43 +840,8 @@ function renderRotateButton(
   return { cx, cy, radius };
 }
 
-// ── Speech bubbles ──────────────────────────────────────────────
-// Character bubbles (permission dots / done checkmark) are rendered by
-// ToolOverlay as DOM elements so they stack ABOVE the DOM status labels —
-// canvas content can never out-paint the DOM overlay. Pet heart bubbles stay
-// here: pets have no overlay labels to collide with.
-
-function renderPetBubbles(
-  ctx: CanvasRenderingContext2D,
-  pets: Pet[],
-  offsetX: number,
-  offsetY: number,
-  zoom: number,
-): void {
-  for (const pet of pets) {
-    if (!pet.bubbleType) continue;
-
-    const sprite = BUBBLE_HEART_SPRITE;
-
-    // Fade in the last BUBBLE_FADE_DURATION_SEC of the lifetime
-    let alpha = 1.0;
-    if (pet.bubbleTimer < BUBBLE_FADE_DURATION_SEC) {
-      alpha = Math.max(0, pet.bubbleTimer / BUBBLE_FADE_DURATION_SEC);
-    }
-
-    const cached = getCachedSprite(sprite, zoom);
-    // Anchor: centered above the pet's head. Pet is anchored bottom-center at
-    // (pet.x, pet.y); sprite is ~16 tall, so back up TILE_SIZE pixels and add
-    // a 1-sprite-pixel gap (scaled by zoom).
-    const bubbleX = Math.round(offsetX + pet.x * zoom - cached.width / 2);
-    const bubbleY = Math.round(offsetY + (pet.y - TILE_SIZE) * zoom - cached.height - 1 * zoom);
-
-    ctx.save();
-    if (alpha < 1.0) ctx.globalAlpha = alpha;
-    ctx.drawImage(cached, bubbleX, bubbleY);
-    ctx.restore();
-  }
-}
+// Character bubbles (the permission "!") are rendered by LanOverlay as DOM
+// elements so they stack ABOVE the DOM name tags.
 
 export interface ButtonBounds {
   /** Center X in device pixels */
@@ -981,7 +918,6 @@ export function renderFrame(
   areaTiles?: Array<string | null>,
   showAreas?: boolean,
   activeAreaLabel?: string | null,
-  pets?: Pet[],
   background?: OfficeBackground,
 ): { offsetX: number; offsetY: number } {
   // Use layout dimensions (fallback to tileMap size)
@@ -1049,23 +985,7 @@ export function renderFrame(
   // Draw walls + furniture + characters (z-sorted)
   const selectedId = selection?.selectedAgentId ?? null;
   const hoveredId = selection?.hoveredAgentId ?? null;
-  renderScene(
-    ctx,
-    allFurniture,
-    characters,
-    offsetX,
-    offsetY,
-    zoom,
-    selectedId,
-    hoveredId,
-    pets ?? [],
-  );
-
-  // Character speech bubbles render in ToolOverlay (DOM, above the labels).
-  // Pet heart bubbles (canvas overlay pass)
-  if (pets && pets.length > 0) {
-    renderPetBubbles(ctx, pets, offsetX, offsetY, zoom);
-  }
+  renderScene(ctx, allFurniture, characters, offsetX, offsetY, zoom, selectedId, hoveredId);
 
   // Area labels (above bubbles + characters, below editor overlays). Outside
   // Show Areas the room names still show, at the top of each room.

@@ -37,7 +37,6 @@ import type {
   EditTool as EditToolType,
   OfficeBackground,
   OfficeLayout,
-  PlacedPet,
   TileType as TileTypeVal,
 } from '../office/types.js';
 import { EditTool } from '../office/types.js';
@@ -77,7 +76,6 @@ interface EditorActions extends Omit<FurnitureColorActions, 'pickColorAt'> {
   handleEditorSelectionChange: () => void;
   /** A furniture drag released at (col,row): move it there, or drop a copy with `duplicate`. */
   handleDrop: (uid: string, col: number, row: number, opts: { duplicate: boolean }) => void;
-  handlePetToggle: (petType: number, active: boolean) => void;
   // Carpet state + handlers
   carpetVariant: number;
   carpetColor: ColorValue;
@@ -526,38 +524,6 @@ export function useEditorActions(
     [],
   );
 
-  const handlePetToggle = useCallback(
-    (petType: number, active: boolean) => {
-      const os = getOfficeState();
-      const layout = os.getLayout();
-      const currentPets: PlacedPet[] = layout.pets ?? [];
-
-      let newPets: PlacedPet[];
-      if (active) {
-        // Idempotent: if this pet type is already placed, no-op (prevent double-write).
-        if (currentPets.some((p) => p.petType === petType)) {
-          return;
-        }
-        newPets = [...currentPets, { id: crypto.randomUUID(), petType }];
-      } else {
-        newPets = currentPets.filter((p) => p.petType !== petType);
-        // Idempotent: nothing to remove → no-op.
-        if (newPets.length === currentPets.length) {
-          return;
-        }
-      }
-
-      const newLayout: OfficeLayout = { ...layout, pets: newPets };
-      applyEdit(newLayout);
-    },
-    [getOfficeState, applyEdit],
-  );
-
-  /**
-   * The active tool acting on (col,row): a click, or a tile crossed while
-   * dragging. Selecting and dragging placed items never get here — the canvas
-   * resolves those itself — so each case is a tool applying its edit.
-   */
   const handleEditorTileAction = useCallback(
     (col: number, row: number) => {
       const os = getOfficeState();
@@ -738,7 +704,6 @@ export function useEditorActions(
     handleEditorEraseAction,
     handleEditorSelectionChange,
     handleDrop,
-    handlePetToggle,
     carpetVariant,
     carpetColor,
     carpetAccentColor,

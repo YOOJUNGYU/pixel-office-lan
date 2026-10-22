@@ -357,9 +357,10 @@ function migrateLayout(layout: OfficeLayout): OfficeLayout {
     };
   }
 
-  // Default pets to empty array if absent (backward-compat for legacy layouts).
-  if (!layout.pets) {
-    layout = { ...layout, pets: [] };
+  // Decorative pets are gone (pets are player characters now): drop a legacy roster.
+  if ('pets' in layout) {
+    layout = { ...layout };
+    delete (layout as { pets?: unknown }).pets;
   }
 
   if (layout.tileColors && layout.tileColors.length === layout.tiles.length) {

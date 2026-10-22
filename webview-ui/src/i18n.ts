@@ -160,8 +160,6 @@ const ko = {
   'editor.background.floor': '바닥',
   'editor.background.carpet': '카펫',
   'editor.backgroundHint': '지금은 기본 배경입니다. 종류를 고르세요.',
-  'editor.pets': '반려동물',
-  'editor.petsTitle': '반려동물 놓기',
   'editor.areas': '방 영역',
   'editor.areasTitle': '방 영역 지정',
   'editor.erase': '지우기',
@@ -285,9 +283,9 @@ const ko = {
     '코딩실·자료실·서버실·대기실, 고정된 네 방을 타일에 칠합니다(방을 새로 만들지는 않습니다). 에이전트는 이 영역을 보고 어느 방으로 갈지 정합니다.',
   'tour.background.title': '배경',
   'tour.background.body': '사무실 바깥을 단색, 바닥 무늬, 카펫 무늬 중 하나로 채웁니다.',
-  'tour.editorMore.title': '반려동물 · 지우기 · 저장',
+  'tour.editorMore.title': '지우기 · 저장',
   'tour.editorMore.body':
-    '반려동물을 풀어 놓거나 [지우기] 로 타일을 지울 수 있습니다. Ctrl+Z / Ctrl+Y 로 실행 취소 · 다시 실행.\n편집한 내용은 바로바로 저장됩니다. 위쪽 막대의 [되돌리기] 는 마지막으로 [저장] 을 누른 때(또는 사무실을 연 때)의 배치로 돌아가고, [저장] 은 지금 배치를 그 기준으로 삼습니다.',
+    '[지우기] 로 타일을 지울 수 있습니다. Ctrl+Z / Ctrl+Y 로 실행 취소 · 다시 실행.\n편집한 내용은 바로바로 저장됩니다. 위쪽 막대의 [되돌리기] 는 마지막으로 [저장] 을 누른 때(또는 사무실을 연 때)의 배치로 돌아가고, [저장] 은 지금 배치를 그 기준으로 삼습니다.',
   'tour.install.title': '앱으로 설치',
   'tour.install.body':
     '이 PC의 브라우저에서는 Pixel Office 를 앱으로 설치할 수 있습니다(Edge·Chrome). 설치하면 바로가기가 탭이 아닌 앱 창으로 열립니다.\n안내 창을 닫았다면 주소창의 설치 아이콘을 쓰세요.',
@@ -453,8 +451,6 @@ const en: Record<Key, string> = {
   'editor.background.floor': 'Floor',
   'editor.background.carpet': 'Carpet',
   'editor.backgroundHint': 'Using the default background. Pick a kind.',
-  'editor.pets': 'Pets',
-  'editor.petsTitle': 'Place pets',
   'editor.areas': 'Areas',
   'editor.areasTitle': 'Define room areas',
   'editor.erase': 'Erase',
@@ -581,9 +577,9 @@ const en: Record<Key, string> = {
   'tour.background.title': 'Background',
   'tour.background.body':
     'Fill the outside of the office with a solid color, a floor pattern or a carpet.',
-  'tour.editorMore.title': 'Pets · Erase · Save',
+  'tour.editorMore.title': 'Erase · Save',
   'tour.editorMore.body':
-    'Let pets roam, or clear tiles with [Erase]. Ctrl+Z / Ctrl+Y undo and redo.\nEvery edit is saved right away. [Reset] in the top bar goes back to the layout as of your last [Save] (or when you opened the office); [Save] makes the current layout that point.',
+    'Clear tiles with [Erase]. Ctrl+Z / Ctrl+Y undo and redo.\nEvery edit is saved right away. [Reset] in the top bar goes back to the layout as of your last [Save] (or when you opened the office); [Save] makes the current layout that point.',
   'tour.install.title': 'Install as an app',
   'tour.install.body':
     'On this PC’s browser you can install Pixel Office as an app (Edge, Chrome). Shortcuts then open it in its own window instead of a tab.\nIf you closed the prompt, use the install icon in the address bar.',
