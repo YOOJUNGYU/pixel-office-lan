@@ -6,6 +6,8 @@ import type { OfficeReply } from '../hooks/useExtensionMessages.js';
 import { LANG_NAMES, setLang, t, useLang } from '../i18n.js';
 import { OfficeSettings } from '../lan/OfficeSettings.js';
 import { isSoundEnabled, setSoundEnabled } from '../notificationSound.js';
+import type { ThemePref } from '../theme.js';
+import { setThemePref, THEME_PREFS, useThemePref } from '../theme.js';
 import { transport } from '../transport/index.js';
 import { Checkbox } from './ui/Checkbox.js';
 import { MenuItem } from './ui/MenuItem.js';
@@ -59,6 +61,7 @@ export function SettingsModal({
   const [soundLocal, setSoundLocal] = useState(isSoundEnabled);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const lang = useLang();
+  const themePref = useThemePref();
 
   const languageSelect = (
     <label
@@ -80,12 +83,33 @@ export function SettingsModal({
     </label>
   );
 
+  const themeSelect = (
+    <label
+      data-tour="settings-theme"
+      className="flex items-center justify-between gap-8 py-4 px-10 text-base"
+    >
+      {t('settings.theme')}
+      <select
+        value={themePref}
+        onChange={(e) => setThemePref(e.target.value as ThemePref)}
+        className="py-2 px-4 bg-bg-dark border-2 border-border rounded-none text-text"
+      >
+        {THEME_PREFS.map((p) => (
+          <option key={p} value={p}>
+            {t(`theme.${p}`)}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+
   const replayTour = <MenuItem onClick={onReplayTour}>{t('settings.replayTour')}</MenuItem>;
 
   if (readOnly) {
     return (
       <Modal isOpen={isOpen} onClose={onClose} title={t('toolbar.settings')}>
         {languageSelect}
+        {themeSelect}
         {replayTour}
       </Modal>
     );
@@ -94,6 +118,7 @@ export function SettingsModal({
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={t('toolbar.settings')}>
       {languageSelect}
+      {themeSelect}
       {onOpenProfile && (
         <MenuItem
           onClick={() => {

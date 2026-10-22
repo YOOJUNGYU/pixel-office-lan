@@ -427,7 +427,7 @@ export function EditorToolbar({
                 {t('editor.carpet')}
               </Button>
             )}
-            <div className="w-[1px] h-14 bg-white/15 mx-2 shrink-0" />
+            <div className="w-[1px] h-14 bg-divider mx-2 shrink-0" />
             {/* Color toggle — available across the whole Furniture tab. Carpet
                 edits main+accent; other categories edit the new-furniture color. */}
             <Button

@@ -6,7 +6,6 @@ import { Button } from '../components/ui/Button.js';
 import {
   CHARACTER_SITTING_OFFSET_PX,
   LAN_BUBBLE_HEAD_OFFSET,
-  TOUR_DIM_COLOR,
   TOUR_OUTLINE_PX,
   TOUR_SPOTLIGHT_EASE,
   TOUR_SPOTLIGHT_PAD_PX,
@@ -286,7 +285,7 @@ export function TourOverlay({
       <svg className="absolute inset-0 w-full h-full" aria-hidden="true">
         <path
           d={dimPath(view.w, view.h, shown)}
-          fill={TOUR_DIM_COLOR}
+          style={{ fill: 'var(--tour-dim)' }}
           fillRule="evenodd"
           className="pointer-events-auto"
         />

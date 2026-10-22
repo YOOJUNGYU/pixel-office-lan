@@ -81,6 +81,10 @@ const ko = {
   'settings.autostart': '로그인할 때 자동 실행',
   'settings.showAreas': '방 영역 표시',
   'settings.language': '언어 / Language',
+  'settings.theme': '테마 / Theme',
+  'theme.dark': '다크',
+  'theme.light': '라이트',
+  'theme.system': '시스템',
   'settings.checkUpdate': '업데이트 확인',
   'settings.offices': '오피스',
 
@@ -261,10 +265,10 @@ const ko = {
   'tour.people.body':
     '지금 이 오피스에 접속한 사람이 모두 보입니다. 에이전트가 없는 사람도요.\n❗ 는 확인을 기다리는 에이전트가 있다는 뜻입니다. 이름을 누르면 그 사람의 에이전트로 화면이 따라갑니다.',
   'tour.settingsButton.title': '설정',
-  'tour.settingsButton.body': '언어, 프로필, 팀 오피스 같은 설정은 모두 여기에 있습니다.',
-  'tour.language.title': '언어',
+  'tour.settingsButton.body': '언어, 테마, 프로필, 팀 오피스 같은 설정은 모두 여기에 있습니다.',
+  'tour.language.title': '언어 · 테마',
   'tour.language.body':
-    '화면 언어는 브라우저마다 따로 고릅니다. 다른 PC의 에이전트 활동도 내가 고른 언어로 보입니다.',
+    '화면 언어와 다크/라이트 테마는 브라우저마다 따로 고릅니다. 다른 PC의 에이전트 활동도 내가 고른 언어로 보입니다.',
   'tour.profile.title': '내 프로필',
   'tour.profile.body':
     '이 PC 에이전트들의 캐릭터(사람 6종 또는 펫 Claudio · Gitcat)와 색, 선택 닉네임을 정합니다. 이름은 항상 PC 계정 이름이 먼저 보이고, 계정 이름은 바꿀 수 없습니다.\n"상세 내용 숨기기" 를 켜면 다른 사람에게는 파일 이름이나 이유 없이 방과 활동 종류만 보입니다.',
@@ -380,6 +384,10 @@ const en: Record<Key, string> = {
   'settings.autostart': 'Start at login',
   'settings.showAreas': 'Show room areas',
   'settings.language': '언어 / Language',
+  'settings.theme': '테마 / Theme',
+  'theme.dark': 'Dark',
+  'theme.light': 'Light',
+  'theme.system': 'System',
   'settings.checkUpdate': 'Check for updates',
   'settings.offices': 'Offices',
 
@@ -560,10 +568,10 @@ const en: Record<Key, string> = {
   'tour.people.body':
     "Everyone connected to this office is listed here, even people with no agents.\n❗ means one of their agents is waiting for them. Click a name and the view follows that person's agent.",
   'tour.settingsButton.title': 'Settings',
-  'tour.settingsButton.body': 'Language, profile, team offices and more live here.',
-  'tour.language.title': 'Language',
+  'tour.settingsButton.body': 'Language, theme, profile, team offices and more live here.',
+  'tour.language.title': 'Language & theme',
   'tour.language.body':
-    'Each browser picks its own language. Activity of agents on other PCs is shown in your language too.',
+    'Each browser picks its own language and dark/light theme. Activity of agents on other PCs is shown in your language too.',
   'tour.profile.title': 'My profile',
   'tour.profile.body':
     'Character (six people or the pets Claudio and Gitcat), color and optional nickname of this PC’s agents. Your PC account name always shows first and cannot be changed.\n"Hide details" shows others only the room and the kind of activity — no file names or reasons.',

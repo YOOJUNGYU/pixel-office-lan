@@ -383,7 +383,6 @@ export const TOUR_DEMO_PREFIX = 'tour-demo:';
 export const TOUR_DEMO_MIN_AGENTS = 3;
 /** Wait for the first snapshot before deciding on demos. */
 export const TOUR_AUTOSTART_DELAY_MS = 800;
-export const TOUR_DIM_COLOR = 'rgba(0, 0, 0, 0.62)';
 export const TOUR_Z_INDEX = 100;
 /** Spotlight padding around a target, and the gap every hole/tooltip keeps from the viewport edge. */
 export const TOUR_SPOTLIGHT_PAD_PX = 6;
@@ -433,3 +432,33 @@ export const PEOPLE_HINT_MS = 2_000;
 export const TOP_RIGHT_BOTTOM_RESERVE_PX = 64;
 /** Top-right stack: above name tags and bubbles (LAN_*_Z_INDEX), below modals (50). */
 export const TOP_RIGHT_Z_INDEX = 43;
+
+// ── Theme (per viewer: dark = the original look, light = bright office + UI) ──
+/** localStorage: 'dark' | 'light' | 'system'; unset = dark. */
+export const THEME_STORAGE_KEY = 'pixel-office.theme';
+/** `<meta name="theme-color">` per theme (= --color-bg). */
+export const THEME_META_COLORS = { dark: '#1e1e2e', light: '#f4f1ea' } as const;
+/**
+ * Light-theme pixel transforms (office canvas only; characters/pets are never
+ * transformed). HSL lightness l (0–1) becomes lo + (hi − lo)·(1 − (1 − l)^lift)
+ * (lift > 1 brightens mid-tones more than near-black outlines/screens) and the
+ * saturation is multiplied by `sat`, hue kept: the saved layout colors stay as
+ * they are, only what is drawn changes. Tuned on the default office so the
+ * four rooms and the corridor stay distinguishable.
+ */
+export const LIGHT_THEME_TRANSFORMS = {
+  floor: { lo: 0.68, hi: 0.92, lift: 1, sat: 0.85 },
+  wall: { lo: 0.68, hi: 0.95, lift: 1, sat: 0.3 },
+  furniture: { lo: 0, hi: 1, lift: 1.3, sat: 0.95 },
+} as const;
+/** Room name plates on the map, per theme. */
+export const LAN_ROOM_LABEL_COLORS = {
+  dark: { fill: LAN_ROOM_LABEL_COLOR, outline: LAN_ROOM_LABEL_OUTLINE_COLOR },
+  light: { fill: '#2a2838', outline: '#ffffff' },
+} as const;
+/** Editor grid / VOID outline on the canvas, per theme. */
+export const GRID_LINE_COLORS = { dark: GRID_LINE_COLOR, light: 'rgba(0,0,0,0.14)' } as const;
+export const VOID_TILE_OUTLINE_COLORS = {
+  dark: VOID_TILE_OUTLINE_COLOR,
+  light: 'rgba(0,0,0,0.12)',
+} as const;

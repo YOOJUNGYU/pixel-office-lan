@@ -152,7 +152,7 @@ export function LanOverlay({ officeState, lan, containerRef, zoom, panRef }: Lan
       <div
         key={a.key}
         data-agent-key={a.key}
-        className={`absolute -translate-x-1/2 flex items-center gap-4 whitespace-nowrap text-sm leading-none px-3 py-1 text-text pointer-events-none ${lit ? 'bg-accent outline-2 outline-accent-bright' : 'bg-bg/75'}`}
+        className={`absolute -translate-x-1/2 flex items-center gap-4 whitespace-nowrap text-sm leading-none px-3 py-1 pointer-events-none ${lit ? 'bg-accent text-on-accent outline-2 outline-accent-bright' : 'bg-bg/75 text-text'}`}
         style={{
           left: x,
           top: tops[i],

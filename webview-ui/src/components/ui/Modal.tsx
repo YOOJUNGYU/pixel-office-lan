@@ -30,7 +30,7 @@ export function Modal({
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/50" style={{ zIndex }} onClick={onClose} />
+      <div className="fixed inset-0 bg-backdrop" style={{ zIndex }} onClick={onClose} />
       {/* Sizing wrapper: a full-viewport flex box (inset-0, no viewport
           units — dvw/dvh support varies across iOS) whose padding is the
           modal's screen margin. The panel can never exceed it: max-w/h-full

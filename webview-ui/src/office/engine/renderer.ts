@@ -27,14 +27,13 @@ import {
   GHOST_PREVIEW_SPRITE_ALPHA,
   GHOST_PREVIEW_TINT_ALPHA,
   GHOST_VALID_TINT,
-  GRID_LINE_COLOR,
+  GRID_LINE_COLORS,
   HEADLESS_CHARACTER_ALPHA,
   HOVERED_OUTLINE_ALPHA,
   LAN_GHOST_ALPHA,
-  LAN_ROOM_LABEL_COLOR,
+  LAN_ROOM_LABEL_COLORS,
   LAN_ROOM_LABEL_FONT_PX,
   LAN_ROOM_LABEL_MIN_FONT_PX,
-  LAN_ROOM_LABEL_OUTLINE_COLOR,
   LAN_ROOM_LABEL_OUTLINE_PX,
   LAN_ROOM_LABEL_PAD_PX,
   OUTLINE_Z_SORT_OFFSET,
@@ -46,11 +45,12 @@ import {
   SELECTION_DASH_PATTERN,
   SELECTION_HIGHLIGHT_COLOR,
   VOID_TILE_DASH_PATTERN,
-  VOID_TILE_OUTLINE_COLOR,
+  VOID_TILE_OUTLINE_COLORS,
 } from '../../constants.js';
 import { areaName } from '../../i18n.js';
 import type { RoomCount } from '../../lan/lanAgents.js';
 import { plateText } from '../../lan/lanAgents.js';
+import { getTheme } from '../../theme.js';
 import type { BackgroundFill } from '../background.js';
 import { resolveBackground } from '../background.js';
 import {
@@ -70,6 +70,7 @@ import {
 import { getPetSprites } from '../sprites/petSpriteData.js';
 import { getCachedSprite, getOutlineSprite } from '../sprites/spriteCache.js';
 import { getCharacterSprites } from '../sprites/spriteData.js';
+import { themeColor, themeFloorColor, themeSprite } from '../themeColors.js';
 import type {
   AreaDefinition,
   CarpetTile,
@@ -190,7 +191,7 @@ export function renderCarpetLayer(
           paletteKey,
         );
         if (!sprite) continue;
-        const cached = getCachedSprite(sprite, zoom);
+        const cached = getCachedSprite(themeSprite(sprite, 'floor', getTheme()), zoom);
         ctx.drawImage(cached, offsetX + jx * s - halfS, offsetY + jy * s - halfS);
       }
     }
@@ -359,8 +360,9 @@ export function renderRoomNames(
   ctx.textBaseline = 'top';
   ctx.lineJoin = 'round';
   ctx.lineWidth = Math.max(LAN_ROOM_LABEL_OUTLINE_PX, LAN_ROOM_LABEL_OUTLINE_PX / scale);
-  ctx.strokeStyle = LAN_ROOM_LABEL_OUTLINE_COLOR;
-  ctx.fillStyle = LAN_ROOM_LABEL_COLOR;
+  const colors = LAN_ROOM_LABEL_COLORS[getTheme()];
+  ctx.strokeStyle = colors.outline;
+  ctx.fillStyle = colors.fill;
   const pad = LAN_ROOM_LABEL_PAD_PX * zoom + ctx.lineWidth / 2;
   for (const [label, t] of tops) {
     const x = offsetX + t.minCol * s + pad;
@@ -394,7 +396,7 @@ export function renderBackground(
 ): void {
   if (fill.kind === 'none') return;
   if (fill.kind === 'color') {
-    ctx.fillStyle = fill.css;
+    ctx.fillStyle = themeFloorColor(fill.css, getTheme());
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
     return;
   }
@@ -403,7 +405,10 @@ export function renderBackground(
       ? getColorizedFloorSprite(fill.pattern, fill.color)
       : getCarpetPatchSprite(fill.variant, fill.color, fill.accent, BACKGROUND_CARPET_PATCH_TILES);
   if (!sprite) return;
-  const pattern = ctx.createPattern(getCachedSprite(sprite, zoom), 'repeat');
+  const pattern = ctx.createPattern(
+    getCachedSprite(themeSprite(sprite, 'floor', getTheme()), zoom),
+    'repeat',
+  );
   if (!pattern) return;
   if (patternScale !== 1)
     pattern.setTransform(new DOMMatrix([patternScale, 0, 0, patternScale, 0, 0]));
@@ -432,6 +437,7 @@ export function renderTileGrid(
   const tmCols = tmRows > 0 ? tileMap[0].length : 0;
   const layoutCols = cols ?? tmCols;
   const { c0 = 0, r0 = 0, c1 = tmCols, r1 = tmRows } = range ?? {};
+  const theme = getTheme();
 
   // Floor tiles + wall base color
   for (let r = r0; r < Math.min(r1, tmRows); r++) {
@@ -446,9 +452,13 @@ export function renderTileGrid(
         if (tile === TileType.WALL) {
           const colorIdx = r * layoutCols + c;
           const wallColor = tileColors?.[colorIdx];
-          ctx.fillStyle = wallColor ? wallColorToHex(wallColor) : WALL_COLOR;
+          ctx.fillStyle = themeColor(
+            wallColor ? wallColorToHex(wallColor) : WALL_COLOR,
+            'wall',
+            theme,
+          );
         } else {
-          ctx.fillStyle = FALLBACK_FLOOR_COLOR;
+          ctx.fillStyle = themeFloorColor(FALLBACK_FLOOR_COLOR, theme);
         }
         ctx.fillRect(offsetX + c * s, offsetY + r * s, s, s);
         continue;
@@ -457,7 +467,7 @@ export function renderTileGrid(
       // Floor tile: get colorized sprite
       const colorIdx = r * layoutCols + c;
       const color = tileColors?.[colorIdx] ?? { h: 0, s: 0, b: 0, c: 0 };
-      const sprite = getColorizedFloorSprite(tile, color);
+      const sprite = themeSprite(getColorizedFloorSprite(tile, color), 'floor', theme);
       const cached = getCachedSprite(sprite, zoom);
       ctx.drawImage(cached, offsetX + c * s, offsetY + r * s);
     }
@@ -514,6 +524,7 @@ function renderFloorLayer(
     getFloorPatternCount(),
     getCarpetSetCount(),
     hasWallSprites(),
+    getTheme(),
   ];
   if (!floorChunksKey || floorChunksKey.some((k, i) => k !== key[i])) {
     dropFloorChunks(() => true);
@@ -603,9 +614,14 @@ function wallInstancesFor(
   tileColors: Array<ColorValue | null> | undefined,
   cols: number | undefined,
 ): FurnitureInstance[] {
-  const key = [tileMap, tileColors, cols, hasWallSprites()];
+  const theme = getTheme();
+  const key = [tileMap, tileColors, cols, hasWallSprites(), theme];
   if (!wallMemo || wallMemo.key.some((k, i) => k !== key[i])) {
-    wallMemo = { key, walls: hasWallSprites() ? getWallInstances(tileMap, tileColors, cols) : [] };
+    const walls = hasWallSprites() ? getWallInstances(tileMap, tileColors, cols) : [];
+    wallMemo = {
+      key,
+      walls: walls.map((w) => ({ ...w, sprite: themeSprite(w.sprite, 'wall', theme) })),
+    };
   }
   return wallMemo.walls;
 }
@@ -625,19 +641,26 @@ export function renderScene(
   zoom: number,
   selectedAgentId: number | null,
   hoveredAgentId: number | null,
+  /** The first `wallCount` items are walls, already themed; the rest get the furniture theme. */
+  wallCount = 0,
 ): void {
   const drawables: ZDrawable[] = [];
+  const theme = getTheme();
   const viewW = ctx.canvas.width;
   const viewH = ctx.canvas.height;
 
   // Furniture (off-screen pieces skipped: a big office is mostly off screen when zoomed in)
-  for (const f of furniture) {
+  for (let i = 0; i < furniture.length; i++) {
+    const f = furniture[i];
     const fx = offsetX + f.x * zoom;
     const fy = offsetY + f.y * zoom;
     const spriteH = f.sprite.length;
     const spriteW = spriteH > 0 ? f.sprite[0].length : 0;
     if (fx > viewW || fy > viewH || fx + spriteW * zoom < 0 || fy + spriteH * zoom < 0) continue;
-    const cached = getCachedSprite(f.sprite, zoom);
+    const cached = getCachedSprite(
+      i < wallCount ? f.sprite : themeSprite(f.sprite, 'furniture', theme),
+      zoom,
+    );
     if (f.mirrored) {
       drawables.push({
         zY: f.zY,
@@ -803,7 +826,7 @@ export function renderGridOverlay(
   tileMap?: TileTypeVal[][],
 ): void {
   const s = TILE_SIZE * zoom;
-  ctx.strokeStyle = GRID_LINE_COLOR;
+  ctx.strokeStyle = GRID_LINE_COLORS[getTheme()];
   ctx.lineWidth = 1;
   ctx.beginPath();
   // Vertical lines — offset by 0.5 for crisp 1px lines
@@ -823,7 +846,7 @@ export function renderGridOverlay(
   // Draw faint dashed outlines on VOID tiles
   if (tileMap) {
     ctx.save();
-    ctx.strokeStyle = VOID_TILE_OUTLINE_COLOR;
+    ctx.strokeStyle = VOID_TILE_OUTLINE_COLORS[getTheme()];
     ctx.lineWidth = 1;
     ctx.setLineDash(VOID_TILE_DASH_PATTERN);
     for (let r = 0; r < rows; r++) {
@@ -849,7 +872,7 @@ export function renderGhostPreview(
   zoom: number,
   mirrored: boolean = false,
 ): void {
-  const cached = getCachedSprite(sprite, zoom);
+  const cached = getCachedSprite(themeSprite(sprite, 'furniture', getTheme()), zoom);
   const x = offsetX + col * TILE_SIZE * zoom;
   const y = offsetY + row * TILE_SIZE * zoom;
   ctx.save();
@@ -1128,7 +1151,17 @@ export function renderFrame(
   // Draw walls + furniture + characters (z-sorted)
   const selectedId = selection?.selectedAgentId ?? null;
   const hoveredId = selection?.hoveredAgentId ?? null;
-  renderScene(ctx, allFurniture, characters, offsetX, offsetY, zoom, selectedId, hoveredId);
+  renderScene(
+    ctx,
+    allFurniture,
+    characters,
+    offsetX,
+    offsetY,
+    zoom,
+    selectedId,
+    hoveredId,
+    wallInstances.length,
+  );
 
   // Area labels (above bubbles + characters, below editor overlays). Outside
   // Show Areas the room names still show, at the top of each room.

@@ -112,7 +112,11 @@ export const STEPS: Step[] = [
   { id: 'switcher', targets: [{ dom: 'switcher' }], requires: ['switcher'] },
   { id: 'people', targets: [{ dom: 'people' }], scene: { people: true } },
   { id: 'settingsButton', targets: [{ dom: 'settings-button' }] },
-  { id: 'language', targets: [{ dom: 'settings-language' }], scene: { settings: true } },
+  {
+    id: 'language',
+    targets: [{ dom: 'settings-language' }, { dom: 'settings-theme' }],
+    scene: { settings: true },
+  },
   {
     id: 'profile',
     targets: [{ dom: 'profile-modal' }],
