@@ -107,8 +107,8 @@ export const PAN_DRAG_THRESHOLD_PX = 4;
 // ── Editor ───────────────────────────────────────────────────
 export const UNDO_STACK_MAX_SIZE = 50;
 export const LAYOUT_SAVE_DEBOUNCE_MS = 500;
-/** After [Save]: how long to wait for a layoutSaveRejected before leaving edit mode (the server answers a refusal in the same tick; loopback only). */
-export const LAYOUT_SAVE_ACK_MS = 300;
+/** After [Save]: how long to wait for layoutSaved / layoutSaveRejected before showing an error. */
+export const LAYOUT_SAVE_ACK_TIMEOUT_MS = 5_000;
 /** data-testid of the office canvas — e2e drives real editor gestures on it. */
 export const OFFICE_CANVAS_TEST_ID = 'office-canvas';
 
@@ -299,6 +299,8 @@ export const LAN_ROOM_TOOL: Record<Room, string | null> = {
 export const LAN_READING_TOOLS = ['Read'];
 /** Subagents wear their PC's palette, hue-rotated by this much. */
 export const LAN_SUBAGENT_HUE_OFFSET = 120;
+/** A delegating parent's display room (joining its children, or going back) changes only after the wish held this long. */
+export const PARENT_FOLLOW_DEBOUNCE_MS = 3_000;
 export const MAX_HUE_DEG = 360;
 /** Skin colors of char_0..5.png (measured); exempt from a character's hue shift. */
 export const CHARACTER_SKIN_COLORS: ReadonlySet<string> = new Set([
@@ -356,6 +358,8 @@ export const LAN_ROOM_LABEL_OUTLINE_PX = 4;
 /** Font size per zoom step (sprite px), floored at the minimum in device px. */
 export const LAN_ROOM_LABEL_FONT_PX = 7;
 export const LAN_ROOM_LABEL_MIN_FONT_PX = 13;
+/** Room name plate inset from the room's top-left tile corner, in world px (scaled by zoom). */
+export const LAN_ROOM_LABEL_PAD_PX = 3;
 
 // ── Team offices ─────────────────────────────────────────────
 /** Office name length the server accepts (server MAX_OFFICE_NAME). */

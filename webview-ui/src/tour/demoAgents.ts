@@ -27,6 +27,7 @@ export const DEMO_KEYS = {
   readerSub: `${TOUR_DEMO_PREFIX}b:main/sub/explore`,
   runner: `${TOUR_DEMO_PREFIX}c:main`,
   runnerSub: `${TOUR_DEMO_PREFIX}c:main/sub/test`,
+  runnerShell: `${TOUR_DEMO_PREFIX}c:main/sh/build`,
   waiter: `${TOUR_DEMO_PREFIX}d:main`,
 } as const;
 
@@ -40,9 +41,11 @@ const WALK_ACT: Record<Room, { act: OfficeAgent['act']; target: string }> = {
 
 /**
  * The demo office: a lone coder in 코딩실 (editing, with a reason), a reader (a
- * pet) in 자료실 with a subagent beside it, a Codex runner in 서버실 whose subagent
- * works in 대기실 (so it holds a ghost's hand), and a walker that the rooms
- * steps send to `walkerRoom`; back home in 대기실 it waits for approval (the red "!").
+ * pet) in 자료실 with a subagent beside it, a delegating Codex agent whose
+ * subagent runs tests in 서버실 (the parent walks there and leads it) and whose
+ * shell builds in 자료실 (a ghost of the parent holds its hand), and a walker
+ * that the rooms steps send to `walkerRoom`; back home in 대기실 it waits for
+ * approval (the red "!").
  */
 export function demoAgents(texts: DemoTexts, walkerRoom: Room = 'lounge'): OfficeAgent[] {
   const peer = (n: number, palette: number, hueShift: number, pet?: PetId): PeerInfo => ({
@@ -77,11 +80,12 @@ export function demoAgents(texts: DemoTexts, walkerRoom: Room = 'lounge'): Offic
     room: Room,
     act: OfficeAgent['act'],
     target: string,
+    kind: 'subagent' | 'shell' = 'subagent',
   ): OfficeAgent => ({
     ...main(parent.peer, room),
-    key: `${parent.key}/sub/${name}`,
-    id: `main/sub/${name}`,
-    kind: 'subagent',
+    key: `${parent.key}/${kind === 'shell' ? 'sh' : 'sub'}/${name}`,
+    id: `main/${kind === 'shell' ? 'sh' : 'sub'}/${name}`,
+    kind,
     num: 0,
     parentId: 'main',
     parentKey: parent.key,
@@ -98,7 +102,8 @@ export function demoAgents(texts: DemoTexts, walkerRoom: Room = 'lounge'): Offic
     target: 'docs/api.md',
     reason: texts.readReason,
   });
-  const runner = main(c, 'server', { provider: 'codex', act: 'run', target: 'npm test' });
+  // Resting in 대기실 while its children work: shown with the subagent (tie 1:1 → subagent first).
+  const runner = main(c, 'lounge', { provider: 'codex', act: 'delegate', target: 'test' });
   const waiting = walkerRoom === 'lounge';
   const waiter = main(d, walkerRoom, {
     num: 2,
@@ -111,15 +116,18 @@ export function demoAgents(texts: DemoTexts, walkerRoom: Room = 'lounge'): Offic
     reader,
     child(reader, 'explore', 'library', 'search', 'TODO'),
     runner,
-    child(runner, 'test', 'lounge', 'read', 'test/login.test.ts'),
+    child(runner, 'test', 'server', 'run', 'npm test'),
+    child(runner, 'build', 'library', 'run', 'npm run build', 'shell'),
     waiter,
   ];
 }
 
-/** The agents a character step points at; demos first, else matching real agents. */
+/** The agents a character step points at; demos first, else matching real agents
+ *  (`shownIn` = where a parent is shown, LanAgents.displayRoom). */
 export function roleAgents(
   role: AgentRole,
   agents: OfficeAgent[],
+  shownIn: (a: OfficeAgent) => Room = (a) => a.room,
 ): { focus: OfficeAgent; parent?: OfficeAgent } | null {
   const byKey = new Map(agents.map((a) => [a.key, a]));
   const mains = agents.filter((a) => a.kind === 'main');
@@ -137,10 +145,11 @@ export function roleAgents(
   }
   const sameRoom = role === 'child';
   const focus =
-    byKey.get(sameRoom ? DEMO_KEYS.readerSub : DEMO_KEYS.runnerSub) ??
+    byKey.get(sameRoom ? DEMO_KEYS.runnerSub : DEMO_KEYS.runnerShell) ??
     agents.find((a) => {
       if (a.parentKey === undefined) return false;
-      return (byKey.get(a.parentKey)?.room === a.room) === sameRoom;
+      const parent = byKey.get(a.parentKey);
+      return (parent !== undefined && shownIn(parent) === a.room) === sameRoom;
     });
   if (!focus) return null;
   return { focus, parent: focus.parentKey ? byKey.get(focus.parentKey) : undefined };

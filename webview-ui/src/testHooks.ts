@@ -88,6 +88,7 @@ declare global {
        *  through the renderer's own projection (zoom + pan) — lets a spec drive
        *  the REAL canvas mouse gesture at a known tile. Null before mount. */
       getTileCenter?: (col: number, row: number) => { x: number; y: number } | null;
+      setDemoAgents?: (agents: unknown[]) => void;
       addAgentLog?: Array<{
         id: number;
         skipSpawnEffect: boolean | undefined;

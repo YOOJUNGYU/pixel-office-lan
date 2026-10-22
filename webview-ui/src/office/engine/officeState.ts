@@ -99,6 +99,8 @@ export class OfficeState {
    * others.
    */
   greeter: Character | null = null;
+  /** Room label → agents shown there (LanAgents, per snapshot); drawn on the room name plates. */
+  roomCounts: Map<string, { main: number; extra: number }> | null = null;
 
   /** World-space point the camera drifts to while the greeter is up
    *  (the bubble overlay recomputes it every frame: the combined center of the
@@ -820,6 +822,12 @@ export class OfficeState {
     if (free) return { col, row };
     const tiles = (area && this.areaWalkable.get(area)) || this.walkableTiles;
     return this.closestFreeWalkableTile(anchor.tileCol, anchor.tileRow, self, tiles);
+  }
+
+  /** The room (area label) a character stands in now, null outside every room. */
+  characterArea(id: number): string | null {
+    const ch = this.characters.get(id);
+    return ch ? this.areaAt(ch.tileCol, ch.tileRow) : null;
   }
 
   private areaAt(col: number, row: number): string | null {

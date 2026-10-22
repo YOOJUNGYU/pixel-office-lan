@@ -9,6 +9,7 @@
 
 export type ServerMessage =
   | LayoutLoaded
+  | LayoutSaved
   | LayoutSaveRejected
   | FurnitureAssetsLoaded
   | CharacterSpritesLoaded
@@ -52,6 +53,10 @@ export interface LayoutLoaded {
   type: 'layoutLoaded';
   layout: Record<string, any> | null;
   wasReset?: boolean;
+}
+
+export interface LayoutSaved {
+  type: 'layoutSaved';
 }
 
 export interface LayoutSaveRejected {

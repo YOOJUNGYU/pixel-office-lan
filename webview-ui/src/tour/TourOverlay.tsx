@@ -97,7 +97,7 @@ function resolveTarget(
       world(areaWorldRect(layout.areaTiles, layout.cols, ROOM_LABELS[target.room], TILE_SIZE)),
     ]);
   }
-  const pick = roleAgents(target.agent, lan.all());
+  const pick = roleAgents(target.agent, lan.all(), (a) => lan.displayRoom(a));
   if (!pick) return [];
   const agentRects = (a: OfficeAgent) => [
     shift(characterRect(os, lan.idFor(a.key), p)),

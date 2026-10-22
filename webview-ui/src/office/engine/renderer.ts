@@ -36,6 +36,7 @@ import {
   LAN_ROOM_LABEL_MIN_FONT_PX,
   LAN_ROOM_LABEL_OUTLINE_COLOR,
   LAN_ROOM_LABEL_OUTLINE_PX,
+  LAN_ROOM_LABEL_PAD_PX,
   OUTLINE_Z_SORT_OFFSET,
   ROTATE_BUTTON_BG,
   SEAT_AVAILABLE_COLOR,
@@ -48,6 +49,8 @@ import {
   VOID_TILE_OUTLINE_COLOR,
 } from '../../constants.js';
 import { areaName } from '../../i18n.js';
+import type { RoomCount } from '../../lan/lanAgents.js';
+import { plateText } from '../../lan/lanAgents.js';
 import type { BackgroundFill } from '../background.js';
 import { resolveBackground } from '../background.js';
 import {
@@ -303,24 +306,22 @@ export function renderAreaLabels(
 let roomTopsMemo: {
   areaTiles: Array<string | null>;
   cols: number;
-  tops: Map<string, { row: number; minCol: number; maxCol: number }>;
+  tops: Map<string, { row: number; minCol: number }>;
 } | null = null;
 
-/** label → top row and the column span on that row; scanned once per areaTiles array. */
+/** label → top row and the leftmost column on that row; scanned once per areaTiles array. */
 function roomTops(
   areaTiles: Array<string | null>,
   cols: number,
   rows: number,
-): Map<string, { row: number; minCol: number; maxCol: number }> {
+): Map<string, { row: number; minCol: number }> {
   if (roomTopsMemo?.areaTiles === areaTiles && roomTopsMemo.cols === cols) return roomTopsMemo.tops;
-  const tops = new Map<string, { row: number; minCol: number; maxCol: number }>();
+  const tops = new Map<string, { row: number; minCol: number }>();
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const label = areaTiles[r * cols + c];
       if (!label) continue;
-      const t = tops.get(label);
-      if (!t) tops.set(label, { row: r, minCol: c, maxCol: c });
-      else if (t.row === r) t.maxCol = c;
+      if (!tops.has(label)) tops.set(label, { row: r, minCol: c });
     }
   }
   roomTopsMemo = { areaTiles, cols, tops };
@@ -328,8 +329,9 @@ function roomTops(
 }
 
 /**
- * Room names for everyday viewing: light text with a dark outline, centred
- * on each area's top tile row so seated characters don't cover it.
+ * Room name plates for everyday viewing: light text with a dark outline in
+ * each area's top-left corner (its top row's leftmost tile), with the number
+ * of agents shown there (`counts`, see plateText).
  *
  * @internal
  */
@@ -343,6 +345,7 @@ export function renderRoomNames(
   zoom: number,
   /** Blit scale of this frame (fractional zoom): the minimum font is in screen px. */
   scale = 1,
+  counts?: Map<string, RoomCount> | null,
 ): void {
   if (!areaTiles || areaTiles.length === 0) return;
   const tops = roomTops(areaTiles, cols, rows);
@@ -352,18 +355,19 @@ export function renderRoomNames(
   const fontSize = Math.max(LAN_ROOM_LABEL_FONT_PX * zoom, LAN_ROOM_LABEL_MIN_FONT_PX / scale);
   ctx.save();
   ctx.font = `bold ${fontSize}px Pretendard`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
   ctx.lineJoin = 'round';
   ctx.lineWidth = Math.max(LAN_ROOM_LABEL_OUTLINE_PX, LAN_ROOM_LABEL_OUTLINE_PX / scale);
   ctx.strokeStyle = LAN_ROOM_LABEL_OUTLINE_COLOR;
   ctx.fillStyle = LAN_ROOM_LABEL_COLOR;
+  const pad = LAN_ROOM_LABEL_PAD_PX * zoom + ctx.lineWidth / 2;
   for (const [label, t] of tops) {
-    const cx = offsetX + ((t.minCol + t.maxCol + 1) / 2) * s;
-    const cy = offsetY + (t.row + 0.5) * s;
-    const name = areaName(label);
-    ctx.strokeText(name, cx, cy);
-    ctx.fillText(name, cx, cy);
+    const x = offsetX + t.minCol * s + pad;
+    const y = offsetY + t.row * s + pad;
+    const text = plateText(label, counts?.get(label));
+    ctx.strokeText(text, x, y);
+    ctx.fillText(text, x, y);
   }
   ctx.restore();
 }
@@ -1047,6 +1051,7 @@ export function renderFrame(
   areaTiles?: Array<string | null>,
   showAreas?: boolean,
   background?: OfficeBackground,
+  roomCounts?: Map<string, RoomCount> | null,
 ): { offsetX: number; offsetY: number } {
   // Use layout dimensions (fallback to tileMap size)
   const cols = layoutCols ?? (tileMap.length > 0 ? tileMap[0].length : 0);
@@ -1130,7 +1135,7 @@ export function renderFrame(
   if (showAreas) {
     renderAreaLabels(ctx, areaTiles, areas, cols, rows, offsetX, offsetY, zoom);
   } else {
-    renderRoomNames(ctx, areaTiles, cols, rows, offsetX, offsetY, zoom, view.scale);
+    renderRoomNames(ctx, areaTiles, cols, rows, offsetX, offsetY, zoom, view.scale, roomCounts);
   }
 
   // Editor overlays

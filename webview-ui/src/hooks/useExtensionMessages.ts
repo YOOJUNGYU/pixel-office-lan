@@ -102,7 +102,6 @@ export type OfficeReply = OfficeCreated | OfficeCode | OfficeError;
 
 export function useExtensionMessages(
   getOfficeState: () => OfficeState,
-  onLayoutLoaded?: (layout: OfficeLayout) => void,
   isEditDirty?: () => boolean,
 ): ExtensionMessageState {
   const [layoutReady, setLayoutReady] = useState(false);
@@ -165,13 +164,7 @@ export function useExtensionMessages(
         const layout = isLayoutGrid(msg.layout)
           ? migrateLayoutColors(msg.layout as unknown as OfficeLayout)
           : null;
-        if (layout) {
-          os.rebuildFromLayout(layout);
-          onLayoutLoaded?.(layout);
-        } else {
-          // Default layout — snapshot whatever OfficeState built
-          onLayoutLoaded?.(os.getLayout());
-        }
+        if (layout) os.rebuildFromLayout(layout);
         layoutReadyRef.current = true;
         setLayoutReady(true);
         if (pendingAgentsRef.current) {

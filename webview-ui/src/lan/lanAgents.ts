@@ -6,7 +6,9 @@ import {
   LAN_SHELL_PALETTE,
   LAN_SUBAGENT_HUE_OFFSET,
   MAX_HUE_DEG,
+  PARENT_FOLLOW_DEBOUNCE_MS,
 } from '../constants.js';
+import { areaName } from '../i18n.js';
 import type { OfficeState } from '../office/engine/officeState.js';
 import { isDemoKey } from '../tour/demoAgents.js';
 import { peerLabel } from './nicknames.js';
@@ -54,12 +56,76 @@ export function looks(a: OfficeAgent): Look {
   return look;
 }
 
+/** A parent with nothing of its own to do (resting or delegating in 대기실, no ❗) joins its children. */
+const freeToFollow = (a: OfficeAgent): boolean =>
+  a.room === 'lounge' && !a.permission && (a.act === 'idle' || a.act === 'delegate');
+
+/**
+ * The room a main agent wants to be shown in: its own, unless it is free to
+ * follow (see freeToFollow) and has children — then the room with the most
+ * of them (tie → one with a subagent beats shells only → the room whose
+ * child entered it first; `since` = when a child entered its room, smaller =
+ * earlier).
+ */
+export function wantedRoom(
+  parent: OfficeAgent,
+  children: readonly OfficeAgent[],
+  since: (child: OfficeAgent) => number,
+): Room {
+  if (children.length === 0 || !freeToFollow(parent)) return parent.room;
+  const rooms = new Map<Room, { n: number; sub: boolean; first: number }>();
+  for (const c of children) {
+    const r = rooms.get(c.room) ?? { n: 0, sub: false, first: Infinity };
+    r.n++;
+    r.sub ||= c.kind === 'subagent';
+    r.first = Math.min(r.first, since(c));
+    rooms.set(c.room, r);
+  }
+  type Tally = { n: number; sub: boolean; first: number };
+  const better = (r: Tally, b: Tally): boolean =>
+    r.n !== b.n ? r.n > b.n : r.sub !== b.sub ? r.sub : r.first < b.first;
+  let best: [Room, Tally] | null = null;
+  for (const e of rooms) if (!best || better(e[1], best[1])) best = e;
+  return best![0];
+}
+
+/** Agents per room: main agents by display room, `extra` = subagents + shells (ghosts are not agents). */
+export interface RoomCount {
+  main: number;
+  extra: number;
+}
+
+export function roomCounts(
+  agents: readonly OfficeAgent[],
+  displayRoom: (a: OfficeAgent) => Room,
+): Map<string, RoomCount> {
+  const counts = new Map<string, RoomCount>(
+    Object.values(ROOM_LABELS).map((label) => [label, { main: 0, extra: 0 }]),
+  );
+  for (const a of agents) {
+    const c = counts.get(ROOM_LABELS[a.kind === 'main' ? displayRoom(a) : a.room])!;
+    if (a.kind === 'main') c.main++;
+    else c.extra++;
+  }
+  return counts;
+}
+
+/** A room name plate (same format in every language): "코딩실 5", with children "코딩실 5 · +3". */
+export function plateText(label: string, c: RoomCount | undefined): string {
+  const name = areaName(label);
+  if (!c) return name;
+  return c.extra > 0 ? `${name} ${c.main} · +${c.extra}` : `${name} ${c.main}`;
+}
+
 /**
  * Reconciles `officeSnapshot` agents into OfficeState characters: stable ids
  * per key (never reused in a page session), room moves, permission bubbles,
  * and children holding hands with their parent — or with a translucent ghost
- * of it in a room the parent is not in. O(n) per snapshot; seat searches only
- * on a room change. `agentFor(ghostId)` is the real parent's agent.
+ * of it in a room the parent is not in. A parent free to follow (wantedRoom)
+ * walks to its children's room and leads them itself (its *display room*;
+ * a change waits PARENT_FOLLOW_DEBOUNCE_MS, except when the parent's own
+ * state takes it back). O(n) per snapshot; seat searches only on a room
+ * change. `agentFor(ghostId)` is the real parent's agent.
  */
 export class LanAgents {
   private readonly ids = new Map<string, number>();
@@ -71,12 +137,50 @@ export class LanAgents {
   private real: OfficeAgent[] = [];
   private demo: OfficeAgent[] = [];
   private nextId = 1;
+  /** main key → shown room (`following` = with its children, not its own room) and the latest wish with its start time */
+  private readonly shown = new Map<
+    string,
+    { room: Room; following: boolean; wish: Room; wishSince: number }
+  >();
+  /** child key → [room, order it entered that room] (tie-break of wantedRoom) */
+  private readonly entered = new Map<string, [Room, number]>();
+  private enterSeq = 0;
   private readonly os: OfficeState;
+  private readonly now: () => number;
   /** Peer whose name tags are emphasized (people panel hover); null = none. */
   highlightPeer: string | null = null;
 
-  constructor(os: OfficeState) {
+  constructor(os: OfficeState, now: () => number = Date.now) {
     this.os = os;
+    this.now = now;
+  }
+
+  /** Where an agent is shown: a main agent's display room, a child's own room. */
+  displayRoom(a: OfficeAgent): Room {
+    return this.shown.get(a.key)?.room ?? a.room;
+  }
+
+  /** The display room a main agent moves to now: joining its children or
+   *  leaving them waits until the wish held PARENT_FOLLOW_DEBOUNCE_MS; its own
+   *  room (first sighting, own work, ❗/ask, a real room change) is immediate. */
+  private nextRoom(a: OfficeAgent, children: readonly OfficeAgent[]): Room {
+    const wish = wantedRoom(a, children, (c) => this.entered.get(c.key)?.[1] ?? 0);
+    const now = this.now();
+    let st = this.shown.get(a.key);
+    if (!st || !freeToFollow(a)) {
+      st = { room: wish, following: wish !== a.room, wish, wishSince: now };
+      this.shown.set(a.key, st);
+      return wish;
+    }
+    // Not with its children: it simply is in its own room.
+    if (!st.following) st.room = a.room;
+    if (wish !== st.wish) {
+      st.wish = wish;
+      st.wishSince = now;
+    }
+    if (st.wish !== st.room && now - st.wishSince >= PARENT_FOLLOW_DEBOUNCE_MS) st.room = st.wish;
+    st.following = st.room !== a.room;
+    return st.room;
   }
 
   /** A fresh `officeSnapshot`. */
@@ -129,26 +233,49 @@ export class LanAgents {
       os.removeAgent(id);
       this.ids.delete(key);
       this.byId.delete(id);
+      this.shown.delete(key);
+      this.entered.delete(key);
     }
     this.agents = agents;
 
-    // Parents first; then every child walks hand in hand with a leader: its
-    // parent in the same room, else the parent's ghost in the child's room.
+    // Parents first (at their display room); then every child walks hand in
+    // hand with a leader: its parent shown in the same room, else the
+    // parent's ghost in the child's room.
     const byKey = new Map<string, OfficeAgent>();
-    for (const a of agents) byKey.set(a.key, a);
+    const kids = new Map<string, OfficeAgent[]>();
+    for (const a of agents) {
+      byKey.set(a.key, a);
+      if (a.parentKey === undefined) continue;
+      if (this.entered.get(a.key)?.[0] !== a.room)
+        this.entered.set(a.key, [a.room, this.enterSeq++]);
+      const list = kids.get(a.parentKey);
+      if (list) list.push(a);
+      else kids.set(a.parentKey, [a]);
+    }
     for (const a of agents) {
       if (a.parentKey !== undefined) continue;
+      const before = this.shown.get(a.key)?.room;
+      const room = a.kind === 'main' ? this.nextRoom(a, kids.get(a.key) ?? []) : a.room;
       const id = this.ids.get(a.key)!;
       const ch = os.characters.get(id);
-      if (ch && (prevByKey.get(a.key)?.room !== a.room || ch.homeArea === undefined)) {
-        this.enterRoom(id, a.room);
-      }
+      const moved = before !== room || prevByKey.get(a.key)?.room !== a.room;
+      if (ch && (moved || ch.homeArea === undefined)) this.enterRoom(id, room, room !== a.room);
     }
+    os.roomCounts = roomCounts(agents, (a) => this.displayRoom(a));
     const liveGhosts = new Set<string>();
     for (const a of agents) {
       if (a.parentKey === undefined) continue;
       const parent = byKey.get(a.parentKey);
-      let leader = parent?.room === a.room ? this.ids.get(a.parentKey) : undefined;
+      // The parent leads once it is shown in this room AND has arrived; on its
+      // way in, the ghost keeps the children where they are.
+      const parentId = this.ids.get(a.parentKey);
+      let leader =
+        parent &&
+        parentId !== undefined &&
+        this.displayRoom(parent) === a.room &&
+        os.characterArea(parentId) === ROOM_LABELS[a.room]
+          ? parentId
+          : undefined;
       if (leader === undefined) {
         const ghostKey = `${a.parentKey}@${a.room}`;
         liveGhosts.add(ghostKey);
@@ -192,13 +319,14 @@ export class LanAgents {
     ch.pet = look.pet;
   }
 
-  /** Lounge idles (seated, or standing still when the room is full); every other room works at a desk. */
-  private enterRoom(id: number, room: Room): void {
-    const tool = LAN_ROOM_TOOL[room];
+  /** Lounge idles (seated, or standing still when the room is full); every other room works at a
+   *  desk. A parent joining its children (`leading`) stands there, idle, like a ghost. */
+  private enterRoom(id: number, room: Room, leading = false): void {
+    const tool = leading ? null : LAN_ROOM_TOOL[room];
     // Before moveToArea: deactivating clears the path it is about to set.
     this.os.setAgentActive(id, tool !== null);
     this.os.setAgentTool(id, tool);
-    this.os.moveToArea(id, ROOM_LABELS[room]);
+    this.os.moveToArea(id, ROOM_LABELS[room], leading);
   }
 
   /** The ghost of `parentKey` leading its children in `room`, if any. */

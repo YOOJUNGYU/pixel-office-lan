@@ -74,6 +74,7 @@ components:
       oneOf:
         # Layout
         - $ref: '#/components/schemas/LayoutLoaded'
+        - $ref: '#/components/schemas/LayoutSaved'
         - $ref: '#/components/schemas/LayoutSaveRejected'
         # Assets
         - $ref: '#/components/schemas/FurnitureAssetsLoaded'
@@ -483,10 +484,22 @@ components:
       type: string
       enum: [invalidCode, alreadyJoined, nameInvalid, full]
 
+    LayoutSaved:
+      description: >-
+        A saveLayout was written to layout.json, to the requesting socket
+        only. The editor leaves edit mode on it.
+      type: object
+      additionalProperties: false
+      required: [type]
+      properties:
+        type:
+          const: layoutSaved
+
     LayoutSaveRejected:
       description: >-
         A saveLayout was refused (not a v1 grid within 128×128 whose tiles
-        match it), to the requesting socket only. Nothing was written.
+        match it, or the file could not be written), to the requesting socket
+        only. Nothing was written.
       type: object
       additionalProperties: false
       required: [type]

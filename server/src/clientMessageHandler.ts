@@ -94,11 +94,8 @@ export function handleClientMessage(
     case 'saveLayout': {
       const def = ctx.cache?.defaultLayout;
       const layout = sanitizeLayout(msg.layout, roomColorsOf(def), def);
-      if (layout) writeLayoutToFile(layout);
-      else {
-        console.warn('[Pixel Office] Refused an invalid layout save.');
-        send({ type: 'layoutSaveRejected' });
-      }
+      if (!layout) console.warn('[Pixel Office] Refused an invalid layout save.');
+      send({ type: layout && writeLayoutToFile(layout) ? 'layoutSaved' : 'layoutSaveRejected' });
       break;
     }
 

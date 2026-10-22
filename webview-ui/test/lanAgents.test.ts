@@ -15,7 +15,14 @@ import { buildFurnitureCatalog } from '../../core/src/assets/build.ts';
 import { decodeAllFurniture } from '../../core/src/assets/loader.ts';
 import type { OfficeAgent, Room } from '../../core/src/lan.ts';
 import { setLang } from '../src/i18n.js';
-import { LanAgents, tagBadge, tagText } from '../src/lan/lanAgents.js';
+import {
+  LanAgents,
+  plateText,
+  roomCounts,
+  tagBadge,
+  tagText,
+  wantedRoom,
+} from '../src/lan/lanAgents.js';
 import { OfficeState } from '../src/office/engine/officeState.js';
 import { buildDynamicCatalog } from '../src/office/layout/furnitureCatalog.js';
 import type { Character, OfficeLayout } from '../src/office/types.js';
@@ -63,7 +70,8 @@ function areaOf(t: { col: number; row: number }): string | undefined {
 
 function setup() {
   const os = new OfficeState(structuredClone(layout));
-  return { os, lan: new LanAgents(os) };
+  const clock = { now: 0 };
+  return { os, lan: new LanAgents(os, () => clock.now), clock };
 }
 
 test('a main agent in coding is headed into 코딩실, then 대기실 when it moves', () => {
@@ -283,4 +291,199 @@ test('name tags: account (nickname) · provider #n for mains, kind for children'
   setLang('ko');
   const unnamed = agent('s3', 'coding', { num: 1 });
   assert.equal(tagText({ ...unnamed, peer: { ...unnamed.peer, nickname: '' } }), 'yoo · Claude #1');
+});
+
+// ── A parent free to follow joins its children ──────────────────────────
+
+const shell = (id: string, parent: string, room: Room): OfficeAgent => ({
+  ...child(id, parent, room),
+  kind: 'shell',
+});
+const delegating = (extra: Partial<OfficeAgent> = {}) =>
+  agent('a', 'lounge', { act: 'delegate', target: 'x', ...extra });
+
+test('wantedRoom: most children, then subagents before shells, then the earliest entry', () => {
+  const since = (order: string[]) => (c: OfficeAgent) => order.indexOf(c.id);
+  const p = delegating();
+  assert.equal(wantedRoom(p, [], since([])), 'lounge');
+  assert.equal(wantedRoom(p, [child('s', 'a', 'server')], since([])), 'server');
+  const two = [shell('h1', 'a', 'coding'), shell('h2', 'a', 'coding'), child('s', 'a', 'server')];
+  assert.equal(wantedRoom(p, two, since([])), 'coding', 'majority');
+  const tie = [shell('h', 'a', 'coding'), child('s', 'a', 'server')];
+  assert.equal(wantedRoom(p, tie, since(['h', 's'])), 'server', 'subagent beats shell');
+  const subs = [child('s1', 'a', 'coding'), child('s2', 'a', 'server')];
+  assert.equal(wantedRoom(p, subs, since(['s2', 's1'])), 'server', 'earliest entry');
+  assert.equal(wantedRoom(p, subs, since(['s1', 's2'])), 'coding');
+  assert.equal(
+    wantedRoom(agent('a', 'lounge'), subs, since(['s1', 's2'])),
+    'coding',
+    'idle follows',
+  );
+  for (const busy of [
+    agent('a', 'coding', { act: 'edit' }),
+    agent('a', 'lounge', { act: 'ask' }),
+    delegating({ permission: true }),
+  ]) {
+    assert.equal(wantedRoom(busy, subs, since([])), busy.room, `${busy.act} stays`);
+  }
+});
+
+test('an idle/delegating parent walks to its children and leads them; no ghost there', () => {
+  const { os, lan } = setup();
+  lan.apply([delegating(), child('s1', 'a', 'server'), child('s2', 'a', 'server')]);
+  const p = os.characters.get(lan.idFor('p1:a')!)!;
+  const s1 = os.characters.get(lan.idFor('p1:s1')!)!;
+  assert.equal(lan.displayRoom(lan.agentFor(p.id)!), 'server');
+  assert.equal(p.homeArea, '서버실');
+  assert.equal(p.seatId, null, 'stands with them, like a ghost would');
+  assert.equal(p.ghostOf, undefined, 'opaque');
+  assert.equal(ghosts(os).length, 0);
+  assert.equal(s1.followId, p.id);
+  assert.equal(lan.agentFor(p.id)!.act, 'delegate', 'hover shows its real state');
+  for (let i = 0; i < 800; i++) os.update(0.05);
+  assert.equal(areaOf({ col: p.tileCol, row: p.tileRow }), '서버실');
+  assert.ok(cheb(s1, p) <= 1, `s1 holds the parent's hand (${cheb(s1, p)})`);
+  // Room plates count it in 서버실, not 대기실.
+  assert.deepEqual(os.roomCounts?.get('서버실'), { main: 1, extra: 2 });
+  assert.deepEqual(os.roomCounts?.get('대기실'), { main: 0, extra: 0 });
+});
+
+test('children split: the parent joins the majority, a ghost leads the rest', () => {
+  const { os, lan } = setup();
+  lan.apply([
+    delegating(),
+    child('s1', 'a', 'library'),
+    child('s2', 'a', 'library'),
+    shell('h', 'a', 'server'),
+  ]);
+  const p = os.characters.get(lan.idFor('p1:a')!)!;
+  assert.equal(p.homeArea, '자료실');
+  const [ghost, ...more] = ghosts(os);
+  assert.equal(more.length, 0);
+  assert.equal(ghost.id, lan.ghostIdFor('p1:a', 'server'));
+  assert.equal(os.characters.get(lan.idFor('p1:h')!)!.followId, ghost.id);
+  assert.equal(os.characters.get(lan.idFor('p1:s1')!)!.followId, p.id);
+});
+
+test('a working or asking parent stays in its room; a ghost leads the children', () => {
+  for (const parent of [
+    agent('a', 'coding', { act: 'edit' }),
+    agent('a', 'lounge', { act: 'ask' }),
+    delegating({ permission: true }),
+  ]) {
+    const { os, lan } = setup();
+    lan.apply([parent, child('s1', 'a', 'server')]);
+    const p = os.characters.get(lan.idFor('p1:a')!)!;
+    assert.equal(lan.displayRoom(parent), parent.room, parent.act);
+    assert.equal(p.homeArea, ROOM_NAMES[parent.room]);
+    assert.ok(lan.ghostIdFor('p1:a', 'server') !== undefined);
+  }
+});
+
+const ROOM_NAMES: Record<Room, string> = {
+  coding: '코딩실',
+  library: '자료실',
+  server: '서버실',
+  lounge: '대기실',
+};
+
+test('display room changes are debounced: no flip-flop, back home once the children are gone', () => {
+  const { os, lan, clock } = setup();
+  lan.apply([delegating()]);
+  const p = os.characters.get(lan.idFor('p1:a')!)!;
+  assert.equal(p.homeArea, '대기실');
+  // A subagent starts in 서버실: the parent goes only after the wish held 3 s.
+  const snap = [delegating(), child('s1', 'a', 'server')];
+  for (clock.now = 0; clock.now < 3000; clock.now += 1000) {
+    lan.apply(snap);
+    assert.equal(p.homeArea, '대기실', `still waiting at ${clock.now}`);
+  }
+  lan.apply(snap);
+  assert.equal(p.homeArea, '서버실');
+  // The child flickers away for a second and back: the parent stays put.
+  clock.now += 1000;
+  lan.apply([delegating()]);
+  clock.now += 1000;
+  lan.apply([delegating(), child('s1', 'a', 'server')]);
+  assert.equal(p.homeArea, '서버실');
+  // Gone for good: back to 대기실 3 s later.
+  const t0 = clock.now + 1000;
+  for (clock.now = t0; clock.now < t0 + 3000; clock.now += 1000) {
+    lan.apply([delegating()]);
+    assert.equal(p.homeArea, '서버실');
+  }
+  lan.apply([delegating()]);
+  assert.equal(p.homeArea, '대기실');
+  assert.equal(ghosts(os).length, 0);
+});
+
+test('starting own work or needing attention takes the parent back at once', () => {
+  for (const next of [agent('a', 'coding', { act: 'edit' }), delegating({ permission: true })]) {
+    const { os, lan, clock } = setup();
+    lan.apply([delegating(), child('s1', 'a', 'server')]);
+    const p = os.characters.get(lan.idFor('p1:a')!)!;
+    assert.equal(p.homeArea, '서버실');
+    clock.now += 100;
+    lan.apply([next, child('s1', 'a', 'server')]);
+    assert.equal(p.homeArea, ROOM_NAMES[next.room]);
+    assert.ok(lan.ghostIdFor('p1:a', 'server') !== undefined, 'a ghost takes over');
+  }
+});
+
+test('roomCounts and plateText: display rooms, children as +N, zero rooms shown', () => {
+  const agents = [
+    delegating(),
+    agent('b', 'coding'),
+    child('s1', 'a', 'server'),
+    shell('h', 'a', 'server'),
+    child('s2', 'b', 'coding'),
+  ];
+  const counts = roomCounts(agents, (a) => (a.id === 'a' ? 'server' : a.room));
+  assert.deepEqual(Object.fromEntries(counts), {
+    코딩실: { main: 1, extra: 1 },
+    자료실: { main: 0, extra: 0 },
+    서버실: { main: 1, extra: 2 },
+    대기실: { main: 0, extra: 0 },
+  });
+  setLang('ko');
+  assert.equal(plateText('코딩실', { main: 5, extra: 3 }), '코딩실 5 · +3');
+  assert.equal(plateText('자료실', { main: 0, extra: 0 }), '자료실 0');
+  assert.equal(plateText('서버실', undefined), '서버실');
+  setLang('en');
+  assert.equal(plateText('코딩실', { main: 5, extra: 3 }), 'Coding Room 5 · +3');
+  setLang('ko');
+});
+
+test('a parent walking over takes the lead from its ghost on arrival (children wait, no back-and-forth)', () => {
+  const { os, lan, clock } = setup();
+  lan.apply([delegating()]);
+  for (let i = 0; i < 40; i++) os.update(0.05);
+  const snap = [delegating(), child('s1', 'a', 'server')];
+  lan.apply(snap);
+  const p = os.characters.get(lan.idFor('p1:a')!)!;
+  const s1 = os.characters.get(lan.idFor('p1:s1')!)!;
+  const ghostId = lan.ghostIdFor('p1:a', 'server')!;
+  assert.equal(s1.followId, ghostId);
+  let arrivedAt = -1;
+  for (let sec = 1; sec <= 90 && arrivedAt < 0; sec++) {
+    clock.now = sec * 1000;
+    lan.apply(snap);
+    for (let i = 0; i < 20; i++) os.update(0.05);
+    if (p.homeArea === '서버실' && areaOf({ col: p.tileCol, row: p.tileRow }) !== '서버실') {
+      assert.equal(s1.followId, ghostId, 'the ghost leads while the parent is on its way');
+      assert.equal(
+        areaOf({ col: s1.tileCol, row: s1.tileRow }),
+        '서버실',
+        'the child waits in its room',
+      );
+    }
+    if (s1.followId === p.id) arrivedAt = sec;
+  }
+  assert.ok(arrivedAt > 0, 'the parent arrived and leads');
+  assert.equal(ghosts(os).length, 0);
+  // The parent walks on to its spot in the room (anywhere in it); the child follows.
+  for (let i = 0; i < 1600; i++) os.update(0.05);
+  assert.equal(p.path.length, 0);
+  assert.ok(cheb(s1, p) <= 1, `hand in hand (${cheb(s1, p)})`);
+  assert.equal(areaOf({ col: s1.tileCol, row: s1.tileRow }), '서버실');
 });

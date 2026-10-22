@@ -164,6 +164,7 @@ describe('clientMessageHandler', () => {
       warn.mockRestore();
       // Every one but the last (a valid grid with odd areas) was refused.
       expect(sent.filter((m) => m.type === 'layoutSaveRejected')).toHaveLength(7);
+      expect(sent.filter((m) => m.type === 'layoutSaved')).toHaveLength(1);
       // Odd areas just become the four rooms, with their default colors.
       expect((saved().areas as Array<{ color: string }>).map((a) => a.color)).toEqual(
         Object.values(ROOM_DEFAULT_COLORS),
@@ -181,6 +182,7 @@ describe('clientMessageHandler', () => {
         ctx(true),
       );
       expect(saved().cols).toBe(128);
+      expect(sent.at(-1)).toEqual({ type: 'layoutSaved' });
     });
   });
 

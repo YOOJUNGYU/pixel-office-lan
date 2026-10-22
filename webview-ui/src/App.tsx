@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import type { OfficeAgent } from '../../core/src/lan.js';
 import { fillMissingRooms, isLayoutGrid, ROOM_LABELS, ROOM_ORDER } from '../../core/src/lan.js';
 import type { ProfileMessage } from '../../core/src/messages.js';
 import { BottomToolbar } from './components/BottomToolbar.js';
@@ -87,7 +88,6 @@ function App() {
 
   const editor = useEditorActions(getOfficeState, editorState);
 
-  const layoutSaveRejectionsRef = useRef(0);
   const isEditDirty = useCallback(
     () => editor.isEditMode && editor.isDirty,
     [editor.isEditMode, editor.isDirty],
@@ -114,9 +114,7 @@ function App() {
     offices,
     officeReply,
     clearOfficeReply,
-  } = useExtensionMessages(getOfficeState, editor.setLastSavedLayout, isEditDirty);
-
-  layoutSaveRejectionsRef.current = layoutSaveRejections;
+  } = useExtensionMessages(getOfficeState, isEditDirty);
 
   // Overlay geometry: the root div is the canvas container's size.
   const containerRef = useRef<HTMLDivElement>(null);
@@ -184,7 +182,10 @@ function App() {
     hooks.getShowAreas = () => effectiveShowAreas;
     hooks.getZoom = () => zoom;
     hooks.setZoom = (z) => handleZoomChange(z);
+    // Client-only characters (like the tour's demos) for screenshots of agent scenes.
+    hooks.setDemoAgents = (agents) => lan.setDemo(agents as OfficeAgent[]);
   }, [
+    lan,
     handleZoomChange,
     handleEditorTileAction,
     handleEditorEraseAction,
@@ -280,14 +281,17 @@ function App() {
     handleToggleEditMode,
   ]);
 
-  // The server refused a layout save: say so for a moment (the editor keeps the layout).
-  const [saveRejectedShown, setSaveRejectedShown] = useState(false);
+  // The server refused a layout save, or [Save] got no answer: say so for a
+  // moment (the editor keeps the layout). A new object per error restarts the timer.
+  const [saveError, setSaveError] = useState<{ key: 'rejected' | 'timeout' } | null>(null);
   useEffect(() => {
-    if (layoutSaveRejections === 0) return;
-    setSaveRejectedShown(true);
-    const timer = setTimeout(() => setSaveRejectedShown(false), LAYOUT_REJECTED_TOAST_MS);
-    return () => clearTimeout(timer);
+    if (layoutSaveRejections > 0) setSaveError({ key: 'rejected' });
   }, [layoutSaveRejections]);
+  useEffect(() => {
+    if (!saveError) return;
+    const timer = setTimeout(() => setSaveError(null), LAYOUT_REJECTED_TOAST_MS);
+    return () => clearTimeout(timer);
+  }, [saveError]);
 
   // First open: a big office (the 128×128 default) is zoomed out to fit the
   // window when the default zoom would not show all of it. Once per session.
@@ -413,7 +417,6 @@ function App() {
       migrated = fillMissingRooms(migrated, await fetchDefaultLayout());
     }
     getOfficeState().rebuildFromLayout(migrated);
-    editor.setLastSavedLayout(migrated);
     transport.send({
       type: 'saveLayout',
       layout: migrated as unknown as Record<string, unknown>,
@@ -570,12 +573,12 @@ function App() {
             );
           })()}
 
-        {saveRejectedShown && (
+        {saveError && (
           <div
             role="alert"
             className="absolute left-1/2 -translate-x-1/2 bottom-80 z-20 bg-danger text-white text-sm py-3 px-8 rounded-none border-2 border-border shadow-pixel pointer-events-none whitespace-nowrap"
           >
-            {t('app.layoutSaveRejected')}
+            {t(saveError.key === 'rejected' ? 'app.layoutSaveRejected' : 'app.layoutSaveTimeout')}
           </div>
         )}
 
@@ -624,7 +627,7 @@ function App() {
               <EditActionBar
                 editor={editor}
                 editorState={editorState}
-                onSave={() => editor.handleSave(() => layoutSaveRejectionsRef.current)}
+                onSave={() => editor.handleSave(() => setSaveError({ key: 'timeout' }))}
                 onReset={() => handleResetToDefaultLayout(t('app.resetEditorConfirm'))}
               />
             )}

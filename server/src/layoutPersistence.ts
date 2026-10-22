@@ -63,7 +63,8 @@ export function readLayoutFromFile(): Record<string, unknown> | null {
   }
 }
 
-export function writeLayoutToFile(layout: Record<string, unknown>): void {
+/** Atomic write; false when it failed (logged). */
+export function writeLayoutToFile(layout: Record<string, unknown>): boolean {
   const filePath = getLayoutFilePath();
   const dir = path.dirname(filePath);
   try {
@@ -74,7 +75,9 @@ export function writeLayoutToFile(layout: Record<string, unknown>): void {
     const tmpPath = filePath + '.tmp';
     fs.writeFileSync(tmpPath, json, 'utf-8');
     fs.renameSync(tmpPath, filePath);
+    return true;
   } catch (err) {
     console.error('[Pixel Office] Failed to write layout file:', err);
+    return false;
   }
 }

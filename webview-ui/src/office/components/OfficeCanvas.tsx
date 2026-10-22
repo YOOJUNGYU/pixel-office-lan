@@ -216,6 +216,7 @@ export function OfficeCanvas({
           layout.areaTiles,
           showAreas,
           layout.background,
+          officeState.roomCounts,
         );
         offsetRef.current = { x: offsetX, y: offsetY };
 

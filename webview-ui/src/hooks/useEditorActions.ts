@@ -4,7 +4,7 @@ import type { ColorValue } from '../components/ui/types.js';
 import {
   CARPET_DEFAULT_ACCENT_COLOR,
   CARPET_DEFAULT_COLOR,
-  LAYOUT_SAVE_ACK_MS,
+  LAYOUT_SAVE_ACK_TIMEOUT_MS,
   LAYOUT_SAVE_DEBOUNCE_MS,
   ZOOM_DEFAULT_DPR_FACTOR,
   ZOOM_MIN,
@@ -49,7 +49,6 @@ interface EditorActions extends Omit<FurnitureColorActions, 'pickColorAt'> {
   zoom: number;
   panRef: React.MutableRefObject<{ x: number; y: number }>;
   saveTimerRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>;
-  setLastSavedLayout: (layout: OfficeLayout) => void;
   /** Clear the dirty flag (used after a browser import applies a new saved baseline). */
   markClean: () => void;
   handleToggleEditMode: () => void;
@@ -65,8 +64,8 @@ interface EditorActions extends Omit<FurnitureColorActions, 'pickColorAt'> {
   handleUndo: () => void;
   handleRedo: () => void;
   handleExitEditMode: () => void;
-  /** Save, then leave edit mode unless the server refuses (see saveThenExit). */
-  handleSave: (getRejections: () => number) => void;
+  /** Save, then leave edit mode on the server's `layoutSaved` (see saveThenExit); `onTimeout` when no answer comes. */
+  handleSave: (onTimeout: () => void) => void;
   handleZoomChange: (zoom: number) => void;
   handleEditorTileAction: (col: number, row: number) => void;
   handleEditorEraseAction: (col: number, row: number) => void;
@@ -110,12 +109,6 @@ export function useEditorActions(
   );
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const panRef = useRef({ x: 0, y: 0 });
-  const lastSavedLayoutRef = useRef<OfficeLayout | null>(null);
-
-  // Called by useExtensionMessages on layoutLoaded to set the initial checkpoint
-  const setLastSavedLayout = useCallback((layout: OfficeLayout) => {
-    lastSavedLayoutRef.current = structuredClone(layout);
-  }, []);
 
   // Clear the dirty flag after a browser layout import: the imported layout is the
   // new saved baseline (already persisted via saveLayout). setIsDirty also forces a
@@ -412,12 +405,11 @@ export function useEditorActions(
   }, [editorState]);
 
   /**
-   * [Save]: flush the pending save, and once the server has not refused it
-   * (`getRejections` unchanged for LAYOUT_SAVE_ACK_MS) mark clean and leave
-   * edit mode. A refusal keeps the editor open and still dirty.
+   * [Save]: flush the pending save; on the server's `layoutSaved` mark clean
+   * and leave edit mode. A refusal (or no answer) keeps the editor open and dirty.
    */
   const handleSave = useCallback(
-    (getRejections: () => number) => {
+    (onTimeout: () => void) => {
       if (saveTimerRef.current) {
         clearTimeout(saveTimerRef.current);
         saveTimerRef.current = null;
@@ -429,10 +421,10 @@ export function useEditorActions(
             type: 'saveLayout',
             layout: layout as unknown as Record<string, unknown>,
           }),
-        getRejections,
-        waitMs: LAYOUT_SAVE_ACK_MS,
+        onMessage: (h) => transport.onMessage(h),
+        timeoutMs: LAYOUT_SAVE_ACK_TIMEOUT_MS,
+        onTimeout,
         onSaved: () => {
-          lastSavedLayoutRef.current = structuredClone(layout);
           markClean();
           handleExitEditMode();
         },
@@ -595,7 +587,6 @@ export function useEditorActions(
     zoom,
     panRef,
     saveTimerRef,
-    setLastSavedLayout,
     markClean,
     handleToggleEditMode,
     handleToolChange,

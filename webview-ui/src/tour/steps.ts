@@ -16,8 +16,9 @@ export type Target =
   /**
    * Characters with their name tags: `tag` = a main agent, `bubble` = one
    * waiting for approval (else one with a reason), `child` = a subagent beside
-   * its parent, `ghost` = a subagent holding its parent's ghost in another
-   * room (plus the real parent).
+   * its parent (one that walked over to it while delegating, in the demo),
+   * `ghost` = a child holding its parent's ghost in another room (plus the
+   * real parent).
    */
   | { agent: AgentRole };
 
