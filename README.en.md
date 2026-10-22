@@ -94,7 +94,7 @@ Switch the office you are looking at with the office switcher at the top of the 
 
 ### And more
 
-- 📲 **Install as an app (PWA)**: open the office in this PC's browser and an **Install Pixel Office as an app** popup appears top right. **Install** (Edge/Chrome) installs it as a tab-less app window, and the shortcuts then open that app. **Later** hides it for 7 days. Safari: **Share → Add to Dock / Add to Home Screen**; Firefox can't install apps.
+- 📲 **Install as an app (PWA)**: open the office in this PC's browser and an **Install Pixel Office as an app** popup appears top right. **Install** (Edge/Chrome) installs it as a tab-less app window, and the Windows shortcuts then open that app (a Mac opens the default browser). **Later** hides it for 7 days. Safari: **Share → Add to Dock / Add to Home Screen**; Firefox can't install apps.
 - 👤 **Profile**: on first run pick a nickname, a character (6 kinds) and a color (8 swatches + slider). Skin tone stays; clothes and hair change color.
 - 🌐 **한국어 / English**: each viewer chooses (Settings → Language). Text the agent wrote itself (reasons, file names, commands) is shown as-is.
 - 🖱️ **Map controls**: drag an empty spot to pan; the mouse wheel (or trackpad pinch) zooms smoothly around the cursor.
@@ -129,7 +129,7 @@ Claude Code and Codex running inside WSL are read by the Windows app; there is n
 ### How to open
 
 - **Start at login** — on by default. On Windows you can untick it in the installer; anytime, toggle **Settings → Start at login**.
-- **Windows**: the **Pixel Office** desktop shortcut ("Create a desktop shortcut" in the installer) or Start → **Pixel Office 열기**. It starts the office if needed and opens **the installed app** (Edge, else Chrome) if you installed it, otherwise a tab-less Edge (or Chrome) window, otherwise the default browser.
+- **Windows**: the **Pixel Office** desktop shortcut ("Create a desktop shortcut" in the installer) or Start → **Pixel Office 열기**. It starts the office if needed and opens **the installed app** (Edge, else Chrome) if you installed it, otherwise a new Edge (or Chrome) window where the install popup appears, otherwise the default browser.
 - **Mac**: **Pixel Office** in **Applications** or **Launchpad** (no desktop alias, following macOS convention)
 - Anywhere: `http://localhost:47801` in a browser
 

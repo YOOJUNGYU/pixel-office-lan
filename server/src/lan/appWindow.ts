@@ -1,8 +1,7 @@
 /**
- * `cli.js --open`: show the office as an app window, not a browser tab.
- * Windows: the installed PWA (Edge, then Chrome) via `--app-id`, else an
- * Edge/Chrome `--app=` window, else the default browser. macOS/Linux: the
- * default browser.
+ * `cli.js --open`. Windows: the installed PWA (Edge, then Chrome) via
+ * `--app-id`, else a new Edge/Chrome window (where the install popup shows),
+ * else the default browser. macOS/Linux: the default browser.
  */
 import { spawn } from 'child_process';
 import { createHash } from 'crypto';
@@ -73,7 +72,9 @@ export function planWindowsOpen(url: string, env: WinEnv, fsx: Fs): Launch {
     );
     if (profile) return { cmd: exe, args: [`--profile-directory=${profile}`, `--app-id=${appId}`] };
   }
-  if (found[0]) return { cmd: found[0].exe, args: [`--app=${url}`] };
+  // Not installed: a normal window, where the install popup can offer the install
+  // (an --app= window counts as standalone, so the popup would stay hidden).
+  if (found[0]) return { cmd: found[0].exe, args: ['--new-window', url] };
   return { cmd: 'cmd', args: ['/c', 'start', '', url] }; // '' = window title, as start expects
 }
 

@@ -46,10 +46,10 @@ describe('planWindowsOpen', () => {
     expect(planWindowsOpen(URL, ENV, fs).args[0]).toBe('--profile-directory=Default');
     expect(planWindowsOpen(URL, ENV, fs).cmd).toBe(CHROME);
   });
-  it('opens an Edge app window when nothing is installed', () => {
+  it('opens a normal Edge window (where the install popup shows) when nothing is installed', () => {
     expect(planWindowsOpen(URL, ENV, fakeFs([EDGE, CHROME]))).toEqual({
       cmd: EDGE,
-      args: [`--app=${URL}`],
+      args: ['--new-window', URL],
     });
   });
   it('finds a per-user Chrome', () => {

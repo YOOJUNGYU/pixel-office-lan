@@ -40,17 +40,17 @@ It starts at every login (`~/Library/LaunchAgents/com.pixeloffice.agent.plist`, 
   - Windows: the **Pixel Office** desktop shortcut, or Start → **Pixel Office 열기**
   - Mac: **Pixel Office** in **Applications** or **Launchpad**. Following macOS convention there is no desktop alias (drag it to the Dock if you like).
   - On any PC: `http://localhost:47801` in a browser
-- On Windows a shortcut starts the office if needed and opens, in this order: **the installed Pixel Office app** (Edge, else Chrome) → a tab-less Edge (or Chrome) app window → the default browser. On a Mac it opens the default browser.
+- On Windows a shortcut starts the office if needed and opens, in this order: **the installed Pixel Office app** (Edge, else Chrome) → a new Edge (or Chrome) window, where the install popup appears → the default browser. On a Mac it opens the default browser.
 
 ### Install as an app (PWA)
 
 Open the office in this PC's browser and an **Install Pixel Office as an app** popup appears top right.
 
-- **Edge / Chrome**: **Install** → **Install** in the browser's dialog. From then on the shortcuts and Start menu open a tab-less app window. The install icon at the right of the address bar works too.
+- **Edge / Chrome**: **Install** → **Install** in the browser's dialog. From then on the Windows shortcuts and Start menu open a tab-less app window (a Mac opens the default browser). The install icon at the right of the address bar works too.
 - **Safari**: **Share → Add to Dock** (Mac) / **Add to Home Screen** (iPhone, iPad)
 - **Firefox**: can't install apps; open it in Edge or Chrome.
 - **Later** hides it for 7 days. It never shows inside the app, after installing, or for remote viewers.
-- To remove the app, uninstall Pixel Office from `edge://apps` (Edge) or `chrome://apps` (Chrome). Shortcuts then fall back to the app window (not installed).
+- To remove the app, uninstall Pixel Office from `edge://apps` (Edge) or `chrome://apps` (Chrome). Shortcuts then open a new Edge (or Chrome) window again.
 
 ## 4-1. Public office, team offices, remote viewing
 
@@ -64,7 +64,7 @@ Open the office in this PC's browser and an **Install Pixel Office as an app** p
 ## 5. Other PCs do not show up
 
 - PCs on the same network appear automatically; no IP needs to be entered. They have to be on the **same network** (same router / subnet); guest Wi-Fi, VPN or other subnets may block discovery.
-- Only for PCs on another floor or network: add the other PC's IP under **Settings → My profile → Advanced: when a PC isn't found automatically → PC IPs to connect directly** (one per line) and save. Doing it on both PCs is the most reliable.
+- Only for PCs on another floor or network: add the other PC's IP under **Settings → My profile → Advanced: when a PC isn't found automatically → PC IPs to connect directly** (one per line) and save. Listing it on one side is enough to see each other; listing it on both is more reliable.
 - Make sure **both PCs run 0.2.0 or later**: 0.2.0 does not talk to the unencrypted 0.1.0.
 - If either of you is in a **team office**, you don't see each other in the public office. Join the same team office, or both leave your teams.
 - Make sure UDP 47800 and TCP 47801 are not blocked.

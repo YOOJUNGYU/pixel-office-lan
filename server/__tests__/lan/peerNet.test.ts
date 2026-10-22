@@ -118,6 +118,34 @@ describe('PeerNet public office', () => {
     expect(a.net.peers(PUBLIC_VIEW)).toEqual([]);
   });
 
+  it('manual peer on one side only: both still see each other (hello reply)', async () => {
+    const [pa, pb] = await Promise.all([freePort(), freePort()]);
+    const mk = (name: string, port: number, targets: string[]) => {
+      const id = createIdentity(name);
+      const net = new PeerNet({
+        port,
+        identity: id,
+        getPacket: () => pkt(id.id),
+        manualPeers: () => [],
+        offices: () => [],
+        pins: new Map<string, string>(),
+        targets: () => targets,
+        now: () => 1000,
+      });
+      nets.push(net);
+      return net;
+    };
+    const a = mk('A', pa, [`127.0.0.1:${pb}`]); // A lists B
+    const b = mk('B', pb, []); // B lists nobody, and B's broadcast never reaches A
+    await Promise.all([a.start(), b.start()]);
+    await pump(
+      [{ net: a }, { net: b }] as Node[],
+      () => a.peers(PUBLIC_VIEW).length > 0 && b.peers(PUBLIC_VIEW).length > 0,
+    );
+    expect(ids(a.peers(PUBLIC_VIEW))).toEqual(['B']);
+    expect(ids(b.peers(PUBLIC_VIEW))).toEqual(['A']);
+  });
+
   it('pins the first key per id: an impostor claiming A is dropped and warned once', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const [a, b, c] = await mkNodes(['A', 'B', 'C']);

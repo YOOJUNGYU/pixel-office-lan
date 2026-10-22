@@ -11,7 +11,7 @@ export function InstallPrompt({ readOnly }: { readOnly: boolean }) {
     <div
       role="dialog"
       aria-label={t('install.title')}
-      className="absolute mobile-safe-top right-10 z-20 pixel-panel py-8 px-12 flex flex-col gap-6 text-sm max-w-[min(360px,calc(100%-20px))]"
+      className="absolute mobile-safe-top max-lg:top-[calc(env(safe-area-inset-top,0px)+64px)] right-10 z-20 pixel-panel py-8 px-12 flex flex-col gap-6 text-sm max-w-[min(360px,calc(100%-20px))]"
     >
       <span className="text-accent-bright">{t('install.title')}</span>
       <span className="text-text-muted">

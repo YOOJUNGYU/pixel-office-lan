@@ -4,6 +4,7 @@ import * as os from 'os';
 import type { PeerPacket } from '../../../core/src/lan.js';
 import { parsePeerPacket, PUBLIC_VIEW } from '../../../core/src/lan.js';
 import {
+  HELLO_REPLY_MS,
   MAX_HELLO_PEERS,
   MAX_OFFICE_NAME,
   MAX_WARN_KEYS,
@@ -90,10 +91,10 @@ function parseInner(text: string | null): Inner | null {
 export class PeerNet {
   private sock: dgram.Socket | null = null;
   private timer: NodeJS.Timeout | null = null;
-  /** Public-office peers from their hello: key cached per pk, reply address from rinfo. */
+  /** Public-office peers from their hello: key cached per pk, reply address from rinfo, last hello reply. */
   private readonly hellos = new Map<
     string,
-    { pk: string; key: Buffer | null; address: string; port: number; at: number }
+    { pk: string; key: Buffer | null; address: string; port: number; at: number; replied: number }
   >();
   /** channel (PUBLIC_VIEW | tag) → sender id → last packet. */
   private readonly seen = new Map<string, Map<string, { packet: PeerPacket; at: number }>>();
@@ -251,13 +252,22 @@ export class PeerNet {
       const prev = this.hellos.get(w.id);
       if (!prev && this.hellos.size >= MAX_HELLO_PEERS) return;
       if (pinned === undefined) this.opts.pins.set(w.id, w.pk);
+      // Answer with our own hello (1:1, rate-limited): a peer that reaches us only via
+      // its manual-peer list would otherwise never get our hello, and pub needs both.
+      const t = this.now();
+      const reply = !prev || t - prev.replied >= HELLO_REPLY_MS;
       this.hellos.set(w.id, {
         pk: w.pk,
         key: prev?.pk === w.pk ? prev.key : null,
         address: rinfo.address,
         port: rinfo.port,
-        at: this.now(),
+        at: t,
+        replied: reply ? t : prev.replied,
       });
+      if (reply && this.sock) {
+        const hello: Wire = { v: 2, t: 'hello', id: me, pk: this.opts.identity.publicKey };
+        this.send(this.sock, hello, `${rinfo.address}:${rinfo.port.toString()}`);
+      }
       return;
     }
     if (w.t === 'pub') {

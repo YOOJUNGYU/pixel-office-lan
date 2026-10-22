@@ -22,7 +22,7 @@ server/src/
   lan/peerNet.ts         UDP v2: plaintext hello + encrypted pairwise pub (public office) / encrypted team broadcast; TOFU pins, per-channel seq replay guard
   lan/crypto.ts          X25519 identity, HKDF pair/team keys, AES-256-GCM seal/open, invite codes (PO2-…), parseWire
   lan/updater.ts         GitHub Releases check (60 s, then 6 h), installer download to ~/.pixel-office/updates + launch (loopback only)
-  lan/appWindow.ts       `--open`: Windows → installed PWA (`--app-id`, Chromium id = double SHA-256 of manifest id `http://localhost:<port>/`) in Edge/Chrome, else `--app=` window, else default browser
+  lan/appWindow.ts       `--open`: Windows → installed PWA (`--app-id`, Chromium id = double SHA-256 of manifest id `http://localhost:<port>/`) in Edge/Chrome, else a normal `--new-window` (the install popup is hidden in `--app=` windows), else default browser
   lan/autostart.ts       Per-user start at login (Win Startup .lnk via PowerShell, Mac LaunchAgent plist copy); Settings toggle + `cli.js --autostart on|off|default` (installer)
   clientMessageHandler.ts  ClientMessage dispatch + webviewReady handshake + read-only gate
   assetLoader.ts / assetReload.ts   PNG → SpriteData, external asset directories

@@ -95,7 +95,7 @@ const ko = {
   'update.upToDate': '최신 버전입니다.',
 
   'install.title': 'Pixel Office 를 앱으로 설치하세요',
-  'install.body': '바로가기를 누르면 탭이 아닌 앱 창으로 열립니다.',
+  'install.body': 'Windows 에서는 바로가기가 탭이 아닌 앱 창으로 엽니다.',
   'install.install': '설치',
   'install.later': '나중에',
   'install.safari': 'Safari: 공유 → Dock에 추가 (Mac) / 홈 화면에 추가 (iPhone·iPad)',
@@ -296,7 +296,7 @@ const en: Record<Key, string> = {
   'update.upToDate': 'You are up to date.',
 
   'install.title': 'Install Pixel Office as an app',
-  'install.body': 'Shortcuts then open it in its own app window instead of a tab.',
+  'install.body': 'On Windows, shortcuts then open it in its own app window instead of a tab.',
   'install.install': 'Install',
   'install.later': 'Later',
   'install.safari': 'Safari: Share → Add to Dock (Mac) / Add to Home Screen (iPhone·iPad)',
