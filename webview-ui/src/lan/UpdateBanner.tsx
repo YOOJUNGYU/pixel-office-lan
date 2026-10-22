@@ -59,7 +59,7 @@ export function UpdateBanner({ update, status, onClearStatus }: UpdateBannerProp
   const install = () => transport.send({ type: 'installUpdate' });
 
   return (
-    <div className="absolute right-10 bottom-10 z-20 pixel-panel py-6 px-10 flex items-center gap-8 text-sm max-w-[calc(100%-20px)] flex-wrap">
+    <div className="pointer-events-auto pixel-panel py-6 px-10 flex items-center gap-8 text-sm max-w-full flex-wrap justify-end">
       <span>{text}</span>
       {update && state !== 'upToDate' && state !== 'downloading' && (
         <>

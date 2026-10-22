@@ -12,6 +12,8 @@ import {
   FIRST_OPEN_FIT_FILL,
   LAYOUT_REJECTED_TOAST_MS,
   OFFICE_CANVAS_TEST_ID,
+  TOP_RIGHT_BOTTOM_RESERVE_PX,
+  TOP_RIGHT_Z_INDEX,
   TOUR_AUTOSTART_DELAY_MS,
   TOUR_FIT_FILL,
   ZOOM_MAX,
@@ -541,14 +543,29 @@ function App() {
 
         {offices && !editor.isEditMode && <OfficeSwitcher state={offices} />}
 
-        {!editor.isEditMode && (
-          <PeoplePanel
-            rows={peopleRows(people, lan.all())}
-            lan={lan}
-            officeState={officeState}
-            forceOpen={scene?.people === true}
-          />
-        )}
+        {/* Top right, stacked so nothing overlaps: update banner, install popup, people panel
+          (which takes the height left below them). */}
+        <div
+          style={{ zIndex: TOP_RIGHT_Z_INDEX, bottom: TOP_RIGHT_BOTTOM_RESERVE_PX }}
+          className="absolute mobile-safe-top max-lg:top-[calc(env(safe-area-inset-top,0px)+64px)] right-10 flex flex-col items-end gap-8 pointer-events-none max-w-[calc(100%-20px)]"
+        >
+          {!officeReadOnly && (
+            <UpdateBanner
+              update={update}
+              status={updateStatus}
+              onClearStatus={() => setUpdateStatus(null)}
+            />
+          )}
+          <InstallPrompt readOnly={officeReadOnly} />
+          {!editor.isEditMode && (
+            <PeoplePanel
+              rows={peopleRows(people, lan.all())}
+              lan={lan}
+              officeState={officeState}
+              forceOpen={scene?.people === true}
+            />
+          )}
+        </div>
 
         {officeReadOnly && (
           <div className="absolute mobile-safe-top left-1/2 -translate-x-1/2 z-10 text-sm text-text-muted pointer-events-none select-none whitespace-nowrap">
@@ -584,16 +601,6 @@ function App() {
         )}
 
         <ConnectionIndicator />
-
-        <InstallPrompt readOnly={officeReadOnly} />
-
-        {!officeReadOnly && (
-          <UpdateBanner
-            update={update}
-            status={updateStatus}
-            onClearStatus={() => setUpdateStatus(null)}
-          />
-        )}
 
         {profile?.canEdit && (firstRun || profileOpen) && (
           <ProfileModal
