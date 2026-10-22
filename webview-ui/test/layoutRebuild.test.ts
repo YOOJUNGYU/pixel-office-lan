@@ -15,11 +15,7 @@ import { test } from 'vitest';
 
 import { buildFurnitureCatalog } from '../../core/src/assets/build.ts';
 import { decodeAllFurniture } from '../../core/src/assets/loader.ts';
-import {
-  expandLayout,
-  placeFurniture,
-  removeFurniture,
-} from '../src/office/editor/editorActions.js';
+import { placeFurniture, removeFurniture } from '../src/office/editor/editorActions.js';
 import { OfficeState } from '../src/office/engine/officeState.js';
 import { buildDynamicCatalog } from '../src/office/layout/furnitureCatalog.js';
 import { isWalkable } from '../src/office/layout/tileMap.js';
@@ -198,25 +194,4 @@ test('furniture dropped on a standing character moves it to the nearest free til
     [ch.x, ch.y],
     [now.col * TILE_SIZE + TILE_SIZE / 2, now.row * TILE_SIZE + TILE_SIZE / 2],
   );
-});
-
-test('growing the grid left/up shifts characters and their paths along', () => {
-  const { os, ch } = walking();
-  const before = snapshot(ch);
-  const left = expandLayout(os.layout, 'left')!;
-  os.rebuildFromLayout(left.layout, left.shift);
-  const up = expandLayout(os.layout, 'up')!;
-  os.rebuildFromLayout(up.layout, up.shift);
-
-  assert.equal(ch.tileCol, before.tileCol + 1);
-  assert.equal(ch.tileRow, before.tileRow + 1);
-  assert.equal(ch.x, before.x + TILE_SIZE);
-  assert.equal(ch.y, before.y + TILE_SIZE);
-  assert.deepEqual(
-    ch.path,
-    before.path.map((t) => ({ col: t.col + 1, row: t.row + 1 })),
-  );
-  const seat = os.seats.get(ch.seatId!)!;
-  const visited = walkOut(os, ch);
-  assert.deepEqual(visited[visited.length - 1], { col: seat.seatCol, row: seat.seatRow });
 });

@@ -3,7 +3,13 @@ import * as os from 'os';
 import * as path from 'path';
 
 import type { Room, RoomAreasLayout } from '../../core/src/lan.js';
-import { isLayoutGrid, normalizeRoomAreas, ROOM_LABELS, ROOM_ORDER } from '../../core/src/lan.js';
+import {
+  fillMissingRooms,
+  isLayoutGrid,
+  normalizeRoomAreas,
+  ROOM_LABELS,
+  ROOM_ORDER,
+} from '../../core/src/lan.js';
 import { LAYOUT_FILE_DIR, LAYOUT_FILE_NAME } from './constants.js';
 
 const isObj = (x: unknown): x is Record<string, unknown> =>
@@ -22,18 +28,20 @@ export function roomColorsOf(layout: unknown): Partial<Record<Room, string>> {
 
 /**
  * A layout fit to store or serve: a v1 grid within MAX_LAYOUT_COLS×ROWS whose
- * tiles match it, with exactly the four fixed rooms (normalizeRoomAreas) and no
- * decorative pets. Null for anything else. Never throws.
+ * tiles match it, with exactly the four fixed rooms (normalizeRoomAreas; a room
+ * without tiles takes the default layout's when the grid is the default size)
+ * and no decorative pets. Null for anything else. Never throws.
  */
 export function sanitizeLayout(
   raw: unknown,
   colors: Partial<Record<Room, string>>,
+  defaultLayout: unknown = null,
 ): Record<string, unknown> | null {
   if (!isLayoutGrid(raw)) return null;
   // normalizeRoomAreas checks every areas/areaTiles entry itself.
-  const out: Record<string, unknown> = normalizeRoomAreas(
-    raw as RoomAreasLayout & Record<string, unknown>,
-    colors,
+  const out: Record<string, unknown> = fillMissingRooms(
+    normalizeRoomAreas(raw as RoomAreasLayout & Record<string, unknown>, colors),
+    defaultLayout,
   );
   delete out.pets;
   return out;

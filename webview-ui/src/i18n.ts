@@ -161,8 +161,6 @@ const ko = {
   'editor.background.floor': '바닥',
   'editor.background.carpet': '카펫',
   'editor.backgroundHint': '지금은 기본 배경입니다. 종류를 고르세요.',
-  'editor.areas': '방 영역',
-  'editor.areasTitle': '방 영역 지정',
   'editor.erase': '지우기',
   'editor.eraseTitle': '타일을 빈 공간으로 지우기',
   'editor.copy': '복사',
@@ -182,10 +180,7 @@ const ko = {
   'editor.copyFurnitureTitle': '놓인 가구의 종류 복사',
   'editor.main': '기본',
   'editor.accent': '강조',
-  'editor.areasHint':
-    '방을 고른 뒤 타일에 칠하세요(칠한 타일을 다시 누르면 지워집니다). 방은 이 네 개로 고정입니다.',
   'editor.emptyRoom': '{room} 영역이 비어 있어 이 방에 갈 에이전트가 아무 곳에나 앉습니다',
-  'editor.areaColor': '영역 색상',
 
   'category.desks': '책상',
   'category.chairs': '의자',
@@ -279,9 +274,6 @@ const ko = {
   'tour.furniture.title': '가구',
   'tour.furniture.body':
     '목록에서 골라 놓고, 드래그로 옮기고, Alt+드래그로 복사합니다.\nR 은 회전, T 는 켜기/끄기(모니터 등), 색 버튼으로 색을 바꿉니다. 카펫도 여기 있습니다.',
-  'tour.areas.title': '방 영역',
-  'tour.areas.body':
-    '코딩실·자료실·서버실·대기실, 고정된 네 방을 타일에 칠합니다(방을 새로 만들지는 않습니다). 에이전트는 이 영역을 보고 어느 방으로 갈지 정합니다.\n걸을 수 있는 타일이 없는 방이 있으면 경고가 뜹니다.',
   'tour.background.title': '배경',
   'tour.background.body': '사무실 바깥을 단색, 바닥 무늬, 카펫 무늬 중 하나로 채웁니다.',
   'tour.editorMore.title': '지우기 · 실행 취소',
@@ -456,8 +448,6 @@ const en: Record<Key, string> = {
   'editor.background.floor': 'Floor',
   'editor.background.carpet': 'Carpet',
   'editor.backgroundHint': 'Using the default background. Pick a kind.',
-  'editor.areas': 'Areas',
-  'editor.areasTitle': 'Define room areas',
   'editor.erase': 'Erase',
   'editor.eraseTitle': 'Erase tiles to void',
   'editor.copy': 'Copy',
@@ -477,10 +467,7 @@ const en: Record<Key, string> = {
   'editor.copyFurnitureTitle': 'Copy furniture type from placed item',
   'editor.main': 'Main',
   'editor.accent': 'Accent',
-  'editor.areasHint':
-    'Pick a room, then paint it onto tiles (paint a painted tile again to erase). These four rooms are fixed.',
   'editor.emptyRoom': 'The {room} area is empty, so agents headed there sit anywhere',
-  'editor.areaColor': 'Area color',
 
   'category.desks': 'Desks',
   'category.chairs': 'Chairs',
@@ -576,9 +563,6 @@ const en: Record<Key, string> = {
   'tour.furniture.title': 'Furniture',
   'tour.furniture.body':
     'Pick an item and place it, drag to move, Alt+drag to copy.\nR rotates, T toggles (monitors…), the color button recolors. Carpets live here too.',
-  'tour.areas.title': 'Room areas',
-  'tour.areas.body':
-    'Paint the four fixed rooms (coding room, library, server room, lounge) onto tiles; there is no adding rooms. Agents use these areas to decide where to go.\nA room with no walkable tile is warned about.',
   'tour.background.title': 'Background',
   'tour.background.body':
     'Fill the outside of the office with a solid color, a floor pattern or a carpet.',

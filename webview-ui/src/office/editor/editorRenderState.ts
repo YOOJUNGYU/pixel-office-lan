@@ -1,4 +1,3 @@
-import { GHOST_BORDER_NO_HOVER_TILE } from '../../constants.js';
 import { getColorizedSprite } from '../colorize.js';
 import type { EditorRenderState, GhostSprite } from '../engine/renderer.js';
 import { getCatalogEntry, isRotatable } from '../layout/furnitureCatalog.js';
@@ -35,8 +34,6 @@ export function buildEditorRenderState(
   layout: OfficeLayout,
 ): EditorRenderState {
   const tool = editorState.activeTool;
-  const showGhostBorder =
-    tool === EditTool.TILE_PAINT || tool === EditTool.WALL_PAINT || tool === EditTool.ERASE;
   const render: EditorRenderState = {
     showGrid: true,
     ghosts: [],
@@ -49,9 +46,6 @@ export function buildEditorRenderState(
     isRotatable: false,
     deleteButtonBounds: null,
     rotateButtonBounds: null,
-    showGhostBorder,
-    ghostBorderHoverCol: showGhostBorder ? editorState.ghostCol : GHOST_BORDER_NO_HOVER_TILE,
-    ghostBorderHoverRow: showGhostBorder ? editorState.ghostRow : GHOST_BORDER_NO_HOVER_TILE,
   };
 
   const hovering = editorState.ghostCol >= 0;

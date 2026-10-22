@@ -45,7 +45,6 @@ export type Capability =
   | 'switcher'
   | 'profile'
   | 'offices'
-  | 'areas'
   /** A subagent or shell is on the map (real, or the demos). */
   | 'family';
 
@@ -79,7 +78,6 @@ export type StepId =
   | 'floor'
   | 'walls'
   | 'furniture'
-  | 'areas'
   | 'background'
   | 'editorMore'
   | 'save'
@@ -147,12 +145,6 @@ export const STEPS: Step[] = [
     targets: [{ dom: 'editor-toolbar' }],
     scene: { editor: EditTool.FURNITURE_PLACE },
     requires: ['edit'],
-  },
-  {
-    id: 'areas',
-    targets: [{ dom: 'editor-toolbar' }],
-    scene: { editor: EditTool.AREA_PAINT },
-    requires: ['edit', 'areas'],
   },
   {
     id: 'background',

@@ -8,8 +8,15 @@ export const DEFAULT_COLS = 20;
 export const DEFAULT_ROWS = 11;
 export const MAX_COLS = MAX_LAYOUT_COLS;
 export const MAX_ROWS = MAX_LAYOUT_ROWS;
-/** Largest offscreen floor cache (device px²): a 128×128 office up to render zoom 2. */
+/** The bundled default layout (rooms of an imported layout that lacks them), relative to the base URL. */
+export const DEFAULT_LAYOUT_ASSET = 'assets/default-layout-1.json';
+/** Floor chunk cache budget (device px², all chunks; chunks on screen are always kept). */
 export const FLOOR_CACHE_MAX_PIXELS = 4096 * 4096;
+/** Floor chunk side in device px (rounded to whole tiles) and its minimum in tiles. */
+export const FLOOR_CHUNK_PX = 1024;
+export const FLOOR_CHUNK_MIN_TILES = 4;
+/** Random tiles tried before scanning a whole room for a free one. */
+export const FREE_TILE_PROBES = 16;
 
 // ── Character Animation ─────────────────────────────────────
 export const WALK_SPEED_PX_PER_SEC = 48;
@@ -69,9 +76,6 @@ export const SEAT_BUSY_COLOR = 'rgba(220, 50, 50, 0.35)';
 export const GRID_LINE_COLOR = 'rgba(255,255,255,0.12)';
 export const VOID_TILE_OUTLINE_COLOR = 'rgba(255,255,255,0.08)';
 export const VOID_TILE_DASH_PATTERN: [number, number] = [2, 2];
-export const GHOST_BORDER_HOVER_FILL = 'rgba(60, 130, 220, 0.25)';
-export const GHOST_BORDER_HOVER_STROKE = 'rgba(60, 130, 220, 0.5)';
-export const GHOST_BORDER_STROKE = 'rgba(255, 255, 255, 0.06)';
 export const GHOST_VALID_TINT = '#00ff00';
 export const GHOST_INVALID_TINT = '#ff0000';
 export const SELECTION_HIGHLIGHT_COLOR = '#007fd4';
@@ -87,7 +91,8 @@ export const CAMERA_FOLLOW_LERP = 0.1;
 export const CAMERA_FOLLOW_SNAP_THRESHOLD = 0.5;
 
 // ── Zoom ─────────────────────────────────────────────────────
-export const ZOOM_MIN = 0.5;
+/** Low enough that the whole 128×128 office fits a 1280×720 screen. */
+export const ZOOM_MIN = 0.25;
 export const ZOOM_MAX = 10;
 /** Wheel/pinch zoom: zoom *= exp(-deltaY × this). A 100-px mouse notch ≈ ×1.16. */
 export const ZOOM_WHEEL_SENSITIVITY = 0.0015;
@@ -110,8 +115,6 @@ export const UNDO_STACK_MAX_SIZE = 50;
 export const LAYOUT_SAVE_DEBOUNCE_MS = 500;
 /** data-testid of the office canvas — e2e drives real editor gestures on it. */
 export const OFFICE_CANVAS_TEST_ID = 'office-canvas';
-/** Ghost-border hover tile when the border isn't shown — off any reachable tile. */
-export const GHOST_BORDER_NO_HOVER_TILE = -999;
 
 // ── Layout Import/Export (browser-native, standalone) ────────
 /** Suggested filename when exporting the office layout from the standalone browser. */
@@ -161,8 +164,6 @@ export const KEY_CARPET_PICK = 'p';
 export const ROOM_AREA_COLORS: Readonly<Record<Room, string>> = ROOM_DEFAULT_COLORS;
 /** Translucent overlay alpha for area tile fills. */
 export const AREA_OVERLAY_ALPHA = 0.25;
-/** Alpha multiplier applied to the actively-selected area's overlay. */
-export const AREA_ACTIVE_ALPHA_MULTIPLIER = 1.6;
 /** Base font size (pixel-pre-zoom) for area centroid labels. */
 export const AREA_LABEL_FONT_SIZE_PX = 14;
 /** Minimum on-screen label size to keep labels legible at low zoom. */

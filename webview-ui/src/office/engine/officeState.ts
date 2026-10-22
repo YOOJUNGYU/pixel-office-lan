@@ -8,6 +8,7 @@ import {
   CHARACTER_SITTING_OFFSET_PX,
   DISMISS_BUBBLE_FAST_FADE_SEC,
   FOLLOW_RETRY_SEC,
+  FREE_TILE_PROBES,
   FURNITURE_ANIM_INTERVAL_SEC,
   GREETER_ID,
   GREETER_TILE_MARGIN,
@@ -121,9 +122,8 @@ export class OfficeState {
 
   /** Rebuild all derived state from a new layout (every editor edit). Characters
    *  stay where they are: walkers keep their destination, sitters their seat;
-   *  only those whose tile or seat the edit took away move — nearby, on foot.
-   *  @param shift Optional tile shift to apply when grid expands left/up */
-  rebuildFromLayout(layout: OfficeLayout, shift?: { col: number; row: number }): void {
+   *  only those whose tile or seat the edit took away move — nearby, on foot. */
+  rebuildFromLayout(layout: OfficeLayout): void {
     const oldSeats = this.seats;
     this.layout = layout;
     this.tileMap = layoutToTileMap(layout);
@@ -132,17 +132,6 @@ export class OfficeState {
     this.rebuildFurnitureInstances();
     this.walkableTiles = getWalkableTiles(this.tileMap, this.blockedTiles);
     this.indexAreaTiles();
-
-    const dc = shift?.col ?? 0;
-    const dr = shift?.row ?? 0;
-    // Shift positions (and paths) when the grid expands left/up
-    for (const e of this.characters.values()) {
-      e.tileCol += dc;
-      e.tileRow += dr;
-      e.x += dc * TILE_SIZE;
-      e.y += dr * TILE_SIZE;
-      e.path = e.path.map((t) => ({ col: t.col + dc, row: t.row + dr }));
-    }
 
     // Where each character was headed before the edit: its seat (sitting or
     // walking there), else the end of its path, else nowhere.
@@ -154,7 +143,7 @@ export class OfficeState {
         ch,
         !!old &&
           (end
-            ? end.col === old.seatCol + dc && end.row === old.seatRow + dr
+            ? end.col === old.seatCol && end.row === old.seatRow
             : ch.state === CharacterState.TYPE),
       );
     }
@@ -786,6 +775,11 @@ export class OfficeState {
       if (ch === self) continue;
       const end = ch.path[ch.path.length - 1] ?? { col: ch.tileCol, row: ch.tileRow };
       taken.add(`${end.col},${end.row}`);
+    }
+    // Random probes first (a big room is almost never full), then the full scan.
+    for (let i = 0; i < FREE_TILE_PROBES; i++) {
+      const t = tiles[Math.floor(Math.random() * tiles.length)];
+      if (!taken.has(`${t.col},${t.row}`)) return t;
     }
     const free = tiles.filter((t) => !taken.has(`${t.col},${t.row}`));
     const pool = free.length > 0 ? free : tiles;

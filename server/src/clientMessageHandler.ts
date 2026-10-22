@@ -91,7 +91,8 @@ export function handleClientMessage(
       break;
 
     case 'saveLayout': {
-      const layout = sanitizeLayout(msg.layout, roomColorsOf(ctx.cache?.defaultLayout));
+      const def = ctx.cache?.defaultLayout;
+      const layout = sanitizeLayout(msg.layout, roomColorsOf(def), def);
       if (layout) writeLayoutToFile(layout);
       else {
         console.warn('[Pixel Office] Refused an invalid layout save.');
@@ -321,7 +322,8 @@ function handleWebviewReady(send: WsSend, ctx: ClientMessageContext): void {
   // 3. Layout last: the webview builds the office once it arrives. Rooms are
   // normalized here too; a saved file that fails the checks is sent as is.
   const raw = readLayoutFromFile() ?? cache?.defaultLayout ?? null;
-  const layout = raw && (sanitizeLayout(raw, roomColorsOf(cache?.defaultLayout)) ?? raw);
+  const def = cache?.defaultLayout;
+  const layout = raw && (sanitizeLayout(raw, roomColorsOf(def), def) ?? raw);
   send({ type: 'layoutLoaded', layout });
 
   // 4. Agents right away rather than on the next 1 s tick.

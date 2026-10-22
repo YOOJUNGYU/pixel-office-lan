@@ -85,7 +85,6 @@ export const EditTool = {
   ERASE: 'erase',
   CARPET_PAINT: 'carpet_paint',
   CARPET_PICK: 'carpet_pick',
-  AREA_PAINT: 'area_paint',
   /** Colour-only eyedropper: takes a placed item's colour, leaves its type alone. */
   COLOR_PICK: 'color_pick',
   /** Background tab: edits layout.background from the panel; canvas clicks do nothing. */

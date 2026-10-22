@@ -52,10 +52,8 @@ interface OfficeCanvasProps {
   zoom: number;
   onZoomChange: (zoom: number) => void;
   panRef: React.MutableRefObject<{ x: number; y: number }>;
-  /** Whether the area overlay + labels should render (settings toggle OR active edit). */
+  /** Whether the area overlay + labels render (Settings → Show Areas). */
   showAreas: boolean;
-  /** Currently-selected area label in the editor (alpha-bumped overlay). null otherwise. */
-  activeAreaLabel: string | null;
   /** Mobile two-step tap: the first tap on a character selects it (camera
    *  follow + status label), and only a second tap on the already-selected
    *  character fires onClick. Desktop keeps single-click
@@ -79,7 +77,6 @@ export function OfficeCanvas({
   onZoomChange,
   panRef,
   showAreas,
-  activeAreaLabel,
   tapSelectsFirst = false,
 }: OfficeCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -215,7 +212,6 @@ export function OfficeCanvas({
           layout.areas,
           layout.areaTiles,
           showAreas,
-          activeAreaLabel,
           layout.background,
         );
         offsetRef.current = { x: offsetX, y: offsetY };
@@ -230,17 +226,7 @@ export function OfficeCanvas({
       stop();
       observer.disconnect();
     };
-  }, [
-    officeState,
-    resizeCanvas,
-    isEditMode,
-    editorState,
-    _editorTick,
-    zoom,
-    panRef,
-    showAreas,
-    activeAreaLabel,
-  ]);
+  }, [officeState, resizeCanvas, isEditMode, editorState, _editorTick, zoom, panRef, showAreas]);
 
   // Convert CSS mouse coords to world (sprite pixel) coords
   const screenToWorld = useCallback(
@@ -270,20 +256,10 @@ export function OfficeCanvas({
       const col = Math.floor(pos.worldX / TILE_SIZE);
       const row = Math.floor(pos.worldY / TILE_SIZE);
       const layout = officeState.getLayout();
-      // In edit mode with floor/wall/erase tool, extend valid range by 1 for ghost border
-      if (
-        isEditMode &&
-        (editorState.activeTool === EditTool.TILE_PAINT ||
-          editorState.activeTool === EditTool.WALL_PAINT ||
-          editorState.activeTool === EditTool.ERASE)
-      ) {
-        if (col < -1 || col > layout.cols || row < -1 || row > layout.rows) return null;
-        return { col, row };
-      }
       if (col < 0 || col >= layout.cols || row < 0 || row >= layout.rows) return null;
       return { col, row };
     },
-    [screenToWorld, officeState, isEditMode, editorState],
+    [screenToWorld, officeState],
   );
 
   // Check if device-pixel coords hit the delete button
@@ -345,30 +321,27 @@ export function OfficeCanvas({
           }
 
           // Paint on drag (paint-style tools only, not during furniture drag).
-          // Carpet + Area paint join the drag set so a single click-drag stamps
+          // Carpet paint joins the drag set so a single click-drag stamps
           // every tile under the cursor — stroke-based undo (one undo per
-          // click-drag) lives in useEditorActions for floor/wall/erase/carpet;
-          // area paint stays per-tile.
+          // click-drag) lives in useEditorActions.
           if (
             editorState.isDragging &&
             (editorState.activeTool === EditTool.TILE_PAINT ||
               editorState.activeTool === EditTool.WALL_PAINT ||
               editorState.activeTool === EditTool.ERASE ||
-              editorState.activeTool === EditTool.CARPET_PAINT ||
-              editorState.activeTool === EditTool.AREA_PAINT) &&
+              editorState.activeTool === EditTool.CARPET_PAINT) &&
             !editorState.dragUid
           ) {
             onEditorTileAction(tile.col, tile.row);
           }
-          // Right-click erase drag — also extends over carpets/areas so right-
+          // Right-click erase drag — also extends over carpets so right-
           // drag wipes them just like floor/wall.
           if (
             isEraseDraggingRef.current &&
             (editorState.activeTool === EditTool.TILE_PAINT ||
               editorState.activeTool === EditTool.WALL_PAINT ||
               editorState.activeTool === EditTool.ERASE ||
-              editorState.activeTool === EditTool.CARPET_PAINT ||
-              editorState.activeTool === EditTool.AREA_PAINT)
+              editorState.activeTool === EditTool.CARPET_PAINT)
           ) {
             const layout = officeState.getLayout();
             if (
@@ -495,8 +468,7 @@ export function OfficeCanvas({
           (editorState.activeTool === EditTool.TILE_PAINT ||
             editorState.activeTool === EditTool.WALL_PAINT ||
             editorState.activeTool === EditTool.ERASE ||
-            editorState.activeTool === EditTool.CARPET_PAINT ||
-            editorState.activeTool === EditTool.AREA_PAINT)
+            editorState.activeTool === EditTool.CARPET_PAINT)
         ) {
           const layout = officeState.getLayout();
           if (tile.col >= 0 && tile.col < layout.cols && tile.row >= 0 && tile.row < layout.rows) {

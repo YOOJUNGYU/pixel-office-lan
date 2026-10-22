@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { isLayoutGrid } from '../../core/src/lan.js';
+import { fillMissingRooms, isLayoutGrid, ROOM_LABELS, ROOM_ORDER } from '../../core/src/lan.js';
 import type { ProfileMessage } from '../../core/src/messages.js';
 import { BottomToolbar } from './components/BottomToolbar.js';
 import { ConnectionIndicator } from './components/ConnectionIndicator.js';
@@ -9,6 +9,7 @@ import { SettingsModal } from './components/SettingsModal.js';
 import { Button } from './components/ui/Button.js';
 import { ZoomControls } from './components/ZoomControls.js';
 import {
+  DEFAULT_LAYOUT_ASSET,
   FIRST_OPEN_FIT_FILL,
   LAYOUT_REJECTED_TOAST_MS,
   OFFICE_CANVAS_TEST_ID,
@@ -58,6 +59,11 @@ const editorState = new EditorState();
 // Installed only under the e2e harness so they never patch prototypes or grow
 // unbounded logs in a real user's session.
 if (isE2E) installTestHooks(officeStateRef);
+
+/** Room labels with no tile in the layout. */
+function emptyRoomLabels(layout: OfficeLayout): string[] {
+  return ROOM_ORDER.map((r) => ROOM_LABELS[r]).filter((l) => !layout.areaTiles?.includes(l));
+}
 
 function getOfficeState(): OfficeState {
   if (!officeStateRef.current) {
@@ -136,12 +142,7 @@ function App() {
     transport.send({ type: 'setShowAreas', enabled: next });
   }, [showAreas, setShowAreas]);
 
-  // When AREA_PAINT is active in the editor, force the overlay on even if the
-  // user has toggled Show Areas off globally — they need to see what they're
-  // editing. The selected area's overlay is alpha-bumped via activeAreaLabel.
-  const isEditingAreas = editor.isEditMode && editorState.activeTool === EditTool.AREA_PAINT;
-  const effectiveShowAreas = isEditingAreas || showAreas;
-  const activeAreaLabel = isEditingAreas ? editor.selectedAreaLabel : null;
+  const effectiveShowAreas = showAreas;
 
   // e2e: register the component-scoped editor-action drivers + the effective
   // show-areas gate on the test-hooks namespace (module-load installTestHooks
@@ -196,7 +197,7 @@ function App() {
 
   const officeState = getOfficeState();
 
-  // Areas authoring is available when the layout already defines areas.
+  // The Show Areas setting is offered when the layout defines its rooms.
   const areasAvailable = (officeState.getLayout().areas?.length ?? 0) > 0;
   const emptyRooms = officeState.emptyRooms();
 
@@ -249,7 +250,6 @@ function App() {
     if (!officeReadOnly && !isMobile) caps.add('edit');
     if (offices) caps.add('switcher').add('offices');
     if (profile?.canEdit) caps.add('profile');
-    if (areasAvailable) caps.add('areas');
     setIsSettingsOpen(false);
     setIsProfileOpen(false);
     tourDemoRef.current = needsDemo(lan.realAgents());
@@ -280,7 +280,7 @@ function App() {
     return () => clearTimeout(timer);
   }, [layoutSaveRejections]);
 
-  // First open: a big office (the 90×60 default) is zoomed out to fit the
+  // First open: a big office (the 128×128 default) is zoomed out to fit the
   // window when the default zoom would not show all of it. Once per session.
   const fittedRef = useRef(false);
   useEffect(() => {
@@ -384,7 +384,7 @@ function App() {
       return;
     }
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       try {
         const imported: unknown = JSON.parse(String(reader.result));
         // The server's grid check (isLayoutGrid), before anything is built: a
@@ -393,7 +393,13 @@ function App() {
           window.alert(t('app.importInvalid'));
           return;
         }
-        const migrated = migrateLayoutColors(imported as unknown as OfficeLayout);
+        let migrated = migrateLayoutColors(imported as unknown as OfficeLayout);
+        // Rooms come from the bundled default: a room without tiles takes the
+        // default's when the grid is the default size (the server does the same).
+        if (emptyRoomLabels(migrated).length > 0) {
+          const res = await fetch(`${import.meta.env.BASE_URL}${DEFAULT_LAYOUT_ASSET}`);
+          if (res.ok) migrated = fillMissingRooms(migrated, (await res.json()) as unknown);
+        }
         getOfficeState().rebuildFromLayout(migrated);
         editor.setLastSavedLayout(migrated);
         transport.send({
@@ -454,7 +460,6 @@ function App() {
           onZoomChange={editor.handleZoomChange}
           panRef={editor.panRef}
           showAreas={effectiveShowAreas}
-          activeAreaLabel={activeAreaLabel}
           tapSelectsFirst={isMobile}
         />
 
@@ -520,12 +525,7 @@ function App() {
                 onCarpetVariantChange={editor.handleCarpetVariantChange}
                 onCarpetColorChange={editor.handleCarpetColorChange}
                 onCarpetAccentColorChange={editor.handleCarpetAccentColorChange}
-                areas={officeState.getLayout().areas ?? []}
-                selectedAreaLabel={editor.selectedAreaLabel}
-                areasAvailable={areasAvailable}
                 emptyRooms={emptyRooms}
-                onSelectArea={editor.handleSelectArea}
-                onAreaColorChange={editor.handleAreaColorChange}
                 background={officeState.getLayout().background}
                 onBackgroundChange={editor.handleBackgroundChange}
               />

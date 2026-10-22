@@ -85,6 +85,29 @@ export function normalizeRoomAreas<T extends RoomAreasLayout>(
   return { ...layout, areas, areaTiles };
 }
 
+/**
+ * Rooms come only from the bundled default layout (the editor has no area tool):
+ * a normalized layout with a room that has no tiles takes that room's tiles from
+ * `fallback` (the default layout) when both grids are the same size, on tiles
+ * that carry no other room. Otherwise the layout is returned as is.
+ */
+export function fillMissingRooms<T extends RoomAreasLayout>(layout: T, fallback: unknown): T {
+  if (!isObj(fallback) || fallback.cols !== layout.cols || fallback.rows !== layout.rows) {
+    return layout;
+  }
+  const src = fallback.areaTiles;
+  const tiles = layout.areaTiles;
+  if (!Array.isArray(src) || !Array.isArray(tiles) || src.length !== tiles.length) return layout;
+  const missing = new Set<unknown>(
+    ROOM_ORDER.map((r) => ROOM_LABELS[r]).filter((l) => !tiles.includes(l)),
+  );
+  if (missing.size === 0) return layout;
+  const areaTiles = tiles.map((t, i) =>
+    t === null && missing.has(src[i]) ? (src[i] as string) : t,
+  );
+  return { ...layout, areaTiles };
+}
+
 /** Bundled pets a profile may pick as its character (unknown ids → the human palette). */
 export const PET_IDS = ['claudio', 'gitcat'] as const;
 export type PetId = (typeof PET_IDS)[number];

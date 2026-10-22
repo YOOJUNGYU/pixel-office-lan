@@ -41,18 +41,6 @@ export function useEditorKeyboard(
           editorState.activeTool = EditTool.FURNITURE_PLACE;
           editorState.endStroke();
           editorState.clearGhost();
-        } else if (
-          editorState.activeTool === EditTool.AREA_PAINT &&
-          editorState.selectedAreaLabel !== null
-        ) {
-          // First Esc inside Areas: drop area selection (keep AREA_PAINT active)
-          editorState.selectedAreaLabel = null;
-          editorState.areaDragErasing = null;
-        } else if (editorState.activeTool === EditTool.AREA_PAINT) {
-          // Second Esc inside Areas: close the panel (back to SELECT)
-          editorState.activeTool = EditTool.SELECT;
-          editorState.areaDragErasing = null;
-          editorState.clearGhost();
         } else if (editorState.activeTool !== EditTool.SELECT) {
           editorState.activeTool = EditTool.SELECT;
           editorState.clearGhost();

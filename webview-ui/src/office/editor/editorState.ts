@@ -109,12 +109,6 @@ export class EditorState {
   /** Stroke direction: true=erase, false=paint, null=stroke not yet started. */
   carpetDragErasing: boolean | null = null;
 
-  // ── Area editor state ────────────────────────────────────────────
-  /** Which Area label is the AREA_PAINT tool currently painting. */
-  selectedAreaLabel: string | null = null;
-  /** First tile of an area drag sets direction: true=erase same label, false=paint. */
-  areaDragErasing: boolean | null = null;
-
   /**
    * Enter the undo session an edit belongs to. Returns true when the edit opens
    * a new undo entry — the caller pushes undo then — and false when it extends
@@ -131,7 +125,6 @@ export class EditorState {
   endStroke(): void {
     this.undoSession = null;
     this.carpetDragErasing = null;
-    this.areaDragErasing = null;
     this.wallDragAdding = null;
   }
 
@@ -290,7 +283,5 @@ export class EditorState {
     this.carpetAccentColor = { ...CARPET_DEFAULT_ACCENT_COLOR };
     this.carpetDragErasing = null;
     this.undoSession = null;
-    this.selectedAreaLabel = null;
-    this.areaDragErasing = null;
   }
 }

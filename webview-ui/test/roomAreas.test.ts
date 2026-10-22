@@ -11,6 +11,7 @@ import { test } from 'vitest';
 
 import type { RoomAreasLayout } from '../../core/src/lan.js';
 import {
+  fillMissingRooms,
   isLayoutGrid,
   normalizeRoomAreas,
   ROOM_DEFAULT_COLORS,
@@ -128,4 +129,17 @@ test('emptyRooms lists the rooms with no walkable tile', () => {
   );
   const os = new OfficeState(layout);
   assert.deepEqual(os.emptyRooms(), [ROOM_LABELS.library, ROOM_LABELS.server]);
+});
+
+test("fillMissingRooms: a room without tiles takes the default layout's, only on a same-size grid", () => {
+  const [coding, library] = ROOMS;
+  const def = { cols: 2, rows: 1, areaTiles: [coding, library] };
+  const lacking = { cols: 2, rows: 1, areaTiles: [coding, null] };
+  assert.deepEqual(fillMissingRooms(lacking, def).areaTiles, [coding, library]);
+  // another room's tile is never relabelled
+  const taken = { cols: 2, rows: 1, areaTiles: [library, library] };
+  assert.deepEqual(fillMissingRooms(taken, def).areaTiles, [library, library]);
+  // a different grid size keeps the layout as is
+  const wide = { cols: 3, rows: 1, areaTiles: [coding, null, null] };
+  assert.equal(fillMissingRooms(wide, def), wide);
 });
