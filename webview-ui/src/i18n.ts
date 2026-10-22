@@ -28,9 +28,7 @@ const ko = {
   'act.image': '이미지 보는 중',
   'act.tool': '{t} 사용 중',
 
-  'tag.subagent': '↳ 서브에이전트',
-  'tag.shell': '↳ 셸',
-  'bubble.permission': '❗ 확인 필요',
+  'bubble.permission': '확인 필요',
   'people.title': '접속 중 {n}명',
   'people.you': '(나)',
   'people.noAgents': '에이전트 없음',
@@ -50,6 +48,7 @@ const ko = {
   'app.rotateHint': '회전 (R)',
   'app.importConfirm': '현재 레이아웃을 바꿀까요? 저장하지 않은 편집은 사라집니다.',
   'app.importInvalid': '올바른 레이아웃 파일이 아닙니다.',
+  'app.layoutSaveRejected': '레이아웃을 저장하지 못했습니다 (올바르지 않은 레이아웃).',
   'app.importFailed': '레이아웃 파일을 읽지 못했습니다.',
 
   'conn.connecting': '연결 중…',
@@ -135,6 +134,8 @@ const ko = {
   'profile.nicknameHint': '비워 두면 PC 계정 이름({account})만 표시됩니다',
   'profile.nicknameTooLong': '닉네임은 20자 이하여야 합니다.',
   'profile.character': '캐릭터',
+  'profile.pet.claudio': '클로디오 (반려동물)',
+  'profile.pet.gitcat': '깃캣 (반려동물)',
   'profile.color': '색상',
   'profile.hideDetails': '상세 내용 숨기기',
   'profile.hideDetailsHint':
@@ -160,8 +161,6 @@ const ko = {
   'editor.background.floor': '바닥',
   'editor.background.carpet': '카펫',
   'editor.backgroundHint': '지금은 기본 배경입니다. 종류를 고르세요.',
-  'editor.pets': '반려동물',
-  'editor.petsTitle': '반려동물 놓기',
   'editor.areas': '방 영역',
   'editor.areasTitle': '방 영역 지정',
   'editor.erase': '지우기',
@@ -184,19 +183,9 @@ const ko = {
   'editor.main': '기본',
   'editor.accent': '강조',
   'editor.areasHint':
-    '지도에 영역을 칠한 뒤 작업 폴더를 지정하세요. 에이전트가 그 영역에 앉습니다.',
-  'editor.noAreas': '아직 영역이 없습니다 — 위에서 추가하세요',
-  'editor.areaName': '영역 이름…',
-  'editor.addArea': '영역 추가',
-  'editor.addAreaTitle': '새 영역 추가',
+    '방을 고른 뒤 타일에 칠하세요(칠한 타일을 다시 누르면 지워집니다). 방은 이 네 개로 고정입니다.',
+  'editor.emptyRoom': '{room} 영역이 비어 있어 이 방에 갈 에이전트가 아무 곳에나 앉습니다',
   'editor.areaColor': '영역 색상',
-  'editor.renameArea': '{t} — 더블클릭해 이름 변경',
-  'editor.removeArea': '영역 삭제',
-  'editor.noFolders': '지정된 폴더 없음',
-  'editor.unmapFolder': '폴더 지정 해제',
-  'editor.allMapped': '모든 폴더가 이미 지정됨',
-  'editor.mapFolder': '폴더 지정…',
-  'editor.addFolder': '폴더 추가…',
 
   'category.desks': '책상',
   'category.chairs': '의자',
@@ -246,10 +235,10 @@ const ko = {
     '할 일을 기다리거나 확인을 기다릴 때는 대기실에서 쉽니다.\n방 이동은 3초 정도 상태가 이어져야 일어나서, 잠깐씩 바뀌는 작업에 캐릭터가 왔다 갔다 하지 않습니다.',
   'tour.tag.title': '이름표',
   'tour.tag.body':
-    '캐릭터 아래 이름표는 "PC 계정 (닉네임) · Claude/Codex #번호" 입니다. 닉네임은 정한 사람만 보입니다. 앞의 색 점은 제공자예요 — 주황은 Claude, 초록은 Codex.\n서브에이전트와 셸은 "↳" 로 표시됩니다.',
+    '캐릭터 아래 이름표는 "PC 계정 (닉네임) · Claude/Codex #번호" 입니다. 닉네임은 정한 사람만 보입니다. 앞의 색 점은 제공자예요 — 주황은 Claude, 초록은 Codex.\n서브에이전트와 셸은 부모의 이름표 뒤에 SUB / SHELL 배지가 붙습니다.',
   'tour.bubble.title': '말풍선',
   'tour.bubble.body':
-    '캐릭터에 마우스를 올리면 어느 방에서 무엇을 하는지, 그리고 이유가 보입니다.\n머리 위 ❗ 는 사용자의 확인(권한 승인이나 답변)을 기다린다는 뜻입니다.',
+    '캐릭터에 마우스를 올리면 어느 방에서 무엇을 하는지, 그리고 이유가 보입니다.\n머리 위 빨간 ! 는 사용자의 확인(권한 승인이나 답변)을 기다린다는 뜻입니다.',
   'tour.family.title': '서브에이전트와 셸',
   'tour.family.body':
     '에이전트가 만든 서브에이전트와 셸은 부모와 손을 잡고 다닙니다.\n부모가 다른 방에 있으면 반투명한 부모의 분신이 대신 손을 잡아 줍니다.',
@@ -292,12 +281,12 @@ const ko = {
     '목록에서 골라 놓고, 드래그로 옮기고, Alt+드래그로 복사합니다.\nR 은 회전, T 는 켜기/끄기(모니터 등), 색 버튼으로 색을 바꿉니다. 카펫도 여기 있습니다.',
   'tour.areas.title': '방 영역',
   'tour.areas.body':
-    '코딩실·자료실·서버실·대기실 영역을 타일에 칠합니다. 에이전트는 이 영역을 보고 어느 방으로 갈지 정합니다.',
+    '코딩실·자료실·서버실·대기실, 고정된 네 방을 타일에 칠합니다(방을 새로 만들지는 않습니다). 에이전트는 이 영역을 보고 어느 방으로 갈지 정합니다.',
   'tour.background.title': '배경',
   'tour.background.body': '사무실 바깥을 단색, 바닥 무늬, 카펫 무늬 중 하나로 채웁니다.',
-  'tour.editorMore.title': '반려동물 · 지우기 · 저장',
+  'tour.editorMore.title': '지우기 · 저장',
   'tour.editorMore.body':
-    '반려동물을 풀어 놓거나 [지우기] 로 타일을 지울 수 있습니다. Ctrl+Z / Ctrl+Y 로 실행 취소 · 다시 실행.\n편집한 내용은 바로바로 저장됩니다. 위쪽 막대의 [되돌리기] 는 마지막으로 [저장] 을 누른 때(또는 사무실을 연 때)의 배치로 돌아가고, [저장] 은 지금 배치를 그 기준으로 삼습니다.',
+    '[지우기] 로 타일을 지울 수 있습니다. Ctrl+Z / Ctrl+Y 로 실행 취소 · 다시 실행.\n편집한 내용은 바로바로 저장됩니다. 위쪽 막대의 [되돌리기] 는 마지막으로 [저장] 을 누른 때(또는 사무실을 연 때)의 배치로 돌아가고, [저장] 은 지금 배치를 그 기준으로 삼습니다.',
   'tour.install.title': '앱으로 설치',
   'tour.install.body':
     '이 PC의 브라우저에서는 Pixel Office 를 앱으로 설치할 수 있습니다(Edge·Chrome). 설치하면 바로가기가 탭이 아닌 앱 창으로 열립니다.\n안내 창을 닫았다면 주소창의 설치 아이콘을 쓰세요.',
@@ -332,9 +321,7 @@ const en: Record<Key, string> = {
   'act.image': 'Viewing an image',
   'act.tool': 'Using {t}',
 
-  'tag.subagent': '↳ Subagent',
-  'tag.shell': '↳ Shell',
-  'bubble.permission': '❗ Needs attention',
+  'bubble.permission': 'Needs attention',
   'people.title': '{n} online',
   'people.you': '(you)',
   'people.noAgents': 'No agents',
@@ -354,6 +341,7 @@ const en: Record<Key, string> = {
   'app.rotateHint': 'Rotate (R)',
   'app.importConfirm': 'Replace the current layout? Unsaved edits will be lost.',
   'app.importInvalid': 'This is not a valid layout file.',
+  'app.layoutSaveRejected': 'The layout was not saved (not a valid layout).',
   'app.importFailed': 'Could not read the layout file.',
 
   'conn.connecting': 'Connecting…',
@@ -438,6 +426,8 @@ const en: Record<Key, string> = {
   'profile.nicknameHint': 'Leave empty to show only your PC account name ({account})',
   'profile.nicknameTooLong': 'Nickname must be 20 characters or fewer.',
   'profile.character': 'Character',
+  'profile.pet.claudio': 'Claudio (pet)',
+  'profile.pet.gitcat': 'Gitcat (pet)',
   'profile.color': 'Color',
   'profile.hideDetails': 'Hide details',
   'profile.hideDetailsHint':
@@ -463,8 +453,6 @@ const en: Record<Key, string> = {
   'editor.background.floor': 'Floor',
   'editor.background.carpet': 'Carpet',
   'editor.backgroundHint': 'Using the default background. Pick a kind.',
-  'editor.pets': 'Pets',
-  'editor.petsTitle': 'Place pets',
   'editor.areas': 'Areas',
   'editor.areasTitle': 'Define room areas',
   'editor.erase': 'Erase',
@@ -487,19 +475,9 @@ const en: Record<Key, string> = {
   'editor.main': 'Main',
   'editor.accent': 'Accent',
   'editor.areasHint':
-    "Paint areas on the map, then assign workspace folders. Agents will sit in their folder's area.",
-  'editor.noAreas': 'No areas yet — add one above',
-  'editor.areaName': 'Area name…',
-  'editor.addArea': 'Add Area',
-  'editor.addAreaTitle': 'Add a new Area',
+    'Pick a room, then paint it onto tiles (paint a painted tile again to erase). These four rooms are fixed.',
+  'editor.emptyRoom': 'The {room} area is empty, so agents headed there sit anywhere',
   'editor.areaColor': 'Area color',
-  'editor.renameArea': '{t} — double-click to rename',
-  'editor.removeArea': 'Remove area',
-  'editor.noFolders': 'No folders mapped',
-  'editor.unmapFolder': 'Unmap folder',
-  'editor.allMapped': 'All folders already mapped',
-  'editor.mapFolder': 'Map a folder…',
-  'editor.addFolder': 'Add folder…',
 
   'category.desks': 'Desks',
   'category.chairs': 'Chairs',
@@ -550,10 +528,10 @@ const en: Record<Key, string> = {
     'Idle agents, and agents waiting for you, rest in the lounge.\nA move only happens after the new activity lasts about 3 seconds, so characters do not bounce around on quick tasks.',
   'tour.tag.title': 'Name tags',
   'tour.tag.body':
-    'The tag under a character reads "PC account (nickname) · Claude/Codex #number"; the nickname only when one is set. The dot is the provider: orange = Claude, green = Codex.\nSubagents and shells are marked "↳".',
+    'The tag under a character reads "PC account (nickname) · Claude/Codex #number"; the nickname only when one is set. The dot is the provider: orange = Claude, green = Codex.\nSubagents and shells show their parent\'s tag followed by a SUB / SHELL badge.',
   'tour.bubble.title': 'Hover bubble',
   'tour.bubble.body':
-    'Hover a character to see its room, what it is doing and why.\nA ❗ over its head means it is waiting for you (a permission or an answer).',
+    'Hover a character to see its room, what it is doing and why.\nA red ! over its head means it is waiting for you (a permission or an answer).',
   'tour.family.title': 'Subagents and shells',
   'tour.family.body':
     'Subagents and shells an agent starts walk hand in hand with it.\nWhen the parent is in another room, a see-through ghost of the parent holds their hand instead.',
@@ -597,13 +575,13 @@ const en: Record<Key, string> = {
     'Pick an item and place it, drag to move, Alt+drag to copy.\nR rotates, T toggles (monitors…), the color button recolors. Carpets live here too.',
   'tour.areas.title': 'Room areas',
   'tour.areas.body':
-    'Paint the coding room, library, server room and lounge onto tiles. Agents use these areas to decide where to go.',
+    'Paint the four fixed rooms (coding room, library, server room, lounge) onto tiles; there is no adding rooms. Agents use these areas to decide where to go.',
   'tour.background.title': 'Background',
   'tour.background.body':
     'Fill the outside of the office with a solid color, a floor pattern or a carpet.',
-  'tour.editorMore.title': 'Pets · Erase · Save',
+  'tour.editorMore.title': 'Erase · Save',
   'tour.editorMore.body':
-    'Let pets roam, or clear tiles with [Erase]. Ctrl+Z / Ctrl+Y undo and redo.\nEvery edit is saved right away. [Reset] in the top bar goes back to the layout as of your last [Save] (or when you opened the office); [Save] makes the current layout that point.',
+    'Clear tiles with [Erase]. Ctrl+Z / Ctrl+Y undo and redo.\nEvery edit is saved right away. [Reset] in the top bar goes back to the layout as of your last [Save] (or when you opened the office); [Save] makes the current layout that point.',
   'tour.install.title': 'Install as an app',
   'tour.install.body':
     'On this PC’s browser you can install Pixel Office as an app (Edge, Chrome). Shortcuts then open it in its own window instead of a tab.\nIf you closed the prompt, use the install icon in the address bar.',

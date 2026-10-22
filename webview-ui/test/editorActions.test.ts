@@ -13,11 +13,11 @@ import assert from 'node:assert/strict';
 
 import { beforeAll, describe, test } from 'vitest';
 
-import { rotateFurniture } from '../src/office/editor/editorActions.js';
+import { expandLayout, rotateFurniture } from '../src/office/editor/editorActions.js';
 import type { LoadedAssetData } from '../src/office/layout/furnitureCatalog.js';
 import { buildDynamicCatalog } from '../src/office/layout/furnitureCatalog.js';
 import type { OfficeLayout, PlacedFurniture } from '../src/office/types.js';
-import { TileType } from '../src/office/types.js';
+import { MAX_COLS, MAX_ROWS, TileType } from '../src/office/types.js';
 
 type CatalogAsset = LoadedAssetData['catalog'][number];
 
@@ -127,4 +127,21 @@ describe('rotateFurniture validates the whole desk group', () => {
     ]);
     assert.equal(rotateFurniture(layout, 'desk', 'cw'), layout);
   });
+});
+
+test('the grid grows up to 128×128 and no further', () => {
+  assert.equal(MAX_COLS, 128);
+  assert.equal(MAX_ROWS, 128);
+  const grid = (cols: number, rows: number): OfficeLayout => ({
+    version: 1,
+    cols,
+    rows,
+    tiles: new Array(cols * rows).fill(TileType.FLOOR_1),
+    furniture: [],
+  });
+  const wide = expandLayout(grid(127, 127), 'right');
+  assert.equal(wide?.layout.cols, 128);
+  assert.equal(expandLayout(grid(128, 127), 'left'), null);
+  assert.equal(expandLayout(grid(127, 128), 'down'), null);
+  assert.equal(expandLayout(grid(127, 127), 'up')?.layout.rows, 128);
 });

@@ -74,6 +74,7 @@ components:
       oneOf:
         # Layout
         - $ref: '#/components/schemas/LayoutLoaded'
+        - $ref: '#/components/schemas/LayoutSaveRejected'
         # Assets
         - $ref: '#/components/schemas/FurnitureAssetsLoaded'
         - $ref: '#/components/schemas/CharacterSpritesLoaded'
@@ -85,7 +86,6 @@ components:
         - $ref: '#/components/schemas/OfficeAccess'
         - $ref: '#/components/schemas/SettingsLoaded'
         - $ref: '#/components/schemas/ExternalAssetDirectoriesUpdated'
-        - $ref: '#/components/schemas/AreaMappingsLoaded'
         # LAN office
         - $ref: '#/components/schemas/OfficeSnapshot'
         - $ref: '#/components/schemas/ProfileLoaded'
@@ -110,7 +110,6 @@ components:
         - $ref: '#/components/schemas/SetAlwaysShowLabels'
         - $ref: '#/components/schemas/AddExternalAssetDirectory'
         - $ref: '#/components/schemas/RemoveExternalAssetDirectory'
-        - $ref: '#/components/schemas/SaveAreaMappings'
         - $ref: '#/components/schemas/SetShowAreas'
         - $ref: '#/components/schemas/SaveProfile'
         - $ref: '#/components/schemas/InstallUpdate'
@@ -186,7 +185,7 @@ components:
       description: Pet sprite frame sets and display names, sent once after webviewReady (between characterSpritesLoaded and floorTilesLoaded).
       type: object
       additionalProperties: false
-      required: [type, pets, petNames]
+      required: [type, pets, petNames, petIds]
       properties:
         type:
           const: petSpritesLoaded
@@ -198,6 +197,11 @@ components:
         petNames:
           type: array
           description: Display names parallel-indexed to `pets` (sourced from each pet's manifest.json).
+          items:
+            type: string
+        petIds:
+          type: array
+          description: Manifest ids parallel-indexed to `pets` (what a profile's `pet` names).
           items:
             type: string
 
@@ -334,24 +338,6 @@ components:
             type: string
         showAreas:
           type: boolean
-
-    AreaMappingsLoaded:
-      description: |
-        Directory-to-Area mappings. Directory names map to one or more Area
-        labels; new agents from that Directory prefer seats inside those Areas.
-      type: object
-      additionalProperties: false
-      required: [type, mappings]
-      properties:
-        type:
-          const: areaMappingsLoaded
-        mappings:
-          type: object
-          description: Map of Directory name (string) to array of Area labels.
-          additionalProperties:
-            type: array
-            items:
-              type: string
 
     ExternalAssetDirectoriesUpdated:
       description: External asset directory list changed (after add/remove).
@@ -492,6 +478,17 @@ components:
       type: string
       enum: [invalidCode, alreadyJoined, nameInvalid, full]
 
+    LayoutSaveRejected:
+      description: >-
+        A saveLayout was refused (not a v1 grid within 128×128 whose tiles
+        match it), to the requesting socket only. Nothing was written.
+      type: object
+      additionalProperties: false
+      required: [type]
+      properties:
+        type:
+          const: layoutSaveRejected
+
     ProfileError:
       description: >-
         A saveProfile was refused, to the requesting socket only, just before
@@ -576,6 +573,8 @@ components:
           type: integer
         hueShift:
           type: integer
+        pet:
+          $ref: '#/components/schemas/PetId'
         self:
           type: boolean
           description: This server's own PC.
@@ -619,6 +618,8 @@ components:
           type: integer
           minimum: 0
           maximum: 360
+        pet:
+          $ref: '#/components/schemas/PetId'
         hideDetails:
           type: boolean
         manualPeers:
@@ -687,8 +688,18 @@ components:
             it (then the smallest peer id); absent = unknown, loses.
         palette:
           type: integer
+          description: Human character 0-5; also the fallback when `pet` is unknown to a viewer.
         hueShift:
           type: integer
+        pet:
+          $ref: '#/components/schemas/PetId'
+
+    PetId:
+      type: string
+      description: >-
+        A bundled pet the PC picked as its character (instead of the `palette`
+        human). Optional; a peer that does not know the field shows the human.
+      enum: [claudio, gitcat]
 
     AgentProvider:
       type: string
@@ -779,21 +790,6 @@ components:
           const: removeExternalAssetDirectory
         path:
           type: string
-
-    SaveAreaMappings:
-      description: Persist Directory-to-Area mappings for seat assignment.
-      type: object
-      additionalProperties: false
-      required: [type, mappings]
-      properties:
-        type:
-          const: saveAreaMappings
-        mappings:
-          type: object
-          additionalProperties:
-            type: array
-            items:
-              type: string
 
     SetShowAreas:
       description: Toggle the Areas overlay (translucent rendering on top of the office).

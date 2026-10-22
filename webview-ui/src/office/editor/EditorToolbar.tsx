@@ -1,14 +1,12 @@
 import type { CSSProperties } from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Button } from '../../components/ui/Button.js';
 import { ColorPicker } from '../../components/ui/ColorPicker.js';
-import { Dropdown, DropdownItem } from '../../components/ui/Dropdown.js';
 import { ItemSelect } from '../../components/ui/ItemSelect.js';
 import type { ColorValue } from '../../components/ui/types.js';
 import { VisualColorPicker } from '../../components/VisualColorPicker.js';
 import {
-  AREA_DEFAULT_COLORS,
   BACKGROUND_CARPET_PATCH_TILES,
   BACKGROUND_DEFAULT_CARPET_VARIANT,
   BACKGROUND_DEFAULT_COLOR,
@@ -17,9 +15,6 @@ import {
   CANVAS_FALLBACK_TILE_COLOR,
   CARPET_DEFAULT_ACCENT_COLOR,
   CARPET_DEFAULT_COLOR,
-  EMPTY_SPRITE_THUMBNAIL_BG,
-  PET_THUMB_SCALE_MARGIN,
-  PET_THUMB_ZOOM,
 } from '../../constants.js';
 import { areaName, t, useLang } from '../../i18n.js';
 import type { BackgroundFill } from '../background.js';
@@ -38,7 +33,6 @@ import {
   getCarpetSetCount,
   hasCarpetSprites,
 } from '../sprites/carpetTiles.js';
-import { getPetName, getPetSprites } from '../sprites/petSpriteData.js';
 import { getCachedSprite } from '../sprites/spriteCache.js';
 import type {
   AreaDefinition,
@@ -78,9 +72,6 @@ interface EditorToolbarProps {
   onColorPickToggle: () => void;
   onFurnitureTypeChange: (type: string) => void;
   loadedAssets?: LoadedAssetData;
-  activePetTypes: number[];
-  petCount: number;
-  onPetToggle: (petType: number, active: boolean) => void;
   // Carpet state + handlers
   carpetVariant: number;
   carpetColor: ColorValue;
@@ -91,16 +82,12 @@ interface EditorToolbarProps {
   // Area state + handlers
   areas: AreaDefinition[];
   selectedAreaLabel: string | null;
-  directories: { name: string; path: string }[];
-  /** Whether the Areas tool is offered (layout has areas OR some Directory is mappable). */
+  /** Whether the Areas tool is offered (the layout has its rooms). */
   areasAvailable: boolean;
-  areaMappings: Record<string, string[]>;
+  /** Labels of rooms with no walkable tile (agents headed there sit anywhere). */
+  emptyRooms: string[];
   onSelectArea: (label: string | null) => void;
-  onAddArea: (label: string, color: string) => void;
-  onRemoveArea: (label: string) => void;
-  onRenameArea: (oldLabel: string, newLabel: string) => void;
   onAreaColorChange: (label: string, color: string) => void;
-  onAreaMappingChange: (directoryName: string, areaLabel: string, action: 'add' | 'remove') => void;
   background: OfficeBackground | undefined;
   onBackgroundChange: (background: OfficeBackground, continuous: boolean) => void;
 }
@@ -129,9 +116,6 @@ export function EditorToolbar({
   onColorPickToggle,
   onFurnitureTypeChange,
   loadedAssets,
-  activePetTypes,
-  petCount,
-  onPetToggle,
   carpetVariant,
   carpetColor,
   carpetAccentColor,
@@ -140,15 +124,10 @@ export function EditorToolbar({
   onCarpetAccentColorChange,
   areas,
   selectedAreaLabel,
-  directories,
   areasAvailable,
-  areaMappings,
+  emptyRooms,
   onSelectArea,
-  onAddArea,
-  onRemoveArea,
-  onRenameArea,
   onAreaColorChange,
-  onAreaMappingChange,
   background,
   onBackgroundChange,
 }: EditorToolbarProps) {
@@ -210,7 +189,6 @@ export function EditorToolbar({
     // them, so it has to stay open while the user goes to click an item.
     (activeTool === EditTool.COLOR_PICK && !selectedFurnitureUid) ||
     isCarpetActive;
-  const isPetsActive = activeTool === EditTool.PETS;
   const isBackgroundActive = activeTool === EditTool.BACKGROUND;
   const isColorPicking = activeTool === EditTool.COLOR_PICK;
   const carpetVariantCount = getCarpetSetCount();
@@ -292,15 +270,6 @@ export function EditorToolbar({
           title={t('editor.wallsTitle')}
         >
           {t('editor.walls')}
-        </Button>
-        <Button
-          variant={isPetsActive ? 'active' : 'default'}
-          size="md"
-          onClick={() => onToolChange(EditTool.PETS)}
-          data-tour="editor-pets"
-          title={t('editor.petsTitle')}
-        >
-          {t('editor.pets')}
         </Button>
         {areasAvailable && (
           <Button
@@ -446,67 +415,21 @@ export function EditorToolbar({
         />
       )}
 
-      {/* Sub-panel: Pets — thumbnail grid above tool row */}
-      {isPetsActive && petCount > 0 && (
-        <div className="flex flex-col-reverse gap-4">
-          <div className="carousel" data-testid="pets-carousel">
-            {Array.from({ length: petCount }, (_, i) => {
-              const sprites = getPetSprites(i);
-              const isActive = activePetTypes.includes(i);
-              return (
-                <ItemSelect
-                  key={i}
-                  width={32}
-                  height={64}
-                  selected={isActive}
-                  onClick={() => onPetToggle(i, !isActive)}
-                  title={getPetName(i)}
-                  deps={[i, isActive]}
-                  draw={(ctx, w, h) => {
-                    if (!sprites) {
-                      ctx.fillStyle = EMPTY_SPRITE_THUMBNAIL_BG;
-                      ctx.fillRect(0, 0, w, h);
-                      return;
-                    }
-                    const cached = getCachedSprite(sprites.idleDown[0], PET_THUMB_ZOOM);
-                    const scale =
-                      Math.min(w / cached.width, h / cached.height) * PET_THUMB_SCALE_MARGIN;
-                    const dw = cached.width * scale;
-                    const dh = cached.height * scale;
-                    ctx.drawImage(cached, (w - dw) / 2, (h - dh) / 2, dw, dh);
-                  }}
-                />
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Sub-panel: Areas — Add row + card list */}
+      {/* Sub-panel: Areas — the four fixed rooms (paint/erase only) */}
       {isAreasActive && (
         <div className="flex flex-col-reverse gap-4 pb-2">
-          <AreaAddRow areas={areas} onAddArea={onAddArea} />
           <div className="text-xs text-text-muted px-4 leading-none">{t('editor.areasHint')}</div>
-          {/* Fixed 4-per-row grid; no overflow clip, or the upward Add-folder dropdown is cut off. */}
+          <EmptyRoomsWarning labels={emptyRooms} />
           <div className="grid grid-cols-[repeat(4,130px)] gap-4">
-            {areas.length === 0 ? (
-              <span className="text-xs text-text-muted italic">{t('editor.noAreas')}</span>
-            ) : (
-              areas.map((area) => (
-                <AreaCard
-                  key={area.label}
-                  area={area}
-                  isSelected={selectedAreaLabel === area.label}
-                  onSelect={() => onSelectArea(area.label)}
-                  onRename={(newLabel) => onRenameArea(area.label, newLabel)}
-                  onRemove={() => onRemoveArea(area.label)}
-                  onColorChange={(c) => onAreaColorChange(area.label, c)}
-                  directories={directories}
-                  areaMappings={areaMappings}
-                  onAreaMappingChange={onAreaMappingChange}
-                />
-              ))
-            )}
+            {areas.map((area) => (
+              <AreaCard
+                key={area.label}
+                area={area}
+                isSelected={selectedAreaLabel === area.label}
+                onSelect={() => onSelectArea(area.label)}
+                onColorChange={(c) => onAreaColorChange(area.label, c)}
+              />
+            ))}
           </div>
         </div>
       )}
@@ -920,40 +843,14 @@ function TileColorBox({
 
 // ── Areas sub-components ───────────────────────────────────────────
 
-function AreaAddRow({
-  areas,
-  onAddArea,
-}: {
-  areas: AreaDefinition[];
-  onAddArea: (label: string, color: string) => void;
-}) {
-  const [draft, setDraft] = useState('');
-  const handleSubmit = () => {
-    const trimmed = draft.trim();
-    if (!trimmed) return;
-    if (areas.some((a) => a.label === trimmed)) return;
-    const color = AREA_DEFAULT_COLORS[areas.length % AREA_DEFAULT_COLORS.length];
-    onAddArea(trimmed, color);
-    setDraft('');
-  };
+/** One line per room with no walkable tile; nothing when every room has floor. */
+export function EmptyRoomsWarning({ labels }: { labels: string[] }) {
+  if (labels.length === 0) return null;
   return (
-    <div className="flex gap-4 items-center">
-      <input
-        type="text"
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            handleSubmit();
-          }
-        }}
-        placeholder={t('editor.areaName')}
-        className="flex-1 text-sm py-2 px-6 bg-bg-dark border-2 border-border rounded-none text-text"
-      />
-      <Button variant="default" size="sm" onClick={handleSubmit} title={t('editor.addAreaTitle')}>
-        {t('editor.addArea')}
-      </Button>
+    <div data-testid="empty-rooms-warning" className="flex flex-col gap-2 px-4 text-xs text-danger">
+      {labels.map((l) => (
+        <span key={l}>{t('editor.emptyRoom', { room: areaName(l) })}</span>
+      ))}
     </div>
   );
 }
@@ -962,163 +859,31 @@ function AreaCard({
   area,
   isSelected,
   onSelect,
-  onRename,
-  onRemove,
   onColorChange,
-  directories,
-  areaMappings,
-  onAreaMappingChange,
 }: {
   area: AreaDefinition;
   isSelected: boolean;
   onSelect: () => void;
-  onRename: (newLabel: string) => void;
-  onRemove: () => void;
   onColorChange: (color: string) => void;
-  directories: { name: string; path: string }[];
-  areaMappings: Record<string, string[]>;
-  onAreaMappingChange: (directoryName: string, areaLabel: string, action: 'add' | 'remove') => void;
 }) {
-  const [renaming, setRenaming] = useState(false);
-  const [renameDraft, setRenameDraft] = useState(area.label);
-  const [addFolderOpen, setAddFolderOpen] = useState(false);
-
-  const mappedFolders = useMemo(
-    () =>
-      Object.entries(areaMappings)
-        .filter(([, labels]) => labels.includes(area.label))
-        .map(([folder]) => folder),
-    [areaMappings, area.label],
-  );
-  const availableFolders = useMemo(
-    () => directories.filter((f) => !mappedFolders.includes(f.name)),
-    [directories, mappedFolders],
-  );
-
-  const commitRename = () => {
-    setRenaming(false);
-    const trimmed = renameDraft.trim();
-    if (trimmed && trimmed !== area.label) {
-      onRename(trimmed);
-    } else {
-      setRenameDraft(area.label);
-    }
-  };
-
   return (
     <div
       onClick={onSelect}
-      className={`flex flex-col gap-4 w-130 min-h-170 py-4 px-8 bg-bg-dark border-2 rounded-none cursor-pointer ${
+      className={`flex items-center gap-4 w-130 py-4 px-8 bg-bg-dark border-2 rounded-none cursor-pointer ${
         isSelected ? 'border-accent' : 'border-border'
       }`}
     >
-      <div className="flex items-center gap-4">
-        <input
-          type="color"
-          value={area.color}
-          onChange={(e) => onColorChange(e.target.value)}
-          onClick={(e) => e.stopPropagation()}
-          className="w-24 h-24 p-0 border-2 border-border bg-transparent cursor-pointer"
-          title={t('editor.areaColor')}
-        />
-        {renaming ? (
-          <input
-            type="text"
-            value={renameDraft}
-            autoFocus
-            onChange={(e) => setRenameDraft(e.target.value)}
-            onClick={(e) => e.stopPropagation()}
-            onBlur={commitRename}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                commitRename();
-              } else if (e.key === 'Escape') {
-                setRenameDraft(area.label);
-                setRenaming(false);
-              }
-            }}
-            className="flex-1 text-sm py-2 px-4 bg-bg border-2 border-border rounded-none text-text"
-          />
-        ) : (
-          <span
-            onDoubleClick={(e) => {
-              e.stopPropagation();
-              setRenaming(true);
-            }}
-            className="flex-1 text-sm text-text overflow-hidden text-ellipsis whitespace-nowrap"
-            title={t('editor.renameArea', { t: areaName(area.label) })}
-          >
-            {areaName(area.label)}
-          </span>
-        )}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={(e) => {
-            e?.stopPropagation();
-            onRemove();
-          }}
-          title={t('editor.removeArea')}
-        >
-          x
-        </Button>
-      </div>
-
-      <div className="flex flex-col gap-2 max-h-80 overflow-y-auto pixel-scrollbar">
-        {mappedFolders.length === 0 ? (
-          <span className="text-xs text-text-muted italic">{t('editor.noFolders')}</span>
-        ) : (
-          mappedFolders.map((folder) => (
-            <div key={folder} className="flex items-center gap-4 py-1 px-2">
-              <span
-                className="flex-1 text-xs text-text overflow-hidden text-ellipsis whitespace-nowrap"
-                title={folder}
-              >
-                {folder}
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => {
-                  e?.stopPropagation();
-                  onAreaMappingChange(folder, area.label, 'remove');
-                }}
-                title={t('editor.unmapFolder')}
-              >
-                x
-              </Button>
-            </div>
-          ))
-        )}
-      </div>
-
-      <div className="relative">
-        <Button
-          variant="default"
-          size="sm"
-          onClick={(e) => {
-            e?.stopPropagation();
-            if (availableFolders.length === 0) return;
-            setAddFolderOpen((v) => !v);
-          }}
-          title={availableFolders.length === 0 ? t('editor.allMapped') : t('editor.mapFolder')}
-        >
-          {t('editor.addFolder')}
-        </Button>
-        <Dropdown isOpen={addFolderOpen}>
-          {availableFolders.map((f) => (
-            <DropdownItem
-              key={f.path}
-              onClick={() => {
-                onAreaMappingChange(f.name, area.label, 'add');
-                setAddFolderOpen(false);
-              }}
-            >
-              {f.name}
-            </DropdownItem>
-          ))}
-        </Dropdown>
-      </div>
+      <input
+        type="color"
+        value={area.color}
+        onChange={(e) => onColorChange(e.target.value)}
+        onClick={(e) => e.stopPropagation()}
+        className="w-24 h-24 p-0 border-2 border-border bg-transparent cursor-pointer"
+        title={t('editor.areaColor')}
+      />
+      <span className="flex-1 text-sm text-text overflow-hidden text-ellipsis whitespace-nowrap">
+        {areaName(area.label)}
+      </span>
     </div>
   );
 }

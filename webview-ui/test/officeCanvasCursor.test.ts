@@ -3,9 +3,8 @@
  *
  * Decision order (per officeCanvasCursor.ts):
  *   1. character hit (hitId !== null)          → pointer
- *   2. pet hit (petId !== null)                → pointer
- *   3. selected agent + seat-reassign hover    → pointer
- *   4. otherwise                               → grab
+ *   2. selected agent + seat-reassign hover    → pointer
+ *   3. otherwise                               → grab
  *
  * Run with: npm test
  */
@@ -26,7 +25,6 @@ import { computeNormalModeCursor } from '../src/office/components/officeCanvasCu
 function buildState(overrides: Partial<OfficeCursorState> = {}): OfficeCursorState {
   return {
     hitId: null,
-    petId: null,
     selectedAgentId: null,
     tile: null,
     getSeatAtTile: () => null,
@@ -40,11 +38,6 @@ function buildState(overrides: Partial<OfficeCursorState> = {}): OfficeCursorSta
 
 test('character hit returns pointer', () => {
   const state = buildState({ hitId: 42 });
-  assert.equal(computeNormalModeCursor(state), 'pointer');
-});
-
-test('character hit returns pointer even when pet also hit', () => {
-  const state = buildState({ hitId: 1, petId: 'pet-a' });
   assert.equal(computeNormalModeCursor(state), 'pointer');
 });
 
@@ -62,35 +55,7 @@ test('character hit returns pointer even when selected agent and seat available'
   assert.equal(computeNormalModeCursor(state), 'pointer');
 });
 
-// ── 2. Pet hit (after no character) ───────────────────────────
-
-test('pet hit returns pointer', () => {
-  const state = buildState({ petId: 'pet-abc' });
-  assert.equal(computeNormalModeCursor(state), 'pointer');
-});
-
-test('pet hit with empty-string id still returns pointer (!== null check, not truthy)', () => {
-  // Empty-string id is technically a valid hit per the pure module contract.
-  // Defensive: regression guard against accidental `if (petId)` truthy checks.
-  const state = buildState({ petId: '' });
-  assert.equal(computeNormalModeCursor(state), 'pointer');
-});
-
-test('pet hit takes priority over seat-reassign', () => {
-  const seats: Record<string, OfficeCursorSeat> = { s1: { assigned: false } };
-  const chars: Record<number, OfficeCursorCharacter> = { 5: { seatId: null } };
-  const state = buildState({
-    petId: 'p',
-    selectedAgentId: 5,
-    tile: { col: 1, row: 1 },
-    getSeatAtTile: () => 's1',
-    getSeat: (id) => seats[id],
-    getCharacter: (id) => chars[id],
-  });
-  assert.equal(computeNormalModeCursor(state), 'pointer');
-});
-
-// ── 3. Seat-reassign hover (only when agent selected) ─────────
+// ── 2. Seat-reassign hover (only when agent selected) ─────────
 
 test('seat-reassign hover returns pointer when an unassigned seat is hovered', () => {
   const seats: Record<string, OfficeCursorSeat> = { s1: { assigned: false } };
@@ -168,7 +133,7 @@ test('seat-reassign returns default when tile is null (mouse not on grid)', () =
   assert.equal(computeNormalModeCursor(state), 'grab');
 });
 
-// ── 4. Default fallthrough ────────────────────────────────────
+// ── 3. Default fallthrough ────────────────────────────────────
 
 test('default cursor when no hits and no selection', () => {
   const state = buildState();

@@ -151,7 +151,8 @@ describe('/ws', () => {
     expect(await access).toEqual({ type: 'officeAccess', readOnly: false });
     expect(await layoutLoaded).not.toBeNull();
 
-    socket.send(JSON.stringify({ type: 'saveLayout', layout: { version: 1, marker: 'mine' } }));
+    const layout = { version: 1, cols: 1, rows: 1, tiles: [1], furniture: [], marker: 'mine' };
+    socket.send(JSON.stringify({ type: 'saveLayout', layout }));
     await vi.waitFor(() => expect(fs.existsSync(layoutPath())).toBe(true));
     expect(JSON.parse(fs.readFileSync(layoutPath(), 'utf-8'))).toMatchObject({ marker: 'mine' });
   });

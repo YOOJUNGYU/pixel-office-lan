@@ -1,12 +1,15 @@
 import type { Provider, Room } from '../../core/src/lan.js';
+import { MAX_LAYOUT_COLS, MAX_LAYOUT_ROWS, ROOM_DEFAULT_COLORS } from '../../core/src/lan.js';
 import type { ColorValue } from './components/ui/types.js';
 
 // ── Grid & Layout ────────────────────────────────────────────
 export const TILE_SIZE = 16;
 export const DEFAULT_COLS = 20;
 export const DEFAULT_ROWS = 11;
-export const MAX_COLS = 64;
-export const MAX_ROWS = 64;
+export const MAX_COLS = MAX_LAYOUT_COLS;
+export const MAX_ROWS = MAX_LAYOUT_ROWS;
+/** Largest offscreen floor cache (device px²): a 128×128 office up to render zoom 2. */
+export const FLOOR_CACHE_MAX_PIXELS = 4096 * 4096;
 
 // ── Character Animation ─────────────────────────────────────
 export const WALK_SPEED_PX_PER_SEC = 48;
@@ -153,18 +156,9 @@ export const CARPET_DEFAULT_ACCENT_COLOR: ColorValue = {
 /** Keyboard key that switches from CARPET_PAINT to CARPET_PICK while editing. */
 export const KEY_CARPET_PICK = 'p';
 
-// ── Areas (named, colored Directory zones) ───────────────────
-/** Color palette assigned to new Areas in rotation (cycles when more areas exist). */
-export const AREA_DEFAULT_COLORS: readonly string[] = [
-  '#ff6b6b',
-  '#feca57',
-  '#48dbfb',
-  '#1dd1a1',
-  '#5f27cd',
-  '#ff9ff3',
-  '#54a0ff',
-  '#ffa502',
-] as const;
+// ── Areas (the four fixed rooms) ─────────────────────────────
+/** Room overlay colors of the bundled default layout: a layout missing a room gets these. */
+export const ROOM_AREA_COLORS: Readonly<Record<Room, string>> = ROOM_DEFAULT_COLORS;
 /** Translucent overlay alpha for area tile fills. */
 export const AREA_OVERLAY_ALPHA = 0.25;
 /** Alpha multiplier applied to the actively-selected area's overlay. */
@@ -240,6 +234,13 @@ export const AUTO_ON_FACING_DEPTH = 3;
 export const AUTO_ON_SIDE_DEPTH = 2;
 export const CHARACTER_HIT_HALF_WIDTH = 8;
 export const CHARACTER_HIT_HEIGHT = 24;
+/** Pet character hit box (measured on claudio/gitcat): front/back frames are
+ *  16 px wide, side frames 32; the animal is 16 (sitting) to 21 (walking) px tall. */
+export const PET_HIT_HALF_WIDTH = 7;
+export const PET_HIT_HALF_WIDTH_SIDE = 11;
+export const PET_HIT_HEIGHT = 19;
+/** A pet's head is this much lower than a human's: bubbles and the "!" sit lower. */
+export const PET_HEAD_DROP_PX = 2;
 
 // ── Greeter + Intro bubble ──────────────────────────────────
 /** Reserved character id for the Intro's greeter. Far outside both real agent
@@ -254,43 +255,18 @@ export const GREETER_TILE_MARGIN = 3;
  *  that have taken a turn; this only covers characters created ahead of it). */
 export const DEFAULT_MAX_CONTEXT_TOKENS = 200_000;
 
-// ── Pets ────────────────────────────────────────────────────────
-/** Walking speed in world pixels per second (matches character walk speed visually but slower). */
-export const PET_WALK_SPEED_PX_PER_SEC = 32;
-/** Time per WALK animation cycle step (4 cycle steps × 0.15s = 0.6s per loop). */
-export const PET_WALK_FRAME_DURATION_SEC = 0.15;
+// ── Pet characters (a profile's character may be a pet) ─────
 /** Time per IDLE animation cycle step (4 cycle steps × 0.3s = 1.2s per loop). */
 export const PET_IDLE_FRAME_DURATION_SEC = 0.3;
 /** Walk cycle: 4-step lookup into the 3-frame walkDown/walkUp/walkRight arrays. */
 export const PET_WALK_SEQUENCE = [0, 1, 0, 2] as const;
 /** Idle cycle: 4-step lookup into the 3-frame idleDown/idleUp arrays. */
 export const PET_IDLE_SEQUENCE = [0, 1, 2, 1] as const;
-/** Minimum seconds the pet stays in IDLE before making a new decision. */
-export const PET_WANDER_PAUSE_MIN_SEC = 3.0;
-/** Maximum seconds the pet stays in IDLE before making a new decision. */
-export const PET_WANDER_PAUSE_MAX_SEC = 15.0;
-/** Seconds between FOLLOW path re-computations. */
-export const PET_FOLLOW_RECALC_INTERVAL_SEC = 1.0;
-/** Probability that a pet enters FOLLOW (instead of WALK) when wanderTimer expires. */
-export const PET_FOLLOW_CHANCE = 0.3;
-/** Maximum Manhattan distance (tiles) at which a character can become a follow target. */
-export const PET_FOLLOW_RADIUS_TILES = 3;
-/** Minimum seconds a FOLLOW episode lasts before timing out. */
-export const PET_FOLLOW_DURATION_MIN_SEC = 5.0;
-/** Maximum seconds a FOLLOW episode lasts before timing out. */
-export const PET_FOLLOW_DURATION_MAX_SEC = 15.0;
-/** Hit-box half-width (world px) for pet click detection. */
-export const PET_HIT_HALF_WIDTH = 8;
-/** Hit-box height (world px) measured upward from the bottom-center anchor. */
-export const PET_HIT_HEIGHT = 16;
-/** Zoom factor used to draw pet thumbnails in the EditorToolbar Pets tab. */
-export const PET_THUMB_ZOOM = 2;
-/** Scale margin so the pet thumbnail fills the ItemSelect cell without touching the edges. */
-export const PET_THUMB_SCALE_MARGIN = 0.85;
-/** Fallback background fill for sprite-less thumbnail (used while pet sprites are loading). */
-export const EMPTY_SPRITE_THUMBNAIL_BG = '#333';
-/** Maximum string length for a PlacedPet.id (defends against pathologically-long layout entries). */
-export const MAX_PET_ID_LENGTH = 128;
+/** A pet's color (hueShift ≠ 0) is a colorize tint, not a hue rotation: gitcat is
+ *  nearly black/grey, where rotating the hue changes nothing. Saturation of the tint
+ *  and a per-pet lightness lift (colorize `b`) so dark pets show the color. */
+export const PET_TINT_SATURATION = 55;
+export const PET_TINT_BRIGHTNESS: Readonly<Record<string, number>> = { claudio: 0, gitcat: 40 };
 
 // ── WebSocket reconnect (standalone only) ────────────────────
 /** Reconnect backoff ladder for the /ws transport (transport/reconnectBackoff.ts).
@@ -357,6 +333,19 @@ export const LAN_PROVIDER_COLORS: Record<Provider, string> = {
   claude: '#D97757',
   codex: '#10A37F',
 };
+/** Badge after a subagent's / shell's name tag (which shows the parent's label). */
+export const LAN_KIND_BADGES: Record<
+  'subagent' | 'shell',
+  { text: string; bg: string; fg: string }
+> = {
+  subagent: { text: 'SUB', bg: '#5f27cd', fg: '#ffffff' },
+  shell: { text: 'SHELL', bg: '#576574', fg: '#ffffff' },
+};
+/** Waiting/permission "!" over a character's head: red glyph, 1px dark outline. */
+export const LAN_ALERT_COLOR = '#e8202a';
+export const LAN_ALERT_OUTLINE_COLOR = '#2b0608';
+/** The "!" glyph (sprite pixels, before the outline): bar, gap, dot. */
+export const LAN_ALERT_GLYPH = ['###', '###', '###', '###', '.#.', '...', '###', '###'];
 /** Hover bubble wraps long summaries/reasons at this width (CSS px). */
 export const LAN_BUBBLE_MAX_WIDTH_PX = 300;
 /** Hover bubble sits this many world px above a character's feet (sprite height). */
@@ -401,6 +390,10 @@ export const TOUR_SPOTLIGHT_EASE = 0.25;
 export const TOUR_OUTLINE_PX = 2;
 /** The tour fits the whole office into this fraction of the screen. */
 export const TOUR_FIT_FILL = 0.92;
+/** First open: share of the window the whole office fills when it would not fit at the default zoom. */
+export const FIRST_OPEN_FIT_FILL = 0.95;
+/** How long the "layout not saved" toast stays. */
+export const LAYOUT_REJECTED_TOAST_MS = 4_000;
 
 // ── People panel ─────────────────────────────────────────────
 /** localStorage: '1' = collapsed, '0' = expanded (per viewer); unset = by screen width. */
@@ -410,6 +403,8 @@ export const PEOPLE_WIDE_MIN_PX = 1100;
 /** Face crop of the standing frame (sprite rows) and its integer scale. */
 export const PEOPLE_FACE_TOP = 10;
 export const PEOPLE_FACE_ROWS = 14;
+/** Pet face crop (rows of the front idle frame; the animal starts at row 15). */
+export const PEOPLE_PET_FACE_TOP = 15;
 export const PEOPLE_FACE_SCALE = 2;
 /** How long the "no agents" hint stays after clicking an agentless row. */
 export const PEOPLE_HINT_MS = 2_000;

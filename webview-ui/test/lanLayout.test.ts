@@ -30,7 +30,7 @@ const catalog = buildFurnitureCatalog(assetsDir);
 buildDynamicCatalog({ catalog, sprites: decodeAllFurniture(assetsDir, catalog) });
 const os = new OfficeState(layout);
 
-const MIN_SEATS: Record<string, number> = { 코딩실: 32, 자료실: 24, 서버실: 24, 대기실: 48 };
+const MIN_SEATS: Record<string, number> = { 코딩실: 60, 자료실: 40, 서버실: 40, 대기실: 80 };
 const ROOMS = Object.keys(MIN_SEATS);
 
 /** Walkable tiles of a room (by area label). */
@@ -38,8 +38,9 @@ function roomTiles(label: string): Array<{ col: number; row: number }> {
   return os.walkableTiles.filter((t) => layout.areaTiles?.[t.row * layout.cols + t.col] === label);
 }
 
-test('fits the grid and defines exactly the four rooms', () => {
+test('fits the grid (about 90×60) and defines exactly the four rooms', () => {
   assert.ok(layout.cols <= MAX_COLS && layout.rows <= MAX_ROWS);
+  assert.ok(layout.cols >= 80 && layout.rows >= 50, `${layout.cols}×${layout.rows}`);
   assert.deepEqual(
     (layout.areas ?? []).map((a) => a.label),
     ROOMS,

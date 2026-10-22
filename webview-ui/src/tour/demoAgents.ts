@@ -1,7 +1,7 @@
 // Client-only demo characters for the onboarding tour. They go through
 // LanAgents like snapshot agents but are never sent anywhere.
 
-import type { OfficeAgent, PeerInfo, Room } from '../../../core/src/lan.js';
+import type { OfficeAgent, PeerInfo, PetId, Room } from '../../../core/src/lan.js';
 import { TOUR_DEMO_MIN_AGENTS, TOUR_DEMO_PREFIX } from '../constants.js';
 import type { AgentRole } from './steps.js';
 
@@ -39,21 +39,22 @@ const WALK_ACT: Record<Room, { act: OfficeAgent['act']; target: string }> = {
 };
 
 /**
- * The demo office: a lone coder in 코딩실 (editing, with a reason), a reader in
- * 자료실 with a subagent beside it, a Codex runner in 서버실 whose subagent
+ * The demo office: a lone coder in 코딩실 (editing, with a reason), a reader (a
+ * pet) in 자료실 with a subagent beside it, a Codex runner in 서버실 whose subagent
  * works in 대기실 (so it holds a ghost's hand), and a walker that the rooms
- * steps send to `walkerRoom`; back home in 대기실 it waits for approval (❗).
+ * steps send to `walkerRoom`; back home in 대기실 it waits for approval (the red "!").
  */
 export function demoAgents(texts: DemoTexts, walkerRoom: Room = 'lounge'): OfficeAgent[] {
-  const peer = (n: number, palette: number, hueShift: number): PeerInfo => ({
+  const peer = (n: number, palette: number, hueShift: number, pet?: PetId): PeerInfo => ({
     id: `${TOUR_DEMO_PREFIX}${'abcd'[n]}`,
     account: texts.accounts[n],
     nickname: '',
     palette,
     hueShift,
+    ...(pet && { pet }),
   });
   const a = peer(0, 0, 0);
-  const b = peer(1, 1, 0);
+  const b = peer(1, 1, 0, 'claudio'); // a pet, with its subagent pet beside it
   const c = peer(2, 4, 0);
   const d = peer(3, 5, 0);
   const main = (p: PeerInfo, room: Room, extra: Partial<OfficeAgent> = {}): OfficeAgent => ({

@@ -3,6 +3,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { ROOM_DEFAULT_COLORS } from '../../core/src/lan.js';
 import {
   type AssetCache,
   type ClientMessageContext,
@@ -24,6 +25,18 @@ const FULL_CACHE: AssetCache = {
   furniture: null,
   defaultLayout: { version: 1, marker: 'default' },
 };
+/** A minimal valid 2×1 layout. */
+const GRID = { version: 1, cols: 2, rows: 1, tiles: [1, 1], furniture: [] };
+/** The bundled default's room colors. */
+const DEFAULT_ROOMS = {
+  areas: [
+    { label: '코딩실', color: '#48dbfb' },
+    { label: '자료실', color: '#1dd1a1' },
+    { label: '서버실', color: '#ff6b6b' },
+    { label: '대기실', color: '#feca57' },
+  ],
+};
+const OTHER = '#123456';
 /* eslint-enable pixel-agents/no-inline-colors */
 
 /**
@@ -70,7 +83,7 @@ describe('clientMessageHandler', () => {
   }
 
   describe('webviewReady', () => {
-    it('sends access, assets, settings, area mappings, then the layout last', () => {
+    it('sends access, assets, settings, then the layout last', () => {
       send({ type: 'webviewReady' }, ctx(true, FULL_CACHE));
       expect(sent.map((m) => m.type)).toEqual([
         'officeAccess',
@@ -78,7 +91,6 @@ describe('clientMessageHandler', () => {
         'wallTilesLoaded',
         'carpetTilesLoaded',
         'settingsLoaded',
-        'areaMappingsLoaded',
         'layoutLoaded',
       ]);
       expect(sent[0]).toEqual({ type: 'officeAccess', readOnly: false });
@@ -95,23 +107,84 @@ describe('clientMessageHandler', () => {
     });
 
     it('prefers the saved layout over the bundled default', () => {
-      send({ type: 'saveLayout', layout: { version: 1, marker: 'saved' } }, ctx(true));
+      send({ type: 'saveLayout', layout: { ...GRID, marker: 'saved' } }, ctx(true));
       send({ type: 'webviewReady' }, ctx(true, FULL_CACHE));
-      expect(sent.at(-1)).toEqual({
+      expect(sent.at(-1)).toMatchObject({
         type: 'layoutLoaded',
-        layout: { version: 1, marker: 'saved' },
+        layout: { ...GRID, marker: 'saved' },
       });
     });
   });
 
-  describe('privileged writes', () => {
-    it('saveAreaMappings persists a valid payload and ignores a malformed one', () => {
-      send({ type: 'saveAreaMappings', mappings: { frontend: ['Lab'] } }, ctx(true));
-      expect(readConfig().standalone.areaMappings).toEqual({ frontend: ['Lab'] });
-      send({ type: 'saveAreaMappings', mappings: 'nope' }, ctx(true));
-      expect(readConfig().standalone.areaMappings).toEqual({ frontend: ['Lab'] });
+  describe('saveLayout', () => {
+    const saved = () =>
+      JSON.parse(
+        fs.readFileSync(path.join(tempHome, '.pixel-office', 'layout.json'), 'utf-8'),
+      ) as Record<string, unknown>;
+
+    it('keeps exactly the four rooms, drops unknown areas and pets', () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      send(
+        {
+          type: 'saveLayout',
+          layout: {
+            ...GRID,
+            areas: [
+              { label: 'Lab', color: OTHER },
+              { label: '서버실', color: OTHER },
+            ],
+            areaTiles: ['Lab', '서버실'],
+            pets: [{ id: 'p', petType: 0 }],
+          },
+        },
+        { ...ctx(true), cache: { ...FULL_CACHE, defaultLayout: DEFAULT_ROOMS } },
+      );
+      warn.mockRestore();
+      const layout = saved();
+      const [coding, library, , lounge] = DEFAULT_ROOMS.areas;
+      expect(layout.areas).toEqual([coding, library, { label: '서버실', color: OTHER }, lounge]);
+      expect(layout.areaTiles).toEqual([null, '서버실']);
+      expect('pets' in layout).toBe(false);
     });
 
+    it('refuses odd input without throwing or writing, and tells the browser', () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      for (const layout of [
+        null,
+        'x',
+        [],
+        { version: 1 },
+        { ...GRID, cols: 129, tiles: new Array(129).fill(1) },
+        { ...GRID, tiles: [1] },
+        { ...GRID, furniture: 'no' },
+        { ...GRID, areas: 'no', areaTiles: { 0: 'x' } },
+      ]) {
+        expect(() => send({ type: 'saveLayout', layout }, ctx(true))).not.toThrow();
+      }
+      warn.mockRestore();
+      // Every one but the last (a valid grid with odd areas) was refused.
+      expect(sent.filter((m) => m.type === 'layoutSaveRejected')).toHaveLength(7);
+      // Odd areas just become the four rooms, with their default colors.
+      expect((saved().areas as Array<{ color: string }>).map((a) => a.color)).toEqual(
+        Object.values(ROOM_DEFAULT_COLORS),
+      );
+      expect(saved().areaTiles).toEqual([null, null]);
+    });
+
+    it('accepts a 128×128 office', () => {
+      const n = 128 * 128;
+      send(
+        {
+          type: 'saveLayout',
+          layout: { ...GRID, cols: 128, rows: 128, tiles: new Array(n).fill(1) },
+        },
+        ctx(true),
+      );
+      expect(saved().cols).toBe(128);
+    });
+  });
+
+  describe('privileged writes', () => {
     it('setShowAreas persists via the adapter', () => {
       send({ type: 'setShowAreas', enabled: true }, ctx(true));
       expect(readConfig().standalone.showAreas).toBe(true);
@@ -144,7 +217,6 @@ describe('clientMessageHandler', () => {
         { type: 'setAlwaysShowLabels', enabled: true },
         { type: 'addExternalAssetDirectory', path: '/x' },
         { type: 'removeExternalAssetDirectory', path: '/x' },
-        { type: 'saveAreaMappings', mappings: { Lab: ['project'] } },
         { type: 'setShowAreas', enabled: true },
       ]) {
         send(msg, readOnly);
@@ -154,7 +226,6 @@ describe('clientMessageHandler', () => {
       expect(snapshotHome()).toEqual(before);
       // Only truth-restoring replies come back.
       expect([...new Set(sent.map((m) => m.type))].sort()).toEqual([
-        'areaMappingsLoaded',
         'externalAssetDirectoriesUpdated',
         'settingsLoaded',
       ]);
@@ -166,9 +237,6 @@ describe('clientMessageHandler', () => {
       expect(sent).toContainEqual(
         expect.objectContaining({ type: 'settingsLoaded', showAreas: false }),
       );
-      sent = [];
-      send({ type: 'saveAreaMappings', mappings: { Lab: ['x'] } }, ctx(false));
-      expect(sent).toEqual([{ type: 'areaMappingsLoaded', mappings: {} }]);
       warn.mockRestore();
     });
   });
@@ -253,25 +321,19 @@ describe('clientMessageHandler', () => {
     function seedPaths(): void {
       const cfg = readConfig();
       cfg.externalAssetDirectories = ['/home/kim/assets'];
-      cfg.standalone.areaMappings = { 'kim-project': ['Lab'] };
       writeConfig(cfg);
     }
     const pick = (type: string) => sent.find((m) => m.type === type);
 
-    it('handshake: read-only gets empty dirs and mappings, privileged gets the real ones', () => {
+    it('handshake: read-only gets empty dirs, privileged gets the real ones', () => {
       seedPaths();
       send({ type: 'webviewReady' }, ctx(false));
       expect(pick('settingsLoaded')).toMatchObject({ externalAssetDirectories: [] });
-      expect(pick('areaMappingsLoaded')).toEqual({ type: 'areaMappingsLoaded', mappings: {} });
 
       sent = [];
       send({ type: 'webviewReady' }, ctx(true));
       expect(pick('settingsLoaded')).toMatchObject({
         externalAssetDirectories: ['/home/kim/assets'],
-      });
-      expect(pick('areaMappingsLoaded')).toEqual({
-        type: 'areaMappingsLoaded',
-        mappings: { 'kim-project': ['Lab'] },
       });
     });
 
@@ -280,14 +342,12 @@ describe('clientMessageHandler', () => {
       const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
       send({ type: 'setShowAreas', enabled: true }, ctx(false));
       send({ type: 'addExternalAssetDirectory', path: '/x' }, ctx(false));
-      send({ type: 'saveAreaMappings', mappings: {} }, ctx(false));
       warn.mockRestore();
       expect(pick('settingsLoaded')).toMatchObject({ externalAssetDirectories: [] });
       expect(pick('externalAssetDirectoriesUpdated')).toEqual({
         type: 'externalAssetDirectoriesUpdated',
         dirs: [],
       });
-      expect(pick('areaMappingsLoaded')).toEqual({ type: 'areaMappingsLoaded', mappings: {} });
       expect(JSON.stringify(sent)).not.toContain('kim');
     });
   });

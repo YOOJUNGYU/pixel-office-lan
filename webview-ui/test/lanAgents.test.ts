@@ -15,7 +15,7 @@ import { buildFurnitureCatalog } from '../../core/src/assets/build.ts';
 import { decodeAllFurniture } from '../../core/src/assets/loader.ts';
 import type { OfficeAgent, Room } from '../../core/src/lan.ts';
 import { setLang } from '../src/i18n.js';
-import { LanAgents, tagText } from '../src/lan/lanAgents.js';
+import { LanAgents, tagBadge, tagText } from '../src/lan/lanAgents.js';
 import { OfficeState } from '../src/office/engine/officeState.js';
 import { buildDynamicCatalog } from '../src/office/layout/furnitureCatalog.js';
 import type { Character, OfficeLayout } from '../src/office/types.js';
@@ -96,6 +96,37 @@ test('a changed peer look is applied to existing characters and ghosts', () => {
   assert.equal(sub.palette, 4);
   assert.equal(sub.hueShift, (90 + 120) % 360);
   for (const g of ghosts(os)) assert.equal(g.palette, 4);
+});
+
+test('a pet profile: main, subagent (hue-offset) and ghost wear the pet; the shell stays human; switching back to the human', () => {
+  const { os, lan } = setup();
+  const pet = { ...peer, pet: 'gitcat' as const };
+  const shell = (p: typeof peer) => ({
+    ...agent('h', 'server', { kind: 'shell', num: 0, parentId: 'a', parentKey: 'p1:a' }),
+    peer: p,
+  });
+  const snap = (p: typeof peer) => [
+    agent('a', 'coding', { peer: p }),
+    { ...child('c', 'a', 'server'), peer: p },
+    shell(p),
+  ];
+  lan.apply(snap(pet));
+  const main = os.characters.get(lan.idFor('p1:a')!)!;
+  const sub = os.characters.get(lan.idFor('p1:c')!)!;
+  const sh = os.characters.get(lan.idFor('p1:h')!)!;
+  assert.equal(main.pet, 'gitcat');
+  assert.equal(main.hueShift, 30);
+  assert.equal(sub.pet, 'gitcat');
+  assert.equal(sub.hueShift, 150);
+  assert.equal(sh.pet, undefined, 'shells keep the shell look');
+  const [ghost] = ghosts(os);
+  assert.equal(ghost.pet, 'gitcat', 'the ghost parent is the pet too');
+
+  lan.apply(snap(peer)); // profile switched back to the human
+  assert.equal(main.pet, undefined);
+  assert.equal(sub.pet, undefined);
+  for (const g of ghosts(os)) assert.equal(g.pet, undefined);
+  assert.equal(main.palette, 2);
 });
 
 test('more lounge agents than lounge seats all land inside 대기실', () => {
@@ -238,8 +269,20 @@ test('name tags: account (nickname) · provider #n for mains, kind for children'
     tagText(agent('s2', 'coding', { provider: 'codex', num: 1 })),
     'yoo (kim) · Codex #1',
   );
-  assert.equal(tagText(child('s1/sub/a', 's1', 'coding')), '↳ 서브에이전트');
-  assert.equal(tagText({ ...child('s1/sh/1', 's1', 'server'), kind: 'shell' }), '↳ 셸');
+  // Children: the parent's full label, then a SUB / SHELL badge (no i18n).
+  const parent = agent('s1', 'coding', { num: 3 });
+  const sub = child('s1/sub/a', 's1', 'coding');
+  const shell = { ...child('s1/sh/1', 's1', 'server'), kind: 'shell' as const };
+  assert.equal(tagText(sub, parent), 'yoo (kim) · Claude #3');
+  assert.equal(tagText(shell, parent), 'yoo (kim) · Claude #3');
+  assert.equal(tagText(sub), 'yoo (kim) · Claude', 'parent not in view: no number');
+  assert.equal(tagBadge(sub), 'SUB');
+  assert.equal(tagBadge(shell), 'SHELL');
+  assert.equal(tagBadge(parent), null);
+  setLang('en');
+  assert.equal(tagBadge(sub), 'SUB');
+  assert.equal(tagText(sub, parent), 'yoo (kim) · Claude #3');
+  setLang('ko');
   const unnamed = agent('s3', 'coding', { num: 1 });
   assert.equal(tagText({ ...unnamed, peer: { ...unnamed.peer, nickname: '' } }), 'yoo · Claude #1');
 });

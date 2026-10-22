@@ -7,6 +7,88 @@ export const ROOM_LABELS: Record<Room, string> = {
   server: '서버실',
   lounge: '대기실',
 };
+/** The four fixed rooms, in layout order. */
+export const ROOM_ORDER: readonly Room[] = ['coding', 'library', 'server', 'lounge'];
+
+/** Layout grid limits (editor expansion, layout validation on server and webview). */
+export const MAX_LAYOUT_COLS = 128;
+export const MAX_LAYOUT_ROWS = 128;
+
+/** The fields of a layout normalizeRoomAreas reads/writes (the rest passes through). */
+export interface RoomAreasLayout {
+  cols: number;
+  rows: number;
+  areas?: Array<{ label: string; color: string }>;
+  areaTiles?: Array<string | null>;
+}
+
+const HEX_RGB = /^#[0-9a-f]{6}$/i;
+
+/** Room overlay colors of the bundled default layout: the last-resort color of a missing room. */
+/* eslint-disable pixel-agents/no-inline-colors -- shared default, used by server and webview */
+export const ROOM_DEFAULT_COLORS: Readonly<Record<Room, string>> = {
+  coding: '#48dbfb',
+  library: '#1dd1a1',
+  server: '#ff6b6b',
+  lounge: '#feca57',
+};
+/* eslint-enable pixel-agents/no-inline-colors */
+
+/** A layout grid worth building: v1, cols/rows integers within MAX_LAYOUT_COLS×ROWS,
+ *  `tiles` exactly cols*rows long, `furniture` an array. Cheap: never walks the
+ *  arrays, so a hostile huge cols×rows is refused before anything allocates. */
+export function isLayoutGrid(
+  x: unknown,
+): x is { version: 1; cols: number; rows: number; tiles: unknown[]; furniture: unknown[] } {
+  if (!isObj(x) || x.version !== 1) return false;
+  const { cols, rows } = x;
+  return (
+    int(cols, 1, MAX_LAYOUT_COLS) !== null &&
+    int(rows, 1, MAX_LAYOUT_ROWS) !== null &&
+    Array.isArray(x.tiles) &&
+    x.tiles.length === (cols as number) * (rows as number) &&
+    Array.isArray(x.furniture)
+  );
+}
+
+/**
+ * Exactly the four fixed rooms: `areas` = the four definitions in ROOM_ORDER
+ * (a room's existing valid color is kept, a missing room gets a valid
+ * `colors[room]`, else ROOM_DEFAULT_COLORS — never an empty color),
+ * `areaTiles` = cols*rows labels with everything but the four room labels
+ * cleared (a missing or mis-sized array becomes all null). Never throws on odd
+ * `areas`/`areaTiles`; cols/rows must already be validated.
+ */
+export function normalizeRoomAreas<T extends RoomAreasLayout>(
+  layout: T,
+  colors: Partial<Record<Room, string>> = {},
+): T {
+  const have = new Map<string, string>();
+  for (const a of Array.isArray(layout.areas) ? (layout.areas as unknown[]) : []) {
+    if (isObj(a) && typeof a.label === 'string' && typeof a.color === 'string') {
+      if (HEX_RGB.test(a.color) && !have.has(a.label)) have.set(a.label, a.color);
+    }
+  }
+  const areas = ROOM_ORDER.map((r) => ({
+    label: ROOM_LABELS[r],
+    color:
+      have.get(ROOM_LABELS[r]) ??
+      (HEX_RGB.test(colors[r] ?? '') ? colors[r]! : ROOM_DEFAULT_COLORS[r]),
+  }));
+  const labels = new Set<unknown>(Object.values(ROOM_LABELS));
+  const n = layout.cols * layout.rows;
+  const src: unknown[] =
+    Array.isArray(layout.areaTiles) && layout.areaTiles.length === n ? layout.areaTiles : [];
+  const areaTiles = Array.from({ length: n }, (_, i) =>
+    labels.has(src[i]) ? (src[i] as string) : null,
+  );
+  return { ...layout, areas, areaTiles };
+}
+
+/** Bundled pets a profile may pick as its character (unknown ids → the human palette). */
+export const PET_IDS = ['claudio', 'gitcat'] as const;
+export type PetId = (typeof PET_IDS)[number];
+export const isPetId = (x: unknown): x is PetId => (PET_IDS as readonly unknown[]).includes(x);
 const ACTS = [
   'idle',
   'edit',
@@ -56,6 +138,8 @@ export interface PeerInfo {
   nickSince?: number;
   palette: number;
   hueShift: number;
+  /** Pet character instead of the `palette` human; absent = human. Unknown ids are dropped. */
+  pet?: PetId;
 }
 export interface PeerPacket {
   v: 1;
@@ -115,7 +199,7 @@ const MAX_ID = 200;
 const MAX_TARGET = 120;
 const MAX_REASON = 200;
 
-const ROOMS = new Set<string>(Object.keys(ROOM_LABELS));
+const ROOMS = new Set<string>(ROOM_ORDER);
 const PROVIDERS = new Set<string>(['claude', 'codex']);
 const KINDS = new Set<string>(['main', 'subagent', 'shell']);
 const ACT_SET = new Set<string>(ACTS);
@@ -182,6 +266,7 @@ export function parsePeerPacket(text: string): PeerPacket | null {
       nickname = '';
     }
     const peer: PeerInfo = { id, account, nickname, palette, hueShift };
+    if (isPetId(raw.peer.pet)) peer.pet = raw.peer.pet;
     const since = raw.peer.nickSince;
     if (typeof since === 'number' && Number.isSafeInteger(since) && since >= 0) {
       peer.nickSince = since;

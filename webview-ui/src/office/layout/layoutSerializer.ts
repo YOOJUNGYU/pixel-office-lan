@@ -1,4 +1,6 @@
+import { normalizeRoomAreas } from '../../../../core/src/lan.js';
 import type { ColorValue } from '../../components/ui/types.js';
+import { ROOM_AREA_COLORS } from '../../constants.js';
 import { getColorizedSprite } from '../colorize.js';
 import type {
   FurnitureInstance,
@@ -340,8 +342,11 @@ export function migrateLayoutColors(layout: OfficeLayout): OfficeLayout {
  * to the new pattern-based system. Also migrates old furniture type strings and old VOID value.
  */
 function migrateLayout(layout: OfficeLayout): OfficeLayout {
-  // Migrate furniture types
-  layout = { ...layout, furniture: migrateFurnitureTypes(layout.furniture) };
+  // Migrate furniture types; exactly the four fixed rooms (unknown areas and their tiles dropped)
+  layout = normalizeRoomAreas(
+    { ...layout, furniture: migrateFurnitureTypes(layout.furniture) },
+    ROOM_AREA_COLORS,
+  );
 
   // Migrate old VOID value (was 8, now 255) — only for legacy layouts since FLOOR_8 reuses value 8
   const OLD_VOID = 8;
@@ -352,9 +357,10 @@ function migrateLayout(layout: OfficeLayout): OfficeLayout {
     };
   }
 
-  // Default pets to empty array if absent (backward-compat for legacy layouts).
-  if (!layout.pets) {
-    layout = { ...layout, pets: [] };
+  // Decorative pets are gone (pets are player characters now): drop a legacy roster.
+  if ('pets' in layout) {
+    layout = { ...layout };
+    delete (layout as { pets?: unknown }).pets;
   }
 
   if (layout.tileColors && layout.tileColors.length === layout.tiles.length) {

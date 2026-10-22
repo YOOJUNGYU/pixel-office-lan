@@ -1,5 +1,8 @@
 import {
   DEFAULT_MAX_CONTEXT_TOKENS,
+  PET_IDLE_FRAME_DURATION_SEC,
+  PET_IDLE_SEQUENCE,
+  PET_WALK_SEQUENCE,
   SEAT_REST_MAX_SEC,
   SEAT_REST_MIN_SEC,
   TYPE_FRAME_DURATION_SEC,
@@ -11,6 +14,7 @@ import {
   WANDER_PAUSE_MIN_SEC,
 } from '../../constants.js';
 import { findPath } from '../layout/tileMap.js';
+import type { PetSpriteFrames } from '../sprites/petSpriteData.js';
 import type { CharacterSprites } from '../sprites/spriteData.js';
 import { isReadingToolName } from '../toolUtils.js';
 import type { Character, Seat, SpriteData, TileType as TileTypeVal } from '../types.js';
@@ -335,6 +339,29 @@ export function getCharacterSprite(ch: Character, sprites: CharacterSprites): Sp
     default:
       return sprites.walk[ch.dir][1];
   }
+}
+
+/**
+ * A pet character's frame: the walk cycle while walking, else the idle loop
+ * (sitting at a desk too — pets have no typing/reading frames). Idle frames run
+ * on the wall clock `nowSec`, offset per character so pets don't blink in sync.
+ * Side-facing idle uses the front idle (the sheet has no side idle).
+ */
+export function getPetCharacterSprite(
+  ch: Character,
+  frames: PetSpriteFrames,
+  nowSec: number,
+): SpriteData {
+  if (ch.state === CharacterState.WALK) {
+    const f = PET_WALK_SEQUENCE[ch.frame % PET_WALK_SEQUENCE.length];
+    if (ch.dir === Direction.UP) return frames.walkUp[f];
+    if (ch.dir === Direction.RIGHT) return frames.walkRight[f];
+    if (ch.dir === Direction.LEFT) return frames.walkLeft[f];
+    return frames.walkDown[f];
+  }
+  const step = Math.floor(nowSec / PET_IDLE_FRAME_DURATION_SEC) + Math.abs(ch.id);
+  const f = PET_IDLE_SEQUENCE[step % PET_IDLE_SEQUENCE.length];
+  return ch.dir === Direction.UP ? frames.idleUp[f] : frames.idleDown[f];
 }
 
 function randomRange(min: number, max: number): number {

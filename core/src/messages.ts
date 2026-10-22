@@ -9,6 +9,7 @@
 
 export type ServerMessage =
   | LayoutLoaded
+  | LayoutSaveRejected
   | FurnitureAssetsLoaded
   | CharacterSpritesLoaded
   | PetSpritesLoaded
@@ -18,7 +19,6 @@ export type ServerMessage =
   | OfficeAccess
   | SettingsLoaded
   | ExternalAssetDirectoriesUpdated
-  | AreaMappingsLoaded
   | OfficeSnapshot
   | ProfileLoaded
   | UpdateAvailable
@@ -37,7 +37,6 @@ export type ClientMessage =
   | SetAlwaysShowLabels
   | AddExternalAssetDirectory
   | RemoveExternalAssetDirectory
-  | SaveAreaMappings
   | SetShowAreas
   | SaveProfile
   | InstallUpdate
@@ -53,6 +52,10 @@ export interface LayoutLoaded {
   type: 'layoutLoaded';
   layout: Record<string, any> | null;
   wasReset?: boolean;
+}
+
+export interface LayoutSaveRejected {
+  type: 'layoutSaveRejected';
 }
 
 export interface FurnitureAssetsLoaded {
@@ -99,6 +102,7 @@ export interface PetSpritesLoaded {
   type: 'petSpritesLoaded';
   pets: PetSpriteFrameSet[];
   petNames: string[];
+  petIds: string[];
 }
 
 export interface PetSpriteFrameSet {
@@ -140,11 +144,6 @@ export interface SettingsLoaded {
 export interface ExternalAssetDirectoriesUpdated {
   type: 'externalAssetDirectoriesUpdated';
   dirs: string[];
-}
-
-export interface AreaMappingsLoaded {
-  type: 'areaMappingsLoaded';
-  mappings: Record<string, string[]>;
 }
 
 export interface OfficeSnapshot {
@@ -198,7 +197,10 @@ export interface PeerInfoMessage {
   nickSince?: number;
   palette: number;
   hueShift: number;
+  pet?: PetId;
 }
+
+export type PetId = 'claudio' | 'gitcat';
 
 export interface OfficePersonMessage {
   peerId: string;
@@ -207,6 +209,7 @@ export interface OfficePersonMessage {
   nickSince?: number;
   palette: number;
   hueShift: number;
+  pet?: PetId;
   self: boolean;
 }
 
@@ -222,6 +225,7 @@ export interface ProfileMessage {
   nickname: string;
   palette: number;
   hueShift: number;
+  pet?: PetId;
   hideDetails: boolean;
   manualPeers: string[];
 }
@@ -311,11 +315,6 @@ export interface AddExternalAssetDirectory {
 export interface RemoveExternalAssetDirectory {
   type: 'removeExternalAssetDirectory';
   path: string;
-}
-
-export interface SaveAreaMappings {
-  type: 'saveAreaMappings';
-  mappings: Record<string, string[]>;
 }
 
 export interface SetShowAreas {

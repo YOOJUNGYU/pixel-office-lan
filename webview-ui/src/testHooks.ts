@@ -42,8 +42,6 @@ declare global {
       getAreas?: () => Array<{ label: string; color: string }>;
       /** Sparse list of area-painted tiles with their grid coords. */
       getAreaTiles?: () => Array<{ col: number; row: number; label: string }>;
-      /** Directory→Area mappings received by OfficeState. */
-      getAreaMappings?: () => Record<string, string[]>;
       /** Effective show-areas gate (settings toggle OR active area edit). */
       getShowAreas?: () => boolean;
       /** Count of placed furniture instances — lets a spec assert furniture
@@ -90,16 +88,6 @@ declare global {
        *  through the renderer's own projection (zoom + pan) — lets a spec drive
        *  the REAL canvas mouse gesture at a known tile. Null before mount. */
       getTileCenter?: (col: number, row: number) => { x: number; y: number } | null;
-      getPets?: () => Array<{
-        id: string;
-        name: string;
-        petType: number;
-        state: 'idle' | 'walk' | 'follow';
-        x: number;
-        y: number;
-        bubbleType: 'heart' | null;
-      }>;
-      petClick?: (petId: string) => void;
       addAgentLog?: Array<{
         id: number;
         skipSpawnEffect: boolean | undefined;
@@ -175,40 +163,7 @@ export function installTestHooks(officeStateRef: { current: OfficeState | null }
     if (os) os.selectedAgentId = id;
   };
 
-  // Point-in-time snapshot of every live pet. Pets render only on the canvas
-  // (no DOM) and the heart bubble is never persisted, so e2e reads pet state
-  // through here — the same rationale as getCharacters() above.
-  hooks.getPets = () => {
-    const os = officeStateRef.current;
-    if (!os) return [];
-    return os.pets.map((pet) => ({
-      id: pet.id,
-      name: pet.name,
-      petType: pet.petType,
-      state: pet.state,
-      x: pet.x,
-      y: pet.y,
-      bubbleType: pet.bubbleType,
-    }));
-  };
-
-  // Drive the same state a canvas click on a pet produces (toggle the heart
-  // bubble). Mirrors OfficeCanvas's pet-hit branch but takes a known petId
-  // instead of a hit-test result, so tests don't pixel-hunt the randomly
-  // spawned sprite — the same tradeoff selectAgent makes for characters.
-  hooks.petClick = (petId) => {
-    const os = officeStateRef.current;
-    if (!os) return;
-    const pet = os.pets.find((p) => p.id === petId);
-    if (!pet) return;
-    if (pet.bubbleType) {
-      os.dismissPetBubble(petId);
-    } else {
-      os.showPetBubble(petId);
-    }
-  };
-
-  // ── Carpet + Areas read hooks (canvas-only state, read like getPets) ──
+  // ── Carpet + Areas read hooks (canvas-only state) ──
   hooks.getCarpetTiles = () => {
     const os = officeStateRef.current;
     if (!os) return [];
@@ -264,12 +219,6 @@ export function installTestHooks(officeStateRef: { current: OfficeState | null }
       out.push({ col: i % layout.cols, row: Math.floor(i / layout.cols), label });
     }
     return out;
-  };
-
-  hooks.getAreaMappings = () => {
-    const os = officeStateRef.current;
-    if (!os) return {};
-    return os.areaMappings;
   };
 
   hooks.getFurnitureCount = () => {

@@ -1,3 +1,4 @@
+import { ROOM_LABELS, ROOM_ORDER } from '../../../../core/src/lan.js';
 import { pickDiversePalette } from '../../../../core/src/paletteUtils.js';
 import {
   AUTO_ON_FACING_DEPTH,
@@ -12,8 +13,8 @@ import {
   GREETER_TILE_MARGIN,
   INACTIVE_SEAT_TIMER_MIN_SEC,
   INACTIVE_SEAT_TIMER_RANGE_SEC,
-  MAX_PET_ID_LENGTH,
   PET_HIT_HALF_WIDTH,
+  PET_HIT_HALF_WIDTH_SIDE,
   PET_HIT_HEIGHT,
   WAITING_BUBBLE_DURATION_SEC,
 } from '../../constants.js';
@@ -26,22 +27,18 @@ import {
   layoutToTileMap,
 } from '../layout/layoutSerializer.js';
 import { findPath, getWalkableTiles, isWalkable } from '../layout/tileMap.js';
-import { getPetCount, getPetName } from '../sprites/petSpriteData.js';
 import { getLoadedCharacterCount } from '../sprites/spriteData.js';
 import type {
   Character,
   FurnitureInstance,
   OfficeLayout,
-  Pet,
   PlacedFurniture,
-  PlacedPet,
   Seat,
   TileType as TileTypeVal,
 } from '../types.js';
-import { CharacterState, Direction, PetState, TILE_SIZE } from '../types.js';
+import { CharacterState, Direction, TILE_SIZE } from '../types.js';
 import { createCharacter, updateCharacter } from './characters.js';
 import { advanceMatrixEffect, startMatrixEffect } from './matrixEffectState.js';
-import { createPet, updatePet } from './petEntity.js';
 import { anchorTile, closestFreeSeat } from './seatPlacement.js';
 
 /** Internal helper: facing-tile coords for a seat. Returns null for invalid direction. */
@@ -62,7 +59,6 @@ export class OfficeState {
   /** Walkable tiles per area label (rooms confine seats, floor spots and wander). */
   areaWalkable: Map<string, Array<{ col: number; row: number }>> = new Map();
   characters: Map<number, Character> = new Map();
-  pets: Pet[] = [];
   /** Accumulated time for furniture animation frame cycling */
   furnitureAnimTimer = 0;
   private _selectedAgentId: number | null = null;
@@ -92,13 +88,6 @@ export class OfficeState {
   private nextSubagentId = -1;
 
   /**
-   * directoryName → list of Area labels that Directory belongs to.
-   * Populated by useExtensionMessages on `areaMappingsLoaded`. Consulted by
-   * `findFreeSeat()` to bias new agents toward seats inside their Directory's Area.
-   */
-  areaMappings: Record<string, string[]> = {};
-
-  /**
    * The first-run consent greeter, deliberately NOT in `characters`.
    *
    * `characters` means "agents": everything that iterates it — seat
@@ -120,10 +109,6 @@ export class OfficeState {
    *  overlay's per-frame updates stop re-centering. Reset on spawn/despawn. */
   private greeterCameraCancelled = false;
 
-  setAreaMappings(mappings: Record<string, string[]>): void {
-    this.areaMappings = mappings;
-  }
-
   constructor(layout?: OfficeLayout) {
     this.layout = layout || createDefaultLayout();
     this.tileMap = layoutToTileMap(this.layout);
@@ -132,8 +117,6 @@ export class OfficeState {
     this.furniture = layoutToFurnitureInstances(this.layout.furniture);
     this.walkableTiles = getWalkableTiles(this.tileMap, this.blockedTiles);
     this.indexAreaTiles();
-    // Pets are built last because they need walkableTiles populated for spawn.
-    this.rebuildPetsFromLayout(this.layout);
   }
 
   /** Rebuild all derived state from a new layout (every editor edit). Characters
@@ -153,7 +136,7 @@ export class OfficeState {
     const dc = shift?.col ?? 0;
     const dr = shift?.row ?? 0;
     // Shift positions (and paths) when the grid expands left/up
-    for (const e of [...this.characters.values(), ...this.pets]) {
+    for (const e of this.characters.values()) {
       e.tileCol += dc;
       e.tileRow += dr;
       e.x += dc * TILE_SIZE;
@@ -199,7 +182,7 @@ export class OfficeState {
           continue;
         }
         if (toSeat.get(ch)) {
-          const seatId = this.findFreeSeat(ch.directoryName);
+          const seatId = this.findFreeSeat();
           if (seatId) {
             this.seats.get(seatId)!.assigned = true;
             ch.seatId = seatId;
@@ -228,26 +211,6 @@ export class OfficeState {
         ch.state = CharacterState.IDLE;
       }
     }
-
-    // Pets left outside the grid or on a blocked tile go to the closest open one
-    for (const pet of this.pets) {
-      if (isWalkable(pet.tileCol, pet.tileRow, this.tileMap, this.blockedTiles)) continue;
-      const spot = this.closestFreeWalkableTile(pet.tileCol, pet.tileRow);
-      if (!spot) continue;
-      pet.tileCol = spot.col;
-      pet.tileRow = spot.row;
-      pet.x = spot.col * TILE_SIZE + TILE_SIZE / 2;
-      pet.y = spot.row * TILE_SIZE + TILE_SIZE / 2;
-      pet.path = [];
-      pet.moveProgress = 0;
-      pet.state = PetState.IDLE;
-      pet.frame = 0;
-      pet.frameTimer = 0;
-      pet.followTargetId = null;
-    }
-
-    // Reconcile pets against the layout roster (handles editor add/remove)
-    this.rebuildPetsFromLayout(layout);
   }
 
   /** A character on a tile the edit took away (blocked, wall, erased, outside
@@ -305,6 +268,11 @@ export class OfficeState {
 
   getLayout(): OfficeLayout {
     return this.layout;
+  }
+
+  /** Labels of the four rooms with no walkable tile: agents sent there sit anywhere. */
+  emptyRooms(): string[] {
+    return ROOM_ORDER.map((r) => ROOM_LABELS[r]).filter((l) => !this.areaWalkable.get(l)?.length);
   }
 
   /** Get the blocked-tile key for a character's own seat, or null */
@@ -401,21 +369,11 @@ export class OfficeState {
   }
 
   /**
-   * 3-stage seat picker for top-level agents.
-   *
-   *   Stage 1: If `directoryName` is given and `areaMappings[directoryName]` lists
-   *            Area labels, prefer free seats whose tile is labeled with one
-   *            of those areas.
-   *   Stage 2: Prefer free seats whose tile has NO area label (unzoned).
-   *   Stage 3: Any free seat.
-   *
-   * Each stage routes through `pickFromSeats` for the PC-bias rule. Returns
-   * null only when every seat is already occupied. Passing `undefined`
-   * preserves pre-Areas single-stage behavior (skips Stage 1; Stage 2 picks
-   * unzoned seats from a layout without `areaTiles`, which is every seat).
-   * `areaLabel` confines the search to that one area (Stage 1 only).
+   * Seat picker. With `areaLabel`: a free seat in that room, else null.
+   * Without: an unzoned free seat (no area label), else any free seat.
+   * Every stage routes through `pickFromSeats` for the PC-bias rule.
    */
-  private findFreeSeat(directoryName?: string, areaLabel?: string): string | null {
+  private findFreeSeat(areaLabel?: string): string | null {
     const electronicsTiles = this.buildElectronicsTileSet();
     const freeSeats: string[] = [];
     for (const [uid, seat] of this.seats) {
@@ -423,21 +381,9 @@ export class OfficeState {
     }
     if (freeSeats.length === 0) return null;
 
-    const areaLabels = areaLabel
-      ? [areaLabel]
-      : directoryName
-        ? this.areaMappings[directoryName]
-        : undefined;
-
-    // Stage 1 — in-area seats for the Directory's mapped Area labels.
-    if (areaLabels && areaLabels.length > 0) {
-      const wanted = new Set(areaLabels);
-      const inArea = freeSeats.filter((uid) => {
-        const label = this.seatZone(uid);
-        return label !== null && wanted.has(label);
-      });
-      const pick = this.pickFromSeats(inArea, electronicsTiles);
-      if (pick || areaLabel) return pick;
+    if (areaLabel) {
+      const inArea = freeSeats.filter((uid) => this.seatZone(uid) === areaLabel);
+      return this.pickFromSeats(inArea, electronicsTiles);
     }
 
     // Stage 2 — unzoned seats (no area label, or layout has no areas at all).
@@ -528,7 +474,7 @@ export class OfficeState {
       seatId = closestFreeSeat(this.seats, anchorAt.col, anchorAt.row);
     }
     if (!seatId) {
-      seatId = this.findFreeSeat(directoryName);
+      seatId = this.findFreeSeat();
     }
 
     let ch: Character;
@@ -784,7 +730,7 @@ export class OfficeState {
     if (!ch) return;
     this.releaseSeat(ch);
     ch.homeArea = areaLabel;
-    const seatId = standing ? null : this.findFreeSeat(undefined, areaLabel);
+    const seatId = standing ? null : this.findFreeSeat(areaLabel);
     const seat = seatId ? this.seats.get(seatId)! : null;
     let target: { col: number; row: number } | null;
     if (seat) {
@@ -1152,130 +1098,6 @@ export class OfficeState {
     }
   }
 
-  // ── Pets ──────────────────────────────────────────────────────
-
-  /**
-   * Add a pet to the live runtime. Spawns at a uniformly-random walkable tile.
-   * Mirror in `this.layout.pets` so debounced saveLayout serialises the roster.
-   * Bounds-checks petType against the loaded sprite count to defend against stale layouts.
-   */
-  addPet(placedPet: PlacedPet): void {
-    // Defensive guards (upstream 5e6c0a0)
-    if (
-      typeof placedPet.id !== 'string' ||
-      placedPet.id.length === 0 ||
-      placedPet.id.length > MAX_PET_ID_LENGTH
-    ) {
-      return;
-    }
-    if (
-      !Number.isInteger(placedPet.petType) ||
-      placedPet.petType < 0 ||
-      placedPet.petType >= getPetCount()
-    ) {
-      return;
-    }
-    if (this.pets.some((p) => p.id === placedPet.id)) return; // de-dupe
-    if (this.walkableTiles.length === 0) return; // no spawn space — silently drop
-
-    const spawn = this.walkableTiles[Math.floor(Math.random() * this.walkableTiles.length)];
-    const pet = createPet(placedPet.id, placedPet.petType, spawn.col, spawn.row);
-    pet.name = getPetName(placedPet.petType);
-    this.pets.push(pet);
-    this.syncLayoutPets();
-  }
-
-  /** Remove a pet by id. Idempotent. */
-  removePet(id: string): void {
-    const before = this.pets.length;
-    this.pets = this.pets.filter((p) => p.id !== id);
-    if (this.pets.length !== before) {
-      this.syncLayoutPets();
-    }
-  }
-
-  /** Shallow snapshot for external consumers (renderer, hooks). */
-  getPets(): Pet[] {
-    return this.pets.slice();
-  }
-
-  /** Unique petType values currently placed. Used by the Pets toolbar to mark active rows. */
-  getActivePetTypes(): number[] {
-    const seen = new Set<number>();
-    for (const p of this.pets) seen.add(p.petType);
-    return Array.from(seen);
-  }
-
-  /**
-   * Hit-test pets at a pixel world position. Sorts back-to-front (largest y wins on tie)
-   * so the visually-frontmost pet receives the click.
-   * Returns the pet id or null.
-   */
-  getPetAt(worldX: number, worldY: number): string | null {
-    const ordered = this.pets.slice().sort((a, b) => b.y - a.y);
-    for (const pet of ordered) {
-      const left = pet.x - PET_HIT_HALF_WIDTH;
-      const right = pet.x + PET_HIT_HALF_WIDTH;
-      const top = pet.y - PET_HIT_HEIGHT;
-      const bottom = pet.y;
-      if (worldX >= left && worldX <= right && worldY >= top && worldY <= bottom) {
-        return pet.id;
-      }
-    }
-    return null;
-  }
-
-  /** Show the heart bubble on a pet for WAITING_BUBBLE_DURATION_SEC. */
-  showPetBubble(petId: string): void {
-    const pet = this.pets.find((p) => p.id === petId);
-    if (!pet) return;
-    pet.bubbleType = 'heart';
-    pet.bubbleTimer = WAITING_BUBBLE_DURATION_SEC;
-  }
-
-  /** Dismiss the heart bubble on click; collapses timer to a fast fade. */
-  dismissPetBubble(petId: string): void {
-    const pet = this.pets.find((p) => p.id === petId);
-    if (!pet || !pet.bubbleType) return;
-    pet.bubbleTimer = Math.min(pet.bubbleTimer, DISMISS_BUBBLE_FAST_FADE_SEC);
-  }
-
-  /**
-   * Reconcile `this.pets` to match the layout's placed-pet roster.
-   * - Pets in layout but not in runtime → spawn via addPet().
-   * - Pets in runtime but not in layout → remove.
-   * - Pets in both → keep existing runtime state (position, FSM).
-   *
-   * Called from constructor and rebuildFromLayout. Always runs AFTER walkableTiles
-   * is populated.
-   */
-  private rebuildPetsFromLayout(layout: OfficeLayout): void {
-    const placed = layout.pets ?? [];
-    const placedIds = new Set(placed.map((p) => p.id));
-
-    // 1. Remove pets no longer in layout
-    this.pets = this.pets.filter((p) => placedIds.has(p.id));
-
-    // 2. Add pets that exist in layout but not in runtime
-    const existingIds = new Set(this.pets.map((p) => p.id));
-    for (const p of placed) {
-      if (existingIds.has(p.id)) continue;
-      this.addPet(p); // pushes onto this.pets, calls syncLayoutPets()
-    }
-    // syncLayoutPets() inside addPet keeps this.layout.pets coherent; one final
-    // sync handles the removal-only branch where addPet was never called.
-    this.syncLayoutPets();
-  }
-
-  /**
-   * Re-export the current pet roster into `this.layout.pets`. Called only from
-   * mutating methods (addPet / removePet / rebuildPetsFromLayout) — NEVER from
-   * getLayout(), which runs on every render frame.
-   */
-  private syncLayoutPets(): void {
-    this.layout.pets = this.pets.map((p) => ({ id: p.id, petType: p.petType }));
-  }
-
   setTeamInfo(
     id: number,
     teamName?: string,
@@ -1374,20 +1196,6 @@ export class OfficeState {
     for (const id of toDelete) {
       this.characters.delete(id);
     }
-
-    // ── Pet FSM ────────────────────────────────────────────────
-    for (const pet of this.pets) {
-      updatePet(pet, dt, this.walkableTiles, this.characters, this.tileMap, this.blockedTiles);
-
-      // Tick heart bubble timer (mirrors character waiting-bubble pattern)
-      if (pet.bubbleType) {
-        pet.bubbleTimer -= dt;
-        if (pet.bubbleTimer <= 0) {
-          pet.bubbleType = null;
-          pet.bubbleTimer = 0;
-        }
-      }
-    }
   }
 
   /** The `saveAgentSeats` payload: palette, hue and seat for every agent worth
@@ -1423,13 +1231,19 @@ export class OfficeState {
     for (const ch of chars) {
       // Skip characters that are despawning
       if (ch.matrixEffect === 'despawn') continue;
-      // Character sprite is 16x24, anchored bottom-center
-      // Apply sitting offset to match visual position
+      // Sprites are anchored bottom-center; apply the sitting offset to match
+      // the visual position. Pets are wider sideways and a bit shorter.
       const sittingOffset = ch.state === CharacterState.TYPE ? CHARACTER_SITTING_OFFSET_PX : 0;
       const anchorY = ch.y + sittingOffset;
-      const left = ch.x - CHARACTER_HIT_HALF_WIDTH;
-      const right = ch.x + CHARACTER_HIT_HALF_WIDTH;
-      const top = anchorY - CHARACTER_HIT_HEIGHT;
+      const side = ch.dir === Direction.LEFT || ch.dir === Direction.RIGHT;
+      const half = ch.pet
+        ? side && ch.state === CharacterState.WALK
+          ? PET_HIT_HALF_WIDTH_SIDE
+          : PET_HIT_HALF_WIDTH
+        : CHARACTER_HIT_HALF_WIDTH;
+      const left = ch.x - half;
+      const right = ch.x + half;
+      const top = anchorY - (ch.pet ? PET_HIT_HEIGHT : CHARACTER_HIT_HEIGHT);
       const bottom = anchorY;
       if (worldX >= left && worldX <= right && worldY >= top && worldY <= bottom) {
         return ch.id;

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { isLayoutGrid } from '../../core/src/lan.js';
 import type { ProfileMessage } from '../../core/src/messages.js';
 import { BottomToolbar } from './components/BottomToolbar.js';
 import { ConnectionIndicator } from './components/ConnectionIndicator.js';
@@ -8,6 +9,8 @@ import { SettingsModal } from './components/SettingsModal.js';
 import { Button } from './components/ui/Button.js';
 import { ZoomControls } from './components/ZoomControls.js';
 import {
+  FIRST_OPEN_FIT_FILL,
+  LAYOUT_REJECTED_TOAST_MS,
   OFFICE_CANVAS_TEST_ID,
   TOUR_AUTOSTART_DELAY_MS,
   TOUR_FIT_FILL,
@@ -35,7 +38,6 @@ import { exportLayoutToFile } from './office/layout/exportLayout.js';
 import { isRotatable } from './office/layout/furnitureCatalog.js';
 import { migrateLayoutColors } from './office/layout/layoutSerializer.js';
 import { overlayProjection } from './office/projection.js';
-import { getPetCount } from './office/sprites/petSpriteData.js';
 import { EditTool, type OfficeLayout, TILE_SIZE } from './office/types.js';
 import { isBrowserRuntime, isE2E } from './runtime.js';
 import { installTestHooks } from './testHooks.js';
@@ -84,8 +86,6 @@ function App() {
     layoutReady,
     loadedAssets,
     profile,
-    areaMappings,
-    setAreaMappings,
     showAreas,
     setShowAreas,
     officeReadOnly,
@@ -93,6 +93,7 @@ function App() {
     people,
     profileError,
     clearProfileError,
+    layoutSaveRejections,
     nicknames,
     update,
     updateStatus,
@@ -124,30 +125,6 @@ function App() {
 
   // Phones and touch tablets: pinch replaces the zoom buttons and Settings floats.
   const isMobile = useIsMobile();
-
-  // Mutate Directory→Area mappings locally + send to server.
-  const handleAreaMappingChange = useCallback(
-    (directoryName: string, areaLabel: string, action: 'add' | 'remove') => {
-      const current = areaMappings[directoryName] ?? [];
-      let nextLabels: string[];
-      if (action === 'add') {
-        if (current.includes(areaLabel)) return;
-        nextLabels = [...current, areaLabel];
-      } else {
-        nextLabels = current.filter((l) => l !== areaLabel);
-      }
-      const next = { ...areaMappings };
-      if (nextLabels.length === 0) {
-        delete next[directoryName];
-      } else {
-        next[directoryName] = nextLabels;
-      }
-      setAreaMappings(next);
-      getOfficeState().setAreaMappings(next);
-      transport.send({ type: 'saveAreaMappings', mappings: next });
-    },
-    [areaMappings, setAreaMappings],
-  );
 
   // Toggle global Show Areas — persisted via setShowAreas message; runs server-
   // side through configPersistence.
@@ -219,6 +196,7 @@ function App() {
 
   // Areas authoring is available when the layout already defines areas.
   const areasAvailable = (officeState.getLayout().areas?.length ?? 0) > 0;
+  const emptyRooms = officeState.emptyRooms();
 
   // ── Onboarding tour ──
   // The current step's scene drives what is open (settings, profile, editor
@@ -290,6 +268,34 @@ function App() {
     isEditMode,
     handleToggleEditMode,
   ]);
+
+  // The server refused a layout save: say so for a moment (the editor keeps the layout).
+  const [saveRejectedShown, setSaveRejectedShown] = useState(false);
+  useEffect(() => {
+    if (layoutSaveRejections === 0) return;
+    setSaveRejectedShown(true);
+    const timer = setTimeout(() => setSaveRejectedShown(false), LAYOUT_REJECTED_TOAST_MS);
+    return () => clearTimeout(timer);
+  }, [layoutSaveRejections]);
+
+  // First open: a big office (the 90×60 default) is zoomed out to fit the
+  // window when the default zoom would not show all of it. Once per session.
+  const fittedRef = useRef(false);
+  useEffect(() => {
+    const box = containerRef.current?.getBoundingClientRect();
+    if (!layoutReady || fittedRef.current || !box) return;
+    fittedRef.current = true;
+    const dpr = window.devicePixelRatio || 1;
+    const layout = getOfficeState().getLayout();
+    const fit = fitZoom(
+      { w: layout.cols * TILE_SIZE, h: layout.rows * TILE_SIZE },
+      { w: box.width * dpr, h: box.height * dpr },
+      FIRST_OPEN_FIT_FILL,
+      ZOOM_MIN,
+      ZOOM_MAX,
+    );
+    if (fit < zoom) handleZoomChange(fit);
+  }, [layoutReady, zoom, handleZoomChange]);
 
   // First run: right after the profile is saved.
   const tourCanAutostart =
@@ -378,14 +384,10 @@ function App() {
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        const imported = JSON.parse(String(reader.result)) as Record<string, unknown>;
-        // Reject anything that is not a v1 layout with tile + furniture arrays
-        // (migrate + rebuild iterate furniture and would throw on a non-array).
-        if (
-          imported.version !== 1 ||
-          !Array.isArray(imported.tiles) ||
-          !Array.isArray(imported.furniture)
-        ) {
+        const imported: unknown = JSON.parse(String(reader.result));
+        // The server's grid check (isLayoutGrid), before anything is built: a
+        // v1 grid within 128×128 whose tiles match it, with a furniture array.
+        if (!isLayoutGrid(imported)) {
           window.alert(t('app.importInvalid'));
           return;
         }
@@ -470,14 +472,14 @@ function App() {
           style={{ background: 'var(--vignette)' }}
         />
 
-        {editor.isEditMode && (editor.isDirty || scene?.actionBar) && (
-          <EditActionBar editor={editor} editorState={editorState} />
+        {editor.isEditMode && (editor.isDirty || scene?.actionBar || emptyRooms.length > 0) && (
+          <EditActionBar editor={editor} editorState={editorState} emptyRooms={emptyRooms} />
         )}
 
         {showRotateHint && (
           <div
             className="absolute left-1/2 -translate-x-1/2 z-11 bg-accent-bright text-white text-sm py-3 px-8 rounded-none border-2 border-accent shadow-pixel pointer-events-none whitespace-nowrap"
-            style={{ top: editor.isDirty ? 64 : 8 }}
+            style={{ top: editor.isDirty || emptyRooms.length > 0 ? 64 : 8 }}
           >
             {t('app.rotateHint')}
           </div>
@@ -510,9 +512,6 @@ function App() {
                 onColorPickToggle={editor.handleColorPickToggle}
                 onFurnitureTypeChange={editor.handleFurnitureTypeChange}
                 loadedAssets={loadedAssets}
-                activePetTypes={officeState.getActivePetTypes()}
-                petCount={getPetCount()}
-                onPetToggle={editor.handlePetToggle}
                 carpetVariant={editor.carpetVariant}
                 carpetColor={editor.carpetColor}
                 carpetAccentColor={editor.carpetAccentColor}
@@ -521,20 +520,24 @@ function App() {
                 onCarpetAccentColorChange={editor.handleCarpetAccentColorChange}
                 areas={officeState.getLayout().areas ?? []}
                 selectedAreaLabel={editor.selectedAreaLabel}
-                directories={[]}
                 areasAvailable={areasAvailable}
-                areaMappings={areaMappings}
+                emptyRooms={emptyRooms}
                 onSelectArea={editor.handleSelectArea}
-                onAddArea={editor.handleAddArea}
-                onRemoveArea={editor.handleRemoveArea}
-                onRenameArea={editor.handleRenameArea}
                 onAreaColorChange={editor.handleAreaColorChange}
-                onAreaMappingChange={handleAreaMappingChange}
                 background={officeState.getLayout().background}
                 onBackgroundChange={editor.handleBackgroundChange}
               />
             );
           })()}
+
+        {saveRejectedShown && (
+          <div
+            role="alert"
+            className="absolute left-1/2 -translate-x-1/2 bottom-80 z-20 bg-danger text-white text-sm py-3 px-8 rounded-none border-2 border-border shadow-pixel pointer-events-none whitespace-nowrap"
+          >
+            {t('app.layoutSaveRejected')}
+          </div>
+        )}
 
         {offices && !editor.isEditMode && <OfficeSwitcher state={offices} />}
 
@@ -664,6 +667,7 @@ const sameProfile = (a: ProfileMessage, b: ProfileMessage): boolean =>
   a.nickname === b.nickname &&
   a.palette === b.palette &&
   a.hueShift === b.hueShift &&
+  a.pet === b.pet &&
   a.hideDetails === b.hideDetails &&
   a.manualPeers.join('\n') === b.manualPeers.join('\n');
 

@@ -56,6 +56,18 @@ describe('parsePeerPacket', () => {
     }
   });
 
+  it('pet: optional, one of the bundled ids; anything else is dropped (the palette human shows)', () => {
+    const peer = packet().peer;
+    expect(parse(packet())?.peer).not.toHaveProperty('pet');
+    expect(parse(packet({ peer: { ...peer, pet: 'gitcat' } }))?.peer.pet).toBe('gitcat');
+    expect(parse(packet({ peer: { ...peer, pet: 'claudio' } }))?.peer.pet).toBe('claudio');
+    for (const bad of ['dragon', '', 1, null, { id: 'gitcat' }]) {
+      const out = parse(packet({ peer: { ...peer, pet: bad as never } }));
+      expect(out?.peer).not.toHaveProperty('pet');
+      expect(out?.peer.palette).toBe(2);
+    }
+  });
+
   it('round-trips a valid packet', () => {
     const p = packet();
     expect(parse(p)).toEqual(p);

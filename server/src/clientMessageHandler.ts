@@ -6,7 +6,12 @@ import type { AutostartState } from './lan/autostart.js';
 import type { LanService } from './lan/office.js';
 import { validateProfileUpdate } from './lan/profile.js';
 import type { Updater } from './lan/updater.js';
-import { readLayoutFromFile, writeLayoutToFile } from './layoutPersistence.js';
+import {
+  readLayoutFromFile,
+  roomColorsOf,
+  sanitizeLayout,
+  writeLayoutToFile,
+} from './layoutPersistence.js';
 
 type WsSend = (message: Record<string, unknown>) => void;
 
@@ -85,11 +90,15 @@ export function handleClientMessage(
       handleWebviewReady(send, ctx);
       break;
 
-    case 'saveLayout':
-      if (msg.layout) {
-        writeLayoutToFile(msg.layout as Record<string, unknown>);
+    case 'saveLayout': {
+      const layout = sanitizeLayout(msg.layout, roomColorsOf(ctx.cache?.defaultLayout));
+      if (layout) writeLayoutToFile(layout);
+      else {
+        console.warn('[Pixel Office] Refused an invalid layout save.');
+        send({ type: 'layoutSaveRejected' });
       }
       break;
+    }
 
     case 'setSoundEnabled':
       adapter.setSetting(KEY_SOUND_ENABLED, msg.enabled);
@@ -124,15 +133,6 @@ export function handleClientMessage(
       writeConfig(cfg);
       send({ type: 'externalAssetDirectoriesUpdated', dirs: cfg.externalAssetDirectories });
       void ctx.onReloadAssets?.(send);
-      break;
-    }
-
-    case 'saveAreaMappings': {
-      const rawMappings = msg.mappings;
-      if (!rawMappings || typeof rawMappings !== 'object') break;
-      const cfg = readConfig();
-      cfg.standalone.areaMappings = rawMappings as Record<string, string[]>;
-      writeConfig(cfg);
       break;
     }
 
@@ -247,13 +247,14 @@ function autostartMessage(state: AutostartState) {
 
 /** profileLoaded. Manual peer IPs are LAN-internal: privileged clients only. */
 export function profileMessage(lan: LanService, privileged: boolean) {
-  const { nickname, palette, hueShift, hideDetails, manualPeers } = lan.profile;
+  const { nickname, palette, hueShift, pet, hideDetails, manualPeers } = lan.profile;
   return {
     type: 'profileLoaded',
     profile: {
       nickname,
       palette,
       hueShift,
+      ...(pet && { pet }),
       hideDetails,
       manualPeers: privileged ? manualPeers : [],
     },
@@ -291,6 +292,7 @@ function handleWebviewReady(send: WsSend, ctx: ClientMessageContext): void {
         type: 'petSpritesLoaded',
         pets: cache.pets.pets,
         petNames: cache.pets.manifests.map((m) => m.name),
+        petIds: cache.pets.manifests.map((m) => m.id),
       });
     }
     if (cache.floorTiles) {
@@ -316,17 +318,16 @@ function handleWebviewReady(send: WsSend, ctx: ClientMessageContext): void {
   if (ctx.lan) send(profileMessage(ctx.lan, ctx.privileged === true));
   if (ctx.lan && ctx.privileged) send(officesMessage(ctx.lan));
 
-  // 3. Directory→Area mappings
-  send(areaMappingsSnapshot(ctx));
+  // 3. Layout last: the webview builds the office once it arrives. Rooms are
+  // normalized here too; a saved file that fails the checks is sent as is.
+  const raw = readLayoutFromFile() ?? cache?.defaultLayout ?? null;
+  const layout = raw && (sanitizeLayout(raw, roomColorsOf(cache?.defaultLayout)) ?? raw);
+  send({ type: 'layoutLoaded', layout });
 
-  // 4. Layout last: the webview builds the office once it arrives.
-  const savedLayout = readLayoutFromFile();
-  send({ type: 'layoutLoaded', layout: savedLayout ?? cache?.defaultLayout ?? null });
-
-  // 5. Agents right away rather than on the next 1 s tick.
+  // 4. Agents right away rather than on the next 1 s tick.
   if (ctx.lan && ctx.privileged) send(snapshotMessage(ctx.lan));
 
-  // 6. Start-at-login checkbox and update banner: this PC's browser only.
+  // 5. Start-at-login checkbox and update banner: this PC's browser only.
   if (ctx.privileged && ctx.autostart) send(autostartMessage(ctx.autostart.get()));
   const update = ctx.privileged ? ctx.updater?.availableMessage() : null;
   if (update) {
@@ -356,14 +357,6 @@ function externalAssetDirectoriesFor(ctx: ClientMessageContext): string[] {
   return ctx.privileged ? readConfig().externalAssetDirectories : [];
 }
 
-/** Area mappings are keyed by directory name: privileged clients only. */
-function areaMappingsSnapshot(ctx: ClientMessageContext) {
-  return {
-    type: 'areaMappingsLoaded',
-    mappings: ctx.privileged ? (readConfig().standalone.areaMappings ?? {}) : {},
-  };
-}
-
 /** Client message types this server knows. Refusal logging buckets by these
  *  only, so untrusted input can't grow the set below or flood the log. */
 const KNOWN_CLIENT_TYPES: ReadonlySet<string> = new Set<ClientMessage['type']>([
@@ -373,7 +366,6 @@ const KNOWN_CLIENT_TYPES: ReadonlySet<string> = new Set<ClientMessage['type']>([
   'setAlwaysShowLabels',
   'addExternalAssetDirectory',
   'removeExternalAssetDirectory',
-  'saveAreaMappings',
   'setShowAreas',
   'saveProfile',
   'installUpdate',
@@ -424,9 +416,6 @@ function refuseReadOnly(
         type: 'externalAssetDirectoriesUpdated',
         dirs: externalAssetDirectoriesFor(ctx),
       });
-      return;
-    case 'saveAreaMappings':
-      send(areaMappingsSnapshot(ctx));
       return;
     case 'saveProfile':
       if (ctx.lan) send(profileMessage(ctx.lan, false));

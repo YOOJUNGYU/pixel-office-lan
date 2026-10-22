@@ -8,6 +8,7 @@ import {
   PEOPLE_FACE_SCALE,
   PEOPLE_FACE_TOP,
   PEOPLE_HINT_MS,
+  PEOPLE_PET_FACE_TOP,
   PEOPLE_TOP_RESERVE_PX,
   PEOPLE_WIDE_MIN_PX,
   PEOPLE_Z_INDEX,
@@ -19,6 +20,7 @@ import { focusHintKey, inFrozenOrder, type PersonRow } from './peopleModel.js';
 import { CharacterPreview } from './ProfileModal.js';
 
 const FACE_CROP = { top: PEOPLE_FACE_TOP, rows: PEOPLE_FACE_ROWS };
+const PET_FACE_CROP = { top: PEOPLE_PET_FACE_TOP, rows: PEOPLE_FACE_ROWS };
 
 /** Remembered choice, else expanded only on a wide, non-mobile screen. */
 function initialCollapsed(): boolean {
@@ -157,8 +159,9 @@ export function PeoplePanel({ rows: live, lan, officeState, forceOpen }: PeopleP
                     <CharacterPreview
                       palette={r.person.palette}
                       hueShift={r.person.hueShift}
+                      pet={r.person.pet}
                       scale={PEOPLE_FACE_SCALE}
-                      crop={FACE_CROP}
+                      crop={r.person.pet ? PET_FACE_CROP : FACE_CROP}
                     />
                   </span>
                   <span className="flex-1 min-w-0 flex flex-col">

@@ -54,8 +54,8 @@ export function peopleRows(people: OfficePersonMessage[], agents: OfficeAgent[])
   const known = new Set(uniq.keys());
   for (const [id, list] of byPeer) {
     if (known.has(id)) continue;
-    const { account, nickname, palette, hueShift } = list[0].peer;
-    all.push({ peerId: id, account, nickname, palette, hueShift, self: false });
+    const { account, nickname, palette, hueShift, pet } = list[0].peer;
+    all.push({ peerId: id, account, nickname, palette, hueShift, pet, self: false });
   }
   const rows = all.map((person): PersonRow => {
     const mine = byPeer.get(person.peerId) ?? [];

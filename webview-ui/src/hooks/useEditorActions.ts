@@ -10,7 +10,6 @@ import {
 } from '../constants.js';
 import type { ExpandDirection } from '../office/editor/editorActions.js';
 import {
-  addArea,
   areaStrokeErases,
   dropFurniture,
   eraseArea,
@@ -24,9 +23,7 @@ import {
   paintTile,
   placeNewFurniture,
   recolorWalls,
-  removeArea,
   removeFurniture,
-  renameArea,
   rotateFurniture,
   toggleFurnitureState,
   updateAreaColor,
@@ -40,7 +37,6 @@ import type {
   EditTool as EditToolType,
   OfficeBackground,
   OfficeLayout,
-  PlacedPet,
   TileType as TileTypeVal,
 } from '../office/types.js';
 import { EditTool } from '../office/types.js';
@@ -80,7 +76,6 @@ interface EditorActions extends Omit<FurnitureColorActions, 'pickColorAt'> {
   handleEditorSelectionChange: () => void;
   /** A furniture drag released at (col,row): move it there, or drop a copy with `duplicate`. */
   handleDrop: (uid: string, col: number, row: number, opts: { duplicate: boolean }) => void;
-  handlePetToggle: (petType: number, active: boolean) => void;
   // Carpet state + handlers
   carpetVariant: number;
   carpetColor: ColorValue;
@@ -93,9 +88,6 @@ interface EditorActions extends Omit<FurnitureColorActions, 'pickColorAt'> {
   // Area state + handlers (selection lives on editorState for imperative access)
   selectedAreaLabel: string | null;
   handleSelectArea: (label: string | null) => void;
-  handleAddArea: (label: string, color: string) => void;
-  handleRemoveArea: (label: string) => void;
-  handleRenameArea: (oldLabel: string, newLabel: string) => void;
   handleAreaColorChange: (label: string, color: string) => void;
   /** Set the map background. `continuous` = a slider/picker drag: one undo entry per run. */
   handleBackgroundChange: (background: OfficeBackground, continuous: boolean) => void;
@@ -288,51 +280,6 @@ export function useEditorActions(
       setEditorTick((n) => n + 1);
     },
     [editorState],
-  );
-
-  const handleAddArea = useCallback(
-    (label: string, color: string) => {
-      const os = getOfficeState();
-      const layout = os.getLayout();
-      const next = addArea(layout, label, color);
-      if (next !== layout) {
-        applyEdit(next);
-      }
-    },
-    [getOfficeState, applyEdit],
-  );
-
-  const handleRemoveArea = useCallback(
-    (label: string) => {
-      const os = getOfficeState();
-      const layout = os.getLayout();
-      const next = removeArea(layout, label);
-      if (next !== layout) {
-        if (editorState.selectedAreaLabel === label) {
-          editorState.selectedAreaLabel = null;
-          setSelectedAreaLabelState(null);
-        }
-        applyEdit(next);
-      }
-    },
-    [getOfficeState, editorState, applyEdit],
-  );
-
-  const handleRenameArea = useCallback(
-    (oldLabel: string, newLabel: string) => {
-      const os = getOfficeState();
-      const layout = os.getLayout();
-      const next = renameArea(layout, oldLabel, newLabel);
-      if (next !== layout) {
-        const trimmed = newLabel.trim();
-        if (editorState.selectedAreaLabel === oldLabel) {
-          editorState.selectedAreaLabel = trimmed;
-          setSelectedAreaLabelState(trimmed);
-        }
-        applyEdit(next);
-      }
-    },
-    [getOfficeState, editorState, applyEdit],
   );
 
   const handleAreaColorChange = useCallback(
@@ -577,38 +524,6 @@ export function useEditorActions(
     [],
   );
 
-  const handlePetToggle = useCallback(
-    (petType: number, active: boolean) => {
-      const os = getOfficeState();
-      const layout = os.getLayout();
-      const currentPets: PlacedPet[] = layout.pets ?? [];
-
-      let newPets: PlacedPet[];
-      if (active) {
-        // Idempotent: if this pet type is already placed, no-op (prevent double-write).
-        if (currentPets.some((p) => p.petType === petType)) {
-          return;
-        }
-        newPets = [...currentPets, { id: crypto.randomUUID(), petType }];
-      } else {
-        newPets = currentPets.filter((p) => p.petType !== petType);
-        // Idempotent: nothing to remove → no-op.
-        if (newPets.length === currentPets.length) {
-          return;
-        }
-      }
-
-      const newLayout: OfficeLayout = { ...layout, pets: newPets };
-      applyEdit(newLayout);
-    },
-    [getOfficeState, applyEdit],
-  );
-
-  /**
-   * The active tool acting on (col,row): a click, or a tile crossed while
-   * dragging. Selecting and dragging placed items never get here — the canvas
-   * resolves those itself — so each case is a tool applying its edit.
-   */
   const handleEditorTileAction = useCallback(
     (col: number, row: number) => {
       const os = getOfficeState();
@@ -789,7 +704,6 @@ export function useEditorActions(
     handleEditorEraseAction,
     handleEditorSelectionChange,
     handleDrop,
-    handlePetToggle,
     carpetVariant,
     carpetColor,
     carpetAccentColor,
@@ -800,9 +714,6 @@ export function useEditorActions(
     handleResetCarpetAccentColor,
     selectedAreaLabel,
     handleSelectArea,
-    handleAddArea,
-    handleRemoveArea,
-    handleRenameArea,
     handleAreaColorChange,
     handleBackgroundChange,
   };

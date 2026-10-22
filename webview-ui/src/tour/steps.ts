@@ -161,7 +161,7 @@ export const STEPS: Step[] = [
   },
   {
     id: 'editorMore',
-    targets: [{ dom: 'editor-pets' }, { dom: 'editor-erase' }, { dom: 'edit-actions' }],
+    targets: [{ dom: 'editor-erase' }, { dom: 'edit-actions' }],
     scene: { editor: EditTool.SELECT, actionBar: true },
     requires: ['edit'],
   },
