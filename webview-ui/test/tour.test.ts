@@ -115,49 +115,24 @@ test('areaWorldRect bounds the tiles of a room label', () => {
   assert.equal(areaWorldRect(undefined, 4, 'A', 16), null);
 });
 
-test('visibleSteps: full tour on a desktop owner, short one for remote viewers', () => {
+test('visibleSteps: full tour on a desktop owner, fewer steps on smaller screens', () => {
   const all = new Set<Capability>(['edit', 'switcher', 'profile', 'offices', 'areas', 'family']);
   assert.deepEqual(
-    visibleSteps('full', all),
+    visibleSteps(all),
     STEPS.map((s) => s.id),
   );
-  const ro = visibleSteps('readOnly', new Set<Capability>(['family']));
-  assert.deepEqual(ro, [
-    'welcome',
-    'roomCoding',
-    'roomLibrary',
-    'roomServer',
-    'roomLounge',
-    'tag',
-    'bubble',
-    'family',
-    'map',
-    'people',
-    'done',
-  ]);
-  // The people step is in both variants, right after the switcher.
-  const full = visibleSteps('full', all);
+  // The people step is always there, right after the switcher.
+  const full = visibleSteps(all);
   assert.equal(full[full.indexOf('switcher') + 1], 'people');
-  assert.ok(visibleSteps('full', new Set()).includes('people'));
+  assert.ok(visibleSteps(new Set()).includes('people'));
   // Phone (no editor) without team offices: no editor, switcher or office steps.
-  const phone = visibleSteps('full', new Set<Capability>(['profile', 'areas']));
-  for (const id of [
-    'layoutButton',
-    'floor',
-    'editorMore',
-    'switcher',
-    'offices',
-    'remote',
-    'family',
-  ]) {
+  const phone = visibleSteps(new Set<Capability>(['profile', 'areas']));
+  for (const id of ['layoutButton', 'floor', 'editorMore', 'switcher', 'offices', 'family']) {
     assert.ok(!phone.includes(id as never), id);
   }
   assert.ok(phone.includes('profile') && phone.includes('settingsButton'));
   // Editor without areas drops only the areas step.
-  const noAreas = visibleSteps(
-    'full',
-    new Set<Capability>(['edit', 'switcher', 'profile', 'offices']),
-  );
+  const noAreas = visibleSteps(new Set<Capability>(['edit', 'switcher', 'profile', 'offices']));
   assert.ok(!noAreas.includes('areas') && noAreas.includes('background'));
 });
 

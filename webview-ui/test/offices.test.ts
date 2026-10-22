@@ -16,7 +16,7 @@ test('code input: upper-case, spaces dropped, dashes kept', () => {
 });
 
 test('no team: only the public office, active and enabled', () => {
-  assert.deepEqual(switcherItems({ offices: [], activeView: 'public', remoteView: false }), [
+  assert.deepEqual(switcherItems({ offices: [], activeView: 'public' }), [
     { view: 'public', name: '', isPublic: true, active: true, disabled: false },
   ]);
 });
@@ -28,7 +28,6 @@ test('in a team: public disabled, teams in join order, active follows activeView
       { tag: 'b', name: '' },
     ],
     activeView: 'b',
-    remoteView: true,
   });
   assert.deepEqual(
     items.map((i) => [i.view, i.isPublic, i.active, i.disabled]),

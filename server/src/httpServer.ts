@@ -45,9 +45,9 @@ export interface HttpServerOptions {
   lan?: LanService;
   /** `POST /api/quit` from this PC: shut everything down. */
   onQuit?: () => void;
-  /** Update check/install; its messages go to privileged sockets only. */
+  /** Update check/install; its messages go to every (loopback) socket. */
   updater?: Updater;
-  /** Start at login; only privileged sockets see or change it. */
+  /** Start at login. */
   autostart?: ClientMessageContext['autostart'];
 }
 
@@ -106,16 +106,6 @@ export function isLoopback(req: LoopbackRequest): boolean {
 }
 
 /**
- * Connection gate for /ws: a browser handshake must come from this server's own
- * origin (WebSocket connects bypass CORS). A missing Origin is a non-browser
- * client and may watch.
- */
-function isAllowedWebSocketOrigin(origin: string | undefined, host: string | undefined): boolean {
-  if (origin === undefined) return true;
-  return host !== undefined && originHost(origin) === host.toLowerCase();
-}
-
-/**
  * Create a Fastify server with health check, SPA serving and WebSocket support.
  *
  * All Fastify-specific code lives in this file.
@@ -126,14 +116,11 @@ export async function createHttpServer(options: HttpServerOptions): Promise<Http
   await app.register(fastifyWebsocket);
 
   const { lan } = options;
-  /** Remote viewing is off: only this PC's browser is served (the ping probe excepted). */
-  const remoteBlocked = (req: LoopbackRequest): boolean =>
-    lan !== undefined && !lan.profile.remoteView && !isLoopback(req);
+  // The UI is for this PC's browser only. Defence in depth behind the 127.0.0.1
+  // bind: anything else gets 403 (/ws closes with WS_CLOSE_FORBIDDEN instead).
   app.addHook('onRequest', async (request, reply) => {
-    const path = request.url.split('?')[0];
-    // /ws closes with WS_CLOSE_FORBIDDEN instead, so the page can say why
-    if (path === '/api/ping' || path === '/ws' || !remoteBlocked(request)) return;
-    return reply.code(403).send({ error: 'remote viewing is off' });
+    if (request.url.split('?')[0] === '/ws' || isLoopback(request)) return;
+    return reply.code(403).send({ error: 'forbidden' });
   });
 
   if (options.staticDir) {
@@ -153,17 +140,16 @@ export async function createHttpServer(options: HttpServerOptions): Promise<Http
     pid: process.pid,
   }));
 
-  // Single-instance probe (cli.checkExisting); harmless for anyone to read.
+  // Single-instance probe (cli.checkExisting probes 127.0.0.1).
   app.get('/api/ping', async () => ({ app: PING_APP }));
 
-  // Used by the uninstaller. This PC only: a LAN viewer must not stop our office.
-  app.post('/api/quit', async (request, reply) => {
-    if (!isLoopback(request)) return reply.code(403).send({ error: 'forbidden' });
+  // Used by the uninstaller (loopback only, like every route).
+  app.post('/api/quit', async () => {
     options.onQuit?.(); // the caller delays the exit so this reply goes out first
     return { ok: true };
   });
 
-  const clients = new Set<{ socket: WsLike; privileged: boolean }>();
+  const clients = new Set<WsLike>();
   if (lan) {
     // A team joined without a name learns it when a member announces it: re-send then.
     let lastOffices = JSON.stringify(officesMessage(lan));
@@ -172,9 +158,9 @@ export async function createHttpServer(options: HttpServerOptions): Promise<Http
       const officesChanged = offices !== lastOffices;
       lastOffices = offices;
       for (const c of clients) {
-        if (officesChanged && c.privileged) safeSend(c.socket, officesMessage(lan));
+        if (officesChanged) safeSend(c, officesMessage(lan));
         try {
-          safeSend(c.socket, snapshotMessage(lan, c.privileged));
+          safeSend(c, snapshotMessage(lan));
         } catch (err) {
           console.error('[Pixel Office] officeSnapshot failed:', err);
         }
@@ -184,40 +170,33 @@ export async function createHttpServer(options: HttpServerOptions): Promise<Http
   }
   const onProfileSaved = (): void => {
     if (!lan) return;
-    for (const c of clients) if (c.privileged) safeSend(c.socket, profileMessage(lan, true));
+    for (const c of clients) safeSend(c, profileMessage(lan, true));
   };
 
   const onOfficesChanged = (): void => {
     if (!lan) return;
     for (const c of clients) {
-      if (c.privileged) {
-        safeSend(c.socket, officesMessage(lan));
-        safeSend(c.socket, snapshotMessage(lan, true)); // the switched office now, not on the next tick
-      } else if (!lan.profile.remoteView)
-        c.socket.close(WS_CLOSE_FORBIDDEN, 'remote viewing is off');
+      safeSend(c, officesMessage(lan));
+      safeSend(c, snapshotMessage(lan)); // the switched office now, not on the next tick
     }
   };
 
   const { updater } = options;
   if (updater) {
     updater.broadcast = (msg) => {
-      for (const c of clients) if (c.privileged) safeSend(c.socket, msg);
+      for (const c of clients) safeSend(c, msg);
     };
   }
 
   app.get('/ws', { websocket: true }, (socket, request) => {
-    if (!isAllowedWebSocketOrigin(request.headers.origin, request.headers.host)) {
-      socket.close(WS_CLOSE_FORBIDDEN, 'forbidden origin');
-      return;
-    }
-    if (remoteBlocked(request)) {
-      socket.close(WS_CLOSE_FORBIDDEN, 'remote viewing is off');
-      return;
-    }
+    // Another PC, a foreign Host (DNS rebinding) or a cross-origin page.
     const privileged = isLoopback(request);
-    const client = { socket, privileged };
-    clients.add(client);
-    socket.on('close', () => clients.delete(client));
+    if (!privileged) {
+      socket.close(WS_CLOSE_FORBIDDEN, 'forbidden');
+      return;
+    }
+    clients.add(socket);
+    socket.on('close', () => clients.delete(socket));
 
     socket.on('message', (data: Buffer | string) => {
       try {
@@ -226,7 +205,7 @@ export async function createHttpServer(options: HttpServerOptions): Promise<Http
           adapter: options.adapter,
           cache: options.assetCache ?? null,
           onReloadAssets: options.onReloadAssets,
-          privileged,
+          privileged, // always true here; handleClientMessage's gate stays as a safety net
           lan,
           onProfileSaved,
           onOfficesChanged,

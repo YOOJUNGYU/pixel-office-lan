@@ -2,7 +2,7 @@ import { Button } from '../components/ui/Button.js';
 import { t, useLang } from '../i18n.js';
 import { dismissInstall, promptInstall, useInstallMode } from '../pwa.js';
 
-/** "Install as app" popup for this PC's browser tab (hidden in the app, for remote viewers, after [Later]). */
+/** "Install as app" popup for this PC's browser tab (hidden in the app, when read-only, after [Later]). */
 export function InstallPrompt({ readOnly }: { readOnly: boolean }) {
   useLang();
   const mode = useInstallMode(readOnly);

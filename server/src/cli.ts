@@ -20,6 +20,7 @@ import {
 import type { AssetCache, ReloadAssetsSideEffect } from './clientMessageHandler.js';
 import { readConfig } from './configPersistence.js';
 import {
+  LAN_HTTP_HOST,
   MAX_PORT,
   MIN_PORT,
   NO_PEERS_ENV,
@@ -55,7 +56,7 @@ type AutostartMode = (typeof AUTOSTART_MODES)[number];
 export class CliArgsError extends Error {}
 
 export function parseArgs(argv: string[]): CliArgs {
-  const args: CliArgs = { host: '0.0.0.0', port: LAN_HTTP_PORT, open: false };
+  const args: CliArgs = { host: LAN_HTTP_HOST, port: LAN_HTTP_PORT, open: false };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--port' || argv[i] === '-p') {
       const raw = argv[i + 1];
@@ -89,7 +90,7 @@ export function parseArgs(argv: string[]): CliArgs {
 
 Options:
   --port, -p <number>   Port to listen on (default: ${LAN_HTTP_PORT})
-  --host <string>       Host to bind to (default: 0.0.0.0)
+  --host <string>       Host to bind to (default: ${LAN_HTTP_HOST}; the UI only serves this PC's browser)
   --open                Open the office (installed app or app window on Windows)
   --autostart <mode>    Set start at login (on|off|default) and exit — used by the installer
   --help                Show this help message`);

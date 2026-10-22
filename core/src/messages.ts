@@ -46,7 +46,6 @@ export type ClientMessage =
   | JoinOffice
   | LeaveOffice
   | SetActiveView
-  | SetRemoteView
   | GetOfficeCode;
 
 export interface LayoutLoaded {
@@ -244,7 +243,6 @@ export interface OfficesState {
   type: 'officesState';
   offices: OfficeSummary[];
   activeView: string;
-  remoteView: boolean;
 }
 
 export interface OfficeSummary {
@@ -348,11 +346,6 @@ export interface LeaveOffice {
 export interface SetActiveView {
   type: 'setActiveView';
   view: string;
-}
-
-export interface SetRemoteView {
-  type: 'setRemoteView';
-  enabled: boolean;
 }
 
 export interface GetOfficeCode {

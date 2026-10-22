@@ -44,17 +44,16 @@ describe('loadProfile', () => {
       identity: { publicKey, privateKeyPem },
       offices: [office],
       activeView: office.tag,
-      remoteView: true,
     };
     saveProfile(p, dir);
     expect(loadProfile(dir)).toEqual(p);
   });
-  it('upgrades a v0.1.0 file: key pair generated, public office, remote view off, 0600', () => {
+  it('upgrades a v0.1.0 file: key pair generated, public office, 0600', () => {
     const f = path.join(dir, 'profile.json');
     const v1 = { peerId: 'old-pc', ...ok, nickname: '김' };
     fs.writeFileSync(f, JSON.stringify(v1), { mode: 0o644 });
     const p = loadProfile(dir);
-    expect(p).toMatchObject({ ...v1, offices: [], activeView: PUBLIC_VIEW, remoteView: false });
+    expect(p).toMatchObject({ ...v1, offices: [], activeView: PUBLIC_VIEW });
     expect(publicKeyOf(p.identity.privateKeyPem)).toBe(p.identity.publicKey);
     expect(loadProfile(dir).identity).toEqual(p.identity); // persisted, stable
     if (posix) expect(mode(f)).toBe(0o600);
@@ -122,7 +121,7 @@ describe('validateProfileUpdate', () => {
     const r = validateProfileUpdate({ ...ok, manualPeers: [' 10.0.0.2 ', '', 'pc-1.corp'] });
     expect(r).toEqual({ ...ok, nickname: '김', manualPeers: ['10.0.0.2', 'pc-1.corp'] });
   });
-  it('never takes identity, offices or remote view from a client', () => {
+  it('never takes identity, offices or views from a client', () => {
     const r = validateProfileUpdate({
       ...ok,
       peerId: 'x',

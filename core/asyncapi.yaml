@@ -13,7 +13,7 @@ info:
     Bidirectional WebSocket protocol between the Pixel Office server and the browser
     SPA it serves. The server owns assets, office layout and settings and streams
     them to connected clients. Clients send commands to save layout and toggle
-    settings (loopback browser only).
+    settings. Only a browser on the same PC (loopback) may connect.
   license:
     name: MIT
   contact:
@@ -119,7 +119,6 @@ components:
         - $ref: '#/components/schemas/JoinOffice'
         - $ref: '#/components/schemas/LeaveOffice'
         - $ref: '#/components/schemas/SetActiveView'
-        - $ref: '#/components/schemas/SetRemoteView'
         - $ref: '#/components/schemas/GetOfficeCode'
       discriminator: type
 
@@ -368,11 +367,11 @@ components:
 
     OfficeAccess:
       description: >-
-        Whether this connection may change anything. A read-only office (any
-        connection that is not a same-host loopback browser) can load and watch
-        the office but every change it sends is refused, so the client hides
-        the controls that would send one. Sent first on webviewReady; a client
-        that never receives it is not read-only.
+        Whether this connection may change anything. The server only accepts
+        same-host loopback browsers, so readOnly is a safety net: a read-only
+        connection's changes are all refused, so the client hides the controls
+        that would send one. Sent first on webviewReady; a client that never
+        receives it is not read-only.
       type: object
       additionalProperties: false
       required: [type, readOnly]
@@ -418,12 +417,11 @@ components:
     OfficesState:
       description: >-
         This PC's team offices (names only, never codes), the office its
-        browser shows (`public` or a tag) and whether other LAN browsers may
-        watch. Loopback browsers only: on webviewReady and after any office
+        browser shows (`public` or a tag). Loopback browsers only: on webviewReady and after any office
         change.
       type: object
       additionalProperties: false
-      required: [type, offices, activeView, remoteView]
+      required: [type, offices, activeView]
       properties:
         type:
           const: officesState
@@ -433,8 +431,6 @@ components:
             $ref: '#/components/schemas/OfficeSummary'
         activeView:
           type: string
-        remoteView:
-          type: boolean
 
     OfficeSummary:
       description: A joined team office. `name` is '' when unknown.
@@ -514,9 +510,8 @@ components:
     OfficeSnapshot:
       description: >-
         Every agent in the LAN office (this PC's and every live peer's), pushed
-        about once a second. When this PC's profile hides details, a read-only
-        viewer gets this PC's summaries redacted; peer agents arrive already
-        redacted by their sender.
+        about once a second. Peer agents arrive already redacted by their
+        sender when its profile hides details.
       type: object
       additionalProperties: false
       required: [type, agents, people, selfPeerId]
@@ -953,20 +948,6 @@ components:
           const: setActiveView
         view:
           type: string
-
-    SetRemoteView:
-      description: >-
-        Let other browsers on the LAN watch the public office (loopback browser
-        only). Turning it off closes their connections. Answered with
-        officesState.
-      type: object
-      additionalProperties: false
-      required: [type, enabled]
-      properties:
-        type:
-          const: setRemoteView
-        enabled:
-          type: boolean
 
     GetOfficeCode:
       description: >-

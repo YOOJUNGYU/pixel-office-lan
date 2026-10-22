@@ -18,17 +18,13 @@ const toAgents = (peer: PeerInfo, views: AgentView[]): OfficeAgent[] =>
     peer,
   }));
 
-/** redactLocal applies to this PC's views only; peers redact before sending. */
+/** This PC's views as-is (its own browser); peers redact before sending. */
 export function buildOffice(
   self: PeerInfo,
   local: AgentView[],
   peers: PeerPacket[],
-  redactLocal: boolean,
 ): OfficeAgent[] {
-  return [
-    ...toAgents(self, redactLocal ? local.map(redactView) : local),
-    ...peers.flatMap((p) => toAgents(p.peer, p.views)),
-  ];
+  return [...toAgents(self, local), ...peers.flatMap((p) => toAgents(p.peer, p.views))];
 }
 
 /** True when a Pixel Office already answers on this port. */
@@ -105,14 +101,9 @@ export class LanService {
   }
 
   /** One office's agents. The public office is empty while this PC is in any team. */
-  office(view: string, redactLocal: boolean): OfficeAgent[] {
+  office(view: string): OfficeAgent[] {
     if (!this.isOpen(view)) return [];
-    return buildOffice(
-      this.self(),
-      this.local.views(redactLocal),
-      this.net.peers(view),
-      redactLocal,
-    );
+    return buildOffice(this.self(), this.local.views(), this.net.peers(view));
   }
 
   /** Everyone in one office (this PC first, then live peers, agents or not); same gate as office(). */
@@ -189,12 +180,6 @@ export class LanService {
     const ok = view === PUBLIC_VIEW ? offices.length === 0 : offices.some((o) => o.tag === view);
     if (!ok) return false;
     if (view !== this.profile.activeView) this.update({ activeView: view as string });
-    return true;
-  }
-
-  setRemoteView(enabled: unknown): boolean {
-    if (typeof enabled !== 'boolean') return false;
-    this.update({ remoteView: enabled });
     return true;
   }
 

@@ -263,7 +263,7 @@ function App() {
     };
     const caps = new Set<Capability>();
     if (!officeReadOnly && !isMobile) caps.add('edit');
-    if (!officeReadOnly && offices) caps.add('switcher').add('offices');
+    if (offices) caps.add('switcher').add('offices');
     if (profile?.canEdit) caps.add('profile');
     if (areasAvailable) caps.add('areas');
     setIsSettingsOpen(false);
@@ -272,7 +272,7 @@ function App() {
     if (tourDemoRef.current || lan.realAgents().some((a) => a.parentKey !== undefined)) {
       caps.add('family');
     }
-    tourDispatch({ type: 'start', ids: visibleSteps(officeReadOnly ? 'readOnly' : 'full', caps) });
+    tourDispatch({ type: 'start', ids: visibleSteps(caps) });
   }, [
     officeReadOnly,
     isMobile,
@@ -287,13 +287,9 @@ function App() {
     handleToggleEditMode,
   ]);
 
-  // First run: right after the profile is saved (remote viewers: on first visit).
+  // First run: right after the profile is saved.
   const tourCanAutostart =
-    layoutReady &&
-    (profile !== null || officeReadOnly) &&
-    !firstRun &&
-    !tour.state.done &&
-    step === null;
+    layoutReady && profile !== null && !firstRun && !tour.state.done && step === null;
   useEffect(() => {
     if (!tourCanAutostart) return;
     const timer = setTimeout(startTour, TOUR_AUTOSTART_DELAY_MS);
@@ -536,8 +532,7 @@ function App() {
             );
           })()}
 
-        {/* Read-only viewers only ever see the public office: no switcher. */}
-        {!officeReadOnly && offices && !editor.isEditMode && <OfficeSwitcher state={offices} />}
+        {offices && !editor.isEditMode && <OfficeSwitcher state={offices} />}
 
         {!editor.isEditMode && (
           <PeoplePanel
@@ -621,7 +616,7 @@ function App() {
           onExportLayout={handleExportLayout}
           onImportLayout={handleImportLayout}
           autostart={autostart}
-          offices={officeReadOnly ? null : offices}
+          offices={offices}
           officeReply={officeReply}
           onOfficeReplyHandled={clearOfficeReply}
           onReplayTour={startTour}

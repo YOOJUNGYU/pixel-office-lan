@@ -24,7 +24,7 @@ describe('installMode', () => {
   it('offers the install button when Chromium fired beforeinstallprompt', () => {
     expect(installMode(tab)).toBe('prompt');
   });
-  it('is hidden in the app, after install, for remote viewers and on plain http', () => {
+  it('is hidden in the app, after install, when read-only and on plain http', () => {
     expect(installMode({ ...tab, standalone: true })).toBe('hidden');
     expect(installMode({ ...tab, installed: true })).toBe('hidden');
     expect(installMode({ ...tab, readOnly: true })).toBe('hidden');

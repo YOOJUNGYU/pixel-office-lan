@@ -78,8 +78,8 @@ function runCli(args: string[]): Promise<{ code: number | null; stdout: string; 
 
 describe('parseArgs', () => {
   // 1. Defaults: LAN-reachable on the well-known UI port, no browser
-  it('defaults to 0.0.0.0:47801 without --open', () => {
-    expect(parseArgs([])).toEqual({ host: '0.0.0.0', port: 47801, open: false });
+  it('defaults to 127.0.0.1:47801 (this PC only) without --open', () => {
+    expect(parseArgs([])).toEqual({ host: '127.0.0.1', port: 47801, open: false });
     expect(parseArgs(['--open']).open).toBe(true);
     expect(parseArgs(['--autostart', 'default']).autostart).toBe('default');
     expect(() => parseArgs(['--autostart', 'maybe'])).toThrow(CliArgsError);

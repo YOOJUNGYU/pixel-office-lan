@@ -2,13 +2,17 @@
 export const MIN_PORT = 1;
 export const MAX_PORT = 65_535;
 
+/** Default HTTP bind address: the UI is served to this PC's browser only. */
+export const LAN_HTTP_HOST = '127.0.0.1';
+
 /** Host-header names a privileged (loopback) browser may use. See httpServer.isLoopback. */
 export const LOOPBACK_HOSTNAMES = ['localhost', '127.0.0.1', '[::1]'] as const;
 /** Remote addresses that count as this machine. */
 export const LOOPBACK_ADDRESSES = ['127.0.0.1', '::1', '::ffff:127.0.0.1'] as const;
 
-/** A cross-origin handshake, or a remote browser while remote viewing is off.
- *  WebSocket connects bypass CORS, so this rejects drive-by web pages. */
+/** /ws close code for any connection that is not isLoopback (another PC, a
+ *  foreign Host or Origin). WebSocket connects bypass CORS, so this also rejects
+ *  drive-by web pages. */
 export const WS_CLOSE_FORBIDDEN = 4003;
 
 // ── Layout/Config Persistence ──────────────────────────────

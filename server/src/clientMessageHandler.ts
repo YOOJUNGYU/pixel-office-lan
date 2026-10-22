@@ -1,4 +1,3 @@
-import { PUBLIC_VIEW } from '../../core/src/lan.js';
 import type { ClientMessage, OfficeErrorReason } from '../../core/src/messages.js';
 import type { LoadedAssets, LoadedCharacterSprites, LoadedPetSprites } from './assetLoader.js';
 import { readConfig, writeConfig } from './configPersistence.js';
@@ -35,18 +34,18 @@ export interface ClientMessageContext {
   /** Reload assets after an external-asset-directory change. Needs the dist root, known only to cli.ts. */
   onReloadAssets?: ReloadAssetsSideEffect;
   /**
-   * Whether this client may change ANYTHING (httpServer.isLoopback). An
-   * unprivileged client is read-only: it may load and watch the office
-   * (`webviewReady`) and every other message is refused at the top of
-   * handleClientMessage. Defaults to false so a caller that forgets to pass it
-   * gets the safe answer.
+   * Whether this client may change ANYTHING (httpServer.isLoopback). The HTTP
+   * server only accepts loopback sockets, so this is a safety net: an
+   * unprivileged client is read-only — it may load the office (`webviewReady`)
+   * and every other message is refused at the top of handleClientMessage.
+   * Defaults to false so a caller that forgets to pass it gets the safe answer.
    */
   privileged?: boolean;
   /** LAN office (profile + agents). Absent in tests that only exercise layout/settings. */
   lan?: LanService;
   /** After a successful saveProfile: re-send profileLoaded to every privileged client. */
   onProfileSaved?: () => void;
-  /** After an office change: officesState to every privileged client; closes remote viewers when remoteView went off. */
+  /** After an office change: officesState + a fresh snapshot to every client. */
   onOfficesChanged?: () => void;
   /** GitHub Releases update check/install. Absent in tests. */
   updater?: Updater;
@@ -74,7 +73,7 @@ export function handleClientMessage(
 ): void {
   const { adapter } = ctx;
 
-  // Non-loopback is read-only. Refused HERE, once, rather than per message, so
+  // Safety net: non-loopback is read-only. Refused HERE, once, rather than per message, so
   // a message type added later is privileged by default.
   if (!ctx.privileged && msg.type !== 'webviewReady') {
     refuseReadOnly(msg, send, ctx);
@@ -159,7 +158,6 @@ export function handleClientMessage(
     case 'joinOffice':
     case 'leaveOffice':
     case 'setActiveView':
-    case 'setRemoteView':
       if (ctx.lan) handleOfficeChange(msg, send, ctx.lan, ctx.onOfficesChanged);
       break;
 
@@ -219,9 +217,6 @@ function handleOfficeChange(
       case 'setActiveView':
         ok = lan.setActiveView(msg.view);
         break;
-      case 'setRemoteView':
-        ok = lan.setRemoteView(msg.enabled);
-        break;
     }
   } catch (err) {
     console.error('[Pixel Office] Failed to save offices:', err);
@@ -238,7 +233,6 @@ export function officesMessage(lan: LanService) {
     type: 'officesState',
     offices: lan.officeList(),
     activeView: lan.profile.activeView,
-    remoteView: lan.profile.remoteView,
   } as const;
 }
 
@@ -262,16 +256,12 @@ export function profileMessage(lan: LanService, privileged: boolean) {
   } as const;
 }
 
-/**
- * officeSnapshot of the office this PC's browser has chosen. A remote viewer only
- * ever gets the public office (empty while this PC is in a team), with this PC's
- * agents redacted when hideDetails is on.
- */
-export function snapshotMessage(lan: LanService, privileged: boolean) {
-  const view = privileged ? lan.profile.activeView : PUBLIC_VIEW;
+/** officeSnapshot of the office this PC's browser has chosen. */
+export function snapshotMessage(lan: LanService) {
+  const view = lan.profile.activeView;
   return {
     type: 'officeSnapshot',
-    agents: lan.office(view, lan.profile.hideDetails && !privileged),
+    agents: lan.office(view),
     people: lan.people(view),
     selfPeerId: lan.profile.peerId,
   } as const;
@@ -327,7 +317,7 @@ function handleWebviewReady(send: WsSend, ctx: ClientMessageContext): void {
   send({ type: 'layoutLoaded', layout: savedLayout ?? cache?.defaultLayout ?? null });
 
   // 5. Agents right away rather than on the next 1 s tick.
-  if (ctx.lan) send(snapshotMessage(ctx.lan, ctx.privileged === true));
+  if (ctx.lan && ctx.privileged) send(snapshotMessage(ctx.lan));
 
   // 6. Start-at-login checkbox and update banner: this PC's browser only.
   if (ctx.privileged && ctx.autostart) send(autostartMessage(ctx.autostart.get()));
@@ -341,7 +331,7 @@ function handleWebviewReady(send: WsSend, ctx: ClientMessageContext): void {
 /**
  * The settingsLoaded snapshot: sent on connect, and re-sent to a read-only
  * client whose setting change was refused, so its optimistic toggle snaps back.
- * Local paths never leave the PC: a read-only (LAN) client gets no asset dirs.
+ * Local paths: a read-only client (safety net) gets no asset dirs.
  */
 function settingsSnapshot(ctx: ClientMessageContext) {
   const { adapter } = ctx;
@@ -386,7 +376,6 @@ const KNOWN_CLIENT_TYPES: ReadonlySet<string> = new Set<ClientMessage['type']>([
   'joinOffice',
   'leaveOffice',
   'setActiveView',
-  'setRemoteView',
   'getOfficeCode',
 ]);
 const UNKNOWN_REFUSAL_KEY = 'unknown';

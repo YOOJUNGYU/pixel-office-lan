@@ -7,7 +7,7 @@ export type InstallMode = 'hidden' | 'prompt' | 'safari' | 'other';
 export interface InstallInputs {
   /** Already running as the installed app. */
   standalone: boolean;
-  /** Read-only (remote) viewer. */
+  /** Read-only connection (server safety net; normally never). */
   readOnly: boolean;
   /** Installing needs a secure context (localhost); LAN `http://<IP>` viewers can't. */
   secure: boolean;

@@ -56,8 +56,6 @@ export interface Step {
   /** Clicks/wheel inside the spotlight reach the app (try it yourself). */
   interactive?: boolean;
   requires?: Capability[];
-  /** Part of the short tour for read-only (remote) viewers. */
-  readOnly?: boolean;
 }
 
 export type StepId =
@@ -76,7 +74,6 @@ export type StepId =
   | 'language'
   | 'profile'
   | 'offices'
-  | 'remote'
   | 'system'
   | 'layoutButton'
   | 'floor'
@@ -89,32 +86,29 @@ export type StepId =
   | 'done';
 
 export const STEPS: Step[] = [
-  { id: 'welcome', targets: [], readOnly: true },
-  { id: 'roomCoding', targets: [{ room: 'coding' }], scene: { walk: 'coding' }, readOnly: true },
-  { id: 'roomLibrary', targets: [{ room: 'library' }], scene: { walk: 'library' }, readOnly: true },
-  { id: 'roomServer', targets: [{ room: 'server' }], scene: { walk: 'server' }, readOnly: true },
-  { id: 'roomLounge', targets: [{ room: 'lounge' }], scene: { walk: 'lounge' }, readOnly: true },
-  { id: 'tag', targets: [{ agent: 'tag' }], readOnly: true },
+  { id: 'welcome', targets: [] },
+  { id: 'roomCoding', targets: [{ room: 'coding' }], scene: { walk: 'coding' } },
+  { id: 'roomLibrary', targets: [{ room: 'library' }], scene: { walk: 'library' } },
+  { id: 'roomServer', targets: [{ room: 'server' }], scene: { walk: 'server' } },
+  { id: 'roomLounge', targets: [{ room: 'lounge' }], scene: { walk: 'lounge' } },
+  { id: 'tag', targets: [{ agent: 'tag' }] },
   {
     id: 'bubble',
     targets: [{ agent: 'bubble' }, { dom: 'hover-bubble' }],
     scene: { hover: true },
-    readOnly: true,
   },
   {
     id: 'family',
     targets: [{ agent: 'child' }, { agent: 'ghost' }],
     requires: ['family'],
-    readOnly: true,
   },
   {
     id: 'map',
     targets: [{ map: true }, { dom: 'zoom' }],
     interactive: true,
-    readOnly: true,
   },
-  { id: 'switcher', targets: [{ dom: 'switcher' }], requires: ['switcher'], readOnly: true },
-  { id: 'people', targets: [{ dom: 'people' }], scene: { people: true }, readOnly: true },
+  { id: 'switcher', targets: [{ dom: 'switcher' }], requires: ['switcher'] },
+  { id: 'people', targets: [{ dom: 'people' }], scene: { people: true } },
   { id: 'settingsButton', targets: [{ dom: 'settings-button' }] },
   { id: 'language', targets: [{ dom: 'settings-language' }], scene: { settings: true } },
   {
@@ -126,12 +120,6 @@ export const STEPS: Step[] = [
   {
     id: 'offices',
     targets: [{ dom: 'settings-offices' }],
-    scene: { settings: true },
-    requires: ['offices'],
-  },
-  {
-    id: 'remote',
-    targets: [{ dom: 'settings-remote' }],
     scene: { settings: true },
     requires: ['offices'],
   },
@@ -179,16 +167,12 @@ export const STEPS: Step[] = [
   },
   // Falls back to a centred explanation when the install popup is not shown.
   { id: 'install', targets: [{ dom: 'install' }] },
-  { id: 'done', targets: [], readOnly: true },
+  { id: 'done', targets: [] },
 ];
 
-export type Variant = 'full' | 'readOnly';
-
-/** The steps this viewer gets: the variant's subset, minus steps needing what this screen lacks. */
-export function visibleSteps(variant: Variant, caps: ReadonlySet<Capability>): StepId[] {
-  return STEPS.filter(
-    (s) => (variant === 'full' || s.readOnly) && (s.requires ?? []).every((c) => caps.has(c)),
-  ).map((s) => s.id);
+/** The steps this viewer gets: all but those needing what this screen lacks. */
+export function visibleSteps(caps: ReadonlySet<Capability>): StepId[] {
+  return STEPS.filter((s) => (s.requires ?? []).every((c) => caps.has(c))).map((s) => s.id);
 }
 
 const BY_ID = new Map(STEPS.map((s) => [s.id, s]));

@@ -33,8 +33,6 @@ export interface Profile {
   offices: TeamOffice[];
   /** PUBLIC_VIEW or a joined office's tag: what this PC's browser shows. */
   activeView: string;
-  /** Let other browsers on the LAN watch the public office (read-only). */
-  remoteView: boolean;
 }
 
 /** What saveProfile may change; identity/offices/views change only via their own messages. */
@@ -160,8 +158,7 @@ export function loadProfile(dir: string = defaultDir()): Profile {
     ...editable,
     identity: { publicKey, privateKeyPem },
     offices,
-    activeView,
-    remoteView: raw.remoteView === true,
+    activeView, // a pre-0.4 `remoteView` key is dropped (rewritten below)
   };
   if (JSON.stringify(profile) !== JSON.stringify(raw)) {
     try {

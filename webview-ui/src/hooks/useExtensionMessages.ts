@@ -171,8 +171,8 @@ export function useExtensionMessages(
       } else if (msg.type === 'autostartState') {
         setAutostart(msg as AutostartState);
       } else if (msg.type === 'officesState') {
-        const { offices, activeView, remoteView } = msg as OfficesState;
-        setOffices({ offices, activeView, remoteView });
+        const { offices, activeView } = msg as OfficesState;
+        setOffices({ offices, activeView });
       } else if (
         msg.type === 'officeCreated' ||
         msg.type === 'officeCode' ||

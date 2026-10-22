@@ -1,5 +1,5 @@
 // Per-viewer UI language (Korean / English). No server round-trip: the choice
-// lives in this browser's localStorage, so read-only LAN viewers get it too.
+// lives in this browser's localStorage.
 import { useSyncExternalStore } from 'react';
 
 import type { Act, Lang, Room } from '../../core/src/lan.js';
@@ -85,9 +85,6 @@ const ko = {
   'office.leave': '나가기',
   'office.leaveConfirm': '"{name}" 팀 오피스에서 나갈까요? 다시 들어오려면 코드가 필요합니다.',
   'office.leftPublic': '공개 오피스에서 나왔습니다 — 이제 팀 오피스에서만 보입니다',
-  'office.remoteView': '다른 PC 브라우저에서 보기 허용',
-  'office.remoteViewWarning':
-    '켜면 이 PC의 공개 오피스 화면을 같은 망의 다른 브라우저가 평문(HTTP)으로 볼 수 있습니다',
   'office.error.invalidCode': '코드가 올바르지 않습니다. 다시 확인하세요.',
   'office.error.alreadyJoined': '이미 참여 중인 팀 오피스라 그 오피스로 전환했습니다.',
   'office.error.nameInvalid': '팀 이름은 1–20자여야 합니다.',
@@ -273,9 +270,6 @@ const ko = {
   'tour.offices.title': '팀 오피스',
   'tour.offices.body':
     '팀 이름을 정해 만들면 초대 코드(PO2-…)가 나옵니다. 팀원은 그 코드로 참여합니다.\n팀 오피스의 내용은 팀원끼리만 암호화되어 오가고, 언제든 나갈 수 있습니다.',
-  'tour.remote.title': '다른 브라우저에서 보기',
-  'tour.remote.body':
-    '기본은 꺼짐입니다. 켜면 같은 망의 다른 기기 브라우저가 이 PC의 공개 오피스를 볼 수 있습니다(보기 전용).\n평문(HTTP)으로 전송되니 믿을 수 있는 망에서만 켜세요.',
   'tour.system.title': '자동 실행 · 업데이트',
   'tour.system.body':
     '로그인할 때 자동으로 켜지게 하거나, 새 버전이 있는지 바로 확인할 수 있습니다. 새 버전이 나오면 화면에 알림도 뜹니다.',
@@ -390,9 +384,6 @@ const en: Record<Key, string> = {
   'office.leave': 'Leave',
   'office.leaveConfirm': 'Leave the "{name}" team office? You will need the code to come back.',
   'office.leftPublic': "You left the public office — you're now only visible in team offices",
-  'office.remoteView': 'Allow viewing from other browsers',
-  'office.remoteViewWarning':
-    "When on, other browsers on the same network can watch this PC's public office unencrypted (HTTP)",
   'office.error.invalidCode': 'That code is not valid. Check it and try again.',
   'office.error.alreadyJoined': 'You are already in this team office — switched to it.',
   'office.error.nameInvalid': 'Team name must be 1–20 characters.',
@@ -578,9 +569,6 @@ const en: Record<Key, string> = {
   'tour.offices.title': 'Team offices',
   'tour.offices.body':
     'Create a team to get an invite code (PO2-…); teammates join with it.\nA team office is encrypted between its members, and you can leave any time.',
-  'tour.remote.title': 'Viewing from other browsers',
-  'tour.remote.body':
-    'Off by default. When on, browsers on other devices of the network can view this PC’s public office (read-only).\nIt travels as plain HTTP, so turn it on only on a network you trust.',
   'tour.system.title': 'Start at login · Updates',
   'tour.system.body':
     'Start Pixel Office when you log in, or check for a new version right away. New versions are also announced on screen.',

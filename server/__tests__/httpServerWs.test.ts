@@ -18,7 +18,6 @@ vi.mock('os', async () => {
 
 const { PixelAgentsServer } = await import('../src/server.js');
 const { isLoopback } = await import('../src/httpServer.js');
-const { readConfig, writeConfig } = await import('../src/configPersistence.js');
 const { LanService } = await import('../src/lan/office.js');
 const { loadProfile } = await import('../src/lan/profile.js');
 
@@ -72,6 +71,17 @@ function waitForMessage(socket: WebSocket, type: string, ms = 2_000): Promise<un
     });
   });
 }
+
+/** GET path with a given Host header → status code. */
+const get = (port: number, p: string, host: string): Promise<number> =>
+  new Promise((resolve, reject) => {
+    http
+      .get({ host: '127.0.0.1', port, path: p, headers: { Host: host } }, (res) => {
+        res.resume();
+        resolve(res.statusCode ?? 0);
+      })
+      .on('error', reject);
+  });
 
 const layoutPath = (): string => path.join(tmpBase, '.pixel-office', 'layout.json');
 
@@ -146,36 +156,15 @@ describe('/ws', () => {
     expect(JSON.parse(fs.readFileSync(layoutPath(), 'utf-8'))).toMatchObject({ marker: 'mine' });
   });
 
-  it('a non-loopback Host is read-only: saveLayout is ignored', async () => {
-    const host = `office.example:${port.toString()}`;
-    const { socket, accepted } = await connect(port, { Host: host, Origin: `http://${host}` });
-    sockets.push(socket);
-    expect(accepted).toBe(true);
-    const access = waitForMessage(socket, 'officeAccess');
-    socket.send(JSON.stringify({ type: 'webviewReady' }));
-    expect(await access).toEqual({ type: 'officeAccess', readOnly: true });
-
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    socket.send(JSON.stringify({ type: 'saveLayout', layout: { version: 1 } }));
-    await new Promise((r) => setTimeout(r, SETTLE_MS));
-    warn.mockRestore();
-    expect(fs.existsSync(layoutPath())).toBe(false);
-  });
-
-  it('a LAN viewer never receives local paths in the handshake', async () => {
-    const cfg = readConfig();
-    cfg.externalAssetDirectories = ['/home/kim/assets'];
-    cfg.standalone.areaMappings = { 'kim-project': ['Lab'] };
-    writeConfig(cfg);
-
-    const host = `office.example:${port.toString()}`;
-    const { socket } = await connect(port, { Host: host, Origin: `http://${host}` });
-    sockets.push(socket);
-    const settings = waitForMessage(socket, 'settingsLoaded');
-    const mappings = waitForMessage(socket, 'areaMappingsLoaded');
-    socket.send(JSON.stringify({ type: 'webviewReady' }));
-    expect(await settings).toMatchObject({ externalAssetDirectories: [] });
-    expect(await mappings).toEqual({ type: 'areaMappingsLoaded', mappings: {} });
+  it('another PC or a non-loopback Host is closed 4003, and its HTTP gets 403', async () => {
+    const remote = `office.example:${port.toString()}`;
+    const r = await connect(port, { Host: remote, Origin: `http://${remote}` });
+    sockets.push(r.socket);
+    expect(r.accepted).toBe(false);
+    expect(r.closeCode).toBe(WS_CLOSE_FORBIDDEN);
+    expect(await get(port, '/api/health', remote)).toBe(403);
+    expect(await get(port, '/api/ping', remote)).toBe(403);
+    expect(await get(port, '/api/ping', `127.0.0.1:${port.toString()}`)).toBe(200);
   });
 });
 
@@ -243,24 +232,6 @@ describe('/ws LAN office', () => {
     expect(JSON.parse(fs.readFileSync(profilePath(), 'utf-8'))).toMatchObject(update);
   });
 
-  it('read-only viewer: redacted agents, no manual peers, saveProfile ignored', async () => {
-    lan.setRemoteView(true);
-    const before = fs.readFileSync(profilePath(), 'utf-8');
-    const socket = await open('office.example');
-    const loaded = waitForMessage(socket, 'profileLoaded');
-    const snap = waitForMessage(socket, 'officeSnapshot');
-    socket.send(JSON.stringify({ type: 'webviewReady' }));
-    expect(await loaded).toMatchObject({ canEdit: false, profile: { manualPeers: [] } });
-    expect(await snap).toMatchObject({ agents: [{ target: 'a.ts' }] });
-
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    const refused = waitForMessage(socket, 'profileLoaded');
-    socket.send(JSON.stringify({ type: 'saveProfile', profile: update }));
-    expect(await refused).toMatchObject({ canEdit: false, profile: { nickname: '' } });
-    warn.mockRestore();
-    expect(fs.readFileSync(profilePath(), 'utf-8')).toBe(before);
-  });
-
   it('pushes officeSnapshot every second', async () => {
     const socket = await open('localhost');
     let count = 0;
@@ -270,67 +241,46 @@ describe('/ws LAN office', () => {
     await vi.waitFor(() => expect(count).toBeGreaterThanOrEqual(2), { timeout: 3_000 });
   });
 
-  /** GET path with a given Host header → status code. */
-  const get = (p: string, host: string): Promise<number> =>
-    new Promise((resolve, reject) => {
-      http
-        .get({ host: '127.0.0.1', port, path: p, headers: { Host: host } }, (res) => {
-          res.resume();
-          resolve(res.statusCode ?? 0);
-        })
-        .on('error', reject);
-    });
+  it('an old profile with remoteView: true still serves this PC only', async () => {
+    fs.writeFileSync(
+      profilePath(),
+      JSON.stringify({ ...JSON.parse(fs.readFileSync(profilePath(), 'utf-8')), remoteView: true }),
+    );
+    lan.profile = loadProfile();
+    expect('remoteView' in lan.profile).toBe(false);
+    expect(fs.readFileSync(profilePath(), 'utf-8')).not.toContain('remoteView');
 
-  it('remote viewing off (default): remote HTTP 403 except ping, remote /ws closed 4003', async () => {
     const remote = `office.example:${port.toString()}`;
-    expect(await get('/api/health', remote)).toBe(403);
-    expect(await get('/', remote)).toBe(403);
-    expect(await get('/api/ping', remote)).toBe(200);
-    expect(await get('/api/health', `localhost:${port.toString()}`)).toBe(200);
+    expect(await get(port, '/', remote)).toBe(403);
+    expect(await get(port, '/api/health', remote)).toBe(403);
+    expect(await get(port, '/api/ping', remote)).toBe(403);
+    expect(await get(port, '/api/health', `localhost:${port.toString()}`)).toBe(200);
     const r = await connect(port, { Host: remote, Origin: `http://${remote}` });
     sockets.push(r.socket);
     expect(r.closeCode).toBe(WS_CLOSE_FORBIDDEN);
   });
 
-  it('remote viewers get only the public office, empty while in a team; turning off closes them', async () => {
-    lan.setRemoteView(true);
-    const remote = await open('office.example');
+  it('team office: the code goes to the creator only; setRemoteView is unknown', async () => {
     const local = await open('localhost');
-    const remoteSnaps: { agents: unknown[] }[] = [];
-    const remoteTypes = new Set<string>();
-    remote.on('message', (d: Buffer) => {
-      const m = JSON.parse(d.toString()) as { type: string; agents: unknown[] };
-      if (m.type === 'officeSnapshot') remoteSnaps.push(m);
-      remoteTypes.add(m.type);
-    });
-    remote.send(JSON.stringify({ type: 'webviewReady' }));
     const created = waitForMessage(local, 'officeCreated');
     const state = waitForMessage(local, 'officesState');
     local.send(JSON.stringify({ type: 'createOffice', name: '팀' }));
     const c = (await created) as { tag: string; code: string };
     expect(c.code).toMatch(/^PO2-/);
-    expect(JSON.stringify(await state)).not.toContain(c.code);
-
-    const before = remoteSnaps.length;
-    await vi.waitFor(() => expect(remoteSnaps.length).toBeGreaterThan(before));
-    expect(remoteSnaps.at(-1)?.agents).toEqual([]);
+    const st = await state;
+    expect(JSON.stringify(st)).not.toContain(c.code);
+    expect(st).not.toHaveProperty('remoteView');
     const localSnap = (await waitForMessage(local, 'officeSnapshot')) as { agents: unknown[] };
     expect(localSnap.agents).toHaveLength(1);
 
-    // a remote socket can't change offices
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    remote.send(JSON.stringify({ type: 'leaveOffice', tag: c.tag }));
-    remote.send(JSON.stringify({ type: 'getOfficeCode', tag: c.tag }));
+    const replies: string[] = [];
+    local.on('message', (d: Buffer) =>
+      replies.push((JSON.parse(d.toString()) as { type: string }).type),
+    );
+    local.send(JSON.stringify({ type: 'setRemoteView', enabled: true }));
     await new Promise((r) => setTimeout(r, SETTLE_MS));
-    warn.mockRestore();
-    expect(lan.profile.offices).toHaveLength(1);
-    expect(
-      [...remoteTypes].filter((t) => t.startsWith('office') && t !== 'officeSnapshot'),
-    ).toEqual(['officeAccess']);
-
-    const closed = new Promise<number>((r) => remote.on('close', (code: number) => r(code)));
-    local.send(JSON.stringify({ type: 'setRemoteView', enabled: false }));
-    expect(await closed).toBe(WS_CLOSE_FORBIDDEN);
+    expect(replies.filter((t) => t !== 'officeSnapshot')).toEqual([]);
+    expect(fs.readFileSync(profilePath(), 'utf-8')).not.toContain('remoteView');
   });
 
   it('a refused join tells only the asking socket why; alreadyJoined still switches', async () => {

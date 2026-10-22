@@ -62,9 +62,9 @@ Name: "{autodesktop}\Pixel Office"; Filename: "{sys}\wscript.exe"; Parameters: "
 Type: files; Name: "{commonstartup}\Pixel Office.lnk"
 
 [Run]
-; Replace (not duplicate) the rule on reinstall/upgrade.
+; Replace (not duplicate) the rule on reinstall/upgrade. Inbound UDP 47800 (peers) only: the UI (HTTP 47801) is this PC only.
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""Pixel Office"""; Flags: runhidden
-Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""Pixel Office"" dir=in action=allow program=""{app}\node.exe"" enable=yes profile=any"; Flags: runhidden
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""Pixel Office"" dir=in action=allow program=""{app}\node.exe"" protocol=UDP localport=47800 enable=yes profile=any"; Flags: runhidden
 ; Start at login for the installing (original, non-elevated) user. An interactive install applies
 ; the checkbox as given. A silent update (in-app Update) ignores the remembered checkbox (Settings
 ; may have changed it since) and runs "default": on unless the user turned it off in Settings.

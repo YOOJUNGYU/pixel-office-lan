@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 
 import type { OfficeErrorReason, OfficesState } from '../../../core/src/messages.js';
 import { Button } from '../components/ui/Button.js';
-import { Checkbox } from '../components/ui/Checkbox.js';
 import { MAX_OFFICE_NAME, OFFICE_COPIED_MS } from '../constants.js';
 import type { OfficeReply } from '../hooks/useExtensionMessages.js';
 import { t } from '../i18n.js';
@@ -20,7 +19,7 @@ interface OfficeSettingsProps {
   onReplyHandled: () => void;
 }
 
-/** Settings → 오피스: create, join, copy code / leave, remote viewing. This PC's browser only. */
+/** Settings → 오피스: create, join, copy code / leave. This PC's browser only. */
 export function OfficeSettings({ state, reply, onReplyHandled }: OfficeSettingsProps) {
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
@@ -188,16 +187,6 @@ export function OfficeSettings({ state, reply, onReplyHandled }: OfficeSettingsP
             </div>
           );
         })}
-      </div>
-
-      <div data-tour="settings-remote" className="flex flex-col gap-6">
-        <Checkbox
-          label={t('office.remoteView')}
-          checked={state.remoteView}
-          onChange={() => transport.send({ type: 'setRemoteView', enabled: !state.remoteView })}
-          className="px-0!"
-        />
-        <div className="text-xs text-text-muted">{t('office.remoteViewWarning')}</div>
       </div>
     </div>
   );

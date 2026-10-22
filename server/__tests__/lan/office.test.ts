@@ -33,16 +33,13 @@ const peer: PeerPacket = {
 };
 
 describe('buildOffice', () => {
-  it('redacts only local views when redactLocal', () => {
-    expect(buildOffice(self, [view()], [], true)[0].target).toBe('a.ts');
-    expect(buildOffice(self, [view()], [], false)[0].target).toBe('/home/kim/a.ts');
-    // peer views pass through untouched (sender redacts)
-    const fromPeer = buildOffice(self, [], [peer], true);
-    expect(fromPeer[0].target).toBe('/home/kim/a.ts');
+  it('passes local and peer views through untouched (this PC only; senders redact)', () => {
+    expect(buildOffice(self, [view()], [])[0].target).toBe('/home/kim/a.ts');
+    expect(buildOffice(self, [], [peer])[0].target).toBe('/home/kim/a.ts');
   });
 
   it('keys agents by peer and links children to their parent', () => {
-    const agents = buildOffice(self, [view()], [peer], false);
+    const agents = buildOffice(self, [view()], [peer]);
     expect(agents.map((a) => a.key)).toEqual(['me:s1', 'p1:m', 'p1:m/sub/x']);
     expect(agents[1].parentKey).toBeUndefined();
     expect(agents[2].parentKey).toBe('p1:m');
@@ -63,7 +60,6 @@ describe('LanService', () => {
     ),
     offices: [],
     activeView: PUBLIC_VIEW,
-    remoteView: false,
   };
 
   it('sends an empty nickname until one is set, and redacts when hideDetails', () => {
@@ -83,10 +79,10 @@ describe('LanService', () => {
     };
     const lan = new LanService({ ...profile }, local);
     expect(lan.packet().views[0].target).toBe('ssh');
-    expect(lan.office(PUBLIC_VIEW, false)[0].target).toBe('ssh dev@db01.acme.local');
+    expect(lan.office(PUBLIC_VIEW)[0].target).toBe('ssh dev@db01.acme.local');
     lan.profile = { ...lan.profile, hideDetails: false };
     expect(lan.packet().views[0].target).toBe('ssh dev@db01.acme.local');
-    expect(asked).toEqual([true, false, false]);
+    expect(asked).toEqual([true, undefined, false]);
   });
 
   it('packet() never throws: a failing scan sends no views', () => {
@@ -143,19 +139,18 @@ describe('LanService', () => {
 
     it('public office: self + public peers while in no team', () => {
       const { lan } = mk();
-      expect(keys(lan.office(PUBLIC_VIEW, false))).toEqual(['me:s1', 'p1:public-work']);
-      expect(lan.office('unknown-tag', false)).toEqual([]);
+      expect(keys(lan.office(PUBLIC_VIEW))).toEqual(['me:s1', 'p1:public-work']);
+      expect(lan.office('unknown-tag')).toEqual([]);
     });
 
-    it('people: self first, zero-agent peers included, team peers never in public/remote', () => {
+    it('people: self first, zero-agent peers included, team peers never in public', () => {
       const { lan } = mk();
       const idle: PeerPacket = { ...pubPeer, peer: { ...pubPeer.peer, id: 'idle' }, views: [] };
       lan.net.peers = (v: string) => (v === PUBLIC_VIEW ? [pubPeer, idle] : [teamPeer]);
       const ids = (m: { people: { peerId: string; self: boolean }[] }) =>
         m.people.map((p) => `${p.peerId}${p.self ? '*' : ''}`);
-      expect(ids(snapshotMessage(lan, true))).toEqual(['me*', 'p1', 'idle']);
-      expect(ids(snapshotMessage(lan, false))).toEqual(['me*', 'p1', 'idle']);
-      expect(snapshotMessage(lan, false).people[1]).toEqual({
+      expect(ids(snapshotMessage(lan))).toEqual(['me*', 'p1', 'idle']);
+      expect(snapshotMessage(lan).people[1]).toEqual({
         peerId: 'p1',
         nickname: '김',
         palette: 1,
@@ -163,25 +158,23 @@ describe('LanService', () => {
         self: false,
       });
       const created = lan.createOffice('팀') as CreatedOffice;
-      expect(ids(snapshotMessage(lan, true))).toEqual(['me*', 'mate']);
-      expect(snapshotMessage(lan, false).people).toEqual([]);
+      expect(ids(snapshotMessage(lan))).toEqual(['me*', 'mate']);
       expect(lan.people(PUBLIC_VIEW)).toEqual([]);
       expect(lan.people('unknown-tag')).toEqual([]);
       expect(lan.people(created.tag).map((p) => p.peerId)).toEqual(['me', 'mate']);
     });
 
-    it('create: code to the caller, team view active, public and remote viewers get nothing', () => {
+    it('create: code to the caller, team view active, the public office is empty', () => {
       const { lan, sendNow } = mk();
       const created = lan.createOffice(' 우리팀 ') as CreatedOffice;
       expect(created.name).toBe('우리팀');
       expect(parseInviteCode(created.code)).not.toBeNull();
       expect(sendNow).toHaveBeenCalled();
       expect(lan.profile.activeView).toBe(created.tag);
-      expect(keys(lan.office(created.tag, false))).toEqual(['me:s1', 'mate:team-secret-work']);
-      expect(lan.office(PUBLIC_VIEW, false)).toEqual([]);
-      // this PC's browser follows activeView; a remote socket only ever gets public
-      expect(keys(snapshotMessage(lan, true).agents)).toContain('mate:team-secret-work');
-      expect(snapshotMessage(lan, false).agents).toEqual([]);
+      expect(keys(lan.office(created.tag))).toEqual(['me:s1', 'mate:team-secret-work']);
+      expect(lan.office(PUBLIC_VIEW)).toEqual([]);
+      // this PC's browser follows activeView
+      expect(keys(snapshotMessage(lan).agents)).toContain('mate:team-secret-work');
       expect(lan.setActiveView(PUBLIC_VIEW)).toBe(false);
     });
 
@@ -197,7 +190,6 @@ describe('LanService', () => {
         type: 'officesState',
         offices: [{ tag: created.tag, name: '팀' }],
         activeView: created.tag,
-        remoteView: false,
       });
       const file = path.join(dir, 'profile.json');
       expect(fs.readFileSync(file, 'utf-8')).toContain(secret);
@@ -220,19 +212,16 @@ describe('LanService', () => {
       expect(lan.leaveOffice('other')).toBe(false);
       expect(lan.leaveOffice(tag)).toBe(true);
       expect(lan.profile).toMatchObject({ offices: [], activeView: PUBLIC_VIEW });
-      expect(keys(lan.office(PUBLIC_VIEW, false))).toContain('p1:public-work');
+      expect(keys(lan.office(PUBLIC_VIEW))).toContain('p1:public-work');
     });
 
-    it('rejects bad names and remote-view values', () => {
+    it('rejects bad names and a full office list', () => {
       const { lan } = mk();
       expect(lan.createOffice('')).toBe('nameInvalid');
       expect(lan.createOffice('x'.repeat(21))).toBe('nameInvalid');
       expect(lan.createOffice(5)).toBe('nameInvalid');
       for (let i = 0; i < MAX_OFFICES; i++) lan.createOffice(`팀${i.toString()}`);
       expect(lan.createOffice('one more')).toBe('full');
-      expect(lan.setRemoteView('yes')).toBe(false);
-      expect(lan.setRemoteView(true)).toBe(true);
-      expect(lan.profile.remoteView).toBe(true);
     });
   });
 });
