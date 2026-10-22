@@ -6,6 +6,7 @@ import type { AutostartState } from './lan/autostart.js';
 import type { LanService } from './lan/office.js';
 import { validateProfileUpdate } from './lan/profile.js';
 import type { Updater } from './lan/updater.js';
+import { APP_VERSION } from './lan/updater.js';
 import {
   readLayoutFromFile,
   roomColorsOf,
@@ -281,7 +282,7 @@ function handleWebviewReady(send: WsSend, ctx: ClientMessageContext): void {
 
   // 0. Access, first: a read-only office hides every control that would send
   // a change (all refused by refuseReadOnly), so it must know before it draws them.
-  send({ type: 'officeAccess', readOnly: ctx.privileged !== true });
+  send({ type: 'officeAccess', readOnly: ctx.privileged !== true, version: APP_VERSION });
 
   // 1. Assets (from server cache, loaded at startup via pngjs)
   if (cache) {

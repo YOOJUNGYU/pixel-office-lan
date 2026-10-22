@@ -30,6 +30,7 @@ import { setCharacterTemplates } from '../office/sprites/spriteData.js';
 import { setProviderCapabilities } from '../office/toolUtils.js';
 import type { OfficeLayout } from '../office/types.js';
 import { setWallSprites } from '../office/wallTiles.js';
+import { reloadIfNewVersion } from '../pwa.js';
 import { transport } from '../transport/index.js';
 
 interface FurnitureAsset {
@@ -66,6 +67,7 @@ interface ExtensionMessageState {
   /** A read-only office (not a loopback browser): every change it sends is
    *  refused, so the UI hides the controls that would send one. */
   officeReadOnly: boolean;
+  restarting: boolean;
   /** LAN agents ↔ characters (lan.all(), lan.agentFor(id)). */
   lan: LanAgents;
   /** Bumped on every applied officeSnapshot so overlays re-render. */
@@ -111,6 +113,8 @@ export function useExtensionMessages(
   const [alwaysShowLabels, setAlwaysShowLabels] = useState(false);
   const [showAreas, setShowAreas] = useState(false);
   const [officeReadOnly, setOfficeReadOnly] = useState(false);
+  /** Reloading into the server's new version (after an update). */
+  const [restarting, setRestarting] = useState(false);
   const [lanVersion, setLanVersion] = useState(0);
   const [people, setPeople] = useState<OfficePersonMessage[]>([]);
   const [profile, setProfile] = useState<Omit<ProfileLoaded, 'type'> | null>(null);
@@ -147,6 +151,7 @@ export function useExtensionMessages(
 
       if (msg.type === 'officeAccess') {
         setOfficeReadOnly(msg.readOnly === true);
+        if (reloadIfNewVersion(msg.version)) setRestarting(true);
         return;
       }
 
@@ -283,6 +288,7 @@ export function useExtensionMessages(
     showAreas,
     setShowAreas,
     officeReadOnly,
+    restarting,
     lan,
     lanVersion,
     people,

@@ -24,6 +24,7 @@ import {
 import type { FileStateAdapter } from './fileStateAdapter.js';
 import type { LanService } from './lan/office.js';
 import type { Updater } from './lan/updater.js';
+import { APP_VERSION } from './lan/updater.js';
 
 /** Options for creating the HTTP + WebSocket server. */
 export interface HttpServerOptions {
@@ -186,6 +187,7 @@ export async function createHttpServer(options: HttpServerOptions): Promise<Http
     updater.broadcast = (msg) => {
       for (const c of clients) safeSend(c, msg);
     };
+    updater.uiConnected = () => clients.size > 0;
   }
 
   app.get('/ws', { websocket: true }, (socket, request) => {
@@ -197,6 +199,9 @@ export async function createHttpServer(options: HttpServerOptions): Promise<Http
     }
     clients.add(socket);
     socket.on('close', () => clients.delete(socket));
+    // Every connection learns the server version at once, a reconnect too (no new
+    // handshake): a page left open across an update reloads into the new version.
+    safeSend(socket, { type: 'officeAccess', readOnly: false, version: APP_VERSION });
 
     socket.on('message', (data: Buffer | string) => {
       try {

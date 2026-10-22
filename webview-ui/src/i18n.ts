@@ -38,6 +38,7 @@ const ko = {
   'tour.roomLegend.title': '방 안내',
   'tour.roomLegend.body':
     '어떤 일을 하면 어느 방으로 가는지 여기서 언제든 볼 수 있습니다. 제목을 누르면 접히고 펼쳐집니다.',
+  'app.restarting': '새 버전으로 다시 시작합니다…',
   'people.title': '접속 중 {n}명',
   'people.you': '(나)',
   'people.noAgents': '에이전트 없음',
@@ -334,6 +335,7 @@ const en: Record<Key, string> = {
   'tour.roomLegend.title': 'Rooms',
   'tour.roomLegend.body':
     'Which activity sends an agent to which room, any time. Click the title to fold or unfold it.',
+  'app.restarting': 'Restarting into the new version…',
   'people.title': '{n} online',
   'people.you': '(you)',
   'people.noAgents': 'No agents',

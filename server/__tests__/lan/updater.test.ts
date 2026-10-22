@@ -6,11 +6,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { UpdateInfo } from '../../src/lan/updater.js';
 import {
   checkForUpdate,
+  consumeReopenMarker,
   downloadAndRun,
   isNewer,
   pickAsset,
   repoUrl,
   Updater,
+  writeReopenMarker,
 } from '../../src/lan/updater.js';
 
 const DL = 'https://github.com/YOOJUNGYU/pixel-office-lan/releases/download/v0.2.0/';
@@ -256,5 +258,58 @@ describe('Updater', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('reopen marker (window after an update)', () => {
+  const dirs: string[] = [];
+  const tmp = () => {
+    const d = fs.mkdtempSync(path.join(os.tmpdir(), 'po-reopen-'));
+    dirs.push(d);
+    return d;
+  };
+  afterEach(() => {
+    for (const d of dirs.splice(0)) fs.rmSync(d, { recursive: true, force: true });
+  });
+
+  it('a window was open: the new start opens nothing; none was: it opens once', () => {
+    const d = tmp();
+    writeReopenMarker(true, d, 1_000);
+    expect(consumeReopenMarker(d, 2_000)).toBe('stay');
+    expect(consumeReopenMarker(d, 2_000)).toBeNull(); // consumed
+    writeReopenMarker(false, d, 1_000);
+    expect(consumeReopenMarker(d, 2_000)).toBe('open');
+    expect(fs.readdirSync(d)).toEqual([]);
+  });
+
+  it('no, stale or broken marker: a normal start (--open decides)', () => {
+    const d = tmp();
+    expect(consumeReopenMarker(d, 0)).toBeNull();
+    writeReopenMarker(false, d, 0);
+    expect(consumeReopenMarker(d, 31 * 60_000)).toBeNull();
+    fs.writeFileSync(path.join(d, 'reopen'), '{nope');
+    expect(consumeReopenMarker(d, 0)).toBeNull();
+    expect(fs.readdirSync(d)).toEqual([]);
+  });
+
+  it('[Update] records whether a UI page is connected', async () => {
+    const marks: boolean[] = [];
+    const u = new Updater('0.1.0', {
+      check: async () => null,
+      install: async () => {},
+      markReopen: (open) => marks.push(open),
+    });
+    u.info = {
+      version: '0.2.0',
+      assetUrl: '',
+      assetName: 'PixelOffice-Setup-0.2.0.exe',
+      assetSize: 1,
+      notesUrl: '',
+    };
+    u.uiConnected = () => true;
+    await u.install();
+    u.uiConnected = () => false;
+    await u.install();
+    expect(marks).toEqual([true, false]);
   });
 });

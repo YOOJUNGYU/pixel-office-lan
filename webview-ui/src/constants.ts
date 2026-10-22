@@ -388,6 +388,12 @@ export const FIRST_OPEN_FIT_FILL = 0.95;
 /** How long the "layout not saved" toast stays. */
 export const LAYOUT_REJECTED_TOAST_MS = 4_000;
 
+// ── App version ─────────────────────────────────────────────
+/** An unbuilt (dev/test) server's version: never triggers a reload. */
+export const DEV_SERVER_VERSION = '0.0.0';
+/** sessionStorage: the server version this tab last reloaded for (no reload loop). */
+export const VERSION_RELOAD_KEY = 'pixel-office.reloadedFor';
+
 // ── Room legend (top left) ───────────────────────────────────
 /** localStorage: '1' = open, '0' = collapsed (per viewer); unset = open on a wide screen. */
 export const ROOM_LEGEND_KEY = 'pixel-office.roomLegend';

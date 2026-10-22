@@ -131,6 +131,7 @@ export interface CarpetTilesLoaded {
 export interface OfficeAccess {
   type: 'officeAccess';
   readOnly: boolean;
+  version?: string;
 }
 
 export interface SettingsLoaded {

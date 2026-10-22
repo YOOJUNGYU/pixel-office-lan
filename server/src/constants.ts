@@ -64,6 +64,10 @@ export const UPDATE_API_TIMEOUT_MS = 15_000;
 export const UPDATE_DOWNLOAD_TIMEOUT_MS = 10 * 60_000;
 /** Downloaded installers, under the data directory. */
 export const UPDATES_DIR_NAME = 'updates';
+/** In UPDATES_DIR_NAME: written on [Update], read (and deleted) by the next start — whether to open a window. */
+export const REOPEN_MARKER_NAME = 'reopen';
+/** An older marker is stale (the update never ran): ignored. */
+export const REOPEN_MARKER_TTL_MS = 30 * 60_000;
 /** `PIXEL_OFFICE_NO_PEERS=1`: no UDP peers (tests must never broadcast on the real LAN). */
 export const NO_PEERS_ENV = 'PIXEL_OFFICE_NO_PEERS';
 /** Test only: two instances on one host. `PIXEL_OFFICE_UDP_PORT=47810` binds that UDP port and

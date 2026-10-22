@@ -98,6 +98,7 @@ function App() {
     showAreas,
     setShowAreas,
     officeReadOnly,
+    restarting,
     lan,
     people,
     profileError,
@@ -610,6 +611,15 @@ function App() {
         )}
 
         <ConnectionIndicator />
+
+        {restarting && (
+          <div
+            role="status"
+            className="absolute inset-0 z-60 flex items-center justify-center bg-bg-dark/80"
+          >
+            <div className="pixel-panel py-8 px-16 text-base">{t('app.restarting')}</div>
+          </div>
+        )}
 
         {profile?.canEdit && (firstRun || profileOpen) && (
           <ProfileModal

@@ -93,7 +93,7 @@ describe('clientMessageHandler', () => {
         'settingsLoaded',
         'layoutLoaded',
       ]);
-      expect(sent[0]).toEqual({ type: 'officeAccess', readOnly: false });
+      expect(sent[0]).toEqual({ type: 'officeAccess', readOnly: false, version: '0.0.0' });
       expect(sent.at(-1)).toEqual({
         type: 'layoutLoaded',
         layout: { version: 1, marker: 'default' },
@@ -102,7 +102,7 @@ describe('clientMessageHandler', () => {
 
     it('tells a read-only client so FIRST, and still loads the office for it', () => {
       send({ type: 'webviewReady' }, ctx(false));
-      expect(sent[0]).toEqual({ type: 'officeAccess', readOnly: true });
+      expect(sent[0]).toEqual({ type: 'officeAccess', readOnly: true, version: '0.0.0' });
       expect(sent.map((m) => m.type)).toContain('layoutLoaded');
     });
 

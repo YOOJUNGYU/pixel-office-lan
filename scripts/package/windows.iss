@@ -72,7 +72,11 @@ Filename: "{app}\node.exe"; Parameters: """{app}\app\cli.js"" --autostart on"; T
 Filename: "{app}\node.exe"; Parameters: """{app}\app\cli.js"" --autostart off"; Tasks: not autostart; Check: not WizardSilent; Flags: runhidden runasoriginaluser waituntilterminated
 Filename: "{app}\node.exe"; Parameters: """{app}\app\cli.js"" --autostart default"; Check: WizardSilent; Flags: runhidden runasoriginaluser waituntilterminated
 ; postinstall entries run as the original (non-elevated) user, so ~\.pixel-office lands in their home.
-Filename: "{sys}\wscript.exe"; Parameters: """{app}\launch.vbs"" --open"; Description: "{cm:OpenOffice}"; Flags: postinstall nowait
+; Interactive install: the finish page's "open" checkbox. Silent (in-app Update): start the server
+; only, without --open: a window that was open reloads itself into the new version, and the
+; app's reopen marker (~\.pixel-office\updates\reopen) opens one only if none was open.
+Filename: "{sys}\wscript.exe"; Parameters: """{app}\launch.vbs"" --open"; Description: "{cm:OpenOffice}"; Flags: postinstall nowait skipifsilent
+Filename: "{sys}\wscript.exe"; Parameters: """{app}\launch.vbs"""; Check: WizardSilent; Flags: postinstall nowait
 
 [UninstallRun]
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""Pixel Office"""; Flags: runhidden; RunOnceId: "DelFirewallRule"

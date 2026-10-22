@@ -71,6 +71,8 @@ launchctl bootout "gui/$USER_ID/com.pixeloffice.agent" 2>/dev/null || true
 
 # Start at login was turned off in Settings (the app writes this marker): keep it off, but start
 # the new version once now (in the user's GUI session) so an update doesn't leave the office gone.
+# The launcher passes --open, but after an in-app update the app's reopen marker decides: a window
+# that was open reloads itself into the new version, so no second one is opened.
 if [ -e "$HOME_DIR/.pixel-office/autostart-off" ]; then
   launchctl asuser "$USER_ID" sudo -u "$USER_NAME" open -g "/Applications/Pixel Office.app" || true
   exit 0
