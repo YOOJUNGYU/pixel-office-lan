@@ -22,7 +22,7 @@ Get the file for your PC from [GitHub Releases](https://github.com/YOOJUNGYU/pix
 4. On **Select Additional Tasks** both options are checked by default; untick what you don't want:
    - **Create a desktop shortcut**
    - **Start automatically at login** (registered in your own user's Startup folder; you can change it later in the office's **Settings**)
-5. Finish the wizard; the office opens in your browser. Just pick a nickname, character and colour.
+5. Finish the wizard; the office opens in your browser. Just pick a character and colour (a nickname is optional; you are shown by your PC account name).
 
 ## 3. Mac
 

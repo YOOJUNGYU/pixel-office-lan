@@ -19,7 +19,7 @@
 
 ![The whole office](docs/images/office-en.png)
 
-At a glance you see who (nickname), with which agent (Claude Code / Codex), in which room, is doing what. Install it from a single installer and it finds the other PCs on the same network by itself, **with no server**; everyone's agents meet in one office.
+At a glance you see who (PC account name and nickname), with which agent (Claude Code / Codex), in which room, is doing what. Install it from a single installer and it finds the other PCs on the same network by itself, **with no server**; everyone's agents meet in one office.
 
 > A fork of [pixel-agents](https://github.com/pixel-agents-hq/pixel-agents) (MIT) with LAN sharing added. The original shows only the agents on your own PC.
 
@@ -37,10 +37,10 @@ The original [pixel-agents](https://github.com/pixel-agents-hq/pixel-agents) sho
 | Install             | VS Code extension / `npx` (needs Node)                      | **One installer** (Windows `.exe` · macOS `.pkg`, Node bundled); **WSL sessions are read from Windows too**                              |
 | Detection           | Installs Claude hooks (edits `settings.json`) + transcripts | **Reads transcripts only** — never touches the tools' settings                                                                           |
 | Character placement | Fixed seat, state shown by animation                        | **Walks between rooms by activity** (Coding Room · Library · Server Room · Lounge)                                                       |
-| Activity            | Status text                                                 | Name tag (`nickname · Claude #1`) + **hover bubble** (which file and why, what it searches)                                              |
+| Activity            | Status text                                                 | Name tag (`account (nickname) · Claude #1`) + **hover bubble** (which file and why, what it searches)                                    |
 | Subagents           | Appear next to the parent                                   | **Hold hands in a line**; in another room a **translucent ghost of the parent** leads them · **background shells** become characters too |
 | Privacy             | n/a                                                         | **Hide details** (on by default): paths, IPs, tokens and command arguments never leave the PC                                            |
-| Your character      | Auto-assigned                                               | Pick **nickname · character · color** (skin tone kept)                                                                                   |
+| Your character      | Auto-assigned                                               | Pick **character · color** (skin tone kept) + optional nickname; the name is the PC account                                              |
 | Language · font     | English · pixel font                                        | **Korean/English** per viewer, **Pretendard**                                                                                            |
 | Map controls        | Middle-button pan, integer zoom                             | **Drag to pan + smooth wheel zoom**                                                                                                      |
 | Layout              | Floors, walls, furniture, areas                             | + **background outside the map** (solid · tiles · carpet), a four-room default layout                                                    |
@@ -66,7 +66,7 @@ When an agent switches activity, its character walks to the matching room. So th
 
 ### Name tags and hover bubbles
 
-- Every character carries a tag: `nickname · Claude #1` / `nickname · Codex #1`.
+- Every character carries a tag: `account (nickname) · Claude #1` / `account · Codex #1`. The account is the PC login name (cannot be changed); the nickname shows only when set.
 - Hover a character to see **what it is doing right now**: which file it is editing and why, what it is searching for, which command it runs.
 - A ❗ appears above an agent that is waiting for a person.
 
@@ -113,12 +113,14 @@ Switch the office you are looking at with the office switcher at the top of the 
 
 - Only **read-only state** is shared. Nobody can reach your terminals, run your agents, or change your settings; write actions are accepted only from the browser on your own PC.
 - **Hide details** (on by default): file paths, user names, IPs and hostnames, URL paths, and token- or password-like strings **never leave your PC**. Commands are sent as the program name only (or Claude's own description). Your own screen still shows your agents verbatim.
+- Your PC login account name is the name tag, so other PCs always see it (hide details does not apply).
 - Claude Code and Codex settings are **never modified**; the app only reads the transcript files these tools already write.
 
 ### And more
 
 - 📲 **Install as an app (PWA)**: open the office in this PC's browser and an **Install Pixel Office as an app** popup appears top right. **Install** (Edge/Chrome) installs it as a tab-less app window, and the Windows shortcuts then open that app (a Mac opens the default browser). **Later** hides it for 7 days. Safari: **Share → Add to Dock / Add to Home Screen**; Firefox can't install apps.
-- 👤 **Profile**: on first run pick a nickname, a character (6 kinds) and a color (8 swatches + slider). Skin tone stays; clothes and hair change color.
+- 👤 **Profile**: on first run pick a character (6 kinds) and a color (8 swatches + slider), and optionally a nickname. Skin tone stays; clothes and hair change color. Your PC login account name always shows first and cannot be changed.
+- Nicknames must be unique (ignoring case and spaces): saving one that another PC you can see uses is refused. If two PCs picked the same one while apart, the later one shows with a short tag (`Mina · a1b2`) and gets a one-time prompt to change it.
 - 🌐 **한국어 / English**: each viewer chooses (Settings → Language). Text the agent wrote itself (reasons, file names, commands) is shown as-is.
 - 🖱️ **Map controls**: drag an empty spot to pan; the mouse wheel (or trackpad pinch) zooms smoothly around the cursor.
 - 🔄 **Updates**: when a new version is published on GitHub Releases, an **Update** button appears; it downloads and runs the installer.
@@ -149,7 +151,7 @@ Claude Code and Codex running inside WSL are read by the Windows app; there is n
 2. Run it. It is a free project without code signing, so you will see a warning:
    - **Windows**: "Windows protected your PC" → **More info** → **Run anyway**, then User Account Control → **Yes**
    - **Mac**: if blocked, **System Settings → Privacy & Security → Open Anyway**; if the firewall is on, "Allow incoming connections"
-3. The office opens in your browser; choose a nickname, a character and a colour.
+3. The office opens in your browser; choose a character and a colour (a nickname is optional).
 
 ### How to open
 
