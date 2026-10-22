@@ -12,6 +12,7 @@
 <p align="center">
   <a href="https://github.com/YOOJUNGYU/pixel-office-lan/releases/latest"><b>⬇️ Download</b></a> ·
   <a href="docs/INSTALL.en.md">Install guide</a> ·
+  <a href="#whats-different-from-pixel-agents">vs. pixel-agents</a> ·
   <a href="#how-it-works">How it works</a> ·
   <a href="#development">Development</a>
 </p>
@@ -21,6 +22,33 @@
 At a glance you see who (nickname), with which agent (Claude Code / Codex), in which room, is doing what. Install it from a single installer and it finds the other PCs on the same network by itself, **with no server**; everyone's agents meet in one office.
 
 > A fork of [pixel-agents](https://github.com/pixel-agents-hq/pixel-agents) (MIT) with LAN sharing added. The original shows only the agents on your own PC.
+
+## What's different from pixel-agents
+
+The original [pixel-agents](https://github.com/pixel-agents-hq/pixel-agents) shows the Claude Code agents of **one PC** in a VS Code panel or a browser. Pixel Office LAN turns it into **an office the whole team on the network shares**.
+
+|                     | pixel-agents (original)                                     | Pixel Office LAN                                                                                                                         |
+| ------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Scope               | Agents on your own PC                                       | Agents of **every installed PC on the network**, in one office                                                                           |
+| Sharing             | None (at most, opening your own screen in a browser)        | **Serverless P2P**: PCs find each other; anyone can shut down without affecting the rest                                                 |
+| Transport security  | n/a                                                         | **Automatic encryption** between PCs (X25519 key agreement + AES-256-GCM), impersonation detection                                       |
+| Groups              | None                                                        | **Team offices**: private offices visible only to people with the invite code                                                            |
+| Agents              | Claude Code                                                 | Claude Code **+ Codex** (CLI · Desktop · VS Code extension)                                                                              |
+| Install             | VS Code extension / `npx` (needs Node)                      | **One installer** (Windows `.exe` · macOS `.pkg`, Node bundled); **WSL sessions are read from Windows too**                              |
+| Detection           | Installs Claude hooks (edits `settings.json`) + transcripts | **Reads transcripts only** — never touches the tools' settings                                                                           |
+| Character placement | Fixed seat, state shown by animation                        | **Walks between rooms by activity** (Coding Room · Library · Server Room · Lounge)                                                       |
+| Activity            | Status text                                                 | Name tag (`nickname · Claude #1`) + **hover bubble** (which file and why, what it searches)                                              |
+| Subagents           | Appear next to the parent                                   | **Hold hands in a line**; in another room a **translucent ghost of the parent** leads them · **background shells** become characters too |
+| Privacy             | n/a                                                         | **Hide details** (on by default): paths, IPs, tokens and command arguments never leave the PC                                            |
+| Your character      | Auto-assigned                                               | Pick **nickname · character · color** (skin tone kept)                                                                                   |
+| Language · font     | English · pixel font                                        | **Korean/English** per viewer, **Pretendard**                                                                                            |
+| Map controls        | Middle-button pan, integer zoom                             | **Drag to pan + smooth wheel zoom**                                                                                                      |
+| Layout              | Floors, walls, furniture, areas                             | + **background outside the map** (solid · tiles · carpet), a four-room default layout                                                    |
+| App-like use        | —                                                           | **Installable PWA** (install popup), shortcut opens the app window, optional start at login                                              |
+| Updates             | Marketplace / npm                                           | In-app **Update button** (GitHub Releases)                                                                                               |
+| First run           | —                                                           | **Onboarding tour** that walks through every feature on the real UI                                                                      |
+
+On the other hand, the original's **agent launching, terminal attach and VS Code extension** were removed. This app focuses on _watching_; agents keep running in whatever CLI or desktop app each person already uses.
 
 ## Features
 
@@ -100,6 +128,7 @@ Switch the office you are looking at with the office switcher at the top of the 
 - 🖱️ **Map controls**: drag an empty spot to pan; the mouse wheel (or trackpad pinch) zooms smoothly around the cursor.
 - 🔄 **Updates**: when a new version is published on GitHub Releases, an **Update** button appears; it downloads and runs the installer.
 - 🏗️ **Layout editor** (from the original): paint floors and walls, place furniture, define rooms (Areas). The **Background** tab fills the area around the office with a solid colour, a floor pattern or a carpet.
+- 🧭 **Onboarding tour**: on first run it spotlights the real UI one part at a time (the rest dimmed) and shows every feature live — rooms, bubbles, offices, settings and the layout editor. Replay it any time from **Settings → Replay tour**.
 
 ## Supported environments
 
