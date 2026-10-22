@@ -17,13 +17,26 @@ const view = (over: Partial<AgentView> = {}): AgentView => ({
 });
 const packet = (over: Partial<PeerPacket> = {}): PeerPacket => ({
   v: 1,
-  peer: { id: 'peer-1', nickname: 'kim', palette: 2, hueShift: 90 },
+  peer: { id: 'peer-1', account: 'kim.j', nickname: 'kim', palette: 2, hueShift: 90 },
   views: [view(), view({ id: 's1/sub/a', kind: 'subagent', num: 0, parentId: 's1' })],
   ...over,
 });
 const parse = (p: unknown) => parsePeerPacket(JSON.stringify(p));
 
 describe('parsePeerPacket', () => {
+  it('account: validated; a 0.3.x packet without one falls back to nickname, then short id', () => {
+    const { account: _, ...old } = packet().peer;
+    expect(parse(packet({ peer: old as never }))?.peer.account).toBe('kim');
+    expect(parse(packet({ peer: { ...old, nickname: '' } as never }))?.peer.account).toBe('peer');
+    expect(
+      parse(packet({ peer: { ...old, account: 'x'.repeat(33) } as never }))?.peer.account,
+    ).toBe('kim');
+    expect(parse(packet({ peer: { ...old, account: 'a\nb' } as never }))?.peer.account).toBe('kim');
+    expect(parse(packet({ peer: { ...old, account: ' yoo ' } as never }))?.peer.account).toBe(
+      'yoo',
+    );
+  });
+
   it('round-trips a valid packet', () => {
     const p = packet();
     expect(parse(p)).toEqual(p);

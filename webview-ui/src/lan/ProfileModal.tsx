@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { isValidManualPeer } from '../../../core/src/lan.js';
-import type { ProfileMessage } from '../../../core/src/messages.js';
+import { isValidManualPeer, nicknameKey } from '../../../core/src/lan.js';
+import type { ProfileErrorReason, ProfileMessage } from '../../../core/src/messages.js';
 import { Button } from '../components/ui/Button.js';
 import { Checkbox } from '../components/ui/Checkbox.js';
 import { Modal } from '../components/ui/Modal.js';
@@ -65,24 +65,37 @@ interface ProfileModalProps {
   profile: ProfileMessage;
   /** No profile yet: the modal cannot be dismissed until a valid one is saved. */
   firstRun: boolean;
-  /** The server rejected the last save; the form keeps the user's input. */
-  saveError: boolean;
+  /** The server rejected the last save (why, when it said); the form keeps the user's input. */
+  saveError: ProfileErrorReason | 'rejected' | null;
+  /** nicknameKeys of the other people in view: live duplicate hint (the server decides). */
+  takenNicknames: ReadonlySet<string>;
+  /** This PC's OS account name: fixed, always shown before the nickname. */
+  account: string;
   onSave: (profile: ProfileMessage) => void;
   onClose: () => void;
 }
 
-export function ProfileModal({ profile, firstRun, saveError, onSave, onClose }: ProfileModalProps) {
+export function ProfileModal({
+  profile,
+  firstRun,
+  saveError,
+  takenNicknames,
+  account,
+  onSave,
+  onClose,
+}: ProfileModalProps) {
   useLang();
   const [nickname, setNickname] = useState(profile.nickname);
   const [palette, setPalette] = useState(profile.palette);
   const [hueShift, setHueShift] = useState(profile.hueShift);
   const [hideDetails, setHideDetails] = useState(profile.hideDetails);
   const [peersText, setPeersText] = useState(profile.manualPeers.join('\n'));
-  const [submitted, setSubmitted] = useState(false);
   // Advanced (manual peers) starts collapsed unless some are already set.
   const [peersOpen] = useState(profile.manualPeers.length > 0);
 
   const trimmed = nickname.trim();
+  const key = nicknameKey(trimmed);
+  const taken = takenNicknames.has(key) && key !== nicknameKey(profile.nickname);
   const manualPeers = peersText
     .split('\n')
     .map((l) => l.trim())
@@ -90,10 +103,10 @@ export function ProfileModal({ profile, firstRun, saveError, onSave, onClose }: 
   const badPeers = manualPeers.filter((p) => !isValidManualPeer(p));
   const errors = {
     nickname:
-      trimmed === ''
-        ? t('profile.nicknameEmpty')
-        : trimmed.length > MAX_NICKNAME
-          ? t('profile.nicknameTooLong')
+      trimmed.length > MAX_NICKNAME
+        ? t('profile.nicknameTooLong')
+        : taken
+          ? t('profile.nicknameTaken')
           : '',
     peers:
       manualPeers.length > MAX_MANUAL_PEERS
@@ -105,7 +118,6 @@ export function ProfileModal({ profile, firstRun, saveError, onSave, onClose }: 
   const valid = !errors.nickname && !errors.peers;
 
   const save = () => {
-    setSubmitted(true);
     if (!valid) return;
     onSave({ nickname: trimmed, palette, hueShift, hideDetails, manualPeers });
   };
@@ -124,6 +136,10 @@ export function ProfileModal({ profile, firstRun, saveError, onSave, onClose }: 
             <CharacterPreview palette={palette} hueShift={hueShift} scale={PREVIEW_SCALE} />
           </div>
           <div className="flex-1 min-w-0 flex flex-col gap-4">
+            <div>
+              {t('profile.account')}: <strong>{account}</strong>{' '}
+              <span className="text-xs text-text-muted">{t('profile.accountFixed')}</span>
+            </div>
             <label htmlFor="profile-nickname">{t('profile.nickname')}</label>
             <input
               id="profile-nickname"
@@ -140,8 +156,12 @@ export function ProfileModal({ profile, firstRun, saveError, onSave, onClose }: 
               }}
               className="w-full py-2 px-4 bg-bg border-2 border-border rounded-none text-text"
             />
-            {(submitted || nickname !== '') && errors.nickname && (
+            {errors.nickname ? (
               <span className="text-xs text-danger">{errors.nickname}</span>
+            ) : (
+              <span className="text-xs text-text-muted">
+                {t('profile.nicknameHint', { account })}
+              </span>
             )}
           </div>
         </div>
@@ -220,7 +240,11 @@ export function ProfileModal({ profile, firstRun, saveError, onSave, onClose }: 
           </>
         )}
 
-        {saveError && <span className="text-xs text-danger">{t('profile.saveRejected')}</span>}
+        {saveError && (
+          <span className="text-xs text-danger">
+            {t(saveError === 'nicknameTaken' ? 'profile.nicknameTaken' : 'profile.saveRejected')}
+          </span>
+        )}
         <Button variant="accent" onClick={save} className="self-end">
           {t('profile.save')}
         </Button>

@@ -3,8 +3,14 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
-import { isValidManualPeer, PUBLIC_VIEW } from '../../../core/src/lan.js';
 import {
+  cleanAccount,
+  isValidManualPeer,
+  MAX_ACCOUNT,
+  PUBLIC_VIEW,
+} from '../../../core/src/lan.js';
+import {
+  ACCOUNT_FALLBACK,
   INVITE_SECRET_BYTES,
   KNOWN_PEERS_FILE_NAME,
   LAYOUT_FILE_DIR,
@@ -33,6 +39,8 @@ export interface Profile {
   offices: TeamOffice[];
   /** PUBLIC_VIEW or a joined office's tag: what this PC's browser shows. */
   activeView: string;
+  /** Saved once from the first-run form (character and color chosen). */
+  setUp: boolean;
 }
 
 /** What saveProfile may change; identity/offices/views change only via their own messages. */
@@ -101,7 +109,7 @@ export function validateProfileUpdate(x: unknown): EditableProfile | null {
   const o = x;
   if (typeof o.nickname !== 'string' || typeof o.hideDetails !== 'boolean') return null;
   const nickname = o.nickname.trim();
-  if (nickname.length < 1 || nickname.length > MAX_NICKNAME) return null;
+  if (nickname.length > MAX_NICKNAME) return null; // optional: '' = account name only
   if (!isInt(o.palette, 0, 5) || !isInt(o.hueShift, 0, 360)) return null;
   if (!Array.isArray(o.manualPeers) || o.manualPeers.length > MAX_MANUAL_PEERS) return null;
   const manualPeers: string[] = [];
@@ -121,6 +129,25 @@ export function validateProfileUpdate(x: unknown): EditableProfile | null {
   };
 }
 
+/** This PC's account name: the OS login name (`DOMAIN\\` stripped, trimmed,
+ *  capped), else the hostname. Never editable; re-read at every start. */
+export function accountName(username: string | undefined, hostname: string): string {
+  const cap = (x: string) => x.trim().slice(0, MAX_ACCOUNT).trim();
+  const user = username ? username.slice(username.lastIndexOf('\\') + 1) : '';
+  return cleanAccount(cap(user)) ?? cleanAccount(cap(hostname)) ?? ACCOUNT_FALLBACK;
+}
+
+/** accountName() of this PC (macOS too: the short login name). Never throws. */
+export function osAccount(): string {
+  let user: string | undefined;
+  try {
+    user = os.userInfo().username;
+  } catch {
+    user = undefined;
+  }
+  return accountName(user, os.hostname());
+}
+
 export function saveProfile(p: Profile, dir: string = defaultDir()): void {
   writePrivateJson(dir, PROFILE_FILE_NAME, p);
 }
@@ -133,12 +160,13 @@ export function loadProfile(dir: string = defaultDir()): Profile {
   const raw = readJsonObject(path.join(dir, PROFILE_FILE_NAME));
   let peerId = isWireId(raw.peerId) ? raw.peerId : randomUUID();
   const nick = typeof raw.nickname === 'string' ? raw.nickname.trim() : '';
-  // nickname '' is a valid stored state (not yet chosen), so validate fields individually
-  const valid = validateProfileUpdate({ ...raw, nickname: nick || 'x' });
-  const editable: EditableProfile =
-    valid && nick
-      ? valid
-      : { nickname: '', palette: 0, hueShift: 0, hideDetails: true, manualPeers: [] };
+  const editable: EditableProfile = validateProfileUpdate({ ...raw, nickname: nick }) ?? {
+    nickname: '',
+    palette: 0,
+    hueShift: 0,
+    hideDetails: true,
+    manualPeers: [],
+  };
   const pem =
     isObj(raw.identity) && typeof raw.identity.privateKeyPem === 'string'
       ? raw.identity.privateKeyPem
@@ -159,6 +187,8 @@ export function loadProfile(dir: string = defaultDir()): Profile {
     identity: { publicKey, privateKeyPem },
     offices,
     activeView, // a pre-0.4 `remoteView` key is dropped (rewritten below)
+    // Before 0.4 a saved profile always had a nickname.
+    setUp: raw.setUp === true || nick !== '',
   };
   if (JSON.stringify(profile) !== JSON.stringify(raw)) {
     try {

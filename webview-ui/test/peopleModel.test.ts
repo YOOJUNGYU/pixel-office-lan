@@ -14,12 +14,19 @@ import { focusHintKey, inFrozenOrder, peopleRows } from '../src/lan/peopleModel.
 
 const person = (peerId: string, nickname: string, self = false): OfficePersonMessage => ({
   peerId,
+  account: peerId,
   nickname,
   palette: 0,
   hueShift: 0,
   self,
 });
-const peer = (id: string, nickname = id): PeerInfo => ({ id, nickname, palette: 1, hueShift: 0 });
+const peer = (id: string, nickname = id): PeerInfo => ({
+  id,
+  account: id,
+  nickname,
+  palette: 1,
+  hueShift: 0,
+});
 const agent = (p: PeerInfo, id: string, o: Partial<OfficeAgent> = {}): OfficeAgent => ({
   key: `${p.id}:${id}`,
   peer: p,
@@ -120,12 +127,8 @@ test('❗ from a subagent focuses its parent main agent', () => {
   assert.equal(rows[0].focusKey, 'a:m');
 });
 
-test('unnamed people sort by the displayed name, not first', () => {
-  const rows = peopleRows(
-    [person('u', ''), person('a', 'alpha'), person('z', 'zed')],
-    [],
-    'unnamed',
-  );
+test('people without a nickname sort by the displayed label, not first', () => {
+  const rows = peopleRows([person('u', ''), person('a', 'alpha'), person('z', 'zed')], []);
   assert.deepEqual(
     rows.map((r) => r.person.peerId),
     ['a', 'u', 'z'],

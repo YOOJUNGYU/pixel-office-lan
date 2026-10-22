@@ -27,7 +27,8 @@ export type ServerMessage =
   | OfficesState
   | OfficeCreated
   | OfficeCode
-  | OfficeError;
+  | OfficeError
+  | ProfileError;
 
 export type ClientMessage =
   | WebviewReady
@@ -192,6 +193,7 @@ export type AgentAct =
 
 export interface PeerInfoMessage {
   id: string;
+  account: string;
   nickname: string;
   palette: number;
   hueShift: number;
@@ -199,6 +201,7 @@ export interface PeerInfoMessage {
 
 export interface OfficePersonMessage {
   peerId: string;
+  account: string;
   nickname: string;
   palette: number;
   hueShift: number;
@@ -209,6 +212,8 @@ export interface ProfileLoaded {
   type: 'profileLoaded';
   profile: ProfileMessage;
   canEdit: boolean;
+  account: string;
+  firstRun: boolean;
 }
 
 export interface ProfileMessage {
@@ -269,6 +274,13 @@ export interface OfficeError {
 }
 
 export type OfficeErrorReason = 'invalidCode' | 'alreadyJoined' | 'nameInvalid' | 'full';
+
+export interface ProfileError {
+  type: 'profileError';
+  reason: ProfileErrorReason;
+}
+
+export type ProfileErrorReason = 'nicknameTaken';
 
 export interface WebviewReady {
   type: 'webviewReady';

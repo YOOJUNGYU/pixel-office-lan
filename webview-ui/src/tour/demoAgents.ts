@@ -7,7 +7,7 @@ import type { AgentRole } from './steps.js';
 
 export interface DemoTexts {
   /** Nicknames of the demo PCs (4). */
-  nicknames: [string, string, string, string];
+  accounts: [string, string, string, string];
   /** Reasons shown in hover bubbles. */
   editReason: string;
   readReason: string;
@@ -47,7 +47,8 @@ const WALK_ACT: Record<Room, { act: OfficeAgent['act']; target: string }> = {
 export function demoAgents(texts: DemoTexts, walkerRoom: Room = 'lounge'): OfficeAgent[] {
   const peer = (n: number, palette: number, hueShift: number): PeerInfo => ({
     id: `${TOUR_DEMO_PREFIX}${'abcd'[n]}`,
-    nickname: texts.nicknames[n],
+    account: texts.accounts[n],
+    nickname: '',
     palette,
     hueShift,
   });

@@ -4,9 +4,10 @@ import * as path from 'path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { PUBLIC_VIEW } from '../../../core/src/lan.js';
-import { MAX_KNOWN_PEERS } from '../../src/constants.js';
+import { ACCOUNT_FALLBACK, MAX_KNOWN_PEERS } from '../../src/constants.js';
 import { createIdentity, newInviteCode, publicKeyOf } from '../../src/lan/crypto.js';
 import {
+  accountName,
   KnownPeers,
   loadProfile,
   officeFromSecret,
@@ -44,6 +45,7 @@ describe('loadProfile', () => {
       identity: { publicKey, privateKeyPem },
       offices: [office],
       activeView: office.tag,
+      setUp: true,
     };
     saveProfile(p, dir);
     expect(loadProfile(dir)).toEqual(p);
@@ -53,7 +55,7 @@ describe('loadProfile', () => {
     const v1 = { peerId: 'old-pc', ...ok, nickname: '김' };
     fs.writeFileSync(f, JSON.stringify(v1), { mode: 0o644 });
     const p = loadProfile(dir);
-    expect(p).toMatchObject({ ...v1, offices: [], activeView: PUBLIC_VIEW });
+    expect(p).toMatchObject({ ...v1, offices: [], activeView: PUBLIC_VIEW, setUp: true });
     expect(publicKeyOf(p.identity.privateKeyPem)).toBe(p.identity.publicKey);
     expect(loadProfile(dir).identity).toEqual(p.identity); // persisted, stable
     if (posix) expect(mode(f)).toBe(0o600);
@@ -101,7 +103,7 @@ describe('loadProfile', () => {
       f,
       JSON.stringify({ peerId: 'k', palette: 1, hueShift: 0, hideDetails: true, manualPeers: [] }),
     );
-    expect(loadProfile(dir)).toMatchObject({ peerId: 'k', nickname: '', palette: 0 });
+    expect(loadProfile(dir)).toMatchObject({ peerId: 'k', nickname: '', palette: 1, setUp: false });
   });
   it('keeps a valid peerId when fields are invalid, falls back on garbage', () => {
     fs.writeFileSync(
@@ -117,6 +119,9 @@ describe('loadProfile', () => {
 });
 
 describe('validateProfileUpdate', () => {
+  it('nickname is optional: blank becomes empty', () => {
+    expect(validateProfileUpdate({ ...ok, nickname: '  ' })?.nickname).toBe('');
+  });
   it('accepts and normalizes', () => {
     const r = validateProfileUpdate({ ...ok, manualPeers: [' 10.0.0.2 ', '', 'pc-1.corp'] });
     expect(r).toEqual({ ...ok, nickname: '김', manualPeers: ['10.0.0.2', 'pc-1.corp'] });
@@ -135,7 +140,6 @@ describe('validateProfileUpdate', () => {
     );
   });
   it.each([
-    [{ ...ok, nickname: '  ' }],
     [{ ...ok, nickname: 'x'.repeat(21) }],
     [{ ...ok, palette: 7 }],
     [{ ...ok, hueShift: 361 }],
@@ -171,5 +175,18 @@ describe('KnownPeers', () => {
         JSON.parse(fs.readFileSync(path.join(dir, 'known-peers.json'), 'utf-8')) as object,
       ),
     ).toHaveLength(MAX_KNOWN_PEERS);
+  });
+});
+
+describe('accountName', () => {
+  it('strips DOMAIN\\, trims, caps at 32; falls back to the hostname, then a constant', () => {
+    expect(accountName('CORP\\yoojungyu', 'host')).toBe('yoojungyu');
+    expect(accountName('  kim  ', 'host')).toBe('kim');
+    expect(accountName('a'.repeat(40), 'host')).toBe('a'.repeat(32));
+    expect(accountName('', 'my-pc')).toBe('my-pc');
+    expect(accountName(undefined, 'my-pc')).toBe('my-pc');
+    expect(accountName('CORP\\', 'my-pc')).toBe('my-pc');
+    expect(accountName('bad\u0007', 'my-pc')).toBe('my-pc');
+    expect(accountName('', '')).toBe(ACCOUNT_FALLBACK);
   });
 });

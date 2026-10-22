@@ -40,7 +40,10 @@ const ko = {
   'people.status.attention': '확인을 기다림',
   'people.status.working': '작업 중',
   'people.status.idle': '쉬는 중',
-  'nickname.unset': '이름없음',
+  'nickname.conflict':
+    '같은 닉네임을 먼저 쓰는 사람이 있어, 다른 사람에게는 내 닉네임 뒤에 짧은 구분 표시가 붙어 보입니다. 닉네임을 바꿔 주세요.',
+  'nickname.change': '닉네임 바꾸기',
+  'profile.nicknameTaken': '이미 사용 중인 닉네임입니다',
 
   'app.loading': '불러오는 중…',
   'app.readOnly': '보기 전용',
@@ -125,9 +128,11 @@ const ko = {
 
   'profile.title': '내 프로필',
   'profile.firstRunTitle': '프로필 만들기',
-  'profile.nickname': '닉네임',
-  'profile.nicknamePlaceholder': '다른 사람에게 보이는 이름',
-  'profile.nicknameEmpty': '닉네임을 입력하세요.',
+  'profile.account': 'PC 계정',
+  'profile.accountFixed': '— 바꿀 수 없음',
+  'profile.nickname': '닉네임 (선택)',
+  'profile.nicknamePlaceholder': '계정 이름 옆에 함께 보이는 이름',
+  'profile.nicknameHint': '비워 두면 PC 계정 이름({account})만 표시됩니다',
   'profile.nicknameTooLong': '닉네임은 20자 이하여야 합니다.',
   'profile.character': '캐릭터',
   'profile.color': '색상',
@@ -215,10 +220,10 @@ const ko = {
   'tour.prev': '이전',
   'tour.next': '다음',
   'tour.finish': '시작하기',
-  'tour.demo.a': '민지',
-  'tour.demo.b': '준호',
-  'tour.demo.c': '서연',
-  'tour.demo.d': '도윤',
+  'tour.demo.a': 'minji',
+  'tour.demo.b': 'junho',
+  'tour.demo.c': 'seoyeon',
+  'tour.demo.d': 'doyoon',
   'tour.demo.editReason': '로그인 버그 고치는 중',
   'tour.demo.readReason': 'API 문서 확인',
   'tour.demo.waitReason': '배포 명령을 실행해도 될까요?',
@@ -241,7 +246,7 @@ const ko = {
     '할 일을 기다리거나 확인을 기다릴 때는 대기실에서 쉽니다.\n방 이동은 3초 정도 상태가 이어져야 일어나서, 잠깐씩 바뀌는 작업에 캐릭터가 왔다 갔다 하지 않습니다.',
   'tour.tag.title': '이름표',
   'tour.tag.body':
-    '캐릭터 아래 이름표는 "닉네임 · Claude/Codex #번호" 입니다. 앞의 색 점은 제공자예요 — 주황은 Claude, 초록은 Codex.\n서브에이전트와 셸은 "↳" 로 표시됩니다.',
+    '캐릭터 아래 이름표는 "PC 계정 (닉네임) · Claude/Codex #번호" 입니다. 닉네임은 정한 사람만 보입니다. 앞의 색 점은 제공자예요 — 주황은 Claude, 초록은 Codex.\n서브에이전트와 셸은 "↳" 로 표시됩니다.',
   'tour.bubble.title': '말풍선',
   'tour.bubble.body':
     '캐릭터에 마우스를 올리면 어느 방에서 무엇을 하는지, 그리고 이유가 보입니다.\n머리 위 ❗ 는 사용자의 확인(권한 승인이나 답변)을 기다린다는 뜻입니다.',
@@ -266,7 +271,7 @@ const ko = {
     '화면 언어는 브라우저마다 따로 고릅니다. 다른 PC의 에이전트 활동도 내가 고른 언어로 보입니다.',
   'tour.profile.title': '내 프로필',
   'tour.profile.body':
-    '이 PC 에이전트들의 닉네임, 캐릭터, 색을 정합니다.\n"상세 내용 숨기기" 를 켜면 다른 사람에게는 파일 이름이나 이유 없이 방과 활동 종류만 보입니다.',
+    '이 PC 에이전트들의 캐릭터, 색과 선택 닉네임을 정합니다. 이름은 항상 PC 계정 이름이 먼저 보이고, 계정 이름은 바꿀 수 없습니다.\n"상세 내용 숨기기" 를 켜면 다른 사람에게는 파일 이름이나 이유 없이 방과 활동 종류만 보입니다.',
   'tour.offices.title': '팀 오피스',
   'tour.offices.body':
     '팀 이름을 정해 만들면 초대 코드(PO2-…)가 나옵니다. 팀원은 그 코드로 참여합니다.\n팀 오피스의 내용은 팀원끼리만 암호화되어 오가고, 언제든 나갈 수 있습니다.',
@@ -339,7 +344,10 @@ const en: Record<Key, string> = {
   'people.status.attention': 'Needs attention',
   'people.status.working': 'Working',
   'people.status.idle': 'Idle',
-  'nickname.unset': 'Unnamed',
+  'nickname.conflict':
+    'Someone else already uses this nickname, so others see yours with a short tag after it. Please change your nickname.',
+  'nickname.change': 'Change nickname',
+  'profile.nicknameTaken': 'This nickname is already taken',
 
   'app.loading': 'Loading…',
   'app.readOnly': 'View only',
@@ -423,9 +431,11 @@ const en: Record<Key, string> = {
 
   'profile.title': 'My profile',
   'profile.firstRunTitle': 'Create your profile',
-  'profile.nickname': 'Nickname',
-  'profile.nicknamePlaceholder': 'The name others see',
-  'profile.nicknameEmpty': 'Enter a nickname.',
+  'profile.account': 'PC account',
+  'profile.accountFixed': '— cannot be changed',
+  'profile.nickname': 'Nickname (optional)',
+  'profile.nicknamePlaceholder': 'Shown next to your account name',
+  'profile.nicknameHint': 'Leave empty to show only your PC account name ({account})',
   'profile.nicknameTooLong': 'Nickname must be 20 characters or fewer.',
   'profile.character': 'Character',
   'profile.color': 'Color',
@@ -513,10 +523,10 @@ const en: Record<Key, string> = {
   'tour.prev': 'Back',
   'tour.next': 'Next',
   'tour.finish': 'Get started',
-  'tour.demo.a': 'Mina',
-  'tour.demo.b': 'Jun',
-  'tour.demo.c': 'Sara',
-  'tour.demo.d': 'Leo',
+  'tour.demo.a': 'mina',
+  'tour.demo.b': 'jun',
+  'tour.demo.c': 'sara',
+  'tour.demo.d': 'leo',
   'tour.demo.editReason': 'Fixing the login bug',
   'tour.demo.readReason': 'Checking the API docs',
   'tour.demo.waitReason': 'OK to run the deploy command?',
@@ -540,7 +550,7 @@ const en: Record<Key, string> = {
     'Idle agents, and agents waiting for you, rest in the lounge.\nA move only happens after the new activity lasts about 3 seconds, so characters do not bounce around on quick tasks.',
   'tour.tag.title': 'Name tags',
   'tour.tag.body':
-    'The tag under a character reads "nickname · Claude/Codex #number". The dot is the provider: orange = Claude, green = Codex.\nSubagents and shells are marked "↳".',
+    'The tag under a character reads "PC account (nickname) · Claude/Codex #number"; the nickname only when one is set. The dot is the provider: orange = Claude, green = Codex.\nSubagents and shells are marked "↳".',
   'tour.bubble.title': 'Hover bubble',
   'tour.bubble.body':
     'Hover a character to see its room, what it is doing and why.\nA ❗ over its head means it is waiting for you (a permission or an answer).',
@@ -565,7 +575,7 @@ const en: Record<Key, string> = {
     'Each browser picks its own language. Activity of agents on other PCs is shown in your language too.',
   'tour.profile.title': 'My profile',
   'tour.profile.body':
-    'Nickname, character and color of this PC’s agents.\n"Hide details" shows others only the room and the kind of activity — no file names or reasons.',
+    'Character, color and optional nickname of this PC’s agents. Your PC account name always shows first and cannot be changed.\n"Hide details" shows others only the room and the kind of activity — no file names or reasons.',
   'tour.offices.title': 'Team offices',
   'tour.offices.body':
     'Create a team to get an invite code (PO2-…); teammates join with it.\nA team office is encrypted between its members, and you can leave any time.',

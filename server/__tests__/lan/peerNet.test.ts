@@ -21,7 +21,7 @@ import { broadcastAddresses, fitPacket, PEER_TTL_MS, PeerNet } from '../../src/l
 
 const pkt = (id: string, nickname = id): PeerPacket => ({
   v: 1,
-  peer: { id, nickname, palette: 0, hueShift: 0 },
+  peer: { id, account: id, nickname, palette: 0, hueShift: 0 },
   views: [],
 });
 const freePort = (): Promise<number> =>
@@ -233,7 +233,7 @@ describe('PeerNet public office', () => {
     const id = 'i'.repeat(64);
     const packet = fitPacket({
       v: 1,
-      peer: { id, nickname: '가'.repeat(20), palette: 0, hueShift: 0 },
+      peer: { id, account: '가'.repeat(32), nickname: '가'.repeat(20), palette: 0, hueShift: 0 },
       views: Array.from({ length: 300 }, (_, i) => view(i)),
     });
     const inner = JSON.stringify({

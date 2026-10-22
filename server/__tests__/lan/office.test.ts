@@ -5,13 +5,19 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { AgentView, PeerInfo, PeerPacket } from '../../../core/src/lan.js';
 import { PUBLIC_VIEW } from '../../../core/src/lan.js';
-import { officesMessage, snapshotMessage } from '../../src/clientMessageHandler.js';
+import {
+  handleClientMessage,
+  officesMessage,
+  profileMessage,
+  snapshotMessage,
+} from '../../src/clientMessageHandler.js';
 import { MAX_OFFICES } from '../../src/constants.js';
+import { FileStateAdapter } from '../../src/fileStateAdapter.js';
 import { createIdentity, parseInviteCode } from '../../src/lan/crypto.js';
 import type { CreatedOffice } from '../../src/lan/office.js';
 import { buildOffice, LanService } from '../../src/lan/office.js';
 import type { Profile } from '../../src/lan/profile.js';
-import { loadProfile } from '../../src/lan/profile.js';
+import { loadProfile, osAccount } from '../../src/lan/profile.js';
 
 const view = (o: Partial<AgentView> = {}): AgentView => ({
   id: 's1',
@@ -25,10 +31,10 @@ const view = (o: Partial<AgentView> = {}): AgentView => ({
   reason: '',
   ...o,
 });
-const self: PeerInfo = { id: 'me', nickname: '나', palette: 0, hueShift: 0 };
+const self: PeerInfo = { id: 'me', account: 'me', nickname: '나', palette: 0, hueShift: 0 };
 const peer: PeerPacket = {
   v: 1,
-  peer: { id: 'p1', nickname: '김', palette: 1, hueShift: 10 },
+  peer: { id: 'p1', account: 'kim', nickname: '김', palette: 1, hueShift: 10 },
   views: [view({ id: 'm' }), view({ id: 'm/sub/x', kind: 'subagent', num: 0, parentId: 'm' })],
 };
 
@@ -60,12 +66,19 @@ describe('LanService', () => {
     ),
     offices: [],
     activeView: PUBLIC_VIEW,
+    setUp: false,
   };
 
   it('sends an empty nickname until one is set, and redacts when hideDetails', () => {
     const lan = new LanService({ ...profile }, { views: () => [view()] });
     const p = lan.packet();
-    expect(p.peer).toEqual({ id: 'me', nickname: '', palette: 2, hueShift: 30 });
+    expect(p.peer).toEqual({
+      id: 'me',
+      account: lan.account,
+      nickname: '',
+      palette: 2,
+      hueShift: 30,
+    });
     expect(p.views[0].target).toBe('a.ts');
   });
 
@@ -115,10 +128,99 @@ describe('LanService', () => {
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
+  describe('nickname uniqueness', () => {
+    const pkt = (id: string, nickname: string): PeerPacket => ({
+      v: 1,
+      peer: { id, account: id, nickname, palette: 0, hueShift: 0 },
+      views: [],
+    });
+    let dir: string;
+    afterEach(() => fs.rmSync(dir, { recursive: true, force: true }));
+    const mk = (offices: Profile['offices'] = []) => {
+      dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pxl-nick-'));
+      const lan = new LanService({ ...profile, nickname: 'Me', offices }, { views: () => [] }, dir);
+      const peers: Record<string, PeerPacket[]> = {
+        [PUBLIC_VIEW]: [pkt('p1', 'Ji  Min'), pkt('me', 'Spoof'), pkt('p2', 'Caf\u00e9')],
+        team: [pkt('mate', 'Mate')],
+        other: [pkt('x', 'Stranger')],
+      };
+      lan.net = { peers: (v) => peers[v] ?? [], sendNow: () => {}, teamName: () => undefined };
+      return lan;
+    };
+
+    it('rejects a live public name in case/whitespace/NFC variants; own and unset are fine', () => {
+      const lan = mk();
+      for (const n of ['Ji Min', ' ji min ', 'JI\tMIN', 'ji   min'])
+        expect(lan.nicknameTaken(n)).toBe(true);
+      expect(lan.nicknameTaken('Mate')).toBe(false); // team peer not visible while public
+      expect(lan.nicknameTaken('Stranger')).toBe(false);
+      expect(lan.nicknameTaken('Spoof')).toBe(false); // our own peer id is not "another PC"
+      expect(lan.nicknameTaken('me')).toBe(false); // own current name
+      expect(lan.nicknameTaken('')).toBe(false);
+      expect(lan.nicknameTaken('CAFE\u0301')).toBe(true); // decomposed é
+    });
+
+    it('in a team: only joined teams count, not public or other teams', () => {
+      const lan = mk([{ tag: 'team', name: 't', secret: 's' }]);
+      expect(lan.nicknameTaken('mate')).toBe(true);
+      expect(lan.nicknameTaken('Ji Min')).toBe(false);
+      expect(lan.nicknameTaken('stranger')).toBe(false);
+    });
+
+    it('saveProfile with a taken name: profileError then the unchanged profile, nothing saved', () => {
+      const lan = mk();
+      const sent: Record<string, unknown>[] = [];
+      const {
+        peerId: _,
+        identity: __,
+        offices: ___,
+        activeView: ____,
+        setUp: _____,
+        ...rest
+      } = profile;
+      handleClientMessage(
+        { type: 'saveProfile', profile: { ...rest, nickname: 'JI MIN' } },
+        (m) => sent.push(m),
+        { adapter: new FileStateAdapter(), cache: null, privileged: true, lan },
+      );
+      expect(sent.map((m) => m.type)).toEqual(['profileError', 'profileLoaded']);
+      expect(sent[0]).toEqual({ type: 'profileError', reason: 'nicknameTaken' });
+      expect(lan.profile.nickname).toBe('Me');
+    });
+  });
+
+  it('profileLoaded: fixed account and firstRun until the first save; saveProfile cannot set the account', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pxl-acct-'));
+    const lan = new LanService({ ...profile }, { views: () => [] }, dir);
+    expect(lan.account).toBe(osAccount());
+    expect(profileMessage(lan, true)).toMatchObject({ account: lan.account, firstRun: true });
+    expect(lan.self().account).toBe(lan.account);
+    const sent: Record<string, unknown>[] = [];
+    const {
+      peerId: _,
+      identity: __,
+      offices: ___,
+      activeView: ____,
+      setUp: _____,
+      ...rest
+    } = profile;
+    handleClientMessage(
+      { type: 'saveProfile', profile: { ...rest, nickname: '', account: 'hacker', peerId: 'x' } },
+      (m) => sent.push(m),
+      { adapter: new FileStateAdapter(), cache: null, privileged: true, lan },
+    );
+    expect(lan.profile).toMatchObject({ nickname: '', setUp: true });
+    expect(lan.profile).not.toHaveProperty('account');
+    expect(lan.self().account).toBe(osAccount());
+    expect(profileMessage(lan, true)).toMatchObject({ account: osAccount(), firstRun: false });
+    expect(fs.readFileSync(path.join(dir, 'profile.json'), 'utf-8')).not.toContain('hacker');
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
   describe('offices', () => {
     const teamPeer: PeerPacket = {
       v: 1,
-      peer: { id: 'mate', nickname: '팀원', palette: 0, hueShift: 0 },
+      peer: { id: 'mate', account: 'mate', nickname: '팀원', palette: 0, hueShift: 0 },
       views: [view({ id: 'team-secret-work' })],
     };
     const pubPeer: PeerPacket = { ...peer, views: [view({ id: 'public-work' })] };
@@ -152,6 +254,7 @@ describe('LanService', () => {
       expect(ids(snapshotMessage(lan))).toEqual(['me*', 'p1', 'idle']);
       expect(snapshotMessage(lan).people[1]).toEqual({
         peerId: 'p1',
+        account: 'kim',
         nickname: '김',
         palette: 1,
         hueShift: 10,

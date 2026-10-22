@@ -9,12 +9,13 @@ import {
 import { t } from '../i18n.js';
 import type { OfficeState } from '../office/engine/officeState.js';
 import { isDemoKey } from '../tour/demoAgents.js';
+import { peerLabel } from './nicknames.js';
 
 /** Text of an agent's name tag (the provider dot is drawn separately). */
 export function tagText(a: OfficeAgent): string {
   if (a.kind === 'subagent') return t('tag.subagent');
   if (a.kind === 'shell') return t('tag.shell');
-  return `${a.peer.nickname || t('nickname.unset')} · ${a.provider === 'claude' ? 'Claude' : 'Codex'} #${a.num}`;
+  return `${peerLabel(a.peer)} · ${a.provider === 'claude' ? 'Claude' : 'Codex'} #${a.num}`;
 }
 
 /** Look of an agent's character: main = its PC's, subagent = hue-rotated, shell = fixed. */

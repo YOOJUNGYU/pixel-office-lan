@@ -2,6 +2,9 @@
 export const MIN_PORT = 1;
 export const MAX_PORT = 65_535;
 
+/** Account name when neither the OS login nor the hostname is usable. */
+export const ACCOUNT_FALLBACK = 'PC';
+
 /** Default HTTP bind address: the UI is served to this PC's browser only. */
 export const LAN_HTTP_HOST = '127.0.0.1';
 

@@ -9,12 +9,15 @@ import type {
   OfficePersonMessage,
   OfficeSnapshot,
   OfficesState,
+  ProfileError,
+  ProfileErrorReason,
   ProfileLoaded,
   UpdateAvailable,
   UpdateStatus,
 } from '../../../core/src/messages.js';
 import { LAN_READING_TOOLS } from '../constants.js';
 import { LanAgents } from '../lan/lanAgents.js';
+import { disambiguate } from '../lan/nicknames.js';
 import { setSoundEnabled } from '../notificationSound.js';
 import type { OfficeState } from '../office/engine/officeState.js';
 import { setFloorSprites } from '../office/floorTiles.js';
@@ -72,6 +75,11 @@ interface ExtensionMessageState {
   people: OfficePersonMessage[];
   /** This PC's profile and whether this browser may edit it; null until loaded. */
   profile: Omit<ProfileLoaded, 'type'> | null;
+  /** Why the last saveProfile was refused (profileError); null = none / cleared. */
+  profileError: ProfileErrorReason | null;
+  clearProfileError: () => void;
+  /** Other people's nickname keys in the viewed office, and whether this PC lost a same-name tie-break. */
+  nicknames: { taken: ReadonlySet<string>; selfLost: boolean };
   /** A newer release (this PC's browser only); null when none is known. */
   update: UpdateAvailable | null;
   /** Install progress / manual check result. */
@@ -106,6 +114,12 @@ export function useExtensionMessages(
   const [lanVersion, setLanVersion] = useState(0);
   const [people, setPeople] = useState<OfficePersonMessage[]>([]);
   const [profile, setProfile] = useState<Omit<ProfileLoaded, 'type'> | null>(null);
+  const [profileError, setProfileError] = useState<ProfileErrorReason | null>(null);
+  const clearProfileError = useCallback(() => setProfileError(null), []);
+  const [nicknames, setNicknames] = useState<ExtensionMessageState['nicknames']>({
+    taken: new Set(),
+    selfLost: false,
+  });
   const [update, setUpdate] = useState<UpdateAvailable | null>(null);
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
   const [autostart, setAutostart] = useState<AutostartState | null>(null);
@@ -157,13 +171,17 @@ export function useExtensionMessages(
           pendingAgentsRef.current = null;
         }
       } else if (msg.type === 'officeSnapshot') {
-        const agents = msg.agents as OfficeAgent[];
-        setPeople((msg as OfficeSnapshot).people);
+        const snap = disambiguate((msg as OfficeSnapshot).people, msg.agents as OfficeAgent[]);
+        const { agents } = snap;
+        setPeople(snap.people);
+        setNicknames({ taken: snap.taken, selfLost: snap.selfLost });
         if (layoutReadyRef.current) applyAgents(agents);
         else pendingAgentsRef.current = agents;
       } else if (msg.type === 'profileLoaded') {
-        const { profile, canEdit } = msg as ProfileLoaded;
-        setProfile({ profile, canEdit });
+        const { profile, canEdit, account, firstRun } = msg as ProfileLoaded;
+        setProfile({ profile, canEdit, account, firstRun });
+      } else if (msg.type === 'profileError') {
+        setProfileError((msg as ProfileError).reason);
       } else if (msg.type === 'updateAvailable') {
         setUpdate(msg as UpdateAvailable);
       } else if (msg.type === 'updateStatus') {
@@ -269,6 +287,9 @@ export function useExtensionMessages(
     lanVersion,
     people,
     profile,
+    profileError,
+    clearProfileError,
+    nicknames,
     update,
     updateStatus,
     setUpdateStatus,

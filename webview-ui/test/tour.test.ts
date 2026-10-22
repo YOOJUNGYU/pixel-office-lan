@@ -137,7 +137,7 @@ test('visibleSteps: full tour on a desktop owner, fewer steps on smaller screens
 });
 
 const texts = {
-  nicknames: ['a', 'b', 'c', 'd'] as [string, string, string, string],
+  accounts: ['a', 'b', 'c', 'd'] as [string, string, string, string],
   editReason: 'e',
   readReason: 'r',
   waitReason: 'w',

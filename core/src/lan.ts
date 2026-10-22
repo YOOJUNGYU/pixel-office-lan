@@ -48,6 +48,9 @@ export interface AgentView {
 }
 export interface PeerInfo {
   id: string;
+  /** OS login account name: fixed, always shown. */
+  account: string;
+  /** Optional, '' = none. */
   nickname: string;
   palette: number;
   hueShift: number;
@@ -73,6 +76,22 @@ export function isValidManualPeer(s: string): boolean {
 }
 
 /** The office everyone on the LAN shares; any other view is a team office tag. */
+/** Nickname identity for the uniqueness rule: NFC, trimmed, inner whitespace
+ *  collapsed, case-insensitive. '' = unset (exempt from the rule). */
+export const nicknameKey = (s: string): string =>
+  s.normalize('NFC').trim().replace(/\s+/g, ' ').toLocaleLowerCase();
+
+export const MAX_ACCOUNT = 32;
+/** Length of the peer-id prefix shown to tell same-looking PCs apart (and as a 0.3.x account stand-in). */
+export const SHORT_PEER_ID = 4;
+
+/** A displayable account name (trimmed, 1..MAX_ACCOUNT, no control/format chars), else null. */
+export function cleanAccount(x: unknown): string | null {
+  if (typeof x !== 'string') return null;
+  const s = x.trim();
+  return s.length >= 1 && s.length <= MAX_ACCOUNT && !/\p{C}/u.test(s) ? s : null;
+}
+
 export const PUBLIC_VIEW = 'public';
 export const LAN_UDP_PORT = 47800;
 export const LAN_HTTP_PORT = 47801;
@@ -143,7 +162,10 @@ export function parsePeerPacket(text: string): PeerPacket | null {
       if (!v) return null;
       views.push(v);
     }
-    return { v: 1, peer: { id, nickname, palette, hueShift }, views };
+    // 0.3.x peers send no account: show their nickname (or short id) during the upgrade window.
+    const account =
+      cleanAccount(raw.peer.account) ?? (cleanAccount(nickname) || id.slice(0, SHORT_PEER_ID));
+    return { v: 1, peer: { id, account, nickname, palette, hueShift }, views };
   } catch {
     return null;
   }

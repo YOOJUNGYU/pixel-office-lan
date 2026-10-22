@@ -99,6 +99,7 @@ components:
         - $ref: '#/components/schemas/OfficeCreated'
         - $ref: '#/components/schemas/OfficeCode'
         - $ref: '#/components/schemas/OfficeError'
+        - $ref: '#/components/schemas/ProfileError'
       discriminator: type
 
     ClientMessage:
@@ -491,6 +492,26 @@ components:
       type: string
       enum: [invalidCode, alreadyJoined, nameInvalid, full]
 
+    ProfileError:
+      description: >-
+        A saveProfile was refused, to the requesting socket only, just before
+        the unchanged profileLoaded. `nicknameTaken` = another live PC this PC
+        can see (public office while in it, every joined team office) uses the
+        same nickname (trimmed, NFC, case-insensitive, inner whitespace
+        collapsed). Keeping one's current nickname is never refused.
+      type: object
+      additionalProperties: false
+      required: [type, reason]
+      properties:
+        type:
+          const: profileError
+        reason:
+          $ref: '#/components/schemas/ProfileErrorReason'
+
+    ProfileErrorReason:
+      type: string
+      enum: [nicknameTaken]
+
     UpdateStatus:
       description: >-
         Progress of installUpdate / result of checkUpdate (loopback browsers
@@ -534,12 +555,16 @@ components:
           description: This server's peer id (marks which agents are local).
 
     OfficePersonMessage:
-      description: One PC in the office. `nickname` is '' when unset.
+      description: >-
+        One PC in the office. `account` = its OS login account name (fixed,
+        always shown); `nickname` = optional, '' when unset.
       type: object
       additionalProperties: false
-      required: [peerId, nickname, palette, hueShift, self]
+      required: [peerId, account, nickname, palette, hueShift, self]
       properties:
         peerId:
+          type: string
+        account:
           type: string
         nickname:
           type: string
@@ -555,16 +580,22 @@ components:
       description: >-
         This PC's profile, sent on webviewReady and after a profile save.
         `canEdit` is true only for a same-host loopback browser; a read-only
-        viewer gets `manualPeers: []`.
+        viewer gets `manualPeers: []`. `account` is this PC's OS login account
+        name (read at every start, never editable). `firstRun` = the profile
+        has never been saved (character and color not chosen yet).
       type: object
       additionalProperties: false
-      required: [type, profile, canEdit]
+      required: [type, profile, canEdit, account, firstRun]
       properties:
         type:
           const: profileLoaded
         profile:
           $ref: '#/components/schemas/ProfileMessage'
         canEdit:
+          type: boolean
+        account:
+          type: string
+        firstRun:
           type: boolean
 
     ProfileMessage:
@@ -575,7 +606,7 @@ components:
       properties:
         nickname:
           type: string
-          description: '1-20 chars; empty until the user picks one.'
+          description: 'Optional, 0-20 chars; shown next to the account name.'
         palette:
           type: integer
           minimum: 0
@@ -632,13 +663,18 @@ components:
     PeerInfoMessage:
       type: object
       additionalProperties: false
-      required: [id, nickname, palette, hueShift]
+      required: [id, account, nickname, palette, hueShift]
       properties:
         id:
           type: string
+        account:
+          type: string
+          description: >-
+            OS login account name, always shown. A 0.3.x peer sends none; its
+            nickname (or a short peer id) stands in.
         nickname:
           type: string
-          description: Empty until the user picks one (viewers show their own "unnamed" label).
+          description: Optional ('' = none), shown next to the account.
         palette:
           type: integer
         hueShift:

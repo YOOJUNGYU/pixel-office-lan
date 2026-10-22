@@ -21,6 +21,7 @@ import { useIsMobile } from './hooks/useIsMobile.js';
 import { t, useLang } from './i18n.js';
 import { InstallPrompt } from './lan/InstallPrompt.js';
 import { LanOverlay } from './lan/LanOverlay.js';
+import { NicknameNotice } from './lan/NicknameNotice.js';
 import { OfficeSwitcher } from './lan/OfficeSwitcher.js';
 import { peopleRows } from './lan/peopleModel.js';
 import { PeoplePanel } from './lan/PeoplePanel.js';
@@ -90,6 +91,9 @@ function App() {
     officeReadOnly,
     lan,
     people,
+    profileError,
+    clearProfileError,
+    nicknames,
     update,
     updateStatus,
     setUpdateStatus,
@@ -104,7 +108,7 @@ function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const lang = useLang();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const firstRun = !!profile?.canEdit && profile.profile.nickname === '';
+  const firstRun = !!profile?.canEdit && profile.firstRun;
   // A save stays open until the server answers (profileLoaded): its echo closes the
   // modal, an unchanged profile means rejected and the form keeps the user's input.
   const [profileSave, setProfileSave] = useState<{
@@ -112,6 +116,8 @@ function App() {
     before: typeof profile;
   } | null>(null);
   const [profileSaveError, setProfileSaveError] = useState(false);
+  // Same-nickname tie-break lost: invite a rename once per page session.
+  const [nicknameNoticeDone, setNicknameNoticeDone] = useState(false);
   if (profileSave && profile && profile !== profileSave.before) {
     setProfileSave(null);
     if (sameProfile(profile.profile, profileSave.sent)) setIsProfileOpen(false);
@@ -303,7 +309,7 @@ function App() {
       touring && tourDemoRef.current
         ? demoAgents(
             {
-              nicknames: [t('tour.demo.a'), t('tour.demo.b'), t('tour.demo.c'), t('tour.demo.d')],
+              accounts: [t('tour.demo.a'), t('tour.demo.b'), t('tour.demo.c'), t('tour.demo.d')],
               editReason: t('tour.demo.editReason'),
               readReason: t('tour.demo.readReason'),
               waitReason: t('tour.demo.waitReason'),
@@ -536,7 +542,7 @@ function App() {
 
         {!editor.isEditMode && (
           <PeoplePanel
-            rows={peopleRows(people, lan.all(), t('nickname.unset'))}
+            rows={peopleRows(people, lan.all())}
             lan={lan}
             officeState={officeState}
             forceOpen={scene?.people === true}
@@ -592,8 +598,11 @@ function App() {
           <ProfileModal
             profile={profile.profile}
             firstRun={firstRun}
-            saveError={profileSaveError}
+            saveError={profileSaveError ? (profileError ?? 'rejected') : null}
+            takenNicknames={nicknames.taken}
+            account={profile.account}
             onSave={(p) => {
+              clearProfileError();
               transport.send({ type: 'saveProfile', profile: p });
               setProfileSave({ sent: p, before: profile });
               setProfileSaveError(false);
@@ -601,9 +610,24 @@ function App() {
             onClose={() => {
               setIsProfileOpen(false);
               setProfileSaveError(false);
+              clearProfileError();
             }}
           />
         )}
+
+        {profile?.canEdit &&
+          nicknames.selfLost &&
+          !nicknameNoticeDone &&
+          !firstRun &&
+          !profileOpen && (
+            <NicknameNotice
+              onChange={() => {
+                setNicknameNoticeDone(true);
+                setIsProfileOpen(true);
+              }}
+              onClose={() => setNicknameNoticeDone(true)}
+            />
+          )}
 
         <SettingsModal
           isOpen={settingsOpen}

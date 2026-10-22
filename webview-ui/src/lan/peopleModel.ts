@@ -2,6 +2,7 @@
 
 import type { OfficeAgent } from '../../../core/src/lan.js';
 import type { OfficePersonMessage } from '../../../core/src/messages.js';
+import { peerLabel } from './nicknames.js';
 
 export type PersonStatus = 'attention' | 'working' | 'idle';
 
@@ -14,9 +15,6 @@ export interface PersonRow {
   /** The agent a click follows: ❗ first, then working, then any main; null = no agents. */
   focusKey: string | null;
 }
-
-/** The name the panel shows (unnamed people get the i18n placeholder). */
-export const displayName = (p: OfficePersonMessage, unset: string): string => p.nickname || unset;
 
 /** Why a click did nothing: no agents at all, or the character has not spawned yet. */
 export const focusHintKey = (r: PersonRow): 'people.noAgents' | 'people.retry' =>
@@ -39,11 +37,7 @@ const working = (a: OfficeAgent): boolean => a.room !== 'lounge';
  * agents (the tour's demo characters) still gets a row. Order: me, then ❗,
  * working, idle, then by nickname.
  */
-export function peopleRows(
-  people: OfficePersonMessage[],
-  agents: OfficeAgent[],
-  unset = '',
-): PersonRow[] {
+export function peopleRows(people: OfficePersonMessage[], agents: OfficeAgent[]): PersonRow[] {
   const byPeer = new Map<string, OfficeAgent[]>();
   for (const a of agents) {
     const list = byPeer.get(a.peer.id);
@@ -60,8 +54,8 @@ export function peopleRows(
   const known = new Set(uniq.keys());
   for (const [id, list] of byPeer) {
     if (known.has(id)) continue;
-    const { nickname, palette, hueShift } = list[0].peer;
-    all.push({ peerId: id, nickname, palette, hueShift, self: false });
+    const { account, nickname, palette, hueShift } = list[0].peer;
+    all.push({ peerId: id, account, nickname, palette, hueShift, self: false });
   }
   const rows = all.map((person): PersonRow => {
     const mine = byPeer.get(person.peerId) ?? [];
@@ -88,7 +82,7 @@ export function peopleRows(
     (a, b) =>
       Number(b.person.self) - Number(a.person.self) ||
       RANK[a.status] - RANK[b.status] ||
-      displayName(a.person, unset).localeCompare(displayName(b.person, unset)) ||
+      peerLabel(a.person).localeCompare(peerLabel(b.person)) ||
       a.person.peerId.localeCompare(b.person.peerId),
   );
 }

@@ -1,13 +1,13 @@
 // Merges this PC's and peers' agents into one office; single-instance probe.
 import type { AgentView, OfficeAgent, PeerInfo, PeerPacket } from '../../../core/src/lan.js';
-import { PUBLIC_VIEW } from '../../../core/src/lan.js';
+import { nicknameKey, PUBLIC_VIEW } from '../../../core/src/lan.js';
 import type { OfficeErrorReason, OfficePersonMessage } from '../../../core/src/messages.js';
 import { MAX_OFFICES, PING_APP, PING_TIMEOUT_MS } from '../constants.js';
 import { inviteText, newInviteCode, parseInviteCode, teamKey } from './crypto.js';
 import type { TeamChannel } from './peerNet.js';
 import { fitPacket } from './peerNet.js';
 import type { EditableProfile, Profile, TeamOffice } from './profile.js';
-import { officeFromSecret, saveProfile, validateOfficeName } from './profile.js';
+import { officeFromSecret, osAccount, saveProfile, validateOfficeName } from './profile.js';
 import { redactView } from './redact.js';
 
 const toAgents = (peer: PeerInfo, views: AgentView[]): OfficeAgent[] =>
@@ -55,6 +55,8 @@ export class LanService {
     teamName(tag: string): string | undefined;
   } = { peers: () => [], sendNow: () => {}, teamName: () => undefined };
   private channels: { src: TeamOffice[]; list: TeamChannel[] } | null = null;
+  /** This PC's OS account name: fixed, read at start, never from a client. */
+  readonly account = osAccount();
 
   constructor(
     public profile: Profile,
@@ -66,8 +68,7 @@ export class LanService {
 
   self(): PeerInfo {
     const { peerId, nickname, palette, hueShift } = this.profile;
-    // '' = unnamed; each viewer shows its own label
-    return { id: peerId, nickname, palette, hueShift };
+    return { id: peerId, account: this.account, nickname, palette, hueShift };
   }
 
   /** What PeerNet sends (encrypted). Never throws: a failing scan sends no views. */
@@ -111,11 +112,25 @@ export class LanService {
     if (!this.isOpen(view)) return [];
     return [this.self(), ...this.net.peers(view).map((p) => p.peer)].map((p, i) => ({
       peerId: p.id,
+      account: p.account,
       nickname: p.nickname,
       palette: p.palette,
       hueShift: p.hueShift,
       self: i === 0,
     }));
+  }
+
+  /** Another live PC in any office this PC can see (public while in it, every
+   *  joined team) already uses this nickname. Unset ('') and keeping the
+   *  current nickname are never taken. */
+  nicknameTaken(nickname: string): boolean {
+    const key = nicknameKey(nickname);
+    if (key === '' || key === nicknameKey(this.profile.nickname)) return false;
+    const { offices, peerId } = this.profile;
+    const views = [...(offices.length === 0 ? [PUBLIC_VIEW] : []), ...offices.map((o) => o.tag)];
+    return views.some((v) =>
+      this.net.peers(v).some((p) => p.peer.id !== peerId && nicknameKey(p.peer.nickname) === key),
+    );
   }
 
   /** The public office only while in no team; a team office only once joined. */
@@ -191,7 +206,7 @@ export class LanService {
 
   /** Persist a validated update and announce it to peers right away. */
   saveProfile(update: EditableProfile): void {
-    this.update(update);
+    this.update({ ...update, setUp: true });
   }
 
   private update(patch: Partial<Profile>): void {

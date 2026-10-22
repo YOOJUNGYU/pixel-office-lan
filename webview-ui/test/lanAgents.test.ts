@@ -27,7 +27,7 @@ const layout = JSON.parse(
 const catalog = buildFurnitureCatalog(assetsDir);
 buildDynamicCatalog({ catalog, sprites: decodeAllFurniture(assetsDir, catalog) });
 
-const peer = { id: 'p1', nickname: 'kim', palette: 2, hueShift: 30 };
+const peer = { id: 'p1', account: 'yoo', nickname: 'kim', palette: 2, hueShift: 30 };
 
 function agent(id: string, room: Room, extra: Partial<OfficeAgent> = {}): OfficeAgent {
   return {
@@ -231,15 +231,15 @@ test('permission toggles the bubble; subagent and shell looks', () => {
   assert.equal(a.bubbleType, null);
 });
 
-test('name tags: nickname · provider #n for mains, kind for children', () => {
+test('name tags: account (nickname) · provider #n for mains, kind for children', () => {
   setLang('ko');
-  assert.equal(tagText(agent('s1', 'coding', { num: 2 })), 'kim · Claude #2');
-  assert.equal(tagText(agent('s2', 'coding', { provider: 'codex', num: 1 })), 'kim · Codex #1');
+  assert.equal(tagText(agent('s1', 'coding', { num: 2 })), 'yoo (kim) · Claude #2');
+  assert.equal(
+    tagText(agent('s2', 'coding', { provider: 'codex', num: 1 })),
+    'yoo (kim) · Codex #1',
+  );
   assert.equal(tagText(child('s1/sub/a', 's1', 'coding')), '↳ 서브에이전트');
   assert.equal(tagText({ ...child('s1/sh/1', 's1', 'server'), kind: 'shell' }), '↳ 셸');
   const unnamed = agent('s3', 'coding', { num: 1 });
-  assert.equal(
-    tagText({ ...unnamed, peer: { ...unnamed.peer, nickname: '' } }),
-    '이름없음 · Claude #1',
-  );
+  assert.equal(tagText({ ...unnamed, peer: { ...unnamed.peer, nickname: '' } }), 'yoo · Claude #1');
 });

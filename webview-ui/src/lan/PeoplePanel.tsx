@@ -15,7 +15,7 @@ import {
 import { t, useLang } from '../i18n.js';
 import type { OfficeState } from '../office/engine/officeState.js';
 import type { LanAgents } from './lanAgents.js';
-import { displayName, focusHintKey, inFrozenOrder, type PersonRow } from './peopleModel.js';
+import { focusHintKey, inFrozenOrder, type PersonRow } from './peopleModel.js';
 import { CharacterPreview } from './ProfileModal.js';
 
 const FACE_CROP = { top: PEOPLE_FACE_TOP, rows: PEOPLE_FACE_ROWS };
@@ -163,7 +163,10 @@ export function PeoplePanel({ rows: live, lan, officeState, forceOpen }: PeopleP
                   </span>
                   <span className="flex-1 min-w-0 flex flex-col">
                     <span className="truncate">
-                      {displayName(r.person, t('nickname.unset'))}
+                      {r.person.account}
+                      {r.person.nickname && (
+                        <span className="text-text-muted"> ({r.person.nickname})</span>
+                      )}
                       {r.person.self && ` ${t('people.you')}`}
                     </span>
                     <span

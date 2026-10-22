@@ -143,6 +143,11 @@ export function handleClientMessage(
         send(profileMessage(ctx.lan, true));
         break;
       }
+      if (ctx.lan.nicknameTaken(update.nickname)) {
+        send({ type: 'profileError', reason: 'nicknameTaken' });
+        send(profileMessage(ctx.lan, true));
+        break;
+      }
       try {
         ctx.lan.saveProfile(update);
       } catch (err) {
@@ -253,6 +258,8 @@ export function profileMessage(lan: LanService, privileged: boolean) {
       manualPeers: privileged ? manualPeers : [],
     },
     canEdit: privileged,
+    account: lan.account,
+    firstRun: !lan.profile.setUp,
   } as const;
 }
 
