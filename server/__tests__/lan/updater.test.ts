@@ -292,13 +292,17 @@ describe('reopen marker (window after an update)', () => {
     expect(fs.readdirSync(d)).toEqual([]);
   });
 
-  it('[Update] records whether a UI page is connected', async () => {
+  it('the marker is written only when a launched installer quits us, with the UI state then', async () => {
     const marks: boolean[] = [];
+    let fail = true;
     const u = new Updater('0.1.0', {
       check: async () => null,
-      install: async () => {},
+      install: async () => {
+        if (fail) throw new Error('download failed');
+      },
       markReopen: (open) => marks.push(open),
     });
+    vi.spyOn(console, 'error').mockImplementation(() => {});
     u.info = {
       version: '0.2.0',
       assetUrl: '',
@@ -306,10 +310,15 @@ describe('reopen marker (window after an update)', () => {
       assetSize: 1,
       notesUrl: '',
     };
+    u.onQuit(); // a manual install's quit: nothing
+    await u.install(); // download failed: nothing, and no installer to quit us
+    u.onQuit();
+    expect(marks).toEqual([]);
+    fail = false;
     u.uiConnected = () => true;
-    await u.install();
+    await u.install(); // launched; the tab is closed before the installer quits us
     u.uiConnected = () => false;
-    await u.install();
-    expect(marks).toEqual([true, false]);
+    u.onQuit();
+    expect(marks).toEqual([false]);
   });
 });

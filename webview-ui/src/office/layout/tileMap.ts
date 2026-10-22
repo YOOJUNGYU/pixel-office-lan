@@ -36,7 +36,7 @@ export function getWalkableTiles(
 
 /**
  * BFS pathfinding on 4-connected grid (no diagonals). Returns path excluding start, including end.
- * Index-based (typed arrays, head pointer): linear in the tiles visited, so a 256×256 office stays fast.
+ * Index-based (typed arrays, head pointer): linear in the tiles visited, so the 128×128 office stays fast.
  */
 export function findPath(
   startCol: number,

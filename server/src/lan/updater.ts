@@ -227,10 +227,13 @@ export async function downloadAndRun(
 const updatesDir = (): string => path.join(os.homedir(), LAYOUT_FILE_DIR, UPDATES_DIR_NAME);
 
 /**
- * Written when [Update] is clicked: whether a UI window was open. The new
+ * Written when the launched installer quits this server (POST /api/quit after
+ * an in-app [Update]): whether a UI window is open at that moment. The new
  * version's first start reads it (consumeReopenMarker): an open window
  * reloads itself into the new version (officeAccess.version), so the start
- * must not open a second one; with none open it opens the office once.
+ * must not open a second one; with none open (closed since the click) it opens
+ * the office once. A failed download or a cancelled UAC prompt never quits
+ * us, so no marker is left behind.
  */
 export function writeReopenMarker(windowOpen: boolean, dir = updatesDir(), now = Date.now()): void {
   try {
@@ -274,6 +277,8 @@ export class Updater {
   /** Set by the HTTP server: whether a UI page is connected right now. */
   uiConnected: () => boolean = () => false;
   private busy = false;
+  /** An installer we launched may quit us (POST /api/quit) to install itself. */
+  private installerLaunched = false;
   private timer: NodeJS.Timeout | null = null;
 
   constructor(
@@ -316,7 +321,6 @@ export class Updater {
   async install(): Promise<void> {
     if (!this.info || this.busy) return;
     this.busy = true;
-    this.deps.markReopen?.(this.uiConnected());
     this.setStatus({ type: 'updateStatus', state: 'downloading', percent: 0 });
     try {
       await this.deps.install(this.info, undefined, {
@@ -326,6 +330,7 @@ export class Updater {
       // Not kept for later handshakes: a cancelled UAC prompt must not leave a reloaded
       // page stuck on "installing" (the update banner offers the install again instead).
       this.status = null;
+      this.installerLaunched = true;
       this.broadcast({ type: 'updateStatus', state: 'installing' });
     } catch (err) {
       console.error('[Pixel Office] 업데이트 실패:', err);
@@ -333,6 +338,11 @@ export class Updater {
     } finally {
       this.busy = false;
     }
+  }
+
+  /** POST /api/quit: an installer we launched is replacing us — leave the reopen marker. */
+  onQuit(): void {
+    if (this.installerLaunched) this.deps.markReopen?.(this.uiConnected());
   }
 
   private setStatus(msg: Record<string, unknown>): void {

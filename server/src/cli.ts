@@ -232,7 +232,10 @@ async function main(): Promise<void> {
       assetCache,
       onReloadAssets,
       lan,
-      onQuit: () => setTimeout(() => void shutdown(), QUIT_DELAY_MS),
+      onQuit: () => {
+        updater.onQuit();
+        setTimeout(() => void shutdown(), QUIT_DELAY_MS);
+      },
       updater,
       autostart: { get: () => getAutostart(), set: (on) => setAutostart(on) },
     });

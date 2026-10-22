@@ -153,21 +153,24 @@ function App() {
   // pixel→tile geometry — the handlers still own undo/dirty/rebuild; for specs
   // that drive the real canvas gesture instead, getTileCenter projects a tile
   // to canvas CSS pixels with the renderer's own zoom + pan. Guarded on isE2E.
+  const { zoom, panRef, handleZoomChange, isEditMode, handleToggleEditMode, handleToolChange } =
+    editor;
+  const { handleEditorTileAction, handleEditorEraseAction, handleDrop } = editor;
   useEffect(() => {
     if (!isE2E || typeof window === 'undefined') return;
     const hooks = (window.__pixelAgentsTestHooks ??= {});
-    hooks.editorTileAction = (col, row) => editor.handleEditorTileAction(col, row);
-    hooks.editorEraseAction = (col, row) => editor.handleEditorEraseAction(col, row);
+    hooks.editorTileAction = (col, row) => handleEditorTileAction(col, row);
+    hooks.editorEraseAction = (col, row) => handleEditorEraseAction(col, row);
     hooks.editorDrop = (uid, col, row, duplicate = false) =>
-      editor.handleDrop(uid, col, row, { duplicate });
+      handleDrop(uid, col, row, { duplicate });
     hooks.getTileCenter = (col, row) => {
       const canvas = document.querySelector(`[data-testid="${OFFICE_CANVAS_TEST_ID}"]`);
       if (!canvas) return null;
       const projection = overlayProjection(
         getOfficeState().getLayout(),
         canvas.getBoundingClientRect(),
-        editor.zoom,
-        editor.panRef.current,
+        zoom,
+        panRef.current,
         window.devicePixelRatio || 1,
       );
       return {
@@ -176,15 +179,15 @@ function App() {
       };
     };
     hooks.getShowAreas = () => effectiveShowAreas;
-    hooks.getZoom = () => editor.zoom;
-    hooks.setZoom = (z) => editor.handleZoomChange(z);
+    hooks.getZoom = () => zoom;
+    hooks.setZoom = (z) => handleZoomChange(z);
   }, [
-    editor.handleZoomChange,
-    editor.handleEditorTileAction,
-    editor.handleEditorEraseAction,
-    editor.handleDrop,
-    editor.zoom,
-    editor.panRef,
+    handleZoomChange,
+    handleEditorTileAction,
+    handleEditorEraseAction,
+    handleDrop,
+    zoom,
+    panRef,
     effectiveShowAreas,
   ]);
 
@@ -226,8 +229,6 @@ function App() {
   const tourUserFollowRef = useRef<{ selected: number | null; follow: number | null } | null>(null);
   /** The layout editor was open when the tour started: closed meanwhile, reopened after. */
   const tourUserEditorRef = useRef<{ tool: EditTool } | null>(null);
-  const { zoom, panRef, handleZoomChange, isEditMode, handleToggleEditMode, handleToolChange } =
-    editor;
   const startTour = useCallback(() => {
     const os = getOfficeState();
     tourUserCameraRef.current ??= { zoom, pan: { ...panRef.current } };

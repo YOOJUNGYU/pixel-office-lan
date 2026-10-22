@@ -84,7 +84,11 @@ export function createCharacter(
   };
 }
 
-/** Start walking `path`, or sit down at `seat` when already there. */
+/**
+ * Start walking `path`, or sit down at `seat` when already on it. No path and
+ * not on it = the seat can't be reached: give it up and stand where it is
+ * (never sit or type on the wrong tile).
+ */
 function walkOrSit(ch: Character, path: Array<{ col: number; row: number }>, seat: Seat): void {
   ch.frame = 0;
   ch.frameTimer = 0;
@@ -92,9 +96,12 @@ function walkOrSit(ch: Character, path: Array<{ col: number; row: number }>, sea
     ch.path = path;
     ch.moveProgress = 0;
     ch.state = CharacterState.WALK;
-  } else {
+  } else if (ch.tileCol === seat.seatCol && ch.tileRow === seat.seatRow) {
     ch.state = CharacterState.TYPE;
     ch.dir = seat.facingDir;
+  } else {
+    seat.assigned = false;
+    ch.seatId = null;
   }
 }
 
