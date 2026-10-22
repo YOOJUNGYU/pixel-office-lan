@@ -481,14 +481,10 @@ function App() {
           style={{ background: 'var(--vignette)' }}
         />
 
-        {editor.isEditMode && (editor.isDirty || scene?.actionBar || emptyRooms.length > 0) && (
-          <EditActionBar editor={editor} editorState={editorState} emptyRooms={emptyRooms} />
-        )}
-
         {showRotateHint && (
           <div
             className="absolute left-1/2 -translate-x-1/2 z-11 bg-accent-bright text-white text-sm py-3 px-8 rounded-none border-2 border-accent shadow-pixel pointer-events-none whitespace-nowrap"
-            style={{ top: editor.isDirty || emptyRooms.length > 0 ? 64 : 8 }}
+            style={{ top: 8 }}
           >
             {t('app.rotateHint')}
           </div>
@@ -583,7 +579,9 @@ function App() {
             onToggleEditMode={officeReadOnly ? null : editor.handleToggleEditMode}
             isSettingsOpen={settingsOpen}
             onToggleSettings={() => setIsSettingsOpen((v) => !v)}
-          />
+          >
+            {editor.isEditMode && <EditActionBar editor={editor} editorState={editorState} />}
+          </BottomToolbar>
         )}
 
         {/* Mobile: Settings floats top-left (the layout editor stays desktop-

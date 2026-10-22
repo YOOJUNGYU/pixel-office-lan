@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 
 import { test } from 'vitest';
 
-import { changedFloorChunks } from '../src/office/engine/renderer.js';
+import { changedFloorChunks } from '../src/office/engine/floorChunks.js';
 import { TileType } from '../src/office/types.js';
 
 const F = TileType.FLOOR_1;

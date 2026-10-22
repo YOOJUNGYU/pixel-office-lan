@@ -29,8 +29,6 @@ export interface Scene {
   profile?: boolean;
   /** Layout editor open with this tool selected. */
   editor?: EditTool;
-  /** Show the save/undo bar even without unsaved changes (buttons blocked). */
-  actionBar?: boolean;
   /** Force the `bubble` agent's hover bubble. */
   hover?: boolean;
   /** Room the demo coder walks to. */
@@ -155,13 +153,13 @@ export const STEPS: Step[] = [
   {
     id: 'editorMore',
     targets: [{ dom: 'editor-erase' }, { dom: 'edit-actions' }],
-    scene: { editor: EditTool.SELECT, actionBar: true },
+    scene: { editor: EditTool.SELECT },
     requires: ['edit'],
   },
   {
     id: 'save',
     targets: [{ dom: 'edit-actions' }],
-    scene: { editor: EditTool.SELECT, actionBar: true },
+    scene: { editor: EditTool.SELECT },
     requires: ['edit'],
   },
   // Falls back to a centred explanation when the install popup is not shown.

@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 import { t, useLang } from '../i18n.js';
 import { Button } from './ui/Button.js';
 
@@ -7,6 +9,8 @@ interface BottomToolbarProps {
   onToggleEditMode: (() => void) | null;
   isSettingsOpen: boolean;
   onToggleSettings: () => void;
+  /** Shown to the right of the toolbar (the editor's Undo/Redo/Save/Reset). */
+  children?: ReactNode;
 }
 
 export function BottomToolbar({
@@ -14,28 +18,32 @@ export function BottomToolbar({
   onToggleEditMode,
   isSettingsOpen,
   onToggleSettings,
+  children,
 }: BottomToolbarProps) {
   useLang();
   return (
-    <div className="absolute left-10 bottom-10 z-20 flex items-center gap-4 pixel-panel p-4">
-      {onToggleEditMode && (
+    <div className="absolute left-10 bottom-10 z-20 flex items-stretch gap-4 max-w-[calc(100%-20px)]">
+      <div className="flex items-center gap-4 pixel-panel p-4">
+        {onToggleEditMode && (
+          <Button
+            variant={isEditMode ? 'active' : 'default'}
+            onClick={onToggleEditMode}
+            data-tour="layout-button"
+            title={t('toolbar.layoutTitle')}
+          >
+            {t('toolbar.layout')}
+          </Button>
+        )}
         <Button
-          variant={isEditMode ? 'active' : 'default'}
-          onClick={onToggleEditMode}
-          data-tour="layout-button"
-          title={t('toolbar.layoutTitle')}
+          variant={isSettingsOpen ? 'active' : 'default'}
+          onClick={onToggleSettings}
+          data-tour="settings-button"
+          title={t('toolbar.settings')}
         >
-          {t('toolbar.layout')}
+          {t('toolbar.settings')}
         </Button>
-      )}
-      <Button
-        variant={isSettingsOpen ? 'active' : 'default'}
-        onClick={onToggleSettings}
-        data-tour="settings-button"
-        title={t('toolbar.settings')}
-      >
-        {t('toolbar.settings')}
-      </Button>
+      </div>
+      {children}
     </div>
   );
 }
