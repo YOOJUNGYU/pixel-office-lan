@@ -75,3 +75,24 @@ export const MAC_AGENT_PLIST_NAME = 'com.pixeloffice.agent.plist';
 export const MAC_LAUNCH_AGENTS_SUBDIR = ['Library', 'LaunchAgents'];
 /** Marker in the data dir: the user turned start-at-login off; a silent update must not undo it. */
 export const AUTOSTART_OFF_MARKER = 'autostart-off';
+
+// ── v2 wire crypto (lan/crypto.ts) ─────────────────────────
+/** HKDF salts/infos: public-office pair keys and team-office keys. */
+export const PUB_KEY_SALT = 'pixel-office/v2/pub';
+export const TEAM_KEY_SALT = 'pixel-office/v2/team';
+export const TEAM_KEY_INFO = 'key';
+/** HMAC message whose first TEAM_TAG_BYTES identify a team on the wire. */
+export const TEAM_TAG_INFO = 'tag';
+export const TEAM_TAG_BYTES = 8;
+export const KEY_BYTES = 32;
+export const X25519_PUBLIC_KEY_BYTES = 32;
+/** SPKI DER header that wraps a raw 32-byte X25519 public key. */
+export const X25519_SPKI_PREFIX = '302a300506032b656e032100';
+export const GCM_NONCE_BYTES = 12;
+export const GCM_TAG_BYTES = 16;
+/** Invite secret: 13 bytes = 104 bits = 21 Crockford base32 chars, shown as PO2-XXXX-…. */
+export const INVITE_SECRET_BYTES = 13;
+export const INVITE_PREFIX = 'PO2';
+export const INVITE_GROUP_LEN = 4;
+export const CROCKFORD_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+export const WIRE_MAX_ID = 64;
