@@ -9,6 +9,7 @@ import assert from 'node:assert/strict';
 
 import { test } from 'vitest';
 
+import type { RoomAreasLayout } from '../../core/src/lan.js';
 import { normalizeRoomAreas, ROOM_LABELS } from '../../core/src/lan.js';
 import { ROOM_AREA_COLORS } from '../src/constants.js';
 import { OfficeState } from '../src/office/engine/officeState.js';
@@ -59,7 +60,10 @@ test('odd areas/areaTiles never throw: wrong types and sizes become empty rooms'
     { areas: [null, 1, { label: 3 }], areaTiles: [1, 2] },
     { areas: [{ label: ROOM_LABELS.coding, color: 'red' }], areaTiles: undefined },
   ]) {
-    const out = normalizeRoomAreas({ cols: 1, rows: 2, ...(odd as object) }, ROOM_AREA_COLORS);
+    const out = normalizeRoomAreas(
+      { cols: 1, rows: 2, ...(odd as object) } as RoomAreasLayout,
+      ROOM_AREA_COLORS,
+    );
     assert.equal(out.areas?.length, 4);
     assert.equal(out.areas?.[0].color, ROOM_AREA_COLORS.coding, 'invalid color → default');
     assert.deepEqual(out.areaTiles, [null, null]);

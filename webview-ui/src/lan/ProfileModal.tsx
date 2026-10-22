@@ -9,7 +9,7 @@ import { Modal } from '../components/ui/Modal.js';
 import { CHARACTER_SKIN_COLORS, MAX_HUE_DEG, PALETTE_COUNT } from '../constants.js';
 import { t, useLang } from '../i18n.js';
 import { adjustSprite } from '../office/colorize.js';
-import { getPetSprites } from '../office/sprites/petSpriteData.js';
+import { getPetSprites, tintPetSprite } from '../office/sprites/petSpriteData.js';
 import { getCharacterSprites } from '../office/sprites/spriteData.js';
 import { Direction } from '../office/types.js';
 
@@ -45,15 +45,15 @@ export function CharacterPreview({
     const canvas = ref.current;
     if (!canvas) return;
     // Shift just this frame, uncached: slider ticks must not fill the shared sprite cache.
-    // Pets have no skin to keep.
     const petFrames = pet ? getPetSprites(pet) : null;
-    const base = petFrames
-      ? petFrames.idleDown[0]
-      : getCharacterSprites(palette).walk[Direction.DOWN][1];
-    const sprite = adjustSprite(
-      base,
-      { h: hueShift, s: 0, b: 0, c: 0 },
-      petFrames ? undefined : CHARACTER_SKIN_COLORS,
+    const sprite = (
+      pet && petFrames
+        ? tintPetSprite(petFrames.idleDown[0], pet, hueShift)
+        : adjustSprite(
+            getCharacterSprites(palette).walk[Direction.DOWN][1],
+            { h: hueShift, s: 0, b: 0, c: 0 },
+            CHARACTER_SKIN_COLORS,
+          )
     ).slice(top, rows === undefined ? undefined : top + rows);
     canvas.width = sprite[0].length * scale;
     canvas.height = sprite.length * scale;

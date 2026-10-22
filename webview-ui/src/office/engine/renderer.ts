@@ -21,6 +21,7 @@ import {
   CHARACTER_Z_SORT_OFFSET,
   DELETE_BUTTON_BG,
   FALLBACK_FLOOR_COLOR,
+  FLOOR_CACHE_MAX_PIXELS,
   GHOST_BORDER_HOVER_FILL,
   GHOST_BORDER_HOVER_STROKE,
   GHOST_BORDER_STROKE,
@@ -436,6 +437,65 @@ export function renderTileGrid(
       ctx.drawImage(cached, offsetX + c * s, offsetY + r * s);
     }
   }
+}
+
+let floorCache: { key: unknown[]; canvas: HTMLCanvasElement } | null = null;
+
+/**
+ * Floor tiles, wall base colors and carpets: static between layout edits, so
+ * they are drawn once per (layout arrays, zoom, loaded sprites) into an
+ * offscreen canvas and blitted every frame — a 128×128 office is ~16k tile
+ * draws otherwise. Too large a canvas (high zoom on a big office) draws
+ * directly instead. The cache is padded by half a tile: carpet junction
+ * sprites straddle the grid edge.
+ */
+function renderFloorLayer(
+  ctx: CanvasRenderingContext2D,
+  tileMap: TileTypeVal[][],
+  tileColors: Array<ColorValue | null> | undefined,
+  carpetTiles: Array<CarpetTile | null> | undefined,
+  cols: number,
+  rows: number,
+  offsetX: number,
+  offsetY: number,
+  zoom: number,
+): void {
+  const pad = (TILE_SIZE * zoom) / 2;
+  const w = cols * TILE_SIZE * zoom + 2 * pad;
+  const h = rows * TILE_SIZE * zoom + 2 * pad;
+  const draw = (c: CanvasRenderingContext2D, ox: number, oy: number) => {
+    renderTileGrid(c, tileMap, ox, oy, zoom, tileColors, cols);
+    if (carpetTiles && carpetTiles.length > 0) {
+      renderCarpetLayer(c, carpetTiles, cols, rows, ox, oy, zoom);
+    }
+  };
+  if (w * h > FLOOR_CACHE_MAX_PIXELS || typeof document === 'undefined') {
+    draw(ctx, offsetX, offsetY);
+    return;
+  }
+  const key = [
+    tileMap,
+    tileColors,
+    carpetTiles,
+    cols,
+    rows,
+    zoom,
+    hasFloorSprites(),
+    getFloorPatternCount(),
+    getCarpetSetCount(),
+    hasWallSprites(),
+  ];
+  if (!floorCache || floorCache.key.some((k, i) => k !== key[i])) {
+    const canvas = floorCache?.canvas ?? document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const c = canvas.getContext('2d')!;
+    c.imageSmoothingEnabled = false;
+    c.clearRect(0, 0, w, h);
+    draw(c, pad, pad);
+    floorCache = { key, canvas };
+  }
+  ctx.drawImage(floorCache.canvas, offsetX - pad, offsetY - pad);
 }
 
 interface ZDrawable {
@@ -958,12 +1018,8 @@ export function renderFrame(
     offsetY,
     zoom,
   );
-  renderTileGrid(ctx, tileMap, offsetX, offsetY, zoom, tileColors, layoutCols);
-
-  // Carpet layer (above floor, below seat indicators / furniture / characters)
-  if (carpetTiles && carpetTiles.length > 0) {
-    renderCarpetLayer(ctx, carpetTiles, cols, rows, offsetX, offsetY, zoom);
-  }
+  // Floor + wall base + carpets (below seat indicators / furniture / characters)
+  renderFloorLayer(ctx, tileMap, tileColors, carpetTiles, cols, rows, offsetX, offsetY, zoom);
 
   // Area overlay (translucent color wash) — above carpets, below seat indicators
   if (showAreas) {

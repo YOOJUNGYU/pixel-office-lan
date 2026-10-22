@@ -8,6 +8,7 @@ import { SettingsModal } from './components/SettingsModal.js';
 import { Button } from './components/ui/Button.js';
 import { ZoomControls } from './components/ZoomControls.js';
 import {
+  FIRST_OPEN_FIT_FILL,
   OFFICE_CANVAS_TEST_ID,
   TOUR_AUTOSTART_DELAY_MS,
   TOUR_FIT_FILL,
@@ -264,6 +265,25 @@ function App() {
     isEditMode,
     handleToggleEditMode,
   ]);
+
+  // First open: a big office (the 90×60 default) is zoomed out to fit the
+  // window when the default zoom would not show all of it. Once per session.
+  const fittedRef = useRef(false);
+  useEffect(() => {
+    const box = containerRef.current?.getBoundingClientRect();
+    if (!layoutReady || fittedRef.current || !box) return;
+    fittedRef.current = true;
+    const dpr = window.devicePixelRatio || 1;
+    const layout = getOfficeState().getLayout();
+    const fit = fitZoom(
+      { w: layout.cols * TILE_SIZE, h: layout.rows * TILE_SIZE },
+      { w: box.width * dpr, h: box.height * dpr },
+      FIRST_OPEN_FIT_FILL,
+      ZOOM_MIN,
+      ZOOM_MAX,
+    );
+    if (fit < zoom) handleZoomChange(fit);
+  }, [layoutReady, zoom, handleZoomChange]);
 
   // First run: right after the profile is saved.
   const tourCanAutostart =

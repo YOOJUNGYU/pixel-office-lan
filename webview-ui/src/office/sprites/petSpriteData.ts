@@ -1,4 +1,5 @@
-import { adjustSprite } from '../colorize.js';
+import { PET_TINT_BRIGHTNESS, PET_TINT_SATURATION } from '../../constants.js';
+import { colorizeSprite } from '../colorize.js';
 import type { SpriteData } from '../types.js';
 
 type Triple = [SpriteData, SpriteData, SpriteData];
@@ -73,22 +74,32 @@ export function setPetTemplates(
   }
 }
 
+/** One pet frame in a profile color: 0 = the pet as drawn, else a colorize tint
+ *  of that hue (see PET_TINT_SATURATION). */
+export function tintPetSprite(sprite: SpriteData, pet: string, hueShift: number): SpriteData {
+  if (hueShift % 360 === 0) return sprite;
+  return colorizeSprite(sprite, {
+    h: hueShift % 360,
+    s: PET_TINT_SATURATION,
+    b: PET_TINT_BRIGHTNESS[pet] ?? 0,
+    c: 0,
+  });
+}
+
 /**
- * Frames of a bundled pet, hue-shifted like a human character's clothes
- * (pets have no skin to exempt). Null when that pet is not loaded (unknown id
+ * Frames of a bundled pet in a profile color (tintPetSprite). Null when that pet is not loaded (unknown id
  * or sprites not here yet) — callers fall back to the palette human.
  */
 export function getPetSprites(id: string, hueShift = 0): PetSpriteFrames | null {
   const base = loadedPets.get(id);
-  if (!base || hueShift === 0) return base ?? null;
+  if (!base || hueShift % 360 === 0) return base ?? null;
   const key = `${id}:${hueShift}`;
   const hit = shiftedCache.get(key);
   if (hit) return hit;
-  const color = { h: hueShift, s: 0, b: 0, c: 0 };
   const t = (f: Triple): Triple => [
-    adjustSprite(f[0], color),
-    adjustSprite(f[1], color),
-    adjustSprite(f[2], color),
+    tintPetSprite(f[0], id, hueShift),
+    tintPetSprite(f[1], id, hueShift),
+    tintPetSprite(f[2], id, hueShift),
   ];
   const shifted: PetSpriteFrames = {
     walkDown: t(base.walkDown),

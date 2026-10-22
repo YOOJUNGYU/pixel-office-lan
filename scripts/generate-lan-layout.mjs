@@ -20,21 +20,21 @@ const FLOOR_9 = 9;
 // Grid geometry (cols × rows). Row 0 is void headroom for the 2-tile-tall top wall sprites.
 const TOP_WALL = 1;
 const TOP_Y = 2; // first interior row of the top rooms
-const TOP_H = 14;
-const MID_WALL = TOP_Y + TOP_H; // 16
-const CORRIDOR_Y = MID_WALL + 1; // 17
+const TOP_H = 22;
+const MID_WALL = TOP_Y + TOP_H; // 24
+const CORRIDOR_Y = MID_WALL + 1; // 25
 const CORRIDOR_H = 3;
-const LOUNGE_WALL = CORRIDOR_Y + CORRIDOR_H; // 20
-const LOUNGE_Y = LOUNGE_WALL + 1; // 21
-const LOUNGE_H = 14;
-const ROWS = LOUNGE_Y + LOUNGE_H + 1; // 36
+const LOUNGE_WALL = CORRIDOR_Y + CORRIDOR_H; // 28
+const LOUNGE_Y = LOUNGE_WALL + 1; // 29
+const LOUNGE_H = 30;
+const ROWS = LOUNGE_Y + LOUNGE_H + 1; // 60
 
-const CODING = { label: '코딩실', color: '#48dbfb', x: 1, w: 17, y: TOP_Y, h: TOP_H };
+const CODING = { label: '코딩실', color: '#48dbfb', x: 1, w: 28, y: TOP_Y, h: TOP_H };
 const LIBRARY = {
   label: '자료실',
   color: '#1dd1a1',
   x: CODING.x + CODING.w + 1,
-  w: 19,
+  w: 29,
   y: TOP_Y,
   h: TOP_H,
 };
@@ -42,11 +42,11 @@ const SERVER = {
   label: '서버실',
   color: '#ff6b6b',
   x: LIBRARY.x + LIBRARY.w + 1,
-  w: 19,
+  w: 29,
   y: TOP_Y,
   h: TOP_H,
 };
-const COLS = SERVER.x + SERVER.w + 1; // 59
+const COLS = SERVER.x + SERVER.w + 1; // 90
 const LOUNGE = { label: '대기실', color: '#feca57', x: 1, w: COLS - 2, y: LOUNGE_Y, h: LOUNGE_H };
 
 // Floor pattern + colour per zone (ColorValue {h,s,b,c}, same as the editor writes).
@@ -96,12 +96,13 @@ const door = (x, y, w, h) => rect(x, y, w, h, (c, r) => floor(c, r, FLOOR.corrid
 for (const r of [CODING, LIBRARY, SERVER]) door(r.x + Math.floor(r.w / 2) - 1, MID_WALL, 2, 1);
 door(LIBRARY.x - 1, TOP_Y + TOP_H - 2, 1, 2); // 코딩실 ↔ 자료실
 door(SERVER.x - 1, TOP_Y + TOP_H - 2, 1, 2); // 자료실 ↔ 서버실
-for (const x of [8, 20, 29, 38, 50]) door(x, LOUNGE_WALL, 2, 1);
+for (const r of [CODING, LIBRARY, SERVER]) door(r.x + Math.floor(r.w / 2) - 1, LOUNGE_WALL, 2, 1);
+for (const x of [Math.floor(COLS / 3), Math.floor((2 * COLS) / 3)]) door(x, LOUNGE_WALL, 2, 1);
 
-// ── 코딩실: 3 rows × 4 desks, PC on each desk, 3 chairs facing up under each desk ──
-for (let row = 0; row < 3; row++) {
-  for (let d = 0; d < 4; d++) {
-    const c = CODING.x + 1 + d * 4;
+// ── 코딩실: 5 rows × 5 desks, PCs on each desk, 3 chairs facing up under each desk ──
+for (let row = 0; row < 5; row++) {
+  for (let d = 0; d < 5; d++) {
+    const c = CODING.x + 4 + d * 4;
     const y = CODING.y + 1 + row * 4;
     put('DESK_FRONT', c, y);
     put('PC_FRONT_OFF', c, y);
@@ -109,18 +110,18 @@ for (let row = 0; row < 3; row++) {
     for (let k = 0; k < 3; k++) put('CUSHIONED_CHAIR_BACK', c + k, y + 2);
   }
 }
-put('WHITEBOARD', CODING.x + 2, TOP_WALL - 1);
-put('CLOCK', CODING.x + 8, TOP_WALL - 1);
-put('WHITEBOARD', CODING.x + 12, TOP_WALL - 1);
+put('WHITEBOARD', CODING.x + 3, TOP_WALL - 1);
+put('CLOCK', CODING.x + 13, TOP_WALL - 1);
+put('WHITEBOARD', CODING.x + 22, TOP_WALL - 1);
 put('PLANT', CODING.x, CODING.y + CODING.h - 2);
 put('BIN', CODING.x + CODING.w - 1, CODING.y + CODING.h - 1);
 
-// ── 자료실: wall of bookshelves, 2 rows × 3 reading tables (4 seats each), shelf stacks ──
+// ── 자료실: wall of bookshelves, 3 rows × 5 reading tables (4 seats each), shelf stacks ──
 for (let x = LIBRARY.x; x + 1 < LIBRARY.x + LIBRARY.w; x += 2) {
   put('DOUBLE_BOOKSHELF', x, TOP_WALL - 1);
 }
-for (let row = 0; row < 2; row++) {
-  for (let t = 0; t < 3; t++) {
+for (let row = 0; row < 3; row++) {
+  for (let t = 0; t < 5; t++) {
     const c = LIBRARY.x + 2 + t * 6;
     const y = LIBRARY.y + 1 + row * 4;
     put('SMALL_TABLE_FRONT', c, y);
@@ -130,13 +131,13 @@ for (let row = 0; row < 2; row++) {
     put('CUSHIONED_CHAIR_BACK', c + 1, y + 2);
   }
 }
-for (const x of [1, 4, 13, 16]) put('DOUBLE_BOOKSHELF', LIBRARY.x + x, LIBRARY.y + 9);
-put('LARGE_PLANT', LIBRARY.x + 8, LIBRARY.y + 8);
+for (const x of [1, 4, 7, 20, 23, 26]) put('DOUBLE_BOOKSHELF', LIBRARY.x + x, LIBRARY.y + 14);
+put('LARGE_PLANT', LIBRARY.x + 13, LIBRARY.y + 13);
 
-// ── 서버실: 2 rows × 3 workstation tables, PC on every seat, wooden chairs both sides ──
-for (let row = 0; row < 2; row++) {
-  for (let t = 0; t < 3; t++) {
-    const c = SERVER.x + 2 + t * 6;
+// ── 서버실: 4 rows × 4 workstation tables, PC on every seat, wooden chairs both sides ──
+for (let row = 0; row < 4; row++) {
+  for (let t = 0; t < 4; t++) {
+    const c = SERVER.x + 4 + t * 6;
     const y = SERVER.y + 1 + row * 5;
     put('TABLE_FRONT', c, y);
     for (const dy of [0, 2]) {
@@ -147,17 +148,17 @@ for (let row = 0; row < 2; row++) {
     }
   }
 }
-put('LARGE_PAINTING', SERVER.x + 3, TOP_WALL - 1);
-put('CLOCK', SERVER.x + 9, TOP_WALL - 1);
-put('SMALL_PAINTING', SERVER.x + 14, TOP_WALL - 1);
+put('LARGE_PAINTING', SERVER.x + 4, TOP_WALL - 1);
+put('CLOCK', SERVER.x + 14, TOP_WALL - 1);
+put('SMALL_PAINTING', SERVER.x + 24, TOP_WALL - 1);
 put('BIN', SERVER.x, SERVER.y + SERVER.h - 1);
 put('CACTUS', SERVER.x + SERVER.w - 1, SERVER.y + SERVER.h - 2);
 
-// ── 대기실: 2 rows × 4 sofa lounges (8 seats each) + coffee corner, lots of open floor ──
-for (let row = 0; row < 2; row++) {
-  for (let k = 0; k < 4; k++) {
+// ── 대기실: 3 rows × 6 sofa lounges (8 seats each) + coffee corner, lots of open floor ──
+for (let row = 0; row < 3; row++) {
+  for (let k = 0; k < 6; k++) {
     const c = LOUNGE.x + 4 + k * 14;
-    const y = LOUNGE.y + 3 + row * 6;
+    const y = LOUNGE.y + 4 + row * 8;
     put('COFFEE_TABLE', c, y);
     put('COFFEE', c + (k % 2), y + 1);
     put('SOFA_FRONT', c, y - 1);
@@ -170,7 +171,7 @@ const bar = LOUNGE.x + LOUNGE.w - 4;
 put('SMALL_TABLE_FRONT', bar, LOUNGE.y + 5);
 put('COFFEE', bar, LOUNGE.y + 6);
 put('COFFEE', bar + 1, LOUNGE.y + 6);
-for (const x of [1, 10, 24, 38, 52]) put('PLANT_2', LOUNGE.x + x, LOUNGE.y + LOUNGE.h - 2);
+for (const x of [1, 15, 30, 45, 60, 75]) put('PLANT_2', LOUNGE.x + x, LOUNGE.y + LOUNGE.h - 2);
 put('LARGE_PLANT', LOUNGE.x, LOUNGE.y);
 put('LARGE_PLANT', LOUNGE.x + LOUNGE.w - 2, LOUNGE.y + LOUNGE.h - 3);
 put('POT', LOUNGE.x + LOUNGE.w - 1, LOUNGE.y);

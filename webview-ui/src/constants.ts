@@ -8,6 +8,8 @@ export const DEFAULT_COLS = 20;
 export const DEFAULT_ROWS = 11;
 export const MAX_COLS = MAX_LAYOUT_COLS;
 export const MAX_ROWS = MAX_LAYOUT_ROWS;
+/** Largest offscreen floor cache (device px²): a 128×128 office up to render zoom 2. */
+export const FLOOR_CACHE_MAX_PIXELS = 4096 * 4096;
 
 // ── Character Animation ─────────────────────────────────────
 export const WALK_SPEED_PX_PER_SEC = 48;
@@ -243,7 +245,7 @@ export const PET_HIT_HALF_WIDTH = 7;
 export const PET_HIT_HALF_WIDTH_SIDE = 11;
 export const PET_HIT_HEIGHT = 19;
 /** A pet's head is this much lower than a human's: bubbles and the "!" sit lower. */
-export const PET_HEAD_DROP_PX = 8;
+export const PET_HEAD_DROP_PX = 2;
 
 // ── Greeter + Intro bubble ──────────────────────────────────
 /** Reserved character id for the Intro's greeter. Far outside both real agent
@@ -265,6 +267,11 @@ export const PET_IDLE_FRAME_DURATION_SEC = 0.3;
 export const PET_WALK_SEQUENCE = [0, 1, 0, 2] as const;
 /** Idle cycle: 4-step lookup into the 3-frame idleDown/idleUp arrays. */
 export const PET_IDLE_SEQUENCE = [0, 1, 2, 1] as const;
+/** A pet's color (hueShift ≠ 0) is a colorize tint, not a hue rotation: gitcat is
+ *  nearly black/grey, where rotating the hue changes nothing. Saturation of the tint
+ *  and a per-pet lightness lift (colorize `b`) so dark pets show the color. */
+export const PET_TINT_SATURATION = 55;
+export const PET_TINT_BRIGHTNESS: Readonly<Record<string, number>> = { claudio: 0, gitcat: 40 };
 
 // ── WebSocket reconnect (standalone only) ────────────────────
 /** Reconnect backoff ladder for the /ws transport (transport/reconnectBackoff.ts).
@@ -388,6 +395,8 @@ export const TOUR_SPOTLIGHT_EASE = 0.25;
 export const TOUR_OUTLINE_PX = 2;
 /** The tour fits the whole office into this fraction of the screen. */
 export const TOUR_FIT_FILL = 0.92;
+/** First open: share of the window the whole office fills when it would not fit at the default zoom. */
+export const FIRST_OPEN_FIT_FILL = 0.95;
 
 // ── People panel ─────────────────────────────────────────────
 /** localStorage: '1' = collapsed, '0' = expanded (per viewer); unset = by screen width. */
