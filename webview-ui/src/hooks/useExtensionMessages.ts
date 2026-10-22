@@ -3,6 +3,10 @@ import { useEffect, useRef, useState } from 'react';
 import type { OfficeAgent } from '../../../core/src/lan.js';
 import type {
   AutostartState,
+  OfficeCode,
+  OfficeCreated,
+  OfficeError,
+  OfficesState,
   ProfileLoaded,
   UpdateAvailable,
   UpdateStatus,
@@ -71,7 +75,13 @@ interface ExtensionMessageState {
   setUpdateStatus: (s: UpdateStatus | null) => void;
   /** Start at login on this PC (this PC's browser only); null until reported. */
   autostart: AutostartState | null;
+  /** Team offices + active view (this PC's browser only); null for read-only viewers. */
+  offices: Omit<OfficesState, 'type'> | null;
+  /** Latest reply to an office request from this browser (each a new object). */
+  officeReply: OfficeReply | null;
 }
+
+export type OfficeReply = OfficeCreated | OfficeCode | OfficeError;
 
 export function useExtensionMessages(
   getOfficeState: () => OfficeState,
@@ -92,6 +102,8 @@ export function useExtensionMessages(
   const [update, setUpdate] = useState<UpdateAvailable | null>(null);
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
   const [autostart, setAutostart] = useState<AutostartState | null>(null);
+  const [offices, setOffices] = useState<Omit<OfficesState, 'type'> | null>(null);
+  const [officeReply, setOfficeReply] = useState<OfficeReply | null>(null);
   const lanRef = useRef<LanAgents | null>(null);
   lanRef.current ??= new LanAgents(getOfficeState());
   const lan = lanRef.current;
@@ -149,6 +161,15 @@ export function useExtensionMessages(
         setUpdateStatus(msg as UpdateStatus);
       } else if (msg.type === 'autostartState') {
         setAutostart(msg as AutostartState);
+      } else if (msg.type === 'officesState') {
+        const { offices, activeView, remoteView } = msg as OfficesState;
+        setOffices({ offices, activeView, remoteView });
+      } else if (
+        msg.type === 'officeCreated' ||
+        msg.type === 'officeCode' ||
+        msg.type === 'officeError'
+      ) {
+        setOfficeReply(msg as OfficeReply);
       } else if (msg.type === 'characterSpritesLoaded') {
         const characters = msg.characters as Array<{
           down: string[][][];
@@ -242,5 +263,7 @@ export function useExtensionMessages(
     updateStatus,
     setUpdateStatus,
     autostart,
+    offices,
+    officeReply,
   };
 }

@@ -14,6 +14,7 @@ import { useExtensionMessages } from './hooks/useExtensionMessages.js';
 import { useIsMobile } from './hooks/useIsMobile.js';
 import { t, useLang } from './i18n.js';
 import { LanOverlay } from './lan/LanOverlay.js';
+import { OfficeSwitcher } from './lan/OfficeSwitcher.js';
 import { ProfileModal } from './lan/ProfileModal.js';
 import { UpdateBanner } from './lan/UpdateBanner.js';
 import { OfficeCanvas } from './office/components/OfficeCanvas.js';
@@ -78,6 +79,8 @@ function App() {
     updateStatus,
     setUpdateStatus,
     autostart,
+    offices,
+    officeReply,
   } = useExtensionMessages(getOfficeState, editor.setLastSavedLayout, isEditDirty);
 
   // Overlay geometry: the root div is the canvas container's size.
@@ -367,6 +370,9 @@ function App() {
           );
         })()}
 
+      {/* Read-only viewers only ever see the public office: no switcher. */}
+      {!officeReadOnly && offices && !editor.isEditMode && <OfficeSwitcher state={offices} />}
+
       {officeReadOnly && (
         <div className="absolute mobile-safe-top left-1/2 -translate-x-1/2 z-10 text-sm text-text-muted pointer-events-none select-none whitespace-nowrap">
           {t('app.readOnly')}
@@ -437,6 +443,8 @@ function App() {
         onExportLayout={handleExportLayout}
         onImportLayout={handleImportLayout}
         autostart={autostart}
+        offices={officeReadOnly ? null : offices}
+        officeReply={officeReply}
       />
     </div>
   );

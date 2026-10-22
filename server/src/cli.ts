@@ -20,7 +20,14 @@ import {
 } from './assetReload.js';
 import type { AssetCache, ReloadAssetsSideEffect } from './clientMessageHandler.js';
 import { readConfig } from './configPersistence.js';
-import { MAX_PORT, MIN_PORT, NO_PEERS_ENV, QUIT_DELAY_MS } from './constants.js';
+import {
+  MAX_PORT,
+  MIN_PORT,
+  NO_PEERS_ENV,
+  QUIT_DELAY_MS,
+  UDP_PORT_ENV,
+  UDP_TARGETS_ENV,
+} from './constants.js';
 import { applyInstallerChoice, getAutostart, setAutostart } from './lan/autostart.js';
 import { checkExisting, LanService } from './lan/office.js';
 import { PeerNet } from './lan/peerNet.js';
@@ -157,8 +164,11 @@ async function main(): Promise<void> {
   scanner.start();
   const lan = new LanService(loadProfile(), scanner);
   const pins = new KnownPeers();
+  const udpPort = Number(process.env[UDP_PORT_ENV]) || LAN_UDP_PORT;
+  const udpTargets = process.env[UDP_TARGETS_ENV]?.split(',').filter(Boolean);
   const peerNet = new PeerNet({
-    port: LAN_UDP_PORT,
+    port: udpPort,
+    ...(udpTargets?.length && { targets: () => udpTargets }),
     identity: { id: lan.profile.peerId, ...lan.profile.identity },
     getPacket: () => lan.packet(),
     manualPeers: () => lan.profile.manualPeers,
@@ -172,7 +182,7 @@ async function main(): Promise<void> {
     }
   } catch (err) {
     console.warn(
-      `[Pixel Office] UDP ${LAN_UDP_PORT.toString()} 포트를 열 수 없어 다른 PC 와 연결하지 않습니다: ${err instanceof Error ? err.message : String(err)}`,
+      `[Pixel Office] UDP ${udpPort.toString()} 포트를 열 수 없어 다른 PC 와 연결하지 않습니다: ${err instanceof Error ? err.message : String(err)}`,
     );
   }
 

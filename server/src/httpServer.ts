@@ -165,8 +165,14 @@ export async function createHttpServer(options: HttpServerOptions): Promise<Http
 
   const clients = new Set<{ socket: WsLike; privileged: boolean }>();
   if (lan) {
+    // A team joined without a name learns it when a member announces it: re-send then.
+    let lastOffices = JSON.stringify(officesMessage(lan));
     const timer = setInterval(() => {
+      const offices = JSON.stringify(officesMessage(lan));
+      const officesChanged = offices !== lastOffices;
+      lastOffices = offices;
       for (const c of clients) {
+        if (officesChanged && c.privileged) safeSend(c.socket, officesMessage(lan));
         try {
           safeSend(c.socket, snapshotMessage(lan, c.privileged));
         } catch (err) {
@@ -184,8 +190,11 @@ export async function createHttpServer(options: HttpServerOptions): Promise<Http
   const onOfficesChanged = (): void => {
     if (!lan) return;
     for (const c of clients) {
-      if (c.privileged) safeSend(c.socket, officesMessage(lan));
-      else if (!lan.profile.remoteView) c.socket.close(WS_CLOSE_FORBIDDEN, 'remote viewing is off');
+      if (c.privileged) {
+        safeSend(c.socket, officesMessage(lan));
+        safeSend(c.socket, snapshotMessage(lan, true)); // the switched office now, not on the next tick
+      } else if (!lan.profile.remoteView)
+        c.socket.close(WS_CLOSE_FORBIDDEN, 'remote viewing is off');
     }
   };
 

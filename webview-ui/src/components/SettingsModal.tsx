@@ -1,8 +1,10 @@
 import { useRef, useState } from 'react';
 
 import type { Lang } from '../../../core/src/lan.js';
-import type { AutostartState } from '../../../core/src/messages.js';
+import type { AutostartState, OfficesState } from '../../../core/src/messages.js';
+import type { OfficeReply } from '../hooks/useExtensionMessages.js';
 import { LANG_NAMES, setLang, t, useLang } from '../i18n.js';
+import { OfficeSettings } from '../lan/OfficeSettings.js';
 import { isSoundEnabled, setSoundEnabled } from '../notificationSound.js';
 import { transport } from '../transport/index.js';
 import { Checkbox } from './ui/Checkbox.js';
@@ -27,6 +29,9 @@ interface SettingsModalProps {
   onImportLayout: (file: File) => void;
   /** Start at login on this PC; hidden when null or unsupported (dev run, Linux). */
   autostart: AutostartState | null;
+  /** Team offices (this PC's browser only); the 오피스 section is hidden when null. */
+  offices: Omit<OfficesState, 'type'> | null;
+  officeReply: OfficeReply | null;
 }
 
 export function SettingsModal({
@@ -40,6 +45,8 @@ export function SettingsModal({
   onExportLayout,
   onImportLayout,
   autostart,
+  offices,
+  officeReply,
 }: SettingsModalProps) {
   const [soundLocal, setSoundLocal] = useState(isSoundEnabled);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -141,6 +148,7 @@ export function SettingsModal({
       >
         {t('settings.checkUpdate')}
       </MenuItem>
+      {offices && <OfficeSettings state={offices} reply={officeReply} />}
     </Modal>
   );
 }

@@ -366,3 +366,9 @@ export const LAN_ROOM_LABEL_OUTLINE_PX = 4;
 /** Font size per zoom step (sprite px), floored at the minimum in device px. */
 export const LAN_ROOM_LABEL_FONT_PX = 7;
 export const LAN_ROOM_LABEL_MIN_FONT_PX = 13;
+
+// ── Team offices ─────────────────────────────────────────────
+/** Office name length the server accepts (server MAX_OFFICE_NAME). */
+export const MAX_OFFICE_NAME = 20;
+/** How long "copied" stays next to a Copy button. */
+export const OFFICE_COPIED_MS = 2_000;

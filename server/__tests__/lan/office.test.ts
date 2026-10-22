@@ -6,7 +6,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AgentView, PeerInfo, PeerPacket } from '../../../core/src/lan.js';
 import { PUBLIC_VIEW } from '../../../core/src/lan.js';
 import { officesMessage, snapshotMessage } from '../../src/clientMessageHandler.js';
+import { MAX_OFFICES } from '../../src/constants.js';
 import { createIdentity, parseInviteCode } from '../../src/lan/crypto.js';
+import type { CreatedOffice } from '../../src/lan/office.js';
 import { buildOffice, LanService } from '../../src/lan/office.js';
 import type { Profile } from '../../src/lan/profile.js';
 import { loadProfile } from '../../src/lan/profile.js';
@@ -147,7 +149,7 @@ describe('LanService', () => {
 
     it('create: code to the caller, team view active, public and remote viewers get nothing', () => {
       const { lan, sendNow } = mk();
-      const created = lan.createOffice(' 우리팀 ')!;
+      const created = lan.createOffice(' 우리팀 ') as CreatedOffice;
       expect(created.name).toBe('우리팀');
       expect(parseInviteCode(created.code)).not.toBeNull();
       expect(sendNow).toHaveBeenCalled();
@@ -162,7 +164,7 @@ describe('LanService', () => {
 
     it('officesState carries names only; the secret stays in the 0600 profile', () => {
       const { lan } = mk();
-      const created = lan.createOffice('팀')!;
+      const created = lan.createOffice('팀') as CreatedOffice;
       const msg = JSON.stringify(officesMessage(lan));
       const { secret } = lan.profile.offices[0];
       expect(msg).not.toContain(secret);
@@ -183,13 +185,14 @@ describe('LanService', () => {
 
     it('join by a sloppy code (name announced by members), leave back to public', () => {
       const a = mk().lan;
-      const { code, tag } = a.createOffice('팀')!;
+      const { code, tag } = a.createOffice('팀') as CreatedOffice;
       const { lan } = mk();
-      expect(lan.joinOffice('nope')).toBe(false);
-      expect(lan.joinOffice(` ${code.toLowerCase().replace(/-/g, ' ')} `)).toBe(true);
+      expect(lan.joinOffice('nope')).toBe('invalidCode');
+      expect(lan.joinOffice(code, 'x'.repeat(21))).toBe('nameInvalid');
+      expect(lan.joinOffice(` ${code.toLowerCase().replace(/-/g, ' ')} `, '')).toBeNull();
       expect(lan.profile.offices.map((o) => o.tag)).toEqual([tag]);
       expect(lan.officeList()).toEqual([{ tag, name: 'announced' }]);
-      expect(lan.joinOffice(code)).toBe(true); // again: no duplicate
+      expect(lan.joinOffice(code)).toBe('alreadyJoined'); // again: no duplicate
       expect(lan.profile.offices).toHaveLength(1);
       expect(lan.leaveOffice('other')).toBe(false);
       expect(lan.leaveOffice(tag)).toBe(true);
@@ -199,9 +202,11 @@ describe('LanService', () => {
 
     it('rejects bad names and remote-view values', () => {
       const { lan } = mk();
-      expect(lan.createOffice('')).toBeNull();
-      expect(lan.createOffice('x'.repeat(21))).toBeNull();
-      expect(lan.createOffice(5)).toBeNull();
+      expect(lan.createOffice('')).toBe('nameInvalid');
+      expect(lan.createOffice('x'.repeat(21))).toBe('nameInvalid');
+      expect(lan.createOffice(5)).toBe('nameInvalid');
+      for (let i = 0; i < MAX_OFFICES; i++) lan.createOffice(`팀${i.toString()}`);
+      expect(lan.createOffice('one more')).toBe('full');
       expect(lan.setRemoteView('yes')).toBe(false);
       expect(lan.setRemoteView(true)).toBe(true);
       expect(lan.profile.remoteView).toBe(true);

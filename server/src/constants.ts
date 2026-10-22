@@ -59,6 +59,10 @@ export const UPDATE_DOWNLOAD_TIMEOUT_MS = 10 * 60_000;
 export const UPDATES_DIR_NAME = 'updates';
 /** `PIXEL_OFFICE_NO_PEERS=1`: no UDP peers (tests must never broadcast on the real LAN). */
 export const NO_PEERS_ENV = 'PIXEL_OFFICE_NO_PEERS';
+/** Test only: two instances on one host. `PIXEL_OFFICE_UDP_PORT=47810` binds that UDP port and
+ *  `PIXEL_OFFICE_UDP_TARGETS=127.0.0.1:47811` replaces broadcast + manual peers ("host:port", comma-separated). */
+export const UDP_PORT_ENV = 'PIXEL_OFFICE_UDP_PORT';
+export const UDP_TARGETS_ENV = 'PIXEL_OFFICE_UDP_TARGETS';
 /** Opt in to prereleases (rc testing): `PIXEL_OFFICE_ALLOW_PRERELEASE=1`. */
 export const ALLOW_PRERELEASE_ENV = 'PIXEL_OFFICE_ALLOW_PRERELEASE';
 

@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { WebSocket } from 'ws';
 
 import { WS_CLOSE_FORBIDDEN } from '../src/constants.js';
+import type { CreatedOffice } from '../src/lan/office.js';
 
 // Isolated temp HOME: layout and config land under ~/.pixel-office/.
 let tmpBase: string;
@@ -332,8 +333,47 @@ describe('/ws LAN office', () => {
     expect(await closed).toBe(WS_CLOSE_FORBIDDEN);
   });
 
+  it('a refused join tells only the asking socket why; alreadyJoined still switches', async () => {
+    const created = lan.createOffice('팀') as CreatedOffice;
+    lan.leaveOffice(created.tag);
+    const a = await open('localhost');
+    const b = await open('localhost');
+    const bTypes: string[] = [];
+    b.on('message', (d: Buffer) =>
+      bTypes.push((JSON.parse(d.toString()) as { type: string }).type),
+    );
+    const err = waitForMessage(a, 'officeError');
+    a.send(JSON.stringify({ type: 'joinOffice', code: 'PO2-NOPE' }));
+    expect(await err).toEqual({ type: 'officeError', reason: 'invalidCode' });
+
+    const ok = waitForMessage(a, 'officesState');
+    a.send(JSON.stringify({ type: 'joinOffice', code: created.code.toLowerCase() }));
+    expect(await ok).toMatchObject({ activeView: created.tag });
+
+    const again = waitForMessage(a, 'officeError');
+    a.send(JSON.stringify({ type: 'joinOffice', code: created.code }));
+    expect(await again).toEqual({ type: 'officeError', reason: 'alreadyJoined' });
+    expect(lan.profile.offices).toHaveLength(1);
+
+    const bad = waitForMessage(a, 'officeError');
+    a.send(JSON.stringify({ type: 'createOffice', name: '' }));
+    expect(await bad).toEqual({ type: 'officeError', reason: 'nameInvalid' });
+    await new Promise((r) => setTimeout(r, SETTLE_MS));
+    expect(bTypes).not.toContain('officeError');
+  });
+
+  it('re-sends officesState once a member announces the team name', async () => {
+    const created = lan.createOffice('팀') as CreatedOffice;
+    lan.leaveOffice(created.tag);
+    lan.joinOffice(created.code); // joined without a name
+    const a = await open('localhost');
+    const named = waitForMessage(a, 'officesState', 3_000);
+    lan.net = { ...lan.net, teamName: () => '알림팀' };
+    expect(await named).toMatchObject({ offices: [{ tag: created.tag, name: '알림팀' }] });
+  });
+
   it('getOfficeCode answers only the asking loopback socket', async () => {
-    const created = lan.createOffice('팀')!;
+    const created = lan.createOffice('팀') as CreatedOffice;
     const a = await open('localhost');
     const b = await open('localhost');
     let bGot = false;

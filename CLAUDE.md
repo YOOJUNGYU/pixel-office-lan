@@ -43,7 +43,7 @@ VS Code adapter, PTY/xterm terminal, hook providers + consent flow, JSONL transc
 
 ## Handshake (`webviewReady`)
 
-`officeAccess {readOnly}` → asset messages (characters, pets, floor, walls, carpets, furniture) → `settingsLoaded` → `profileLoaded {profile, canEdit}` → `officesState` (loopback only; names, never secrets/codes) → `areaMappingsLoaded` → `layoutLoaded` (saved layout, else bundled default) → first `officeSnapshot` → `autostartState` (loopback only) → `updateAvailable` (loopback only, when known). After that `officeSnapshot {agents, selfPeerId}` is pushed every second to every socket (this PC's agents redacted for read-only viewers when `hideDetails`).
+`officeAccess {readOnly}` → asset messages (characters, pets, floor, walls, carpets, furniture) → `settingsLoaded` → `profileLoaded {profile, canEdit}` → `officesState` (loopback only; names, never secrets/codes) → `areaMappingsLoaded` → `layoutLoaded` (saved layout, else bundled default) → first `officeSnapshot` → `autostartState` (loopback only) → `updateAvailable` (loopback only, when known). After that `officeSnapshot {agents, selfPeerId}` is pushed every second to every socket (this PC's agents redacted for read-only viewers when `hideDetails`). Office replies (`officeCreated`, `officeCode`, `officeError {reason}`) go to the requesting socket only; `officesState` + a fresh snapshot follow every office change, and `officesState` is re-sent when a member announces a team's name.
 
 ## Privilege rule
 
@@ -57,7 +57,7 @@ Everyone else is read-only: the single gate at the top of `handleClientMessage` 
 
 ## Data
 
-`~/.pixel-office/` — `layout.json`, `config.json`, `profile.json` (0600: X25519 key pair, team office secrets), `known-peers.json` (0600, TOFU peer id → public key). Ports: UDP 47800 (peers), HTTP 47801 (UI); the CLI defaults to `--host 0.0.0.0 --port 47801`. A UDP bind failure only disables peers.
+`~/.pixel-office/` — `layout.json`, `config.json`, `profile.json` (0600: X25519 key pair, team office secrets), `known-peers.json` (0600, TOFU peer id → public key). Ports: UDP 47800 (peers), HTTP 47801 (UI); the CLI defaults to `--host 0.0.0.0 --port 47801`. A UDP bind failure only disables peers. Two instances on one host (tests only): `PIXEL_OFFICE_UDP_PORT=47810 PIXEL_OFFICE_UDP_TARGETS=127.0.0.1:47811` and the mirror for the other.
 
 ## Build & test
 

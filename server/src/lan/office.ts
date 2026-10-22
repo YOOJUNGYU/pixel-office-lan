@@ -1,6 +1,7 @@
 // Merges this PC's and peers' agents into one office; single-instance probe.
 import type { AgentView, OfficeAgent, PeerInfo, PeerPacket } from '../../../core/src/lan.js';
 import { PUBLIC_VIEW } from '../../../core/src/lan.js';
+import type { OfficeErrorReason } from '../../../core/src/messages.js';
 import { MAX_OFFICES, PING_APP, PING_TIMEOUT_MS } from '../constants.js';
 import { inviteText, newInviteCode, parseInviteCode, teamKey } from './crypto.js';
 import type { TeamChannel } from './peerNet.js';
@@ -41,6 +42,12 @@ export async function checkExisting(port: number): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+export interface CreatedOffice {
+  tag: string;
+  name: string;
+  code: string;
 }
 
 /** This PC's live LAN state: profile, local agents, peers, offices. */
@@ -119,26 +126,32 @@ export class LanService {
   }
 
   /** New team office with a fresh invite code; it becomes the active view. */
-  createOffice(name: unknown): { tag: string; name: string; code: string } | null {
+  createOffice(name: unknown): CreatedOffice | OfficeErrorReason {
     const n = validateOfficeName(name);
-    if (n === null || this.profile.offices.length >= MAX_OFFICES) return null;
+    if (n === null) return 'nameInvalid';
+    if (this.profile.offices.length >= MAX_OFFICES) return 'full';
     const code = newInviteCode();
     const office = officeFromSecret(code.secret, n);
     this.update({ offices: [...this.profile.offices, office], activeView: office.tag });
     return { tag: office.tag, name: n, code: code.text };
   }
 
-  /** Join by invite code (name optional: members announce theirs). Already joined → just switch. */
-  joinOffice(code: unknown, name?: unknown): boolean {
+  /** Join by invite code (name optional: members announce theirs). null = joined.
+   *  Already joined → switches to it and still reports 'alreadyJoined'. */
+  joinOffice(code: unknown, name?: unknown): OfficeErrorReason | null {
     const secret = typeof code === 'string' ? parseInviteCode(code) : null;
-    const n = name === undefined ? '' : validateOfficeName(name);
-    if (!secret || n === null) return false;
+    if (!secret) return 'invalidCode';
+    const n = name === undefined || name === '' ? '' : validateOfficeName(name);
+    if (n === null) return 'nameInvalid';
     const office = officeFromSecret(secret, n);
     const { offices } = this.profile;
-    if (offices.some((o) => o.tag === office.tag)) return this.setActiveView(office.tag);
-    if (offices.length >= MAX_OFFICES) return false;
+    if (offices.some((o) => o.tag === office.tag)) {
+      this.setActiveView(office.tag);
+      return 'alreadyJoined';
+    }
+    if (offices.length >= MAX_OFFICES) return 'full';
     this.update({ offices: [...offices, office], activeView: office.tag });
-    return true;
+    return null;
   }
 
   leaveOffice(tag: unknown): boolean {

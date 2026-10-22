@@ -1,5 +1,5 @@
 import { PUBLIC_VIEW } from '../../core/src/lan.js';
-import type { ClientMessage } from '../../core/src/messages.js';
+import type { ClientMessage, OfficeErrorReason } from '../../core/src/messages.js';
 import type { LoadedAssets, LoadedCharacterSprites, LoadedPetSprites } from './assetLoader.js';
 import { readConfig, writeConfig } from './configPersistence.js';
 import type { FileStateAdapter } from './fileStateAdapter.js';
@@ -202,13 +202,17 @@ function handleOfficeChange(
     switch (msg.type) {
       case 'createOffice': {
         const created = lan.createOffice(msg.name);
-        if (created) send({ type: 'officeCreated', ...created }); // the code goes to this socket only
-        ok = created !== null;
+        if (typeof created === 'string') send(officeError(created));
+        else send({ type: 'officeCreated', ...created }); // the code goes to this socket only
+        ok = typeof created !== 'string';
         break;
       }
-      case 'joinOffice':
-        ok = lan.joinOffice(msg.code, msg.name);
+      case 'joinOffice': {
+        const err = lan.joinOffice(msg.code, msg.name);
+        if (err) send(officeError(err));
+        ok = err === null || err === 'alreadyJoined'; // alreadyJoined switched the view
         break;
+      }
       case 'leaveOffice':
         ok = lan.leaveOffice(msg.tag);
         break;
@@ -225,6 +229,8 @@ function handleOfficeChange(
   if (ok) onChanged?.();
   else send(officesMessage(lan));
 }
+
+const officeError = (reason: OfficeErrorReason) => ({ type: 'officeError', reason }) as const;
 
 /** officesState: names only, never secrets or codes. Privileged clients only. */
 export function officesMessage(lan: LanService) {

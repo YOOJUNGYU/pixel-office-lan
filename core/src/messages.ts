@@ -26,7 +26,8 @@ export type ServerMessage =
   | AutostartState
   | OfficesState
   | OfficeCreated
-  | OfficeCode;
+  | OfficeCode
+  | OfficeError;
 
 export type ClientMessage =
   | WebviewReady
@@ -254,6 +255,13 @@ export interface OfficeCode {
   tag: string;
   code: string;
 }
+
+export interface OfficeError {
+  type: 'officeError';
+  reason: OfficeErrorReason;
+}
+
+export type OfficeErrorReason = 'invalidCode' | 'alreadyJoined' | 'nameInvalid' | 'full';
 
 export interface WebviewReady {
   type: 'webviewReady';

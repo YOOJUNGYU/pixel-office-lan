@@ -98,6 +98,7 @@ components:
         - $ref: '#/components/schemas/OfficesState'
         - $ref: '#/components/schemas/OfficeCreated'
         - $ref: '#/components/schemas/OfficeCode'
+        - $ref: '#/components/schemas/OfficeError'
       discriminator: type
 
     ClientMessage:
@@ -475,6 +476,24 @@ components:
           type: string
         code:
           type: string
+
+    OfficeError:
+      description: >-
+        A createOffice/joinOffice was refused, to the requesting socket only.
+        `alreadyJoined` still switches to that office; `full` = office limit
+        reached.
+      type: object
+      additionalProperties: false
+      required: [type, reason]
+      properties:
+        type:
+          const: officeError
+        reason:
+          $ref: '#/components/schemas/OfficeErrorReason'
+
+    OfficeErrorReason:
+      type: string
+      enum: [invalidCode, alreadyJoined, nameInvalid, full]
 
     UpdateStatus:
       description: >-
