@@ -6,6 +6,8 @@ import type {
   OfficeCode,
   OfficeCreated,
   OfficeError,
+  OfficePersonMessage,
+  OfficeSnapshot,
   OfficesState,
   ProfileLoaded,
   UpdateAvailable,
@@ -66,6 +68,8 @@ interface ExtensionMessageState {
   lan: LanAgents;
   /** Bumped on every applied officeSnapshot so overlays re-render. */
   lanVersion: number;
+  /** Everyone in the viewed office (latest officeSnapshot). */
+  people: OfficePersonMessage[];
   /** This PC's profile and whether this browser may edit it; null until loaded. */
   profile: Omit<ProfileLoaded, 'type'> | null;
   /** A newer release (this PC's browser only); null when none is known. */
@@ -100,6 +104,7 @@ export function useExtensionMessages(
   const [showAreas, setShowAreas] = useState(false);
   const [officeReadOnly, setOfficeReadOnly] = useState(false);
   const [lanVersion, setLanVersion] = useState(0);
+  const [people, setPeople] = useState<OfficePersonMessage[]>([]);
   const [profile, setProfile] = useState<Omit<ProfileLoaded, 'type'> | null>(null);
   const [update, setUpdate] = useState<UpdateAvailable | null>(null);
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
@@ -153,6 +158,7 @@ export function useExtensionMessages(
         }
       } else if (msg.type === 'officeSnapshot') {
         const agents = msg.agents as OfficeAgent[];
+        setPeople((msg as OfficeSnapshot).people);
         if (layoutReadyRef.current) applyAgents(agents);
         else pendingAgentsRef.current = agents;
       } else if (msg.type === 'profileLoaded') {
@@ -261,6 +267,7 @@ export function useExtensionMessages(
     officeReadOnly,
     lan,
     lanVersion,
+    people,
     profile,
     update,
     updateStatus,

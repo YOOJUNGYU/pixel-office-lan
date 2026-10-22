@@ -147,6 +147,29 @@ describe('LanService', () => {
       expect(lan.office('unknown-tag', false)).toEqual([]);
     });
 
+    it('people: self first, zero-agent peers included, team peers never in public/remote', () => {
+      const { lan } = mk();
+      const idle: PeerPacket = { ...pubPeer, peer: { ...pubPeer.peer, id: 'idle' }, views: [] };
+      lan.net.peers = (v: string) => (v === PUBLIC_VIEW ? [pubPeer, idle] : [teamPeer]);
+      const ids = (m: { people: { peerId: string; self: boolean }[] }) =>
+        m.people.map((p) => `${p.peerId}${p.self ? '*' : ''}`);
+      expect(ids(snapshotMessage(lan, true))).toEqual(['me*', 'p1', 'idle']);
+      expect(ids(snapshotMessage(lan, false))).toEqual(['me*', 'p1', 'idle']);
+      expect(snapshotMessage(lan, false).people[1]).toEqual({
+        peerId: 'p1',
+        nickname: '김',
+        palette: 1,
+        hueShift: 10,
+        self: false,
+      });
+      const created = lan.createOffice('팀') as CreatedOffice;
+      expect(ids(snapshotMessage(lan, true))).toEqual(['me*', 'mate']);
+      expect(snapshotMessage(lan, false).people).toEqual([]);
+      expect(lan.people(PUBLIC_VIEW)).toEqual([]);
+      expect(lan.people('unknown-tag')).toEqual([]);
+      expect(lan.people(created.tag).map((p) => p.peerId)).toEqual(['me', 'mate']);
+    });
+
     it('create: code to the caller, team view active, public and remote viewers get nothing', () => {
       const { lan, sendNow } = mk();
       const created = lan.createOffice(' 우리팀 ') as CreatedOffice;

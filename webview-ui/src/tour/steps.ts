@@ -35,6 +35,8 @@ export interface Scene {
   hover?: boolean;
   /** Room the demo coder walks to. */
   walk?: Room;
+  /** People panel expanded even if the viewer collapsed it. */
+  people?: boolean;
 }
 
 /** Things a step needs on this screen; steps whose needs are unmet are dropped. */
@@ -69,6 +71,7 @@ export type StepId =
   | 'family'
   | 'map'
   | 'switcher'
+  | 'people'
   | 'settingsButton'
   | 'language'
   | 'profile'
@@ -111,6 +114,7 @@ export const STEPS: Step[] = [
     readOnly: true,
   },
   { id: 'switcher', targets: [{ dom: 'switcher' }], requires: ['switcher'], readOnly: true },
+  { id: 'people', targets: [{ dom: 'people' }], scene: { people: true }, readOnly: true },
   { id: 'settingsButton', targets: [{ dom: 'settings-button' }] },
   { id: 'language', targets: [{ dom: 'settings-language' }], scene: { settings: true } },
   {

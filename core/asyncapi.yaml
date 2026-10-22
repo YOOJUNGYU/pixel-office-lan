@@ -519,7 +519,7 @@ components:
         redacted by their sender.
       type: object
       additionalProperties: false
-      required: [type, agents, selfPeerId]
+      required: [type, agents, people, selfPeerId]
       properties:
         type:
           const: officeSnapshot
@@ -527,9 +527,34 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/OfficeAgentMessage'
+        people:
+          type: array
+          description: >-
+            Everyone connected to the same office as `agents` (this PC first,
+            then every live peer), including PCs with no agents.
+          items:
+            $ref: '#/components/schemas/OfficePersonMessage'
         selfPeerId:
           type: string
           description: This server's peer id (marks which agents are local).
+
+    OfficePersonMessage:
+      description: One PC in the office. `nickname` is '' when unset.
+      type: object
+      additionalProperties: false
+      required: [peerId, nickname, palette, hueShift, self]
+      properties:
+        peerId:
+          type: string
+        nickname:
+          type: string
+        palette:
+          type: integer
+        hueShift:
+          type: integer
+        self:
+          type: boolean
+          description: This server's own PC.
 
     ProfileLoaded:
       description: >-

@@ -31,6 +31,14 @@ const ko = {
   'tag.subagent': '↳ 서브에이전트',
   'tag.shell': '↳ 셸',
   'bubble.permission': '❗ 확인 필요',
+  'people.title': '접속 중 {n}명',
+  'people.you': '(나)',
+  'people.noAgents': '에이전트 없음',
+  'people.show': '접속자 목록 펼치기',
+  'people.hide': '접속자 목록 접기',
+  'people.status.attention': '확인을 기다림',
+  'people.status.working': '작업 중',
+  'people.status.idle': '쉬는 중',
   'nickname.unset': '이름없음',
 
   'app.loading': '불러오는 중…',
@@ -250,6 +258,9 @@ const ko = {
   'tour.switcher.title': '오피스 전환',
   'tour.switcher.body':
     '🌐 공개 오피스에는 같은 망의 모든 PC가 보입니다. 🔒 팀 오피스는 코드를 가진 팀원끼리만 보입니다.\n팀 오피스에 참여한 PC는 공개 오피스에서 빠집니다.',
+  'tour.people.title': '접속 중인 사람',
+  'tour.people.body':
+    '지금 이 오피스에 접속한 사람이 모두 보입니다. 에이전트가 없는 사람도요.\n❗ 는 확인을 기다리는 에이전트가 있다는 뜻입니다. 이름을 누르면 그 사람의 에이전트로 화면이 따라갑니다.',
   'tour.settingsButton.title': '설정',
   'tour.settingsButton.body': '언어, 프로필, 팀 오피스 같은 설정은 모두 여기에 있습니다.',
   'tour.language.title': '언어',
@@ -324,6 +335,14 @@ const en: Record<Key, string> = {
   'tag.subagent': '↳ Subagent',
   'tag.shell': '↳ Shell',
   'bubble.permission': '❗ Needs attention',
+  'people.title': '{n} online',
+  'people.you': '(you)',
+  'people.noAgents': 'No agents',
+  'people.show': 'Show who is online',
+  'people.hide': 'Hide who is online',
+  'people.status.attention': 'Needs attention',
+  'people.status.working': 'Working',
+  'people.status.idle': 'Idle',
   'nickname.unset': 'Unnamed',
 
   'app.loading': 'Loading…',
@@ -543,6 +562,9 @@ const en: Record<Key, string> = {
   'tour.switcher.title': 'Office switcher',
   'tour.switcher.body':
     '🌐 The public office shows every PC on the network. 🔒 A team office is shared only by teammates who have its code.\nA PC in a team office leaves the public office.',
+  'tour.people.title': "Who's online",
+  'tour.people.body':
+    "Everyone connected to this office is listed here, even people with no agents.\n❗ means one of their agents is waiting for them. Click a name and the view follows that person's agent.",
   'tour.settingsButton.title': 'Settings',
   'tour.settingsButton.body': 'Language, profile, team offices and more live here.',
   'tour.language.title': 'Language',

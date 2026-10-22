@@ -47,6 +47,8 @@ export class LanAgents {
   private demo: OfficeAgent[] = [];
   private nextId = 1;
   private readonly os: OfficeState;
+  /** Peer whose name tags are emphasized (people panel hover); null = none. */
+  highlightPeer: string | null = null;
 
   constructor(os: OfficeState) {
     this.os = os;

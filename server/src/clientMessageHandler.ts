@@ -268,12 +268,11 @@ export function profileMessage(lan: LanService, privileged: boolean) {
  * agents redacted when hideDetails is on.
  */
 export function snapshotMessage(lan: LanService, privileged: boolean) {
+  const view = privileged ? lan.profile.activeView : PUBLIC_VIEW;
   return {
     type: 'officeSnapshot',
-    agents: lan.office(
-      privileged ? lan.profile.activeView : PUBLIC_VIEW,
-      lan.profile.hideDetails && !privileged,
-    ),
+    agents: lan.office(view, lan.profile.hideDetails && !privileged),
+    people: lan.people(view),
     selfPeerId: lan.profile.peerId,
   } as const;
 }

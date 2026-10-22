@@ -46,3 +46,12 @@ test('every key exists in both languages', () => {
 test('unknown key returns the key', () => {
   assert.equal(t('nope.missing' as never), 'nope.missing');
 });
+
+test('people panel strings in both languages', () => {
+  setLang('ko');
+  assert.equal(t('people.title', { n: '3' }), '접속 중 3명');
+  assert.ok(t('tour.people.title') && t('tour.people.body'));
+  setLang('en');
+  assert.equal(t('people.title', { n: '3' }), '3 online');
+  assert.equal(t('people.you'), '(you)');
+});

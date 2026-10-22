@@ -1,7 +1,7 @@
 // Merges this PC's and peers' agents into one office; single-instance probe.
 import type { AgentView, OfficeAgent, PeerInfo, PeerPacket } from '../../../core/src/lan.js';
 import { PUBLIC_VIEW } from '../../../core/src/lan.js';
-import type { OfficeErrorReason } from '../../../core/src/messages.js';
+import type { OfficeErrorReason, OfficePersonMessage } from '../../../core/src/messages.js';
 import { MAX_OFFICES, PING_APP, PING_TIMEOUT_MS } from '../constants.js';
 import { inviteText, newInviteCode, parseInviteCode, teamKey } from './crypto.js';
 import type { TeamChannel } from './peerNet.js';
@@ -106,15 +106,31 @@ export class LanService {
 
   /** One office's agents. The public office is empty while this PC is in any team. */
   office(view: string, redactLocal: boolean): OfficeAgent[] {
-    const { offices } = this.profile;
-    const open = view === PUBLIC_VIEW ? offices.length === 0 : offices.some((o) => o.tag === view);
-    if (!open) return [];
+    if (!this.isOpen(view)) return [];
     return buildOffice(
       this.self(),
       this.local.views(redactLocal),
       this.net.peers(view),
       redactLocal,
     );
+  }
+
+  /** Everyone in one office (this PC first, then live peers, agents or not); same gate as office(). */
+  people(view: string): OfficePersonMessage[] {
+    if (!this.isOpen(view)) return [];
+    return [this.self(), ...this.net.peers(view).map((p) => p.peer)].map((p, i) => ({
+      peerId: p.id,
+      nickname: p.nickname,
+      palette: p.palette,
+      hueShift: p.hueShift,
+      self: i === 0,
+    }));
+  }
+
+  /** The public office only while in no team; a team office only once joined. */
+  private isOpen(view: string): boolean {
+    const { offices } = this.profile;
+    return view === PUBLIC_VIEW ? offices.length === 0 : offices.some((o) => o.tag === view);
   }
 
   /** Offices for this PC's browser: names only, never secrets. */

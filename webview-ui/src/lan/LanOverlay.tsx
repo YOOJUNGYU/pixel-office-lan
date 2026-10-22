@@ -99,15 +99,16 @@ export function LanOverlay({ officeState, lan, containerRef, zoom, panRef }: Lan
     if (!ch) continue;
     const typing = ch.state === CharacterState.TYPE;
     const x = project.toScreenX(ch.x);
+    const lit = a.peer.id === lan.highlightPeer;
     nodes.push(
       <div
         key={a.key}
         data-agent-key={a.key}
-        className="absolute -translate-x-1/2 flex items-center gap-4 whitespace-nowrap text-sm leading-none px-3 py-1 bg-bg/75 text-text pointer-events-none"
+        className={`absolute -translate-x-1/2 flex items-center gap-4 whitespace-nowrap text-sm leading-none px-3 py-1 text-text pointer-events-none ${lit ? 'bg-accent outline-2 outline-accent-bright' : 'bg-bg/75'}`}
         style={{
           left: x,
           top: project.toScreenY(ch.y + (typing ? CHARACTER_SITTING_OFFSET_PX : 0)),
-          zIndex: LAN_TAG_Z_INDEX,
+          zIndex: lit ? LAN_PERMISSION_Z_INDEX : LAN_TAG_Z_INDEX,
         }}
       >
         {a.kind === 'main' && (

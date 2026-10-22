@@ -132,8 +132,13 @@ test('visibleSteps: full tour on a desktop owner, short one for remote viewers',
     'bubble',
     'family',
     'map',
+    'people',
     'done',
   ]);
+  // The people step is in both variants, right after the switcher.
+  const full = visibleSteps('full', all);
+  assert.equal(full[full.indexOf('switcher') + 1], 'people');
+  assert.ok(visibleSteps('full', new Set()).includes('people'));
   // Phone (no editor) without team offices: no editor, switcher or office steps.
   const phone = visibleSteps('full', new Set<Capability>(['profile', 'areas']));
   for (const id of [

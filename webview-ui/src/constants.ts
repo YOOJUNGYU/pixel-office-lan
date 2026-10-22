@@ -399,3 +399,17 @@ export const TOUR_SPOTLIGHT_EASE = 0.25;
 export const TOUR_OUTLINE_PX = 2;
 /** The tour fits the whole office into this fraction of the screen. */
 export const TOUR_FIT_FILL = 0.92;
+
+// ── People panel ─────────────────────────────────────────────
+/** localStorage: '1' = collapsed, '0' = expanded (per viewer); unset = by screen width. */
+export const PEOPLE_COLLAPSED_KEY = 'pixel-office.people.collapsed';
+/** Narrower than this (CSS px) the panel starts collapsed. */
+export const PEOPLE_WIDE_MIN_PX = 1100;
+/** Face crop of the standing frame (sprite rows) and its integer scale. */
+export const PEOPLE_FACE_TOP = 10;
+export const PEOPLE_FACE_ROWS = 14;
+export const PEOPLE_FACE_SCALE = 2;
+/** How long the "no agents" hint stays after clicking an agentless row. */
+export const PEOPLE_HINT_MS = 2_000;
+/** Above name tags and bubbles (LAN_*_Z_INDEX), below modals (50). */
+export const PEOPLE_Z_INDEX = 43;

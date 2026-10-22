@@ -20,23 +20,32 @@ const PREVIEW_SCALE = 4;
 const IME_KEYCODE = 229;
 const SWATCH_SCALE = 2;
 
-/** One standing frame of a character, drawn at an integer scale (pixel-perfect). */
-function CharacterPreview({
+/** One standing frame of a character, drawn at an integer scale (pixel-perfect).
+ *  `crop` = only sprite rows [top, top + rows) (the people panel's face). */
+export function CharacterPreview({
   palette,
   hueShift,
   scale,
+  crop,
 }: {
   palette: number;
   hueShift: number;
   scale: number;
+  crop?: { top: number; rows: number };
 }) {
+  const top = crop?.top ?? 0;
+  const rows = crop?.rows;
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const canvas = ref.current;
     if (!canvas) return;
     // Shift just this frame, uncached: slider ticks must not fill the shared sprite cache.
     const base = getCharacterSprites(palette).walk[Direction.DOWN][1];
-    const sprite = adjustSprite(base, { h: hueShift, s: 0, b: 0, c: 0 }, CHARACTER_SKIN_COLORS);
+    const sprite = adjustSprite(
+      base,
+      { h: hueShift, s: 0, b: 0, c: 0 },
+      CHARACTER_SKIN_COLORS,
+    ).slice(top, rows === undefined ? undefined : top + rows);
     canvas.width = sprite[0].length * scale;
     canvas.height = sprite.length * scale;
     const ctx = canvas.getContext('2d')!;
@@ -48,7 +57,7 @@ function CharacterPreview({
         ctx.fillRect(x * scale, y * scale, scale, scale);
       }),
     );
-  }, [palette, hueShift, scale]);
+  }, [palette, hueShift, scale, top, rows]);
   return <canvas ref={ref} style={{ imageRendering: 'pixelated' }} />;
 }
 

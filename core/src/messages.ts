@@ -150,6 +150,7 @@ export interface AreaMappingsLoaded {
 export interface OfficeSnapshot {
   type: 'officeSnapshot';
   agents: OfficeAgentMessage[];
+  people: OfficePersonMessage[];
   selfPeerId: string;
 }
 
@@ -195,6 +196,14 @@ export interface PeerInfoMessage {
   nickname: string;
   palette: number;
   hueShift: number;
+}
+
+export interface OfficePersonMessage {
+  peerId: string;
+  nickname: string;
+  palette: number;
+  hueShift: number;
+  self: boolean;
 }
 
 export interface ProfileLoaded {
