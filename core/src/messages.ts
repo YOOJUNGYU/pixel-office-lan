@@ -23,7 +23,10 @@ export type ServerMessage =
   | ProfileLoaded
   | UpdateAvailable
   | UpdateStatus
-  | AutostartState;
+  | AutostartState
+  | OfficesState
+  | OfficeCreated
+  | OfficeCode;
 
 export type ClientMessage =
   | WebviewReady
@@ -37,7 +40,13 @@ export type ClientMessage =
   | SaveProfile
   | InstallUpdate
   | CheckUpdate
-  | SetAutostart;
+  | SetAutostart
+  | CreateOffice
+  | JoinOffice
+  | LeaveOffice
+  | SetActiveView
+  | SetRemoteView
+  | GetOfficeCode;
 
 export interface LayoutLoaded {
   type: 'layoutLoaded';
@@ -221,6 +230,31 @@ export interface AutostartState {
   supported: boolean;
 }
 
+export interface OfficesState {
+  type: 'officesState';
+  offices: OfficeSummary[];
+  activeView: string;
+  remoteView: boolean;
+}
+
+export interface OfficeSummary {
+  tag: string;
+  name: string;
+}
+
+export interface OfficeCreated {
+  type: 'officeCreated';
+  tag: string;
+  name: string;
+  code: string;
+}
+
+export interface OfficeCode {
+  type: 'officeCode';
+  tag: string;
+  code: string;
+}
+
 export interface WebviewReady {
   type: 'webviewReady';
 }
@@ -276,4 +310,35 @@ export interface CheckUpdate {
 export interface SetAutostart {
   type: 'setAutostart';
   enabled: boolean;
+}
+
+export interface CreateOffice {
+  type: 'createOffice';
+  name: string;
+}
+
+export interface JoinOffice {
+  type: 'joinOffice';
+  code: string;
+  name?: string;
+}
+
+export interface LeaveOffice {
+  type: 'leaveOffice';
+  tag: string;
+}
+
+export interface SetActiveView {
+  type: 'setActiveView';
+  view: string;
+}
+
+export interface SetRemoteView {
+  type: 'setRemoteView';
+  enabled: boolean;
+}
+
+export interface GetOfficeCode {
+  type: 'getOfficeCode';
+  tag: string;
 }

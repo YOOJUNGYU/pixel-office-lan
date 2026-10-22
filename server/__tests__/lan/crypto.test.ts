@@ -1,13 +1,17 @@
+import * as crypto from 'crypto';
 import { describe, expect, it } from 'vitest';
 
 import { MAX_PACKET_BYTES } from '../../../core/src/lan.js';
 import {
   createIdentity,
+  inviteText,
+  isWireId,
   newInviteCode,
   open,
   pairKey,
   parseInviteCode,
   parseWire,
+  publicKeyOf,
   seal,
   teamKey,
   teamTag,
@@ -74,6 +78,15 @@ describe('invite code', () => {
       expect(parseInviteCode(t)?.equals(code.secret)).toBe(true);
     }
   });
+  it('inviteText re-creates the same code from the secret', () => {
+    const code = newInviteCode();
+    expect(inviteText(code.secret)).toBe(code.text);
+  });
+  it('the prefix is only stripped as a whole (PO2, P02, po2)', () => {
+    const bare = newInviteCode().text.slice(4).replace(/-/g, '');
+    expect(parseInviteCode('P02' + bare)).not.toBeNull();
+    expect(parseInviteCode('PX2' + bare)).toBeNull();
+  });
   it('codes differ', () => {
     expect(newInviteCode().text).not.toBe(newInviteCode().text);
   });
@@ -89,6 +102,23 @@ describe('invite code', () => {
     ]) {
       expect(parseInviteCode(t)).toBeNull();
     }
+  });
+});
+
+describe('publicKeyOf', () => {
+  it('derives the public key of a private key, null on garbage', () => {
+    const a = createIdentity('A');
+    expect(publicKeyOf(a.privateKeyPem)).toBe(a.publicKey);
+    expect(publicKeyOf('nope')).toBeNull();
+  });
+});
+
+describe('isWireId', () => {
+  it('allows uuid-like ids only', () => {
+    expect(isWireId(crypto.randomUUID())).toBe(true);
+    expect(isWireId('pc_1.a-b')).toBe(true);
+    for (const x of ['', 'a b', 'a|b', 'x'.repeat(65), '김', 5, null])
+      expect(isWireId(x)).toBe(false);
   });
 });
 
@@ -121,6 +151,11 @@ describe('parseWire', () => {
       { ...hello, pk: '!!!notbase64!!!' },
       { ...hello, id: '' },
       { ...hello, id: 'x'.repeat(65) },
+      { ...hello, id: 'a|b' },
+      { ...hello, pk: b64(32).replace(/=$/, '') }, // unpadded
+      { ...hello, pk: Buffer.alloc(32, 0xfb).toString('base64url') + '=' },
+      { ...pub, n: b64(12) + '\n' },
+      { ...hello, pk: b64(32).replace(/E=$/, 'F=') }, // non-canonical trailing bits
       { ...pub, n: b64(16) },
       { ...pub, c: 'a b' },
       { ...pub, to: 5 },

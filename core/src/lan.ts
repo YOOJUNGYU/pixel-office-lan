@@ -72,6 +72,8 @@ export function isValidManualPeer(s: string): boolean {
   return IPV4.test(s) ? s.split('.').every((n) => Number(n) <= 255) : HOSTNAME.test(s);
 }
 
+/** The office everyone on the LAN shares; any other view is a team office tag. */
+export const PUBLIC_VIEW = 'public';
 export const LAN_UDP_PORT = 47800;
 export const LAN_HTTP_PORT = 47801;
 export const MAX_PACKET_BYTES = 60_000;

@@ -7,9 +7,9 @@ export const LOOPBACK_HOSTNAMES = ['localhost', '127.0.0.1', '[::1]'] as const;
 /** Remote addresses that count as this machine. */
 export const LOOPBACK_ADDRESSES = ['127.0.0.1', '::1', '::ffff:127.0.0.1'] as const;
 
-/** Standalone mode: the handshake's Origin is not this server's own origin.
+/** A cross-origin handshake, or a remote browser while remote viewing is off.
  *  WebSocket connects bypass CORS, so this rejects drive-by web pages. */
-export const WS_CLOSE_FORBIDDEN_ORIGIN = 4003;
+export const WS_CLOSE_FORBIDDEN = 4003;
 
 // ── Layout/Config Persistence ──────────────────────────────
 /** Data directory under the user's home (layout.json, config.json). */
@@ -96,3 +96,18 @@ export const INVITE_PREFIX = 'PO2';
 export const INVITE_GROUP_LEN = 4;
 export const CROCKFORD_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 export const WIRE_MAX_ID = 64;
+
+// ── v2 peer protocol / offices (lan/peerNet.ts, lan/profile.ts) ──
+/** Max JSON bytes of the encrypted plaintext, so seal + base64 + wire JSON stays ≤ MAX_PACKET_BYTES. */
+export const PACKET_PLAINTEXT_BUDGET = 44_000;
+/** TOFU pins: peer id → public key (0600), oldest dropped past MAX_KNOWN_PEERS. */
+export const KNOWN_PEERS_FILE_NAME = 'known-peers.json';
+export const MAX_KNOWN_PEERS = 1_000;
+/** New pins are written at most this often (a hello flood must not hammer the disk). */
+export const PIN_SAVE_DELAY_MS = 1_000;
+/** Public-office peers tracked at once; hellos from further new ids are ignored. */
+export const MAX_HELLO_PEERS = 256;
+/** Replay guard: last seq per (channel, sender) is remembered this long. */
+export const SEQ_MEMORY_MS = 10 * 60_000;
+export const MAX_OFFICES = 10;
+export const MAX_OFFICE_NAME = 20;

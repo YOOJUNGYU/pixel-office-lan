@@ -24,7 +24,7 @@ import { MAX_PORT, MIN_PORT, NO_PEERS_ENV, QUIT_DELAY_MS } from './constants.js'
 import { applyInstallerChoice, getAutostart, setAutostart } from './lan/autostart.js';
 import { checkExisting, LanService } from './lan/office.js';
 import { PeerNet } from './lan/peerNet.js';
-import { loadProfile } from './lan/profile.js';
+import { KnownPeers, loadProfile } from './lan/profile.js';
 import { discoverRoots, Scanner } from './lan/scanner.js';
 import { APP_VERSION, Updater } from './lan/updater.js';
 import { PixelAgentsServer } from './server.js';
@@ -156,11 +156,14 @@ async function main(): Promise<void> {
   const scanner = new Scanner(() => discoverRoots());
   scanner.start();
   const lan = new LanService(loadProfile(), scanner);
+  const pins = new KnownPeers();
   const peerNet = new PeerNet({
     port: LAN_UDP_PORT,
-    selfId: lan.profile.peerId,
+    identity: { id: lan.profile.peerId, ...lan.profile.identity },
     getPacket: () => lan.packet(),
     manualPeers: () => lan.profile.manualPeers,
+    offices: () => lan.teamChannels(),
+    pins,
   });
   try {
     if (process.env[NO_PEERS_ENV] !== '1') {
@@ -182,6 +185,7 @@ async function main(): Promise<void> {
     console.log('\nShutting down...');
     scanner.stop();
     peerNet.stop();
+    pins.flush();
     updater.stop();
     await server.stop();
     process.exit(0);

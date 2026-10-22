@@ -1,10 +1,11 @@
 import * as fs from 'fs';
+import * as http from 'http';
 import * as os from 'os';
 import * as path from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { WebSocket } from 'ws';
 
-import { WS_CLOSE_FORBIDDEN_ORIGIN } from '../src/constants.js';
+import { WS_CLOSE_FORBIDDEN } from '../src/constants.js';
 
 // Isolated temp HOME: layout and config land under ~/.pixel-office/.
 let tmpBase: string;
@@ -125,7 +126,7 @@ describe('/ws', () => {
     const result = await connect(port, { Origin: 'http://evil.example' });
     sockets.push(result.socket);
     expect(result.accepted).toBe(false);
-    expect(result.closeCode).toBe(WS_CLOSE_FORBIDDEN_ORIGIN);
+    expect(result.closeCode).toBe(WS_CLOSE_FORBIDDEN);
   });
 
   it('a loopback browser is privileged: told it can edit, and its saveLayout lands', async () => {
@@ -201,9 +202,11 @@ describe('/ws LAN office', () => {
     manualPeers: ['192.168.0.9'],
   };
 
+  let lan: InstanceType<typeof LanService>;
+
   beforeEach(async () => {
     tmpBase = fs.mkdtempSync(path.join(os.tmpdir(), 'pxl-ws-lan-'));
-    const lan = new LanService(loadProfile(), { views: () => [localView] });
+    lan = new LanService(loadProfile(), { views: () => [localView] });
     server = new PixelAgentsServer();
     ({ port } = await server.start({ logger: false, lan }));
   });
@@ -240,6 +243,7 @@ describe('/ws LAN office', () => {
   });
 
   it('read-only viewer: redacted agents, no manual peers, saveProfile ignored', async () => {
+    lan.setRemoteView(true);
     const before = fs.readFileSync(profilePath(), 'utf-8');
     const socket = await open('office.example');
     const loaded = waitForMessage(socket, 'profileLoaded');
@@ -263,5 +267,83 @@ describe('/ws LAN office', () => {
       if ((JSON.parse(d.toString()) as { type?: string }).type === 'officeSnapshot') count++;
     });
     await vi.waitFor(() => expect(count).toBeGreaterThanOrEqual(2), { timeout: 3_000 });
+  });
+
+  /** GET path with a given Host header → status code. */
+  const get = (p: string, host: string): Promise<number> =>
+    new Promise((resolve, reject) => {
+      http
+        .get({ host: '127.0.0.1', port, path: p, headers: { Host: host } }, (res) => {
+          res.resume();
+          resolve(res.statusCode ?? 0);
+        })
+        .on('error', reject);
+    });
+
+  it('remote viewing off (default): remote HTTP 403 except ping, remote /ws closed 4003', async () => {
+    const remote = `office.example:${port.toString()}`;
+    expect(await get('/api/health', remote)).toBe(403);
+    expect(await get('/', remote)).toBe(403);
+    expect(await get('/api/ping', remote)).toBe(200);
+    expect(await get('/api/health', `localhost:${port.toString()}`)).toBe(200);
+    const r = await connect(port, { Host: remote, Origin: `http://${remote}` });
+    sockets.push(r.socket);
+    expect(r.closeCode).toBe(WS_CLOSE_FORBIDDEN);
+  });
+
+  it('remote viewers get only the public office, empty while in a team; turning off closes them', async () => {
+    lan.setRemoteView(true);
+    const remote = await open('office.example');
+    const local = await open('localhost');
+    const remoteSnaps: { agents: unknown[] }[] = [];
+    const remoteTypes = new Set<string>();
+    remote.on('message', (d: Buffer) => {
+      const m = JSON.parse(d.toString()) as { type: string; agents: unknown[] };
+      if (m.type === 'officeSnapshot') remoteSnaps.push(m);
+      remoteTypes.add(m.type);
+    });
+    remote.send(JSON.stringify({ type: 'webviewReady' }));
+    const created = waitForMessage(local, 'officeCreated');
+    const state = waitForMessage(local, 'officesState');
+    local.send(JSON.stringify({ type: 'createOffice', name: '팀' }));
+    const c = (await created) as { tag: string; code: string };
+    expect(c.code).toMatch(/^PO2-/);
+    expect(JSON.stringify(await state)).not.toContain(c.code);
+
+    const before = remoteSnaps.length;
+    await vi.waitFor(() => expect(remoteSnaps.length).toBeGreaterThan(before));
+    expect(remoteSnaps.at(-1)?.agents).toEqual([]);
+    const localSnap = (await waitForMessage(local, 'officeSnapshot')) as { agents: unknown[] };
+    expect(localSnap.agents).toHaveLength(1);
+
+    // a remote socket can't change offices
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    remote.send(JSON.stringify({ type: 'leaveOffice', tag: c.tag }));
+    remote.send(JSON.stringify({ type: 'getOfficeCode', tag: c.tag }));
+    await new Promise((r) => setTimeout(r, SETTLE_MS));
+    warn.mockRestore();
+    expect(lan.profile.offices).toHaveLength(1);
+    expect(
+      [...remoteTypes].filter((t) => t.startsWith('office') && t !== 'officeSnapshot'),
+    ).toEqual(['officeAccess']);
+
+    const closed = new Promise<number>((r) => remote.on('close', (code: number) => r(code)));
+    local.send(JSON.stringify({ type: 'setRemoteView', enabled: false }));
+    expect(await closed).toBe(WS_CLOSE_FORBIDDEN);
+  });
+
+  it('getOfficeCode answers only the asking loopback socket', async () => {
+    const created = lan.createOffice('팀')!;
+    const a = await open('localhost');
+    const b = await open('localhost');
+    let bGot = false;
+    b.on('message', (d: Buffer) => {
+      if (d.toString().includes(created.code)) bGot = true;
+    });
+    const code = waitForMessage(a, 'officeCode');
+    a.send(JSON.stringify({ type: 'getOfficeCode', tag: created.tag }));
+    expect(await code).toEqual({ type: 'officeCode', tag: created.tag, code: created.code });
+    await new Promise((r) => setTimeout(r, SETTLE_MS));
+    expect(bGot).toBe(false);
   });
 });

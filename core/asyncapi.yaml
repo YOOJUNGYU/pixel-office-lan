@@ -94,6 +94,10 @@ components:
         - $ref: '#/components/schemas/UpdateStatus'
         # Start at login (loopback browser only)
         - $ref: '#/components/schemas/AutostartState'
+        # Offices (loopback browser only)
+        - $ref: '#/components/schemas/OfficesState'
+        - $ref: '#/components/schemas/OfficeCreated'
+        - $ref: '#/components/schemas/OfficeCode'
       discriminator: type
 
     ClientMessage:
@@ -110,6 +114,12 @@ components:
         - $ref: '#/components/schemas/InstallUpdate'
         - $ref: '#/components/schemas/CheckUpdate'
         - $ref: '#/components/schemas/SetAutostart'
+        - $ref: '#/components/schemas/CreateOffice'
+        - $ref: '#/components/schemas/JoinOffice'
+        - $ref: '#/components/schemas/LeaveOffice'
+        - $ref: '#/components/schemas/SetActiveView'
+        - $ref: '#/components/schemas/SetRemoteView'
+        - $ref: '#/components/schemas/GetOfficeCode'
       discriminator: type
 
     # ── Server message variants ────────────────────────────────────
@@ -403,6 +413,68 @@ components:
           type: boolean
         supported:
           type: boolean
+
+    OfficesState:
+      description: >-
+        This PC's team offices (names only, never codes), the office its
+        browser shows (`public` or a tag) and whether other LAN browsers may
+        watch. Loopback browsers only: on webviewReady and after any office
+        change.
+      type: object
+      additionalProperties: false
+      required: [type, offices, activeView, remoteView]
+      properties:
+        type:
+          const: officesState
+        offices:
+          type: array
+          items:
+            $ref: '#/components/schemas/OfficeSummary'
+        activeView:
+          type: string
+        remoteView:
+          type: boolean
+
+    OfficeSummary:
+      description: A joined team office. `name` is '' when unknown.
+      type: object
+      additionalProperties: false
+      required: [tag, name]
+      properties:
+        tag:
+          type: string
+        name:
+          type: string
+
+    OfficeCreated:
+      description: >-
+        Reply to createOffice, to the requesting socket only: the invite code
+        to share with team members.
+      type: object
+      additionalProperties: false
+      required: [type, tag, name, code]
+      properties:
+        type:
+          const: officeCreated
+        tag:
+          type: string
+        name:
+          type: string
+        code:
+          type: string
+
+    OfficeCode:
+      description: Reply to getOfficeCode, to the requesting socket only.
+      type: object
+      additionalProperties: false
+      required: [type, tag, code]
+      properties:
+        type:
+          const: officeCode
+        tag:
+          type: string
+        code:
+          type: string
 
     UpdateStatus:
       description: >-
@@ -785,3 +857,82 @@ components:
           const: setAutostart
         enabled:
           type: boolean
+
+    CreateOffice:
+      description: >-
+        Create a team office (loopback browser only). Answered with
+        officeCreated, then officesState.
+      type: object
+      additionalProperties: false
+      required: [type, name]
+      properties:
+        type:
+          const: createOffice
+        name:
+          type: string
+
+    JoinOffice:
+      description: >-
+        Join a team office by invite code (loopback browser only; tolerant of
+        case, spaces and dashes). Answered with officesState.
+      type: object
+      additionalProperties: false
+      required: [type, code]
+      properties:
+        type:
+          const: joinOffice
+        code:
+          type: string
+        name:
+          type: string
+
+    LeaveOffice:
+      description: Leave a team office (loopback browser only). Answered with officesState.
+      type: object
+      additionalProperties: false
+      required: [type, tag]
+      properties:
+        type:
+          const: leaveOffice
+        tag:
+          type: string
+
+    SetActiveView:
+      description: >-
+        Show `public` (only while in no team office) or a joined office's tag
+        (loopback browser only). Answered with officesState.
+      type: object
+      additionalProperties: false
+      required: [type, view]
+      properties:
+        type:
+          const: setActiveView
+        view:
+          type: string
+
+    SetRemoteView:
+      description: >-
+        Let other browsers on the LAN watch the public office (loopback browser
+        only). Turning it off closes their connections. Answered with
+        officesState.
+      type: object
+      additionalProperties: false
+      required: [type, enabled]
+      properties:
+        type:
+          const: setRemoteView
+        enabled:
+          type: boolean
+
+    GetOfficeCode:
+      description: >-
+        Ask for a joined office's invite code again, to copy it (loopback
+        browser only). Answered with officeCode.
+      type: object
+      additionalProperties: false
+      required: [type, tag]
+      properties:
+        type:
+          const: getOfficeCode
+        tag:
+          type: string

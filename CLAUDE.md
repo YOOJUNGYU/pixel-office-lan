@@ -18,7 +18,9 @@ server/src/
   cli.ts                 Entry (dist/cli.js): --port/--host/--open, single-instance check, Scanner + PeerNet, start server
   server.ts              PixelAgentsServer.start({host, port, staticDir, assetCache}) / stop()
   httpServer.ts          Fastify: GET /api/health, /api/ping, POST /api/quit (loopback), GET /ws (+1 s officeSnapshot), SPA static; isLoopback(req)
-  lan/office.ts          buildOffice, checkExisting (single instance), LanService (profile + scanner + peers)
+  lan/office.ts          buildOffice, checkExisting (single instance), LanService (profile + scanner + peers + team offices; office(view) snapshot)
+  lan/peerNet.ts         UDP v2: plaintext hello + encrypted pairwise pub (public office) / encrypted team broadcast; TOFU pins, per-channel seq replay guard
+  lan/crypto.ts          X25519 identity, HKDF pair/team keys, AES-256-GCM seal/open, invite codes (PO2-…), parseWire
   lan/updater.ts         GitHub Releases check (60 s, then 6 h), installer download to ~/.pixel-office/updates + launch (loopback only)
   lan/autostart.ts       Per-user start at login (Win Startup .lnk via PowerShell, Mac LaunchAgent plist copy); Settings toggle + `cli.js --autostart on|off|default` (installer)
   clientMessageHandler.ts  ClientMessage dispatch + webviewReady handshake + read-only gate
@@ -41,7 +43,7 @@ VS Code adapter, PTY/xterm terminal, hook providers + consent flow, JSONL transc
 
 ## Handshake (`webviewReady`)
 
-`officeAccess {readOnly}` → asset messages (characters, pets, floor, walls, carpets, furniture) → `settingsLoaded` → `profileLoaded {profile, canEdit}` → `areaMappingsLoaded` → `layoutLoaded` (saved layout, else bundled default) → first `officeSnapshot` → `autostartState` (loopback only) → `updateAvailable` (loopback only, when known). After that `officeSnapshot {agents, selfPeerId}` is pushed every second to every socket (this PC's agents redacted for read-only viewers when `hideDetails`).
+`officeAccess {readOnly}` → asset messages (characters, pets, floor, walls, carpets, furniture) → `settingsLoaded` → `profileLoaded {profile, canEdit}` → `officesState` (loopback only; names, never secrets/codes) → `areaMappingsLoaded` → `layoutLoaded` (saved layout, else bundled default) → first `officeSnapshot` → `autostartState` (loopback only) → `updateAvailable` (loopback only, when known). After that `officeSnapshot {agents, selfPeerId}` is pushed every second to every socket (this PC's agents redacted for read-only viewers when `hideDetails`).
 
 ## Privilege rule
 
@@ -51,11 +53,11 @@ A `/ws` connection may write (save layout, settings, area mappings, asset dirs, 
 - `Host` header host is `localhost`, `127.0.0.1` or `[::1]`, AND
 - `Origin`, if present, has the same host as `Host`.
 
-Everyone else is read-only: the single gate at the top of `handleClientMessage` refuses every message except `webviewReady` (new message types are privileged by default) and re-sends the true state where the UI updated optimistically. A cross-origin handshake is closed with 4003. Never execute or write anything based on data from peers or remote browsers.
+Everyone else is read-only: the single gate at the top of `handleClientMessage` refuses every message except `webviewReady` (new message types are privileged by default) and re-sends the true state where the UI updated optimistically. A cross-origin handshake is closed with 4003. Remote viewing (`profile.remoteView`, default off): when off, every non-`isLoopback` HTTP request but `GET /api/ping` gets 403 and `/ws` closes with 4003; when on, remote sockets only ever get the public office (empty while this PC is in a team office). The office snapshot for this PC's browser follows `profile.activeView`. Never execute or write anything based on data from peers or remote browsers.
 
 ## Data
 
-`~/.pixel-office/` — `layout.json`, `config.json`, `profile.json`. Ports: UDP 47800 (peers), HTTP 47801 (UI); the CLI defaults to `--host 0.0.0.0 --port 47801`. A UDP bind failure only disables peers.
+`~/.pixel-office/` — `layout.json`, `config.json`, `profile.json` (0600: X25519 key pair, team office secrets), `known-peers.json` (0600, TOFU peer id → public key). Ports: UDP 47800 (peers), HTTP 47801 (UI); the CLI defaults to `--host 0.0.0.0 --port 47801`. A UDP bind failure only disables peers.
 
 ## Build & test
 

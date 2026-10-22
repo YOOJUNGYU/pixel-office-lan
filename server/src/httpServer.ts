@@ -8,13 +8,18 @@ import type {
   ClientMessageContext,
   ReloadAssetsSideEffect,
 } from './clientMessageHandler.js';
-import { handleClientMessage, profileMessage, snapshotMessage } from './clientMessageHandler.js';
+import {
+  handleClientMessage,
+  officesMessage,
+  profileMessage,
+  snapshotMessage,
+} from './clientMessageHandler.js';
 import {
   LOOPBACK_ADDRESSES,
   LOOPBACK_HOSTNAMES,
   PING_APP,
   SNAPSHOT_INTERVAL_MS,
-  WS_CLOSE_FORBIDDEN_ORIGIN,
+  WS_CLOSE_FORBIDDEN,
 } from './constants.js';
 import type { FileStateAdapter } from './fileStateAdapter.js';
 import type { LanService } from './lan/office.js';
@@ -120,6 +125,17 @@ export async function createHttpServer(options: HttpServerOptions): Promise<Http
 
   await app.register(fastifyWebsocket);
 
+  const { lan } = options;
+  /** Remote viewing is off: only this PC's browser is served (the ping probe excepted). */
+  const remoteBlocked = (req: LoopbackRequest): boolean =>
+    lan !== undefined && !lan.profile.remoteView && !isLoopback(req);
+  app.addHook('onRequest', async (request, reply) => {
+    const path = request.url.split('?')[0];
+    // /ws closes with WS_CLOSE_FORBIDDEN instead, so the page can say why
+    if (path === '/api/ping' || path === '/ws' || !remoteBlocked(request)) return;
+    return reply.code(403).send({ error: 'remote viewing is off' });
+  });
+
   if (options.staticDir) {
     await app.register(fastifyStatic, {
       root: options.staticDir,
@@ -148,7 +164,6 @@ export async function createHttpServer(options: HttpServerOptions): Promise<Http
   });
 
   const clients = new Set<{ socket: WsLike; privileged: boolean }>();
-  const { lan } = options;
   if (lan) {
     const timer = setInterval(() => {
       for (const c of clients) {
@@ -166,6 +181,14 @@ export async function createHttpServer(options: HttpServerOptions): Promise<Http
     for (const c of clients) if (c.privileged) safeSend(c.socket, profileMessage(lan, true));
   };
 
+  const onOfficesChanged = (): void => {
+    if (!lan) return;
+    for (const c of clients) {
+      if (c.privileged) safeSend(c.socket, officesMessage(lan));
+      else if (!lan.profile.remoteView) c.socket.close(WS_CLOSE_FORBIDDEN, 'remote viewing is off');
+    }
+  };
+
   const { updater } = options;
   if (updater) {
     updater.broadcast = (msg) => {
@@ -175,7 +198,11 @@ export async function createHttpServer(options: HttpServerOptions): Promise<Http
 
   app.get('/ws', { websocket: true }, (socket, request) => {
     if (!isAllowedWebSocketOrigin(request.headers.origin, request.headers.host)) {
-      socket.close(WS_CLOSE_FORBIDDEN_ORIGIN, 'forbidden origin');
+      socket.close(WS_CLOSE_FORBIDDEN, 'forbidden origin');
+      return;
+    }
+    if (remoteBlocked(request)) {
+      socket.close(WS_CLOSE_FORBIDDEN, 'remote viewing is off');
       return;
     }
     const privileged = isLoopback(request);
@@ -193,6 +220,7 @@ export async function createHttpServer(options: HttpServerOptions): Promise<Http
           privileged,
           lan,
           onProfileSaved,
+          onOfficesChanged,
           updater,
           autostart: options.autostart,
         });
@@ -211,6 +239,7 @@ export async function createHttpServer(options: HttpServerOptions): Promise<Http
 
 interface WsLike {
   send: (data: string) => void;
+  close: (code?: number, reason?: string) => void;
   readyState: number;
 }
 

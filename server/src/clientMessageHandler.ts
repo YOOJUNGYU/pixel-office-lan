@@ -1,3 +1,4 @@
+import { PUBLIC_VIEW } from '../../core/src/lan.js';
 import type { ClientMessage } from '../../core/src/messages.js';
 import type { LoadedAssets, LoadedCharacterSprites, LoadedPetSprites } from './assetLoader.js';
 import { readConfig, writeConfig } from './configPersistence.js';
@@ -45,6 +46,8 @@ export interface ClientMessageContext {
   lan?: LanService;
   /** After a successful saveProfile: re-send profileLoaded to every privileged client. */
   onProfileSaved?: () => void;
+  /** After an office change: officesState to every privileged client; closes remote viewers when remoteView went off. */
+  onOfficesChanged?: () => void;
   /** GitHub Releases update check/install. Absent in tests. */
   updater?: Updater;
   /** Start at login (lan/autostart.ts). Absent in tests that don't exercise it. */
@@ -152,6 +155,20 @@ export function handleClientMessage(
       break;
     }
 
+    case 'createOffice':
+    case 'joinOffice':
+    case 'leaveOffice':
+    case 'setActiveView':
+    case 'setRemoteView':
+      if (ctx.lan) handleOfficeChange(msg, send, ctx.lan, ctx.onOfficesChanged);
+      break;
+
+    case 'getOfficeCode': {
+      const code = ctx.lan?.officeCode(msg.tag);
+      if (code) send({ type: 'officeCode', tag: msg.tag as string, code });
+      break;
+    }
+
     // Results reach privileged sockets via updater.broadcast.
     case 'installUpdate':
       void ctx.updater?.install();
@@ -171,6 +188,52 @@ export function handleClientMessage(
     default:
       break;
   }
+}
+
+/** Office messages: a refused one re-sends the true state to the sender only. */
+function handleOfficeChange(
+  msg: Record<string, unknown>,
+  send: WsSend,
+  lan: LanService,
+  onChanged?: () => void,
+): void {
+  let ok = false;
+  try {
+    switch (msg.type) {
+      case 'createOffice': {
+        const created = lan.createOffice(msg.name);
+        if (created) send({ type: 'officeCreated', ...created }); // the code goes to this socket only
+        ok = created !== null;
+        break;
+      }
+      case 'joinOffice':
+        ok = lan.joinOffice(msg.code, msg.name);
+        break;
+      case 'leaveOffice':
+        ok = lan.leaveOffice(msg.tag);
+        break;
+      case 'setActiveView':
+        ok = lan.setActiveView(msg.view);
+        break;
+      case 'setRemoteView':
+        ok = lan.setRemoteView(msg.enabled);
+        break;
+    }
+  } catch (err) {
+    console.error('[Pixel Office] Failed to save offices:', err);
+  }
+  if (ok) onChanged?.();
+  else send(officesMessage(lan));
+}
+
+/** officesState: names only, never secrets or codes. Privileged clients only. */
+export function officesMessage(lan: LanService) {
+  return {
+    type: 'officesState',
+    offices: lan.officeList(),
+    activeView: lan.profile.activeView,
+    remoteView: lan.profile.remoteView,
+  } as const;
 }
 
 function autostartMessage(state: AutostartState) {
@@ -193,11 +256,18 @@ export function profileMessage(lan: LanService, privileged: boolean) {
   } as const;
 }
 
-/** officeSnapshot. A read-only viewer sees this PC's agents redacted when hideDetails is on. */
+/**
+ * officeSnapshot of the office this PC's browser has chosen. A remote viewer only
+ * ever gets the public office (empty while this PC is in a team), with this PC's
+ * agents redacted when hideDetails is on.
+ */
 export function snapshotMessage(lan: LanService, privileged: boolean) {
   return {
     type: 'officeSnapshot',
-    agents: lan.office(lan.profile.hideDetails && !privileged),
+    agents: lan.office(
+      privileged ? lan.profile.activeView : PUBLIC_VIEW,
+      lan.profile.hideDetails && !privileged,
+    ),
     selfPeerId: lan.profile.peerId,
   } as const;
 }
@@ -242,6 +312,7 @@ function handleWebviewReady(send: WsSend, ctx: ClientMessageContext): void {
   // 2. Settings
   send(settingsSnapshot(ctx));
   if (ctx.lan) send(profileMessage(ctx.lan, ctx.privileged === true));
+  if (ctx.lan && ctx.privileged) send(officesMessage(ctx.lan));
 
   // 3. Directory→Area mappings
   send(areaMappingsSnapshot(ctx));
@@ -306,6 +377,12 @@ const KNOWN_CLIENT_TYPES: ReadonlySet<string> = new Set<ClientMessage['type']>([
   'installUpdate',
   'checkUpdate',
   'setAutostart',
+  'createOffice',
+  'joinOffice',
+  'leaveOffice',
+  'setActiveView',
+  'setRemoteView',
+  'getOfficeCode',
 ]);
 const UNKNOWN_REFUSAL_KEY = 'unknown';
 

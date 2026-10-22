@@ -36,16 +36,34 @@ export type Wire =
   | { v: 2; t: 'pub'; from: string; to: string; n: string; c: string }
   | { v: 2; t: 'team'; tag: string; n: string; c: string };
 
-const BASE64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+const ID = new RegExp(`^[A-Za-z0-9_.-]{1,${WIRE_MAX_ID}}$`);
 const TAG = new RegExp(`^[A-Za-z0-9_-]{${Math.ceil((TEAM_TAG_BYTES * 4) / 3)}}$`);
 const INVITE_CHARS = Math.ceil((INVITE_SECRET_BYTES * 8) / 5);
 
 const hkdf = (ikm: Buffer, salt: string, info: string): Buffer =>
   Buffer.from(crypto.hkdfSync('sha256', ikm, salt, info, KEY_BYTES));
 
-/** Decoded bytes of a strict standard-base64 string, else null. */
+/** Decoded bytes of a canonical standard-base64 string (re-encodes to itself), else null. */
 function b64(s: unknown): Buffer | null {
-  return typeof s === 'string' && BASE64.test(s) ? Buffer.from(s, 'base64') : null;
+  if (typeof s !== 'string') return null;
+  const buf = Buffer.from(s, 'base64');
+  return buf.toString('base64') === s ? buf : null;
+}
+
+/** Peer ids on the wire: 1-64 of [A-Za-z0-9_.-] (randomUUID qualifies). */
+export const isWireId = (s: unknown): s is string => typeof s === 'string' && ID.test(s);
+
+/** base64 raw public key of a PKCS#8 X25519 private key; null if it is not one. */
+export function publicKeyOf(privateKeyPem: string): string | null {
+  try {
+    crypto.createPrivateKey(privateKeyPem); // throws unless it is a private key
+    const pub = crypto.createPublicKey(privateKeyPem);
+    if (pub.asymmetricKeyType !== 'x25519') return null;
+    const der = pub.export({ format: 'der', type: 'spki' });
+    return der.subarray(der.length - X25519_PUBLIC_KEY_BYTES).toString('base64');
+  } catch {
+    return null;
+  }
 }
 
 export function createIdentity(id: string): Identity {
@@ -85,6 +103,11 @@ export function pairKey(
 
 export function newInviteCode(): InviteCode {
   const secret = crypto.randomBytes(INVITE_SECRET_BYTES);
+  return { secret, text: inviteText(secret) };
+}
+
+/** The shareable code text of an invite secret. */
+export function inviteText(secret: Buffer): string {
   let bits = '';
   for (const b of secret) bits += b.toString(2).padStart(8, '0');
   bits = bits.padEnd(INVITE_CHARS * 5, '0');
@@ -92,16 +115,17 @@ export function newInviteCode(): InviteCode {
   for (let i = 0; i < bits.length; i += 5)
     chars += CROCKFORD_ALPHABET[parseInt(bits.slice(i, i + 5), 2)];
   const groups = chars.match(new RegExp(`.{1,${INVITE_GROUP_LEN}}`, 'g')) ?? [];
-  return { secret, text: [INVITE_PREFIX, ...groups].join('-') };
+  return [INVITE_PREFIX, ...groups].join('-');
 }
 
 /** Tolerant: any case, spaces/dashes, optional PO2 prefix, O→0 and I/L→1. */
 export function parseInviteCode(text: string): Buffer | null {
   if (typeof text !== 'string') return null;
   let s = text.toUpperCase().replace(/[\s-]/g, '');
-  if (s.length === INVITE_CHARS + INVITE_PREFIX.length && /^P[O0]2/.test(s))
+  const alias = (x: string): string => x.replace(/O/g, '0').replace(/[IL]/g, '1');
+  s = alias(s);
+  if (s.length === INVITE_CHARS + INVITE_PREFIX.length && s.startsWith(alias(INVITE_PREFIX)))
     s = s.slice(INVITE_PREFIX.length);
-  s = s.replace(/O/g, '0').replace(/[IL]/g, '1');
   if (s.length !== INVITE_CHARS) return null;
   let bits = '';
   for (const ch of s) {
@@ -138,6 +162,9 @@ export function seal(key: Buffer, aad: string, plaintext: string): { n: string; 
   return { n: nonce.toString('base64'), c: c.toString('base64') };
 }
 
+export const pubAad = (from: string, to: string): string => `pub|${from}|${to}`;
+export const teamAad = (tag: string): string => `team|${tag}`;
+
 export function open(key: Buffer, aad: string, n: string, c: string): string | null {
   try {
     const nonce = b64(n);
@@ -158,8 +185,6 @@ export function open(key: Buffer, aad: string, n: string, c: string): string | n
   }
 }
 
-const isId = (s: unknown): s is string =>
-  typeof s === 'string' && s.length > 0 && s.length <= WIRE_MAX_ID;
 const isNonce = (s: unknown): s is string => b64(s)?.length === GCM_NONCE_BYTES;
 const isCipher = (s: unknown): s is string => (b64(s)?.length ?? 0) > GCM_TAG_BYTES;
 
@@ -177,11 +202,11 @@ export function parseWire(text: string): Wire | null {
   if (o.v !== 2) return null;
   switch (o.t) {
     case 'hello':
-      return isId(o.id) && b64(o.pk)?.length === X25519_PUBLIC_KEY_BYTES
+      return isWireId(o.id) && b64(o.pk)?.length === X25519_PUBLIC_KEY_BYTES
         ? { v: 2, t: 'hello', id: o.id, pk: o.pk as string }
         : null;
     case 'pub':
-      return isId(o.from) && isId(o.to) && isNonce(o.n) && isCipher(o.c)
+      return isWireId(o.from) && isWireId(o.to) && isNonce(o.n) && isCipher(o.c)
         ? { v: 2, t: 'pub', from: o.from, to: o.to, n: o.n, c: o.c }
         : null;
     case 'team':

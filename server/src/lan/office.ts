@@ -1,9 +1,12 @@
 // Merges this PC's and peers' agents into one office; single-instance probe.
 import type { AgentView, OfficeAgent, PeerInfo, PeerPacket } from '../../../core/src/lan.js';
-import { PING_APP, PING_TIMEOUT_MS } from '../constants.js';
+import { PUBLIC_VIEW } from '../../../core/src/lan.js';
+import { MAX_OFFICES, PING_APP, PING_TIMEOUT_MS } from '../constants.js';
+import { inviteText, newInviteCode, parseInviteCode, teamKey } from './crypto.js';
+import type { TeamChannel } from './peerNet.js';
 import { fitPacket } from './peerNet.js';
-import type { Profile } from './profile.js';
-import { saveProfile } from './profile.js';
+import type { EditableProfile, Profile, TeamOffice } from './profile.js';
+import { officeFromSecret, saveProfile, validateOfficeName } from './profile.js';
 import { redactView } from './redact.js';
 
 const toAgents = (peer: PeerInfo, views: AgentView[]): OfficeAgent[] =>
@@ -40,12 +43,15 @@ export async function checkExisting(port: number): Promise<boolean> {
   }
 }
 
-export type EditableProfile = Omit<Profile, 'peerId'>;
-
-/** This PC's live LAN state: profile, local agents, peers. */
+/** This PC's live LAN state: profile, local agents, peers, offices. */
 export class LanService {
   /** Set once PeerNet is up; until then (or if UDP bind failed) there are no peers. */
-  net: { peers(): PeerPacket[]; sendNow(): void } = { peers: () => [], sendNow: () => {} };
+  net: {
+    peers(view: string): PeerPacket[];
+    sendNow(): void;
+    teamName(tag: string): string | undefined;
+  } = { peers: () => [], sendNow: () => {}, teamName: () => undefined };
+  private channels: { src: TeamOffice[]; list: TeamChannel[] } | null = null;
 
   constructor(
     public profile: Profile,
@@ -61,7 +67,7 @@ export class LanService {
     return { id: peerId, nickname, palette, hueShift };
   }
 
-  /** What PeerNet broadcasts. Never throws: a failing scan sends no views. */
+  /** What PeerNet sends (encrypted). Never throws: a failing scan sends no views. */
   packet(): PeerPacket {
     let views: AgentView[] = [];
     try {
@@ -75,13 +81,107 @@ export class LanService {
     return fitPacket({ v: 1, peer: this.self(), views });
   }
 
-  office(redactLocal: boolean): OfficeAgent[] {
-    return buildOffice(this.self(), this.local.views(redactLocal), this.net.peers(), redactLocal);
+  /** Joined team offices with their keys, for PeerNet (derived once per offices change). */
+  teamChannels(): TeamChannel[] {
+    const src = this.profile.offices;
+    if (this.channels?.src !== src) {
+      this.channels = {
+        src,
+        list: src.map((o) => ({
+          tag: o.tag,
+          name: o.name,
+          key: teamKey(Buffer.from(o.secret, 'base64')),
+        })),
+      };
+    }
+    return this.channels.list;
+  }
+
+  /** One office's agents. The public office is empty while this PC is in any team. */
+  office(view: string, redactLocal: boolean): OfficeAgent[] {
+    const { offices } = this.profile;
+    const open = view === PUBLIC_VIEW ? offices.length === 0 : offices.some((o) => o.tag === view);
+    if (!open) return [];
+    return buildOffice(
+      this.self(),
+      this.local.views(redactLocal),
+      this.net.peers(view),
+      redactLocal,
+    );
+  }
+
+  /** Offices for this PC's browser: names only, never secrets. */
+  officeList(): { tag: string; name: string }[] {
+    return this.profile.offices.map((o) => ({
+      tag: o.tag,
+      name: o.name || this.net.teamName(o.tag) || '',
+    }));
+  }
+
+  /** New team office with a fresh invite code; it becomes the active view. */
+  createOffice(name: unknown): { tag: string; name: string; code: string } | null {
+    const n = validateOfficeName(name);
+    if (n === null || this.profile.offices.length >= MAX_OFFICES) return null;
+    const code = newInviteCode();
+    const office = officeFromSecret(code.secret, n);
+    this.update({ offices: [...this.profile.offices, office], activeView: office.tag });
+    return { tag: office.tag, name: n, code: code.text };
+  }
+
+  /** Join by invite code (name optional: members announce theirs). Already joined → just switch. */
+  joinOffice(code: unknown, name?: unknown): boolean {
+    const secret = typeof code === 'string' ? parseInviteCode(code) : null;
+    const n = name === undefined ? '' : validateOfficeName(name);
+    if (!secret || n === null) return false;
+    const office = officeFromSecret(secret, n);
+    const { offices } = this.profile;
+    if (offices.some((o) => o.tag === office.tag)) return this.setActiveView(office.tag);
+    if (offices.length >= MAX_OFFICES) return false;
+    this.update({ offices: [...offices, office], activeView: office.tag });
+    return true;
+  }
+
+  leaveOffice(tag: unknown): boolean {
+    const offices = this.profile.offices.filter((o) => o.tag !== tag);
+    if (offices.length === this.profile.offices.length) return false;
+    const { activeView } = this.profile;
+    this.update({
+      offices,
+      activeView: offices.some((o) => o.tag === activeView)
+        ? activeView
+        : (offices[0]?.tag ?? PUBLIC_VIEW),
+    });
+    return true;
+  }
+
+  /** PUBLIC_VIEW only while in no team; otherwise a joined tag. */
+  setActiveView(view: unknown): boolean {
+    const { offices } = this.profile;
+    const ok = view === PUBLIC_VIEW ? offices.length === 0 : offices.some((o) => o.tag === view);
+    if (!ok) return false;
+    if (view !== this.profile.activeView) this.update({ activeView: view as string });
+    return true;
+  }
+
+  setRemoteView(enabled: unknown): boolean {
+    if (typeof enabled !== 'boolean') return false;
+    this.update({ remoteView: enabled });
+    return true;
+  }
+
+  /** Invite code of a joined office, for re-copying. */
+  officeCode(tag: unknown): string | null {
+    const o = this.profile.offices.find((x) => x.tag === tag);
+    return o ? inviteText(Buffer.from(o.secret, 'base64')) : null;
   }
 
   /** Persist a validated update and announce it to peers right away. */
   saveProfile(update: EditableProfile): void {
-    const next: Profile = { ...update, peerId: this.profile.peerId };
+    this.update(update);
+  }
+
+  private update(patch: Partial<Profile>): void {
+    const next: Profile = { ...this.profile, ...patch };
     saveProfile(next, this.dir);
     this.profile = next;
     this.net.sendNow();
