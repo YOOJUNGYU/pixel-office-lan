@@ -26,6 +26,15 @@
          fallback would otherwise answer the probe with index.html, leaving a
          stale cached icon in place forever. Bump ?v= on every icon change. -->
     <title>Pixel Office</title>
+    <!-- Theme before first paint (no dark flash for light users). Mirrors
+         src/theme.ts (THEME_STORAGE_KEY, resolveTheme), which takes over on load. -->
+    <script>
+      try {
+        var p = localStorage.getItem('pixel-office.theme');
+        if (p === 'system') p = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        document.documentElement.dataset.theme = p === 'light' ? 'light' : 'dark';
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>
