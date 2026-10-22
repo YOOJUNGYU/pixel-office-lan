@@ -22,14 +22,8 @@ export const FREE_TILE_PROBES = 16;
 export const WALK_SPEED_PX_PER_SEC = 48;
 export const WALK_FRAME_DURATION_SEC = 0.15;
 export const TYPE_FRAME_DURATION_SEC = 0.3;
-export const WANDER_PAUSE_MIN_SEC = 2.0;
-export const WANDER_PAUSE_MAX_SEC = 20.0;
-export const WANDER_MOVES_BEFORE_REST_MIN = 3;
-export const WANDER_MOVES_BEFORE_REST_MAX = 6;
 /** A follower that found no free tile beside its parent retries after this long. */
 export const FOLLOW_RETRY_SEC = 1.0;
-export const SEAT_REST_MIN_SEC = 120.0;
-export const SEAT_REST_MAX_SEC = 240.0;
 
 // ── Matrix Effect ────────────────────────────────────────────
 export const MATRIX_EFFECT_DURATION_SEC = 0.3;
@@ -227,8 +221,6 @@ export const WHATS_NEW_FADE_MS = 1000;
 export const MAX_DELTA_TIME_SEC = 0.1;
 export const WAITING_BUBBLE_DURATION_SEC = 2.0;
 export const DISMISS_BUBBLE_FAST_FADE_SEC = 0.3;
-export const INACTIVE_SEAT_TIMER_MIN_SEC = 3.0;
-export const INACTIVE_SEAT_TIMER_RANGE_SEC = 2.0;
 /** Default/fallback palette count (bundled characters). Actual count comes from getLoadedCharacterCount(). */
 export const PALETTE_COUNT = 6;
 export const AUTO_ON_FACING_DEPTH = 3;
@@ -294,7 +286,7 @@ export const TOUCH_TAP_MAX_DURATION_MS = 350;
 export const DROPDOWN_VIEWPORT_MARGIN_PX = 8;
 
 // ── LAN agents ──────────────────────────────────────────────
-/** Animation tool per room: typing (coding/server), reading (library), none = idle wander (lounge). */
+/** Animation tool per room: typing (coding/server), reading (library), none = idle (lounge). */
 export const LAN_ROOM_TOOL: Record<Room, string | null> = {
   coding: 'Edit',
   library: 'Read',

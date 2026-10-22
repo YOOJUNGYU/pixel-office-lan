@@ -16,7 +16,7 @@ export function isWalkable(
   return true;
 }
 
-/** Get walkable tile positions (grid coords) for wandering */
+/** Get walkable tile positions (grid coords) (spawn and standing spots) */
 export function getWalkableTiles(
   tileMap: TileType[][],
   blockedTiles: Set<string>,

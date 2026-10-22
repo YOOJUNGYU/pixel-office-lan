@@ -3,15 +3,9 @@ import {
   PET_IDLE_FRAME_DURATION_SEC,
   PET_IDLE_SEQUENCE,
   PET_WALK_SEQUENCE,
-  SEAT_REST_MAX_SEC,
-  SEAT_REST_MIN_SEC,
   TYPE_FRAME_DURATION_SEC,
   WALK_FRAME_DURATION_SEC,
   WALK_SPEED_PX_PER_SEC,
-  WANDER_MOVES_BEFORE_REST_MAX,
-  WANDER_MOVES_BEFORE_REST_MIN,
-  WANDER_PAUSE_MAX_SEC,
-  WANDER_PAUSE_MIN_SEC,
 } from '../../constants.js';
 import { findPath } from '../layout/tileMap.js';
 import type { PetSpriteFrames } from '../sprites/petSpriteData.js';
@@ -75,14 +69,11 @@ export function createCharacter(
     hueShift,
     frame: 0,
     frameTimer: 0,
-    wanderTimer: 0,
-    wanderCount: 0,
-    wanderLimit: randomInt(WANDER_MOVES_BEFORE_REST_MIN, WANDER_MOVES_BEFORE_REST_MAX),
+    followTimer: 0,
     isActive: true,
     seatId,
     bubbleType: null,
     bubbleTimer: 0,
-    seatTimer: 0,
     isSubagent: false,
     parentAgentId: null,
     matrixEffect: null,
@@ -93,10 +84,29 @@ export function createCharacter(
   };
 }
 
+/** Start walking `path`, or sit down at `seat` when already there. */
+function walkOrSit(ch: Character, path: Array<{ col: number; row: number }>, seat: Seat): void {
+  ch.frame = 0;
+  ch.frameTimer = 0;
+  if (path.length > 0) {
+    ch.path = path;
+    ch.moveProgress = 0;
+    ch.state = CharacterState.WALK;
+  } else {
+    ch.state = CharacterState.TYPE;
+    ch.dir = seat.facingDir;
+  }
+}
+
+/**
+ * One tick of a character. Nobody strolls: a character with a seat goes to it
+ * and stays seated (typing while active, still otherwise); one without a seat
+ * stands where it is (or types in place while active). Walking only happens
+ * on the way to a seat or tile set by OfficeState (moving rooms, following).
+ */
 export function updateCharacter(
   ch: Character,
   dt: number,
-  walkableTiles: Array<{ col: number; row: number }>,
   seats: Map<string, Seat>,
   tileMap: TileTypeVal[][],
   blockedTiles: Set<string>,
@@ -105,23 +115,13 @@ export function updateCharacter(
 
   switch (ch.state) {
     case CharacterState.TYPE: {
+      if (!ch.isActive) {
+        ch.frame = 0; // seated and idle: a still pose
+        break;
+      }
       if (ch.frameTimer >= TYPE_FRAME_DURATION_SEC) {
         ch.frameTimer -= TYPE_FRAME_DURATION_SEC;
         ch.frame = (ch.frame + 1) % 2;
-      }
-      // If no longer active, stand up and start wandering (after seatTimer expires)
-      if (!ch.isActive) {
-        if (ch.seatTimer > 0) {
-          ch.seatTimer -= dt;
-          break;
-        }
-        ch.seatTimer = 0; // clear sentinel
-        ch.state = CharacterState.IDLE;
-        ch.frame = 0;
-        ch.frameTimer = 0;
-        ch.wanderTimer = randomRange(WANDER_PAUSE_MIN_SEC, WANDER_PAUSE_MAX_SEC);
-        ch.wanderCount = 0;
-        ch.wanderLimit = randomInt(WANDER_MOVES_BEFORE_REST_MIN, WANDER_MOVES_BEFORE_REST_MAX);
       }
       break;
     }
@@ -129,89 +129,19 @@ export function updateCharacter(
     case CharacterState.IDLE: {
       // No idle animation — static pose
       ch.frame = 0;
-      if (ch.seatTimer < 0) ch.seatTimer = 0; // clear turn-end sentinel
-      // Followers and ghosts neither sit nor wander: OfficeState walks followers to their leader.
+      // Followers and ghosts never sit: OfficeState walks followers to their leader.
       if (ch.followId !== undefined || ch.ghostOf !== undefined) break;
-      // If became active, pathfind to seat
-      if (ch.isActive) {
-        if (!ch.seatId) {
-          // No seat assigned — type in place
-          ch.state = CharacterState.TYPE;
-          ch.frame = 0;
-          ch.frameTimer = 0;
-          break;
-        }
-        const seat = seats.get(ch.seatId);
-        if (seat) {
-          const path = findPath(
-            ch.tileCol,
-            ch.tileRow,
-            seat.seatCol,
-            seat.seatRow,
-            tileMap,
-            blockedTiles,
-          );
-          if (path.length > 0) {
-            ch.path = path;
-            ch.moveProgress = 0;
-            ch.state = CharacterState.WALK;
-            ch.frame = 0;
-            ch.frameTimer = 0;
-          } else {
-            // Already at seat or no path — sit down
-            ch.state = CharacterState.TYPE;
-            ch.dir = seat.facingDir;
-            ch.frame = 0;
-            ch.frameTimer = 0;
-          }
-        }
-        break;
-      }
-      // Countdown wander timer
-      ch.wanderTimer -= dt;
-      if (ch.wanderTimer <= 0) {
-        // Check if we've wandered enough — return to seat for a rest
-        if (ch.wanderCount >= ch.wanderLimit && ch.seatId) {
-          const seat = seats.get(ch.seatId);
-          if (seat) {
-            const path = findPath(
-              ch.tileCol,
-              ch.tileRow,
-              seat.seatCol,
-              seat.seatRow,
-              tileMap,
-              blockedTiles,
-            );
-            if (path.length > 0) {
-              ch.path = path;
-              ch.moveProgress = 0;
-              ch.state = CharacterState.WALK;
-              ch.frame = 0;
-              ch.frameTimer = 0;
-              break;
-            }
-          }
-        }
-        if (walkableTiles.length > 0) {
-          const target = walkableTiles[Math.floor(Math.random() * walkableTiles.length)];
-          const path = findPath(
-            ch.tileCol,
-            ch.tileRow,
-            target.col,
-            target.row,
-            tileMap,
-            blockedTiles,
-          );
-          if (path.length > 0) {
-            ch.path = path;
-            ch.moveProgress = 0;
-            ch.state = CharacterState.WALK;
-            ch.frame = 0;
-            ch.frameTimer = 0;
-            ch.wanderCount++;
-          }
-        }
-        ch.wanderTimer = randomRange(WANDER_PAUSE_MIN_SEC, WANDER_PAUSE_MAX_SEC);
+      const seat = ch.seatId ? seats.get(ch.seatId) : undefined;
+      if (seat) {
+        walkOrSit(
+          ch,
+          findPath(ch.tileCol, ch.tileRow, seat.seatCol, seat.seatRow, tileMap, blockedTiles),
+          seat,
+        );
+      } else if (ch.isActive) {
+        // No seat — type in place
+        ch.state = CharacterState.TYPE;
+        ch.frameTimer = 0;
       }
       break;
     }
@@ -229,47 +159,19 @@ export function updateCharacter(
         ch.x = center.x;
         ch.y = center.y;
 
-        if (ch.followId !== undefined || ch.ghostOf !== undefined) {
-          ch.state = CharacterState.IDLE;
-        } else if (ch.isActive) {
-          if (!ch.seatId) {
-            // No seat — type in place
-            ch.state = CharacterState.TYPE;
-          } else {
-            const seat = seats.get(ch.seatId);
-            if (seat && ch.tileCol === seat.seatCol && ch.tileRow === seat.seatRow) {
-              ch.state = CharacterState.TYPE;
-              ch.dir = seat.facingDir;
-            } else {
-              ch.state = CharacterState.IDLE;
-            }
-          }
+        const seat = ch.seatId ? seats.get(ch.seatId) : undefined;
+        if (
+          ch.followId === undefined &&
+          ch.ghostOf === undefined &&
+          seat &&
+          ch.tileCol === seat.seatCol &&
+          ch.tileRow === seat.seatRow
+        ) {
+          ch.state = CharacterState.TYPE;
+          ch.dir = seat.facingDir;
         } else {
-          // Check if arrived at assigned seat — sit down for a rest before wandering again
-          if (ch.seatId) {
-            const seat = seats.get(ch.seatId);
-            if (seat && ch.tileCol === seat.seatCol && ch.tileRow === seat.seatRow) {
-              ch.state = CharacterState.TYPE;
-              ch.dir = seat.facingDir;
-              // seatTimer < 0 is a sentinel from setAgentActive(false) meaning
-              // "turn just ended" — skip the long rest so idle transition is immediate
-              if (ch.seatTimer < 0) {
-                ch.seatTimer = 0;
-              } else {
-                ch.seatTimer = randomRange(SEAT_REST_MIN_SEC, SEAT_REST_MAX_SEC);
-              }
-              ch.wanderCount = 0;
-              ch.wanderLimit = randomInt(
-                WANDER_MOVES_BEFORE_REST_MIN,
-                WANDER_MOVES_BEFORE_REST_MAX,
-              );
-              ch.frame = 0;
-              ch.frameTimer = 0;
-              break;
-            }
-          }
+          // Not at its seat (yet): IDLE heads there next tick, or stands / types in place.
           ch.state = CharacterState.IDLE;
-          ch.wanderTimer = randomRange(WANDER_PAUSE_MIN_SEC, WANDER_PAUSE_MAX_SEC);
         }
         ch.frame = 0;
         ch.frameTimer = 0;
@@ -298,7 +200,7 @@ export function updateCharacter(
         ch.moveProgress = 0;
       }
 
-      // If became active while wandering, repath to seat
+      // Became active on the way somewhere else: repath to the seat
       if (ch.isActive && ch.seatId) {
         const seat = seats.get(ch.seatId);
         if (seat) {
@@ -362,12 +264,4 @@ export function getPetCharacterSprite(
   const step = Math.floor(nowSec / PET_IDLE_FRAME_DURATION_SEC) + Math.abs(ch.id);
   const f = PET_IDLE_SEQUENCE[step % PET_IDLE_SEQUENCE.length];
   return ch.dir === Direction.UP ? frames.idleUp[f] : frames.idleDown[f];
-}
-
-function randomRange(min: number, max: number): number {
-  return min + Math.random() * (max - min);
-}
-
-function randomInt(min: number, max: number): number {
-  return min + Math.floor(Math.random() * (max - min + 1));
 }
