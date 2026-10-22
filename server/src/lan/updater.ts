@@ -27,7 +27,6 @@ const GITHUB_ORIGIN = 'https://github.com';
 const DOWNLOAD_PATH = '/YOOJUNGYU/pixel-office-lan/releases/download/';
 const NOTES_PATH = '/YOOJUNGYU/pixel-office-lan/releases/';
 const RELEASES_PAGE = 'https://github.com/YOOJUNGYU/pixel-office-lan/releases';
-export const UPDATE_CHECK_MS = 6 * 60 * 60_000;
 
 /** Installer names from scripts/package (Release assets). */
 const ASSET_NAME = /^PixelOffice-(Setup-[\w.-]+\.exe|[\w.-]+-(arm64|x64)\.pkg)$/;
@@ -223,7 +222,7 @@ export async function downloadAndRun(
   await launch(file);
 }
 
-/** Periodic check + the one install in flight; messages go to privileged sockets. */
+/** Startup check + the one install in flight; messages go to privileged sockets. */
 export class Updater {
   info: UpdateInfo | null = null;
   /** Last updateStatus of an install, re-sent on handshake. */
@@ -231,7 +230,7 @@ export class Updater {
   /** Set by the HTTP server: send to every privileged socket. */
   broadcast: (msg: Record<string, unknown>) => void = () => {};
   private busy = false;
-  private timers: NodeJS.Timeout[] = [];
+  private timer: NodeJS.Timeout | null = null;
 
   constructor(
     private readonly current: string,
@@ -241,17 +240,15 @@ export class Updater {
     } = { check: (c) => checkForUpdate(c), install: downloadAndRun },
   ) {}
 
+  /** One check right after the server listens; later checks only via Settings (manual). */
   start(): void {
-    const first = setTimeout(() => void this.check(), UPDATE_FIRST_CHECK_MS);
-    const every = setInterval(() => void this.check(), UPDATE_CHECK_MS);
-    first.unref();
-    every.unref();
-    this.timers = [first, every];
+    this.timer = setTimeout(() => void this.check(), UPDATE_FIRST_CHECK_MS);
+    this.timer.unref();
   }
 
   stop(): void {
-    for (const t of this.timers) clearTimeout(t);
-    this.timers = [];
+    if (this.timer) clearTimeout(this.timer);
+    this.timer = null;
   }
 
   availableMessage(): Record<string, unknown> | null {

@@ -58,8 +58,8 @@ export const SNAPSHOT_INTERVAL_MS = 1_000;
 export const QUIT_DELAY_MS = 100;
 
 // ── Updates (GitHub Releases) ──────────────────────────────
-/** First update check after start. */
-export const UPDATE_FIRST_CHECK_MS = 60_000;
+/** The only automatic update check, this long after the server listens (none after that). */
+export const UPDATE_FIRST_CHECK_MS = 300;
 export const UPDATE_API_TIMEOUT_MS = 15_000;
 export const UPDATE_DOWNLOAD_TIMEOUT_MS = 10 * 60_000;
 /** Downloaded installers, under the data directory. */
