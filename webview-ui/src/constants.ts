@@ -1,12 +1,13 @@
 import type { Provider, Room } from '../../core/src/lan.js';
+import { MAX_LAYOUT_COLS, MAX_LAYOUT_ROWS } from '../../core/src/lan.js';
 import type { ColorValue } from './components/ui/types.js';
 
 // ── Grid & Layout ────────────────────────────────────────────
 export const TILE_SIZE = 16;
 export const DEFAULT_COLS = 20;
 export const DEFAULT_ROWS = 11;
-export const MAX_COLS = 64;
-export const MAX_ROWS = 64;
+export const MAX_COLS = MAX_LAYOUT_COLS;
+export const MAX_ROWS = MAX_LAYOUT_ROWS;
 
 // ── Character Animation ─────────────────────────────────────
 export const WALK_SPEED_PX_PER_SEC = 48;
@@ -153,18 +154,14 @@ export const CARPET_DEFAULT_ACCENT_COLOR: ColorValue = {
 /** Keyboard key that switches from CARPET_PAINT to CARPET_PICK while editing. */
 export const KEY_CARPET_PICK = 'p';
 
-// ── Areas (named, colored Directory zones) ───────────────────
-/** Color palette assigned to new Areas in rotation (cycles when more areas exist). */
-export const AREA_DEFAULT_COLORS: readonly string[] = [
-  '#ff6b6b',
-  '#feca57',
-  '#48dbfb',
-  '#1dd1a1',
-  '#5f27cd',
-  '#ff9ff3',
-  '#54a0ff',
-  '#ffa502',
-] as const;
+// ── Areas (the four fixed rooms) ─────────────────────────────
+/** Room overlay colors of the bundled default layout: a layout missing a room gets these. */
+export const ROOM_AREA_COLORS: Record<Room, string> = {
+  coding: '#48dbfb',
+  library: '#1dd1a1',
+  server: '#ff6b6b',
+  lounge: '#feca57',
+};
 /** Translucent overlay alpha for area tile fills. */
 export const AREA_OVERLAY_ALPHA = 0.25;
 /** Alpha multiplier applied to the actively-selected area's overlay. */

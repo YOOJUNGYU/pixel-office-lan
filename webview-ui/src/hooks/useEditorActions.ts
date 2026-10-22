@@ -10,7 +10,6 @@ import {
 } from '../constants.js';
 import type { ExpandDirection } from '../office/editor/editorActions.js';
 import {
-  addArea,
   areaStrokeErases,
   dropFurniture,
   eraseArea,
@@ -24,9 +23,7 @@ import {
   paintTile,
   placeNewFurniture,
   recolorWalls,
-  removeArea,
   removeFurniture,
-  renameArea,
   rotateFurniture,
   toggleFurnitureState,
   updateAreaColor,
@@ -93,9 +90,6 @@ interface EditorActions extends Omit<FurnitureColorActions, 'pickColorAt'> {
   // Area state + handlers (selection lives on editorState for imperative access)
   selectedAreaLabel: string | null;
   handleSelectArea: (label: string | null) => void;
-  handleAddArea: (label: string, color: string) => void;
-  handleRemoveArea: (label: string) => void;
-  handleRenameArea: (oldLabel: string, newLabel: string) => void;
   handleAreaColorChange: (label: string, color: string) => void;
   /** Set the map background. `continuous` = a slider/picker drag: one undo entry per run. */
   handleBackgroundChange: (background: OfficeBackground, continuous: boolean) => void;
@@ -288,51 +282,6 @@ export function useEditorActions(
       setEditorTick((n) => n + 1);
     },
     [editorState],
-  );
-
-  const handleAddArea = useCallback(
-    (label: string, color: string) => {
-      const os = getOfficeState();
-      const layout = os.getLayout();
-      const next = addArea(layout, label, color);
-      if (next !== layout) {
-        applyEdit(next);
-      }
-    },
-    [getOfficeState, applyEdit],
-  );
-
-  const handleRemoveArea = useCallback(
-    (label: string) => {
-      const os = getOfficeState();
-      const layout = os.getLayout();
-      const next = removeArea(layout, label);
-      if (next !== layout) {
-        if (editorState.selectedAreaLabel === label) {
-          editorState.selectedAreaLabel = null;
-          setSelectedAreaLabelState(null);
-        }
-        applyEdit(next);
-      }
-    },
-    [getOfficeState, editorState, applyEdit],
-  );
-
-  const handleRenameArea = useCallback(
-    (oldLabel: string, newLabel: string) => {
-      const os = getOfficeState();
-      const layout = os.getLayout();
-      const next = renameArea(layout, oldLabel, newLabel);
-      if (next !== layout) {
-        const trimmed = newLabel.trim();
-        if (editorState.selectedAreaLabel === oldLabel) {
-          editorState.selectedAreaLabel = trimmed;
-          setSelectedAreaLabelState(trimmed);
-        }
-        applyEdit(next);
-      }
-    },
-    [getOfficeState, editorState, applyEdit],
   );
 
   const handleAreaColorChange = useCallback(
@@ -800,9 +749,6 @@ export function useEditorActions(
     handleResetCarpetAccentColor,
     selectedAreaLabel,
     handleSelectArea,
-    handleAddArea,
-    handleRemoveArea,
-    handleRenameArea,
     handleAreaColorChange,
     handleBackgroundChange,
   };

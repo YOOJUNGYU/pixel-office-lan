@@ -139,11 +139,11 @@ export interface CarpetTile {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// AREAS — translucent named overlays for Directory ↔ seat preference.
+// AREAS — the four fixed rooms (코딩실, 자료실, 서버실, 대기실) painted onto tiles.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface AreaDefinition {
-  /** Stable label used as the FK in `areaTiles` and `OfficeState.areaMappings`. */
+  /** Stable label used as the FK in `areaTiles`: one of the four fixed room labels. */
   label: string;
   /** Hex color (e.g. "#ff6b6b"). RGB only — alpha applied at render time. */
   color: string;

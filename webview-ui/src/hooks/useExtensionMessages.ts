@@ -60,8 +60,6 @@ interface ExtensionMessageState {
   externalAssetDirectories: string[];
   alwaysShowLabels: boolean;
   // Areas
-  areaMappings: Record<string, string[]>;
-  setAreaMappings: (m: Record<string, string[]>) => void;
   showAreas: boolean;
   setShowAreas: (v: boolean) => void;
   /** A read-only office (not a loopback browser): every change it sends is
@@ -108,7 +106,6 @@ export function useExtensionMessages(
   >();
   const [externalAssetDirectories, setExternalAssetDirectories] = useState<string[]>([]);
   const [alwaysShowLabels, setAlwaysShowLabels] = useState(false);
-  const [areaMappings, setAreaMappings] = useState<Record<string, string[]>>({});
   const [showAreas, setShowAreas] = useState(false);
   const [officeReadOnly, setOfficeReadOnly] = useState(false);
   const [lanVersion, setLanVersion] = useState(0);
@@ -234,10 +231,6 @@ export function useExtensionMessages(
         const sets = msg.sets as string[][][][];
         console.log(`[Webview] Received ${sets.length} carpet variant(s)`);
         setCarpetSprites(sets);
-      } else if (msg.type === 'areaMappingsLoaded') {
-        const mappings = (msg.mappings ?? {}) as Record<string, string[]>;
-        setAreaMappings(mappings);
-        os.setAreaMappings(mappings);
       } else if (msg.type === 'settingsLoaded') {
         setSoundEnabled(msg.soundEnabled as boolean);
         if (typeof msg.alwaysShowLabels === 'boolean') {
@@ -278,8 +271,6 @@ export function useExtensionMessages(
     loadedAssets,
     externalAssetDirectories,
     alwaysShowLabels,
-    areaMappings,
-    setAreaMappings,
     showAreas,
     setShowAreas,
     officeReadOnly,

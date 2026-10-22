@@ -1,3 +1,4 @@
+import { ROOM_LABELS, ROOM_ORDER } from '../../../../core/src/lan.js';
 import { pickDiversePalette } from '../../../../core/src/paletteUtils.js';
 import {
   AUTO_ON_FACING_DEPTH,
@@ -92,13 +93,6 @@ export class OfficeState {
   private nextSubagentId = -1;
 
   /**
-   * directoryName → list of Area labels that Directory belongs to.
-   * Populated by useExtensionMessages on `areaMappingsLoaded`. Consulted by
-   * `findFreeSeat()` to bias new agents toward seats inside their Directory's Area.
-   */
-  areaMappings: Record<string, string[]> = {};
-
-  /**
    * The first-run consent greeter, deliberately NOT in `characters`.
    *
    * `characters` means "agents": everything that iterates it — seat
@@ -119,10 +113,6 @@ export class OfficeState {
   /** Latched by a manual pan during the ask: the user took the camera, so the
    *  overlay's per-frame updates stop re-centering. Reset on spawn/despawn. */
   private greeterCameraCancelled = false;
-
-  setAreaMappings(mappings: Record<string, string[]>): void {
-    this.areaMappings = mappings;
-  }
 
   constructor(layout?: OfficeLayout) {
     this.layout = layout || createDefaultLayout();
@@ -199,7 +189,7 @@ export class OfficeState {
           continue;
         }
         if (toSeat.get(ch)) {
-          const seatId = this.findFreeSeat(ch.directoryName);
+          const seatId = this.findFreeSeat();
           if (seatId) {
             this.seats.get(seatId)!.assigned = true;
             ch.seatId = seatId;
@@ -307,6 +297,11 @@ export class OfficeState {
     return this.layout;
   }
 
+  /** Labels of the four rooms with no walkable tile: agents sent there sit anywhere. */
+  emptyRooms(): string[] {
+    return ROOM_ORDER.map((r) => ROOM_LABELS[r]).filter((l) => !this.areaWalkable.get(l)?.length);
+  }
+
   /** Get the blocked-tile key for a character's own seat, or null */
   private ownSeatKey(ch: Character): string | null {
     if (!ch.seatId) return null;
@@ -401,21 +396,11 @@ export class OfficeState {
   }
 
   /**
-   * 3-stage seat picker for top-level agents.
-   *
-   *   Stage 1: If `directoryName` is given and `areaMappings[directoryName]` lists
-   *            Area labels, prefer free seats whose tile is labeled with one
-   *            of those areas.
-   *   Stage 2: Prefer free seats whose tile has NO area label (unzoned).
-   *   Stage 3: Any free seat.
-   *
-   * Each stage routes through `pickFromSeats` for the PC-bias rule. Returns
-   * null only when every seat is already occupied. Passing `undefined`
-   * preserves pre-Areas single-stage behavior (skips Stage 1; Stage 2 picks
-   * unzoned seats from a layout without `areaTiles`, which is every seat).
-   * `areaLabel` confines the search to that one area (Stage 1 only).
+   * Seat picker. With `areaLabel`: a free seat in that room, else null.
+   * Without: an unzoned free seat (no area label), else any free seat.
+   * Every stage routes through `pickFromSeats` for the PC-bias rule.
    */
-  private findFreeSeat(directoryName?: string, areaLabel?: string): string | null {
+  private findFreeSeat(areaLabel?: string): string | null {
     const electronicsTiles = this.buildElectronicsTileSet();
     const freeSeats: string[] = [];
     for (const [uid, seat] of this.seats) {
@@ -423,21 +408,9 @@ export class OfficeState {
     }
     if (freeSeats.length === 0) return null;
 
-    const areaLabels = areaLabel
-      ? [areaLabel]
-      : directoryName
-        ? this.areaMappings[directoryName]
-        : undefined;
-
-    // Stage 1 — in-area seats for the Directory's mapped Area labels.
-    if (areaLabels && areaLabels.length > 0) {
-      const wanted = new Set(areaLabels);
-      const inArea = freeSeats.filter((uid) => {
-        const label = this.seatZone(uid);
-        return label !== null && wanted.has(label);
-      });
-      const pick = this.pickFromSeats(inArea, electronicsTiles);
-      if (pick || areaLabel) return pick;
+    if (areaLabel) {
+      const inArea = freeSeats.filter((uid) => this.seatZone(uid) === areaLabel);
+      return this.pickFromSeats(inArea, electronicsTiles);
     }
 
     // Stage 2 — unzoned seats (no area label, or layout has no areas at all).
@@ -528,7 +501,7 @@ export class OfficeState {
       seatId = closestFreeSeat(this.seats, anchorAt.col, anchorAt.row);
     }
     if (!seatId) {
-      seatId = this.findFreeSeat(directoryName);
+      seatId = this.findFreeSeat();
     }
 
     let ch: Character;
@@ -784,7 +757,7 @@ export class OfficeState {
     if (!ch) return;
     this.releaseSeat(ch);
     ch.homeArea = areaLabel;
-    const seatId = standing ? null : this.findFreeSeat(undefined, areaLabel);
+    const seatId = standing ? null : this.findFreeSeat(areaLabel);
     const seat = seatId ? this.seats.get(seatId)! : null;
     let target: { col: number; row: number } | null;
     if (seat) {

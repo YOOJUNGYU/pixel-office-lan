@@ -42,8 +42,6 @@ declare global {
       getAreas?: () => Array<{ label: string; color: string }>;
       /** Sparse list of area-painted tiles with their grid coords. */
       getAreaTiles?: () => Array<{ col: number; row: number; label: string }>;
-      /** Directory→Area mappings received by OfficeState. */
-      getAreaMappings?: () => Record<string, string[]>;
       /** Effective show-areas gate (settings toggle OR active area edit). */
       getShowAreas?: () => boolean;
       /** Count of placed furniture instances — lets a spec assert furniture
@@ -264,12 +262,6 @@ export function installTestHooks(officeStateRef: { current: OfficeState | null }
       out.push({ col: i % layout.cols, row: Math.floor(i / layout.cols), label });
     }
     return out;
-  };
-
-  hooks.getAreaMappings = () => {
-    const os = officeStateRef.current;
-    if (!os) return {};
-    return os.areaMappings;
   };
 
   hooks.getFurnitureCount = () => {

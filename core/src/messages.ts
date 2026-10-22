@@ -18,7 +18,6 @@ export type ServerMessage =
   | OfficeAccess
   | SettingsLoaded
   | ExternalAssetDirectoriesUpdated
-  | AreaMappingsLoaded
   | OfficeSnapshot
   | ProfileLoaded
   | UpdateAvailable
@@ -37,7 +36,6 @@ export type ClientMessage =
   | SetAlwaysShowLabels
   | AddExternalAssetDirectory
   | RemoveExternalAssetDirectory
-  | SaveAreaMappings
   | SetShowAreas
   | SaveProfile
   | InstallUpdate
@@ -140,11 +138,6 @@ export interface SettingsLoaded {
 export interface ExternalAssetDirectoriesUpdated {
   type: 'externalAssetDirectoriesUpdated';
   dirs: string[];
-}
-
-export interface AreaMappingsLoaded {
-  type: 'areaMappingsLoaded';
-  mappings: Record<string, string[]>;
 }
 
 export interface OfficeSnapshot {
@@ -311,11 +304,6 @@ export interface AddExternalAssetDirectory {
 export interface RemoveExternalAssetDirectory {
   type: 'removeExternalAssetDirectory';
   path: string;
-}
-
-export interface SaveAreaMappings {
-  type: 'saveAreaMappings';
-  mappings: Record<string, string[]>;
 }
 
 export interface SetShowAreas {

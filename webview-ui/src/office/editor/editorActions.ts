@@ -3,7 +3,6 @@ import { DEFAULT_NEUTRAL_COLOR } from '../../constants.js';
 import { getCatalogEntry, getRotatedType, getToggledType } from '../layout/furnitureCatalog.js';
 import { getPlacementBlockedTiles } from '../layout/layoutSerializer.js';
 import type {
-  AreaDefinition,
   CarpetTile,
   OfficeLayout,
   PlacedFurniture,
@@ -659,49 +658,6 @@ export function eraseArea(layout: OfficeLayout, col: number, row: number): Offic
   const areaTiles = [...layout.areaTiles];
   areaTiles[idx] = null;
   return { ...layout, areaTiles };
-}
-
-/** Add a new Area definition. No-op on empty label or duplicate. */
-export function addArea(layout: OfficeLayout, label: string, color: string): OfficeLayout {
-  const trimmed = label.trim();
-  if (!trimmed) return layout;
-  const existing = layout.areas ?? [];
-  if (existing.some((a) => a.label === trimmed)) return layout;
-  const areas: AreaDefinition[] = [...existing, { label: trimmed, color }];
-  return { ...layout, areas };
-}
-
-/**
- * Remove an Area + clear every tile labeled with it. Returns new layout
- * (immutable). No-op if the area doesn't exist.
- */
-export function removeArea(layout: OfficeLayout, label: string): OfficeLayout {
-  const existing = layout.areas ?? [];
-  if (!existing.some((a) => a.label === label)) return layout;
-  const areas = existing.filter((a) => a.label !== label);
-  let areaTiles = layout.areaTiles;
-  if (areaTiles && areaTiles.some((t) => t === label)) {
-    areaTiles = areaTiles.map((t) => (t === label ? null : t));
-  }
-  return { ...layout, areas, areaTiles };
-}
-
-/**
- * Rename an Area + rewrite every tile labeled with the old name. No-op when
- * the new name is empty, equals the old name, or collides with another area.
- */
-export function renameArea(layout: OfficeLayout, oldLabel: string, newLabel: string): OfficeLayout {
-  const trimmed = newLabel.trim();
-  if (!trimmed || trimmed === oldLabel) return layout;
-  const existing = layout.areas ?? [];
-  if (!existing.some((a) => a.label === oldLabel)) return layout;
-  if (existing.some((a) => a.label === trimmed)) return layout;
-  const areas = existing.map((a) => (a.label === oldLabel ? { ...a, label: trimmed } : a));
-  let areaTiles = layout.areaTiles;
-  if (areaTiles && areaTiles.some((t) => t === oldLabel)) {
-    areaTiles = areaTiles.map((t) => (t === oldLabel ? trimmed : t));
-  }
-  return { ...layout, areas, areaTiles };
 }
 
 /** Update an Area's display color. No-op if the area doesn't exist or color is unchanged. */

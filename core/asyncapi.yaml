@@ -85,7 +85,6 @@ components:
         - $ref: '#/components/schemas/OfficeAccess'
         - $ref: '#/components/schemas/SettingsLoaded'
         - $ref: '#/components/schemas/ExternalAssetDirectoriesUpdated'
-        - $ref: '#/components/schemas/AreaMappingsLoaded'
         # LAN office
         - $ref: '#/components/schemas/OfficeSnapshot'
         - $ref: '#/components/schemas/ProfileLoaded'
@@ -110,7 +109,6 @@ components:
         - $ref: '#/components/schemas/SetAlwaysShowLabels'
         - $ref: '#/components/schemas/AddExternalAssetDirectory'
         - $ref: '#/components/schemas/RemoveExternalAssetDirectory'
-        - $ref: '#/components/schemas/SaveAreaMappings'
         - $ref: '#/components/schemas/SetShowAreas'
         - $ref: '#/components/schemas/SaveProfile'
         - $ref: '#/components/schemas/InstallUpdate'
@@ -334,24 +332,6 @@ components:
             type: string
         showAreas:
           type: boolean
-
-    AreaMappingsLoaded:
-      description: |
-        Directory-to-Area mappings. Directory names map to one or more Area
-        labels; new agents from that Directory prefer seats inside those Areas.
-      type: object
-      additionalProperties: false
-      required: [type, mappings]
-      properties:
-        type:
-          const: areaMappingsLoaded
-        mappings:
-          type: object
-          description: Map of Directory name (string) to array of Area labels.
-          additionalProperties:
-            type: array
-            items:
-              type: string
 
     ExternalAssetDirectoriesUpdated:
       description: External asset directory list changed (after add/remove).
@@ -779,21 +759,6 @@ components:
           const: removeExternalAssetDirectory
         path:
           type: string
-
-    SaveAreaMappings:
-      description: Persist Directory-to-Area mappings for seat assignment.
-      type: object
-      additionalProperties: false
-      required: [type, mappings]
-      properties:
-        type:
-          const: saveAreaMappings
-        mappings:
-          type: object
-          additionalProperties:
-            type: array
-            items:
-              type: string
 
     SetShowAreas:
       description: Toggle the Areas overlay (translucent rendering on top of the office).

@@ -84,8 +84,6 @@ function App() {
     layoutReady,
     loadedAssets,
     profile,
-    areaMappings,
-    setAreaMappings,
     showAreas,
     setShowAreas,
     officeReadOnly,
@@ -124,30 +122,6 @@ function App() {
 
   // Phones and touch tablets: pinch replaces the zoom buttons and Settings floats.
   const isMobile = useIsMobile();
-
-  // Mutate Directory→Area mappings locally + send to server.
-  const handleAreaMappingChange = useCallback(
-    (directoryName: string, areaLabel: string, action: 'add' | 'remove') => {
-      const current = areaMappings[directoryName] ?? [];
-      let nextLabels: string[];
-      if (action === 'add') {
-        if (current.includes(areaLabel)) return;
-        nextLabels = [...current, areaLabel];
-      } else {
-        nextLabels = current.filter((l) => l !== areaLabel);
-      }
-      const next = { ...areaMappings };
-      if (nextLabels.length === 0) {
-        delete next[directoryName];
-      } else {
-        next[directoryName] = nextLabels;
-      }
-      setAreaMappings(next);
-      getOfficeState().setAreaMappings(next);
-      transport.send({ type: 'saveAreaMappings', mappings: next });
-    },
-    [areaMappings, setAreaMappings],
-  );
 
   // Toggle global Show Areas — persisted via setShowAreas message; runs server-
   // side through configPersistence.
@@ -219,6 +193,7 @@ function App() {
 
   // Areas authoring is available when the layout already defines areas.
   const areasAvailable = (officeState.getLayout().areas?.length ?? 0) > 0;
+  const emptyRooms = officeState.emptyRooms();
 
   // ── Onboarding tour ──
   // The current step's scene drives what is open (settings, profile, editor
@@ -470,14 +445,14 @@ function App() {
           style={{ background: 'var(--vignette)' }}
         />
 
-        {editor.isEditMode && (editor.isDirty || scene?.actionBar) && (
-          <EditActionBar editor={editor} editorState={editorState} />
+        {editor.isEditMode && (editor.isDirty || scene?.actionBar || emptyRooms.length > 0) && (
+          <EditActionBar editor={editor} editorState={editorState} emptyRooms={emptyRooms} />
         )}
 
         {showRotateHint && (
           <div
             className="absolute left-1/2 -translate-x-1/2 z-11 bg-accent-bright text-white text-sm py-3 px-8 rounded-none border-2 border-accent shadow-pixel pointer-events-none whitespace-nowrap"
-            style={{ top: editor.isDirty ? 64 : 8 }}
+            style={{ top: editor.isDirty || emptyRooms.length > 0 ? 64 : 8 }}
           >
             {t('app.rotateHint')}
           </div>
@@ -521,15 +496,10 @@ function App() {
                 onCarpetAccentColorChange={editor.handleCarpetAccentColorChange}
                 areas={officeState.getLayout().areas ?? []}
                 selectedAreaLabel={editor.selectedAreaLabel}
-                directories={[]}
                 areasAvailable={areasAvailable}
-                areaMappings={areaMappings}
+                emptyRooms={emptyRooms}
                 onSelectArea={editor.handleSelectArea}
-                onAddArea={editor.handleAddArea}
-                onRemoveArea={editor.handleRemoveArea}
-                onRenameArea={editor.handleRenameArea}
                 onAreaColorChange={editor.handleAreaColorChange}
-                onAreaMappingChange={handleAreaMappingChange}
                 background={officeState.getLayout().background}
                 onBackgroundChange={editor.handleBackgroundChange}
               />

@@ -7,6 +7,58 @@ export const ROOM_LABELS: Record<Room, string> = {
   server: '서버실',
   lounge: '대기실',
 };
+/** The four fixed rooms, in layout order. */
+export const ROOM_ORDER: readonly Room[] = ['coding', 'library', 'server', 'lounge'];
+
+/** Layout grid limits (editor expansion, layout validation on server and webview). */
+export const MAX_LAYOUT_COLS = 128;
+export const MAX_LAYOUT_ROWS = 128;
+
+/** The fields of a layout normalizeRoomAreas reads/writes (the rest passes through). */
+export interface RoomAreasLayout {
+  cols: number;
+  rows: number;
+  areas?: Array<{ label: string; color: string }>;
+  areaTiles?: Array<string | null>;
+}
+
+const HEX_RGB = /^#[0-9a-f]{6}$/i;
+
+/**
+ * Exactly the four fixed rooms: `areas` = the four definitions in ROOM_ORDER
+ * (a room's existing valid color is kept, a missing room gets `colors[room]`),
+ * `areaTiles` = cols*rows labels with everything but the four room labels
+ * cleared (a missing or mis-sized array becomes all null). Never throws on odd
+ * `areas`/`areaTiles`; cols/rows must already be validated.
+ */
+export function normalizeRoomAreas<T extends RoomAreasLayout>(
+  layout: T,
+  colors: Partial<Record<Room, string>>,
+): T {
+  const have = new Map<string, string>();
+  for (const a of Array.isArray(layout.areas) ? (layout.areas as unknown[]) : []) {
+    if (isObj(a) && typeof a.label === 'string' && typeof a.color === 'string') {
+      if (HEX_RGB.test(a.color) && !have.has(a.label)) have.set(a.label, a.color);
+    }
+  }
+  const areas = ROOM_ORDER.map((r) => ({
+    label: ROOM_LABELS[r],
+    color: have.get(ROOM_LABELS[r]) ?? colors[r] ?? '',
+  }));
+  const labels = new Set<unknown>(Object.values(ROOM_LABELS));
+  const n = layout.cols * layout.rows;
+  const src: unknown[] =
+    Array.isArray(layout.areaTiles) && layout.areaTiles.length === n ? layout.areaTiles : [];
+  const areaTiles = Array.from({ length: n }, (_, i) =>
+    labels.has(src[i]) ? (src[i] as string) : null,
+  );
+  return { ...layout, areas, areaTiles };
+}
+
+/** Bundled pets a profile may pick as its character (unknown ids → the human palette). */
+export const PET_IDS = ['claudio', 'gitcat'] as const;
+export type PetId = (typeof PET_IDS)[number];
+export const isPetId = (x: unknown): x is PetId => (PET_IDS as readonly unknown[]).includes(x);
 const ACTS = [
   'idle',
   'edit',
@@ -115,7 +167,7 @@ const MAX_ID = 200;
 const MAX_TARGET = 120;
 const MAX_REASON = 200;
 
-const ROOMS = new Set<string>(Object.keys(ROOM_LABELS));
+const ROOMS = new Set<string>(ROOM_ORDER);
 const PROVIDERS = new Set<string>(['claude', 'codex']);
 const KINDS = new Set<string>(['main', 'subagent', 'shell']);
 const ACT_SET = new Set<string>(ACTS);
