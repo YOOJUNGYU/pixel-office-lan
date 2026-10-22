@@ -388,6 +388,13 @@ export const FIRST_OPEN_FIT_FILL = 0.95;
 /** How long the "layout not saved" toast stays. */
 export const LAYOUT_REJECTED_TOAST_MS = 4_000;
 
+// ── Room legend (top left) ───────────────────────────────────
+/** localStorage: '1' = open, '0' = collapsed (per viewer); unset = open on a wide screen. */
+export const ROOM_LEGEND_KEY = 'pixel-office.roomLegend';
+/** Below the zoom buttons (desktop) / the Settings button (mobile), CSS px. */
+export const ROOM_LEGEND_TOP_PX = 100;
+export const ROOM_LEGEND_MOBILE_TOP_PX = 56;
+
 // ── People panel ─────────────────────────────────────────────
 /** localStorage: '1' = collapsed, '0' = expanded (per viewer); unset = by screen width. */
 export const PEOPLE_COLLAPSED_KEY = 'pixel-office.people.collapsed';

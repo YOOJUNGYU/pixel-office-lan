@@ -32,6 +32,7 @@ import { OfficeSwitcher } from './lan/OfficeSwitcher.js';
 import { peopleRows } from './lan/peopleModel.js';
 import { PeoplePanel } from './lan/PeoplePanel.js';
 import { ProfileModal } from './lan/ProfileModal.js';
+import { RoomLegend } from './lan/RoomLegend.js';
 import { UpdateBanner } from './lan/UpdateBanner.js';
 import { OfficeCanvas } from './office/components/OfficeCanvas.js';
 import { EditorState } from './office/editor/editorState.js';
@@ -474,6 +475,14 @@ function App() {
         />
 
         {!isMobile && <ZoomControls zoom={editor.zoom} onZoomChange={editor.handleZoomChange} />}
+
+        {!editor.isEditMode && (
+          <RoomLegend
+            areas={officeState.getLayout().areas}
+            isMobile={isMobile}
+            forceOpen={scene?.legend === true}
+          />
+        )}
 
         {/* Vignette overlay */}
         <div

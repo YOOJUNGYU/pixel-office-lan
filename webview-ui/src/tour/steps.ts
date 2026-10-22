@@ -35,6 +35,8 @@ export interface Scene {
   walk?: Room;
   /** People panel expanded even if the viewer collapsed it. */
   people?: boolean;
+  /** Room legend open even if the viewer collapsed it. */
+  legend?: boolean;
 }
 
 /** Things a step needs on this screen; steps whose needs are unmet are dropped. */
@@ -61,6 +63,7 @@ export type StepId =
   | 'roomLibrary'
   | 'roomServer'
   | 'roomLounge'
+  | 'roomLegend'
   | 'tag'
   | 'bubble'
   | 'family'
@@ -88,6 +91,7 @@ export const STEPS: Step[] = [
   { id: 'roomLibrary', targets: [{ room: 'library' }], scene: { walk: 'library' } },
   { id: 'roomServer', targets: [{ room: 'server' }], scene: { walk: 'server' } },
   { id: 'roomLounge', targets: [{ room: 'lounge' }], scene: { walk: 'lounge' } },
+  { id: 'roomLegend', targets: [{ dom: 'room-legend' }], scene: { legend: true } },
   { id: 'tag', targets: [{ agent: 'tag' }] },
   {
     id: 'bubble',

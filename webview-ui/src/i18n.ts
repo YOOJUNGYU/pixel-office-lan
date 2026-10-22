@@ -29,6 +29,15 @@ const ko = {
   'act.tool': '{t} 사용 중',
 
   'bubble.permission': '확인 필요',
+  'legend.title': '방 안내',
+  'legend.coding': '파일을 직접 고칠 때 (Edit·Write, Codex apply_patch)',
+  'legend.library':
+    '파일 읽기·코드 검색·웹 검색 (Read·Grep·WebSearch, rg·cat·git log 같은 읽기 명령)',
+  'legend.server': '명령 실행 — 빌드·테스트·설치·서버 (Bash, Codex 셸), 백그라운드 셸',
+  'legend.lounge': '입력·승인 대기, 작업 끝남 (머리 위 빨간 ! = 확인 필요)',
+  'tour.roomLegend.title': '방 안내',
+  'tour.roomLegend.body':
+    '어떤 일을 하면 어느 방으로 가는지 여기서 언제든 볼 수 있습니다. 제목을 누르면 접히고 펼쳐집니다.',
   'people.title': '접속 중 {n}명',
   'people.you': '(나)',
   'people.noAgents': '에이전트 없음',
@@ -317,6 +326,14 @@ const en: Record<Key, string> = {
   'act.tool': 'Using {t}',
 
   'bubble.permission': 'Needs attention',
+  'legend.title': 'Rooms',
+  'legend.coding': 'Editing files',
+  'legend.library': 'Reading, searching code and the web (incl. read-only shell commands)',
+  'legend.server': 'Running commands — build, test, install, servers; background shells',
+  'legend.lounge': 'Waiting for input/approval or done (red ! = needs you)',
+  'tour.roomLegend.title': 'Rooms',
+  'tour.roomLegend.body':
+    'Which activity sends an agent to which room, any time. Click the title to fold or unfold it.',
   'people.title': '{n} online',
   'people.you': '(you)',
   'people.noAgents': 'No agents',
