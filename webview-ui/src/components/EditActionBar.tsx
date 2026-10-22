@@ -1,5 +1,3 @@
-import { useState } from 'react';
-
 import type { useEditorActions } from '../hooks/useEditorActions.js';
 import { t, useLang } from '../i18n.js';
 import type { EditorState } from '../office/editor/editorState.js';
@@ -8,11 +6,14 @@ import { Button } from './ui/Button.js';
 interface EditActionBarProps {
   editor: ReturnType<typeof useEditorActions>;
   editorState: EditorState;
+  /** Save the layout and leave edit mode (unless the server refuses). */
+  onSave: () => void;
+  /** Confirm, then reset to the bundled default layout and leave edit mode. */
+  onReset: () => void;
 }
 
 /** Undo / Redo / Save / Reset, beside the Layout button while the editor is open. */
-export function EditActionBar({ editor, editorState: es }: EditActionBarProps) {
-  const [showResetConfirm, setShowResetConfirm] = useState(false);
+export function EditActionBar({ editor, editorState: es, onSave, onReset }: EditActionBarProps) {
   useLang();
 
   const undoDisabled = es.undoStack.length === 0;
@@ -34,35 +35,12 @@ export function EditActionBar({ editor, editorState: es }: EditActionBarProps) {
       >
         {t('edit.redo')}
       </Button>
-      <Button variant="default" onClick={editor.handleSave} title={t('edit.saveTitle')}>
+      <Button variant="default" onClick={onSave} title={t('edit.saveTitle')}>
         {t('edit.save')}
       </Button>
-      {!showResetConfirm ? (
-        <Button
-          variant="default"
-          onClick={() => setShowResetConfirm(true)}
-          title={t('edit.resetTitle')}
-        >
-          {t('edit.reset')}
-        </Button>
-      ) : (
-        <div className="flex gap-4 items-center">
-          <span className="text-base text-reset-text">{t('edit.resetConfirm')}</span>
-          <Button
-            variant="default"
-            className="bg-danger text-white"
-            onClick={() => {
-              setShowResetConfirm(false);
-              editor.handleReset();
-            }}
-          >
-            {t('edit.yes')}
-          </Button>
-          <Button variant="default" onClick={() => setShowResetConfirm(false)}>
-            {t('edit.no')}
-          </Button>
-        </div>
-      )}
+      <Button variant="default" onClick={onReset} title={t('edit.resetTitle')}>
+        {t('edit.reset')}
+      </Button>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import type { ColorValue } from '../components/ui/types.js';
 import {
   CARPET_DEFAULT_ACCENT_COLOR,
   CARPET_DEFAULT_COLOR,
+  LAYOUT_SAVE_ACK_MS,
   LAYOUT_SAVE_DEBOUNCE_MS,
   ZOOM_DEFAULT_DPR_FACTOR,
   ZOOM_MIN,
@@ -25,6 +26,7 @@ import {
   wallStrokeTile,
 } from '../office/editor/editorActions.js';
 import type { EditorState } from '../office/editor/editorState.js';
+import { saveThenExit } from '../office/editor/saveFlow.js';
 import type { OfficeState } from '../office/engine/officeState.js';
 import { getRotatedType, getToggledType } from '../office/layout/furnitureCatalog.js';
 import type {
@@ -62,8 +64,9 @@ interface EditorActions extends Omit<FurnitureColorActions, 'pickColorAt'> {
   handleToggleState: () => void;
   handleUndo: () => void;
   handleRedo: () => void;
-  handleReset: () => void;
-  handleSave: () => void;
+  handleExitEditMode: () => void;
+  /** Save, then leave edit mode unless the server refuses (see saveThenExit). */
+  handleSave: (getRejections: () => number) => void;
   handleZoomChange: (zoom: number) => void;
   handleEditorTileAction: (col: number, row: number) => void;
   handleEditorEraseAction: (col: number, row: number) => void;
@@ -397,27 +400,46 @@ export function useEditorActions(
     setEditorTick((n) => n + 1);
   }, [getOfficeState, editorState, saveLayout]);
 
-  const handleReset = useCallback(() => {
-    if (!lastSavedLayoutRef.current) return;
-    const saved = structuredClone(lastSavedLayoutRef.current);
-    applyEdit(saved);
-    editorState.reset();
-    setIsDirty(false);
-  }, [editorState, applyEdit]);
+  /** Leave edit mode (same cleanup as toggling the Layout button off). No-op when already out. */
+  const handleExitEditMode = useCallback(() => {
+    if (!editorState.isEditMode) return;
+    editorState.isEditMode = false;
+    editorState.clearSelection();
+    editorState.clearGhost();
+    editorState.clearDrag();
+    editorState.endStroke();
+    setIsEditMode(false);
+  }, [editorState]);
 
-  const handleSave = useCallback(() => {
-    // Flush any pending debounced save immediately
-    if (saveTimerRef.current) {
-      clearTimeout(saveTimerRef.current);
-      saveTimerRef.current = null;
-    }
-    const os = getOfficeState();
-    const layout = os.getLayout();
-    lastSavedLayoutRef.current = structuredClone(layout);
-    transport.send({ type: 'saveLayout', layout: layout as unknown as Record<string, unknown> });
-    editorState.isDirty = false;
-    setIsDirty(false);
-  }, [getOfficeState, editorState]);
+  /**
+   * [Save]: flush the pending save, and once the server has not refused it
+   * (`getRejections` unchanged for LAYOUT_SAVE_ACK_MS) mark clean and leave
+   * edit mode. A refusal keeps the editor open and still dirty.
+   */
+  const handleSave = useCallback(
+    (getRejections: () => number) => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
+      const layout = getOfficeState().getLayout();
+      saveThenExit({
+        send: () =>
+          transport.send({
+            type: 'saveLayout',
+            layout: layout as unknown as Record<string, unknown>,
+          }),
+        getRejections,
+        waitMs: LAYOUT_SAVE_ACK_MS,
+        onSaved: () => {
+          lastSavedLayoutRef.current = structuredClone(layout);
+          markClean();
+          handleExitEditMode();
+        },
+      });
+    },
+    [getOfficeState, markClean, handleExitEditMode],
+  );
 
   // Notify React that imperative editor selection changed (e.g., from OfficeCanvas mouseUp)
   const handleEditorSelectionChange = bumpTick;
@@ -590,7 +612,7 @@ export function useEditorActions(
     handleToggleState,
     handleUndo,
     handleRedo,
-    handleReset,
+    handleExitEditMode,
     handleSave,
     handleZoomChange,
     handleEditorTileAction,

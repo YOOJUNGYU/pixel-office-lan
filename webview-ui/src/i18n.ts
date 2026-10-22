@@ -60,6 +60,7 @@ const ko = {
   'app.resetDefaultConfirm':
     '기본 사무실(128×128)로 바꿀까요? 지금 배치는 사라집니다(먼저 내보내기로 저장해 둘 수 있습니다).',
   'settings.resetDefaultLayout': '기본 사무실로 되돌리기',
+  'app.resetEditorConfirm': '기본 레이아웃으로 되돌릴까요? 직접 꾸민 내용이 모두 사라집니다.',
   'app.importInvalid': '올바른 레이아웃 파일이 아닙니다.',
   'app.layoutSaveRejected': '레이아웃을 저장하지 못했습니다 (올바르지 않은 레이아웃).',
   'app.importFailed': '레이아웃 파일을 읽지 못했습니다.',
@@ -131,12 +132,9 @@ const ko = {
   'edit.redo': '다시 실행',
   'edit.redoTitle': '다시 실행 (Ctrl+Y)',
   'edit.save': '저장',
-  'edit.saveTitle': '레이아웃 저장',
+  'edit.saveTitle': '저장하고 편집 닫기',
   'edit.reset': '되돌리기',
-  'edit.resetTitle': '마지막 저장 상태로 되돌리기',
-  'edit.resetConfirm': '되돌릴까요?',
-  'edit.yes': '예',
-  'edit.no': '아니요',
+  'edit.resetTitle': '기본 레이아웃으로 되돌리기',
 
   'profile.title': '내 프로필',
   'profile.firstRunTitle': '프로필 만들기',
@@ -294,7 +292,7 @@ const ko = {
     '[지우기] 로 타일을 지울 수 있습니다. Ctrl+Z / Ctrl+Y 로 실행 취소 · 다시 실행.\n배치를 바꿔도 캐릭터는 있던 자리에 그대로 있습니다.',
   'tour.save.title': '저장',
   'tour.save.body':
-    '배치는 이 PC 에만 저장되고(공개·팀 오피스 모두), 다른 PC 의 화면은 바뀌지 않습니다. 편집한 내용은 바로바로 저장되고, [레이아웃] 버튼 옆 막대의 [되돌리기] 는 마지막으로 [저장] 을 누른 때(또는 사무실을 연 때)의 배치로 돌아갑니다.\n배치를 나눠 쓰려면 설정 → [레이아웃 내보내기] 로 파일을 만들어 건네고, 받은 사람은 [레이아웃 가져오기] 로 엽니다.',
+    '배치는 이 PC 에만 저장되고(공개·팀 오피스 모두), 다른 PC 의 화면은 바뀌지 않습니다. 편집한 내용은 바로바로 저장되고, [레이아웃] 버튼 옆 막대의 [저장] 은 저장한 뒤 편집을 닫습니다. [되돌리기] 는 확인 후 기본 레이아웃으로 되돌리고 편집을 닫습니다(직접 꾸민 내용은 사라집니다).\n배치를 나눠 쓰려면 설정 → [레이아웃 내보내기] 로 파일을 만들어 건네고, 받은 사람은 [레이아웃 가져오기] 로 엽니다.',
   'tour.install.title': '앱으로 설치',
   'tour.install.body':
     '이 PC의 브라우저에서는 Pixel Office 를 앱으로 설치할 수 있습니다(Edge·Chrome). 설치하면 바로가기가 탭이 아닌 앱 창으로 열립니다.\n안내 창을 닫았다면 주소창의 설치 아이콘을 쓰세요.',
@@ -360,6 +358,7 @@ const en: Record<Key, string> = {
   'app.resetDefaultConfirm':
     'Switch to the default office (128×128)? The current layout will be lost (export it first to keep a copy).',
   'settings.resetDefaultLayout': 'Reset to the default office',
+  'app.resetEditorConfirm': 'Reset to the default layout? All your customizations will be lost.',
   'app.importInvalid': 'This is not a valid layout file.',
   'app.layoutSaveRejected': 'The layout was not saved (not a valid layout).',
   'app.importFailed': 'Could not read the layout file.',
@@ -430,12 +429,9 @@ const en: Record<Key, string> = {
   'edit.redo': 'Redo',
   'edit.redoTitle': 'Redo (Ctrl+Y)',
   'edit.save': 'Save',
-  'edit.saveTitle': 'Save layout',
+  'edit.saveTitle': 'Save and close the editor',
   'edit.reset': 'Reset',
-  'edit.resetTitle': 'Revert to the last saved layout',
-  'edit.resetConfirm': 'Reset?',
-  'edit.yes': 'Yes',
-  'edit.no': 'No',
+  'edit.resetTitle': 'Reset to the default layout',
 
   'profile.title': 'My profile',
   'profile.firstRunTitle': 'Create your profile',
@@ -596,7 +592,7 @@ const en: Record<Key, string> = {
     'Clear tiles with [Erase]. Ctrl+Z / Ctrl+Y undo and redo.\nChanging the layout never moves the characters.',
   'tour.save.title': 'Save',
   'tour.save.body':
-    'The layout is saved on this PC only (public and team offices alike); other PCs’ screens do not change. Every edit is saved right away, and [Reset] in the bar next to [Layout] goes back to the layout as of your last [Save] (or when you opened the office).\nTo share a layout, make a file with Settings → [Export layout] and hand it over; the other person opens it with [Import layout].',
+    'The layout is saved on this PC only (public and team offices alike); other PCs’ screens do not change. Every edit is saved right away; [Save] in the bar next to [Layout] saves and closes the editor, and [Reset] asks first, then restores the default layout and closes the editor (your customizations are lost).\nTo share a layout, make a file with Settings → [Export layout] and hand it over; the other person opens it with [Import layout].',
   'tour.install.title': 'Install as an app',
   'tour.install.body':
     'On this PC’s browser you can install Pixel Office as an app (Edge, Chrome). Shortcuts then open it in its own window instead of a tab.\nIf you closed the prompt, use the install icon in the address bar.',

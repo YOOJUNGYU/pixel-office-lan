@@ -87,6 +87,7 @@ function App() {
 
   const editor = useEditorActions(getOfficeState, editorState);
 
+  const layoutSaveRejectionsRef = useRef(0);
   const isEditDirty = useCallback(
     () => editor.isEditMode && editor.isDirty,
     [editor.isEditMode, editor.isDirty],
@@ -114,6 +115,8 @@ function App() {
     officeReply,
     clearOfficeReply,
   } = useExtensionMessages(getOfficeState, editor.setLastSavedLayout, isEditDirty);
+
+  layoutSaveRejectionsRef.current = layoutSaveRejections;
 
   // Overlay geometry: the root div is the canvas container's size.
   const containerRef = useRef<HTMLDivElement>(null);
@@ -437,11 +440,12 @@ function App() {
     reader.readAsText(file);
   };
 
-  /** Settings → the bundled default office (an older saved layout stays until this). */
-  const handleResetToDefaultLayout = () => {
-    if (!window.confirm(t('app.resetDefaultConfirm'))) return;
+  /** Settings and the editor's [Reset] → the bundled default office (an older saved layout stays until this); leaves edit mode. */
+  const handleResetToDefaultLayout = (confirmText = t('app.resetDefaultConfirm')) => {
+    if (!window.confirm(confirmText)) return;
     fetchDefaultLayout()
       .then(applyLayout)
+      .then(editor.handleExitEditMode)
       .catch(() => window.alert(t('app.importFailed')));
   };
 
@@ -616,7 +620,14 @@ function App() {
             isSettingsOpen={settingsOpen}
             onToggleSettings={() => setIsSettingsOpen((v) => !v)}
           >
-            {editor.isEditMode && <EditActionBar editor={editor} editorState={editorState} />}
+            {editor.isEditMode && (
+              <EditActionBar
+                editor={editor}
+                editorState={editorState}
+                onSave={() => editor.handleSave(() => layoutSaveRejectionsRef.current)}
+                onReset={() => handleResetToDefaultLayout(t('app.resetEditorConfirm'))}
+              />
+            )}
           </BottomToolbar>
         )}
 

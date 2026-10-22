@@ -107,6 +107,8 @@ export const PAN_DRAG_THRESHOLD_PX = 4;
 // ── Editor ───────────────────────────────────────────────────
 export const UNDO_STACK_MAX_SIZE = 50;
 export const LAYOUT_SAVE_DEBOUNCE_MS = 500;
+/** After [Save]: how long to wait for a layoutSaveRejected before leaving edit mode (the server answers a refusal in the same tick; loopback only). */
+export const LAYOUT_SAVE_ACK_MS = 300;
 /** data-testid of the office canvas — e2e drives real editor gestures on it. */
 export const OFFICE_CANVAS_TEST_ID = 'office-canvas';
 
