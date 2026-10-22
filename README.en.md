@@ -46,6 +46,7 @@ The original [pixel-agents](https://github.com/pixel-agents-hq/pixel-agents) sho
 | Layout              | Floors, walls, furniture, areas                             | + **background outside the map** (solid · tiles · carpet), a four-room default layout                                                    |
 | App-like use        | —                                                           | **Installable PWA** (install popup), shortcut opens the app window, optional start at login                                              |
 | Updates             | Marketplace / npm                                           | In-app **Update button** (GitHub Releases)                                                                                               |
+| Who is online       | —                                                           | **People panel**: people without agents too; click to jump to them                                                                       |
 | First run           | —                                                           | **Onboarding tour** that walks through every feature on the real UI                                                                      |
 
 On the other hand, the original's **agent launching, terminal attach and VS Code extension** were removed. This app focuses on _watching_; agents keep running in whatever CLI or desktop app each person already uses.
@@ -128,6 +129,7 @@ Switch the office you are looking at with the office switcher at the top of the 
 - 🖱️ **Map controls**: drag an empty spot to pan; the mouse wheel (or trackpad pinch) zooms smoothly around the cursor.
 - 🔄 **Updates**: when a new version is published on GitHub Releases, an **Update** button appears; it downloads and runs the installer.
 - 🏗️ **Layout editor** (from the original): paint floors and walls, place furniture, define rooms (Areas). The **Background** tab fills the area around the office with a solid colour, a floor pattern or a carpet.
+- 👥 **People panel**: the right edge lists everyone connected to the office you are viewing, including people with no agents, with their Claude/Codex agent counts and status (❗ needs attention, working, idle). Click a name to move the camera to their agent.
 - 🧭 **Onboarding tour**: on first run it spotlights the real UI one part at a time (the rest dimmed) and shows every feature live — rooms, bubbles, offices, settings and the layout editor. Replay it any time from **Settings → Replay tour**.
 
 ## Supported environments
