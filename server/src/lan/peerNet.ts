@@ -190,7 +190,7 @@ export class PeerNet {
       getPacket: (channel: string) => PeerPacket;
       manualPeers: () => string[];
       offices: () => TeamChannel[];
-      /** Personal mode: send nothing, drop everything received, see no one. */
+      /** Personal mode: send nothing, answer nothing, see no one; only counts who is heard. */
       offline?: () => boolean;
       /** TOFU: first public key seen per peer id. */
       pins: { get(id: string): string | undefined; set(id: string, pk: string): void };
@@ -283,6 +283,18 @@ export class PeerNet {
     return out;
   }
 
+  /** Other PCs live in one office: paired peers, or while offline (personal mode, which
+   *  sends no hello) the public PCs whose hello was heard. Same office gate as peers(). */
+  liveCount(view: string): number {
+    if (view === PUBLIC_VIEW ? this.opts.offices().length > 0 : !this.isJoined(view)) return 0;
+    const t = this.now();
+    const all =
+      view === PUBLIC_VIEW && this.isOffline()
+        ? [...this.hellos.values()]
+        : [...(this.seen.get(view)?.values() ?? [])];
+    return all.filter((e) => t - e.at <= PEER_TTL_MS).length;
+  }
+
   /** The name a member last announced for a team office. */
   teamName(tag: string): string | undefined {
     return this.names.get(tag);
@@ -323,7 +335,8 @@ export class PeerNet {
 
   /** Untrusted datagram: anything off is dropped silently, never throws. */
   private receive(text: string, rinfo: { address: string; port: number }): void {
-    if (this.isOffline()) return; // not even a hello reply: invisible
+    // Personal mode listens only (for liveCount): no hello reply, no pub, so it stays invisible.
+    const offline = this.isOffline();
     const w = parseWire(text);
     if (!w) {
       if (text.startsWith('{"v":1,'))
@@ -348,14 +361,14 @@ export class PeerNet {
       // Answer with our own hello (1:1, rate-limited): a peer that reaches us only via
       // its manual-peer list would otherwise never get our hello, and pub needs both.
       const t = this.now();
-      const reply = !prev || t - prev.replied >= HELLO_REPLY_MS;
+      const reply = !offline && (!prev || t - prev.replied >= HELLO_REPLY_MS);
       this.hellos.set(w.id, {
         pk: w.pk,
         key: prev?.pk === w.pk ? prev.key : null,
         address: rinfo.address,
         port: rinfo.port,
         at: t,
-        replied: reply ? t : prev.replied,
+        replied: reply ? t : (prev?.replied ?? 0),
       });
       if (reply && this.sock) {
         const hello: Wire = { v: 2, t: 'hello', id: me, pk: this.opts.identity.publicKey };
@@ -365,7 +378,7 @@ export class PeerNet {
     }
     if (w.t === 'pub') {
       const h = this.hellos.get(w.from);
-      if (inTeam || w.to !== me || !h) return;
+      if (offline || inTeam || w.to !== me || !h) return;
       h.key ??= pairKey(this.opts.identity.privateKeyPem, h.pk, me, w.from);
       if (!h.key) return;
       const inner = this.unpack(PUBLIC_VIEW, open(h.key, pubAad(w.from, w.to), w.n, w.c), w.from);
@@ -450,15 +463,13 @@ export class PeerNet {
     return true;
   }
 
-  /** Drops expired peers, all public-office state while in a team or of left teams,
-   *  and everything while offline. */
+  /** Drops expired peers and all public-office state while in a team or of left teams.
+   *  Offline keeps listening state (liveCount); peers() hides it. */
   private prune(): void {
     const t = this.now();
     const offices = this.opts.offices();
-    const live = new Set(
-      this.isOffline() ? [] : offices.length ? offices.map((o) => o.tag) : [PUBLIC_VIEW],
-    );
-    if (offices.length || this.isOffline()) this.hellos.clear();
+    const live = new Set(offices.length ? offices.map((o) => o.tag) : [PUBLIC_VIEW]);
+    if (offices.length) this.hellos.clear();
     for (const [id, h] of this.hellos) if (t - h.at > PEER_TTL_MS) this.hellos.delete(id);
     for (const [ch, peers] of this.seen) {
       if (!live.has(ch)) this.seen.delete(ch);

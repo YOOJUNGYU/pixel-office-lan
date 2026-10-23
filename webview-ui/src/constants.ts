@@ -300,6 +300,11 @@ export const LAN_ROOM_TOOL: Record<Room, string | null> = {
 };
 /** Tools drawn with the reading animation (no provider sends providerCapabilities). */
 export const LAN_READING_TOOLS = ['Read'];
+/** Avatar name tag (lan/tagColor.ts): background = the character's most common pixel at
+ *  least this saturated (HSL 0–1); text = whichever of these two contrasts more with it. */
+export const AVATAR_TAG_MIN_SATURATION = 0.25;
+export const AVATAR_TAG_TEXT_DARK = '#1E1E2E';
+export const AVATAR_TAG_TEXT_LIGHT = '#FFFFFF';
 /** Subagents wear their PC's palette, hue-rotated by this much. */
 export const LAN_SUBAGENT_HUE_OFFSET = 120;
 export const MAX_HUE_DEG = 360;

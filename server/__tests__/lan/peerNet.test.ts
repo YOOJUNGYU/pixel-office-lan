@@ -470,6 +470,33 @@ describe('PeerNet personal mode (offline)', () => {
   });
 });
 
+describe('PeerNet personal mode: listen-only counts', () => {
+  it('counts public hellos and team presence without sending or showing anyone', async () => {
+    const [a, b, c] = await mkNodes(['A', 'B', 'C']);
+    a.offline = true;
+    const sent = vi.spyOn((a.net as unknown as { sock: dgram.Socket }).sock, 'send');
+    await pump(
+      [a, b, c],
+      () => a.net.liveCount(PUBLIC_VIEW) === 2 && b.net.peers(PUBLIC_VIEW).length > 0,
+    );
+    expect(a.net.liveCount(PUBLIC_VIEW)).toBe(2);
+    expect(a.net.peers(PUBLIC_VIEW)).toEqual([]);
+    expect(ids(b.net.peers(PUBLIC_VIEW))).toEqual(['C']); // A stays invisible
+
+    const ch = channel(newInviteCode().secret);
+    a.offices = [ch];
+    b.offices = [ch];
+    await pump([a, b, c], () => a.net.liveCount(ch.tag) === 1);
+    expect(a.net.liveCount(ch.tag)).toBe(1);
+    expect(a.net.liveCount(PUBLIC_VIEW)).toBe(0); // in a team: public is closed
+    expect(a.net.peers(ch.tag)).toEqual([]);
+    expect(b.net.peers(ch.tag)).toEqual([]);
+    expect(sent).not.toHaveBeenCalled();
+    a.t += PEER_TTL_MS + 1;
+    expect(a.net.liveCount(ch.tag)).toBe(0);
+  });
+});
+
 describe('broadcastAddresses', () => {
   it('computes directed broadcast and skips internal', () => {
     const r = broadcastAddresses({

@@ -14,7 +14,7 @@ interface Named {
 
 export { peerLabel };
 
-/** An avatar's name tag: the nickname alone when set (tie-broken), else the account. */
+/** A name tag (avatar and agents): the nickname alone when set (tie-broken), else the account. */
 export const avatarLabel = (p: { account: string; nickname: string }): string =>
   p.nickname || p.account;
 
@@ -49,8 +49,9 @@ function losers(
  * 1. same nickname (nicknameKey; '' exempt): whoever set it first (nickSince,
  *    then the smaller peerId) keeps it; the others' nickname gets
  *    " · <peerId prefix>";
- * 2. labels still identical (same account, no nickname): the same suffix on the
- *    account of all but the smallest peerId. Accounts are otherwise shown as is.
+ * 2. name tags still identical (avatarLabel: a shared account without nickname,
+ *    or a nickname equal to another's account): the same suffix on what the tag
+ *    shows (nickname, else account) of all but the smallest peerId.
  */
 export function tieBreak(people: Named[]): Map<string, { account: string; nickname: string }> {
   const uniq = [...new Map(people.map((p) => [p.peerId, p] as const)).values()];
@@ -61,15 +62,16 @@ export function tieBreak(people: Named[]): Map<string, { account: string; nickna
   }));
   const label = losers(
     named,
-    (p) => peerLabel(p),
+    (p) => avatarLabel(p),
     (a, b) => a.peerId < b.peerId,
   );
   const out = new Map<string, { account: string; nickname: string }>();
   for (const p of named) {
     if (!nick.has(p.peerId) && !label.has(p.peerId)) continue;
+    const tag = label.has(p.peerId);
     out.set(p.peerId, {
-      account: label.has(p.peerId) ? suffix(p.account, p.peerId) : p.account,
-      nickname: p.nickname,
+      account: tag && !p.nickname ? suffix(p.account, p.peerId) : p.account,
+      nickname: tag && p.nickname ? suffix(p.nickname, p.peerId) : p.nickname,
     });
   }
   return out;

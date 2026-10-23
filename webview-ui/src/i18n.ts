@@ -113,7 +113,7 @@ const ko = {
   'office.unnamed': '이름 모를 팀',
   'office.personal': '🏠 개인용',
   'office.personalHint':
-    '이 PC 혼자 쓰는 작은 오피스 — 다른 PC 와 주고받지 않아 아무에게도 보이지 않습니다 (팀 오피스는 그대로 남습니다)',
+    '이 PC 혼자 쓰는 작은 오피스 — 다른 PC 로 아무것도 보내지 않아 아무에게도 보이지 않습니다 (팀 오피스는 그대로 남습니다)',
   'office.publicDisabled': '팀 오피스에 있는 동안은 공개 오피스에 보이지 않습니다',
   'office.create': '팀 오피스 만들기',
   'office.namePlaceholder': '팀 이름 (1–20자)',
@@ -273,7 +273,7 @@ const ko = {
     '할 일을 기다리거나 확인을 기다릴 때는 대기실에서 쉽니다.\n방 이동은 3초 정도 상태가 이어져야 일어나서, 잠깐씩 바뀌는 작업에 캐릭터가 왔다 갔다 하지 않습니다.',
   'tour.tag.title': '이름표',
   'tour.tag.body':
-    '윗줄은 "PC 계정 (닉네임)", 아랫줄은 "Claude/Codex #번호" 입니다. 아랫줄 앞 색 점은 주황 = Claude, 초록 = Codex.\nMAIN = 메인 에이전트, SUB / SHELL = 서브에이전트와 셸(부모의 이름표로 보임).',
+    '윗줄은 닉네임(없으면 PC 계정), 아랫줄은 "Claude/Codex #번호" 입니다. 아랫줄 앞 색 점은 주황 = Claude, 초록 = Codex.\nMAIN = 메인 에이전트, SUB / SHELL = 서브에이전트와 셸(부모의 이름표로 보임).',
   'tour.bubble.title': '말풍선',
   'tour.bubble.body':
     '캐릭터에 마우스를 올리면 어느 방에서 무엇을 하는지, 그리고 이유가 보입니다.\n머리 위 빨간 ! 는 사용자의 확인(권한 승인이나 답변)을 기다린다는 뜻입니다.',
@@ -445,7 +445,7 @@ const en: Record<Key, string> = {
   'office.unnamed': 'Unnamed team',
   'office.personal': '🏠 Personal',
   'office.personalHint':
-    'A small office for this PC alone — nothing is sent to or taken from other PCs, so no one sees you (your team offices are kept)',
+    'A small office for this PC alone — nothing is sent to other PCs, so no one sees you (your team offices are kept)',
   'office.publicDisabled': "While you're in a team office you are not shown in the public office",
   'office.create': 'Create a team office',
   'office.namePlaceholder': 'Team name (1–20 chars)',
@@ -605,7 +605,7 @@ const en: Record<Key, string> = {
     'Idle agents, and agents waiting for you, rest in the lounge.\nA move only happens after the new activity lasts about 3 seconds, so characters do not bounce around on quick tasks.',
   'tour.tag.title': 'Name tags',
   'tour.tag.body':
-    'Top line: "PC account (nickname)"; bottom line: "Claude/Codex #number". The dot before it: orange = Claude, green = Codex.\nMAIN = main agent; SUB / SHELL = subagents and shells (shown with their parent\'s tag).',
+    'Top line: the nickname (else the PC account); bottom line: "Claude/Codex #number". The dot before it: orange = Claude, green = Codex.\nMAIN = main agent; SUB / SHELL = subagents and shells (shown with their parent\'s tag).',
   'tour.bubble.title': 'Hover bubble',
   'tour.bubble.body':
     'Hover a character to see its room, what it is doing and why.\nA red ! over its head means it is waiting for you (a permission or an answer).',

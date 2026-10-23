@@ -243,26 +243,26 @@ test('permission toggles the bubble; subagent and shell looks', () => {
   assert.equal(a.bubbleType, null);
 });
 
-test('name tags: two lines (account (nickname) / provider #n) for mains, kind for children (MAIN / SUB / SHELL badge)', () => {
+test('name tags: two lines (nickname, else account / provider #n) for mains, kind for children (MAIN / SUB / SHELL badge)', () => {
   setLang('ko');
-  assert.deepEqual(tagLines(agent('s1', 'coding', { num: 2 })), ['yoo (kim)', 'Claude #2']);
+  assert.deepEqual(tagLines(agent('s1', 'coding', { num: 2 })), ['kim', 'Claude #2']);
   assert.deepEqual(tagLines(agent('s2', 'coding', { provider: 'codex', num: 1 })), [
-    'yoo (kim)',
+    'kim',
     'Codex #1',
   ]);
-  // Children: the parent's full label, then a SUB / SHELL badge (no i18n).
+  // Children: the parent's name, then a SUB / SHELL badge (no i18n).
   const parent = agent('s1', 'coding', { num: 3 });
   const sub = child('s1/sub/a', 's1', 'coding');
   const shell = { ...child('s1/sh/1', 's1', 'server'), kind: 'shell' as const };
-  assert.deepEqual(tagLines(sub, parent), ['yoo (kim)', 'Claude #3']);
-  assert.deepEqual(tagLines(shell, parent), ['yoo (kim)', 'Claude #3']);
-  assert.deepEqual(tagLines(sub), ['yoo (kim)', 'Claude'], 'parent not in view: no number');
+  assert.deepEqual(tagLines(sub, parent), ['kim', 'Claude #3']);
+  assert.deepEqual(tagLines(shell, parent), ['kim', 'Claude #3']);
+  assert.deepEqual(tagLines(sub), ['kim', 'Claude'], 'parent not in view: no number');
   assert.equal(tagBadge(sub), 'SUB');
   assert.equal(tagBadge(shell), 'SHELL');
   assert.equal(tagBadge(parent), 'MAIN');
   setLang('en');
   assert.equal(tagBadge(sub), 'SUB');
-  assert.deepEqual(tagLines(sub, parent), ['yoo (kim)', 'Claude #3']);
+  assert.deepEqual(tagLines(sub, parent), ['kim', 'Claude #3']);
   setLang('ko');
   const unnamed = agent('s3', 'coding', { num: 1 });
   assert.deepEqual(tagLines({ ...unnamed, peer: { ...unnamed.peer, nickname: '' } }), [

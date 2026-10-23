@@ -64,6 +64,14 @@ test('tieBreak: identical labels (same account, no nickname) suffix the later ac
   assert.equal(shown.has('cc'), false); // "kim (x)" is already distinct
 });
 
+test("tieBreak: a nickname equal to another PC's account (tags show the nickname alone) is suffixed on what each tag shows", () => {
+  const shown = tieBreak([person('aa', 'kim'), person('bb', 'lee', 'kim')]);
+  assert.equal(shown.get('aa'), undefined);
+  assert.deepEqual(shown.get('bb'), { account: 'lee', nickname: 'kim · bb' });
+  const rev = tieBreak([person('bb', 'kim'), person('aa', 'lee', 'kim')]);
+  assert.deepEqual(rev.get('bb'), { account: 'kim · bb', nickname: '' });
+});
+
 test('disambiguate: renames people and agents, reports taken names and a lost self', () => {
   const agent = {
     key: 'b:1',

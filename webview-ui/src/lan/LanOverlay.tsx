@@ -32,7 +32,8 @@ import { getCachedSprite } from '../office/sprites/spriteCache.js';
 import { BUBBLE_PERMISSION_SPRITE } from '../office/sprites/spriteData.js';
 import { type Character, CharacterState } from '../office/types.js';
 import { getTheme } from '../theme.js';
-import { type LanAgents, tagBadge, tagLines } from './lanAgents.js';
+import { type AvatarRef, type LanAgents, tagBadge, tagLines } from './lanAgents.js';
+import { avatarTagColors } from './tagColor.js';
 import { stackTags, type TagBox } from './tagStack.js';
 import { tagVisible } from './tagVisibility.js';
 import { textWidth } from './textWidth.js';
@@ -149,7 +150,7 @@ export function LanOverlay({
     });
   }
   // Avatar tags (one per person): always shown, one line, after the agents' so they stack below.
-  const avatarTags: Array<{ peerId: string; label: string; self: boolean; box: TagBox }> = [];
+  const avatarTags: Array<AvatarRef & { box: TagBox }> = [];
   for (const av of lan.avatars()) {
     const ch = officeState.characters.get(av.id);
     if (!ch || ch.matrixEffect === 'despawn') continue;
@@ -174,6 +175,7 @@ export function LanOverlay({
   shown.forEach((i, k) => (tops[i] = stacked[k]));
   avatarTags.forEach((v, k) => {
     const lit = v.peerId === lan.highlightPeer;
+    const colors = avatarTagColors(v);
     nodes.push(
       <div
         key={`avatar:${v.peerId}`}
@@ -182,8 +184,9 @@ export function LanOverlay({
         style={{
           left: v.box.x,
           top: stacked[shown.length + k],
-          background: v.self ? 'var(--avatar-tag-self-bg)' : 'var(--avatar-tag-bg)',
-          color: v.self ? 'var(--avatar-tag-self-fg)' : 'var(--avatar-tag-fg)',
+          background: colors?.bg ?? 'var(--avatar-tag-bg)',
+          color: colors?.fg ?? 'var(--avatar-tag-fg)',
+          border: v.self ? '2px solid var(--avatar-tag-self-border)' : undefined,
           zIndex: lit ? LAN_PERMISSION_Z_INDEX : LAN_TAG_Z_INDEX,
         }}
       >

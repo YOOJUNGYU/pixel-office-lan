@@ -90,6 +90,8 @@ export class LanService {
     peers(view: string): PeerPacket[];
     sendNow(): void;
     teamName(tag: string): string | undefined;
+    /** Other PCs live in one office, also heard while offline (personal mode). */
+    liveCount?(view: string): number;
   } = { peers: () => [], sendNow: () => {}, teamName: () => undefined };
   private channels: { src: TeamOffice[]; list: TeamChannel[] } | null = null;
   /** This PC's OS account name: fixed, read at start, never from a client. */
@@ -263,16 +265,17 @@ export class LanService {
     );
   }
 
-  /** Live peers of a view; none at all in personal mode (PeerNet is offline too). */
-  /** How many people each open office has right now (me included), for the switcher tabs;
-   *  none in personal mode (offline, nobody else is known). */
+  /** How many people each open office has right now, for the switcher tabs: me included,
+   *  except in personal mode (I am in none of them; PeerNet only listens). */
   online(): Record<string, number> {
-    if (this.personal) return {};
     const { offices } = this.profile;
     const views = offices.length === 0 ? [PUBLIC_VIEW] : offices.map((o) => o.tag);
-    return Object.fromEntries(views.map((v) => [v, 1 + this.peersIn(v).length]));
+    const count = (v: string) =>
+      this.personal ? (this.net.liveCount?.(v) ?? 0) : 1 + this.net.peers(v).length;
+    return Object.fromEntries(views.map((v) => [v, count(v)]));
   }
 
+  /** Live peers of a view; none at all in personal mode (PeerNet is offline too). */
   private peersIn(view: string): PeerPacket[] {
     return this.personal ? [] : this.net.peers(view);
   }

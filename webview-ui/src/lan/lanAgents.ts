@@ -13,7 +13,7 @@ import { requestRender } from '../office/engine/gameLoop.js';
 import type { OfficeState } from '../office/engine/officeState.js';
 import { Direction } from '../office/types.js';
 import { isDemoKey } from '../tour/demoAgents.js';
-import { avatarLabel, peerLabel } from './nicknames.js';
+import { avatarLabel } from './nicknames.js';
 
 const DIRS: Record<AvatarDir, Direction> = {
   down: Direction.DOWN,
@@ -43,20 +43,24 @@ export interface AvatarRef {
   /** Nickname if set, else the account. */
   label: string;
   self: boolean;
+  /** Their character look (the tag takes its colour). */
+  palette: number;
+  hueShift: number;
+  pet?: string;
 }
 
 const providerName = (a: OfficeAgent): string => (a.provider === 'claude' ? 'Claude' : 'Codex');
 
 /**
  * The two lines of an agent's name tag (the provider dot before line 2 and the
- * MAIN/SUB/SHELL badge after it are drawn separately): `account (nickname)` and
+ * MAIN/SUB/SHELL badge after it are drawn separately): the nickname (else the account) and
  * `Provider #n`. A subagent or shell shows its parent's provider and number
  * (`parent` = the parent's agent; without it, the same PC and provider, no number).
  */
 export function tagLines(a: OfficeAgent, parent?: OfficeAgent): [string, string] {
   const main = a.kind === 'main' ? a : parent;
-  if (!main) return [peerLabel(a.peer), providerName(a)];
-  return [peerLabel(main.peer), `${providerName(main)} #${main.num}`];
+  if (!main) return [avatarLabel(a.peer), providerName(a)];
+  return [avatarLabel(main.peer), `${providerName(main)} #${main.num}`];
 }
 
 /** The badge after a tag (i18n-neutral): MAIN / SUB / SHELL. */
@@ -201,7 +205,9 @@ export class LanAgents {
     const out: AvatarRef[] = [];
     for (const p of this.people) {
       const id = this.avatarIds.get(p.peerId);
-      if (id !== undefined) out.push({ peerId: p.peerId, id, label: avatarLabel(p), self: p.self });
+      if (id === undefined) continue;
+      const { peerId, self, palette, hueShift, pet } = p;
+      out.push({ peerId, id, label: avatarLabel(p), self, palette, hueShift, pet });
     }
     return out;
   }

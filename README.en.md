@@ -49,7 +49,7 @@ Once an activity lasts 3 seconds, the agent walks to its room and sits on a free
 | 🗄️ Server Room | Running commands (`Bash`, Codex shell), background shells                                        |
 | 🛋️ Lounge      | Waiting for input or approval, turn finished                                                     |
 
-- **Name tags**: top line `account (nickname)`, bottom line `Claude #1` / `Codex #1` + a **MAIN** / **SUB** / **SHELL** badge. Hidden until you hover; **Show agent name tags** at the top left keeps them on.
+- **Name tags**: top line the nickname (else the PC account), bottom line `Claude #1` / `Codex #1` + a **MAIN** / **SUB** / **SHELL** badge. Hidden until you hover; **Show agent name tags** at the top left keeps them on. People's own characters always show their tag, in the character's colour (yours with a yellow frame).
 - **Bubble**: hover a character to see which file it edits and why, what it searches or runs. A **red !** overhead = waiting for you.
 - **Subagents and shells** hold their parent's hand in the same room, and work on their own in another.
 - **Map**: drag to pan, wheel to zoom (or + / − at the top left).
@@ -58,11 +58,11 @@ Once an activity lasts 3 seconds, the agent walks to its room and sits on a free
 
 ### Offices (switcher at the top)
 
-Each tab shows how many people are online there (you included; not in personal mode).
+Each tab shows how many people are online there (you included; in personal mode, everyone but you).
 
 - 🌐 **Public office** (default): everyone on the network who installed the app.
 - 🔒 **Team office**: only people with the invite code (`PO2-…`). **Settings → Offices**: create (copy the code and send it), join with a code, leave. ⚠️ While you are in any team office you are **out of the public office entirely** (you neither see it nor show up in it).
-- 🏠 **Personal**: a small office of your own that exchanges nothing with other PCs. Team memberships are kept, so you go back without a code.
+- 🏠 **Personal**: a small office of your own that sends nothing to other PCs; it only listens, to count who is online. Team memberships are kept, so you go back without a code.
 
 ### Your character and chat
 
