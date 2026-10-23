@@ -33,7 +33,7 @@ test('light floors are lighter and less saturated, hue kept, rooms stay distinct
   for (let i = 0; i < ROOM_FLOORS.length; i++) {
     const [h0, s0, l0] = hsl(ROOM_FLOORS[i]);
     const [h1, s1, l1] = hsl(out[i]);
-    assert.ok(l1 > l0 && l1 >= 0.55, `${out[i]} lighter`);
+    assert.ok(l1 > l0 && l1 >= 0.75, `${out[i]} clearly light`);
     assert.ok(s1 <= s0 + 0.01, `${out[i]} not more saturated`);
     if (s0 > 0.1) assert.ok(Math.abs(h1 - h0) < 3, `${out[i]} hue kept`);
   }

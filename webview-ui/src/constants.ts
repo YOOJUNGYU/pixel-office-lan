@@ -436,7 +436,7 @@ export const TOP_RIGHT_Z_INDEX = 43;
 /** localStorage: 'dark' | 'light' | 'system'; unset = dark. */
 export const THEME_STORAGE_KEY = 'pixel-office.theme';
 /** `<meta name="theme-color">` per theme (= --color-bg). */
-export const THEME_META_COLORS = { dark: '#1e1e2e', light: '#f4f1ea' } as const;
+export const THEME_META_COLORS = { dark: '#1e1e2e', light: '#fcfcfd' } as const;
 /**
  * Light-theme pixel transforms (office canvas only; characters/pets are never
  * transformed). HSL lightness l (0–1) becomes lo + (hi − lo)·(1 − (1 − l)^lift)
@@ -446,9 +446,9 @@ export const THEME_META_COLORS = { dark: '#1e1e2e', light: '#f4f1ea' } as const;
  * four rooms and the corridor stay distinguishable.
  */
 export const LIGHT_THEME_TRANSFORMS = {
-  floor: { lo: 0.68, hi: 0.92, lift: 1, sat: 0.85 },
-  wall: { lo: 0.68, hi: 0.95, lift: 1, sat: 0.3 },
-  furniture: { lo: 0, hi: 1, lift: 1.3, sat: 0.95 },
+  floor: { lo: 0.78, hi: 0.95, lift: 1, sat: 1 },
+  wall: { lo: 0.74, hi: 0.96, lift: 1, sat: 0.3 },
+  furniture: { lo: 0, hi: 1, lift: 1.6, sat: 0.95 },
 } as const;
 /** Editor grid / VOID outline on the canvas, per theme. */
 export const GRID_LINE_COLORS = { dark: GRID_LINE_COLOR, light: 'rgba(0,0,0,0.14)' } as const;

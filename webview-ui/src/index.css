@@ -59,33 +59,34 @@
   --btn-disabled-opacity: 0.35;
 }
 
-/* Light theme (Settings → 테마 / Theme): warm paper chrome, ink text. The office
-   canvas follows via office/themeColors.ts; this only re-points the variables. */
+/* Light theme (Settings → 테마 / Theme, or the top-left toggle): near-white
+   chrome, soft borders, ink text. The office canvas follows via
+   office/themeColors.ts; this only re-points the variables. */
 :root[data-theme='light'] {
   color-scheme: light;
-  --color-bg: #f4f1ea;
-  --color-bg-dark: #e3dfd5;
-  --color-bg-thumb: #d9d4c7;
-  --color-border: #77728c;
+  --color-bg: #fcfcfd;
+  --color-bg-dark: #eef0f5;
+  --color-bg-thumb: #e3e5ed;
+  --color-border: #8f91a8;
   --color-accent: #6030ff;
   --color-accent-bright: #4a33d1;
 
   --color-text: rgba(24, 22, 40, 0.92);
   --color-text-muted: rgba(24, 22, 40, 0.64);
 
-  --color-btn-bg: rgb(226, 221, 208);
-  --color-btn-hover: rgb(209, 203, 188);
-  --color-active-bg: rgb(216, 209, 255);
+  --color-btn-bg: rgb(243, 244, 248);
+  --color-btn-hover: rgb(228, 230, 240);
+  --color-active-bg: rgb(226, 221, 255);
 
   --color-reset-text: #9b2c2c;
   --color-danger: #b8323a;
-  --color-warning: #a85400;
+  --color-warning: #9a4d00;
 
   --color-status-permission: #a88a00;
   --color-status-active: #1f6fd1;
   --color-status-success: #3f9a3a;
 
-  --shadow-pixel: 2px 2px 0px #a9a395;
+  --shadow-pixel: 2px 2px 0px #cfd1dc;
 
   --color-on-accent: #ffffff;
   --color-divider: rgba(24, 22, 40, 0.18);
@@ -94,7 +95,7 @@
   --color-backdrop: rgba(40, 36, 60, 0.3);
   --tour-dim: rgba(28, 24, 44, 0.5);
 
-  --vignette: radial-gradient(ellipse at center, transparent 55%, rgba(70, 60, 40, 0.16) 100%);
+  --vignette: radial-gradient(ellipse at center, transparent 60%, rgba(40, 44, 70, 0.08) 100%);
 }
 
 @theme inline {
