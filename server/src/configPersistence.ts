@@ -10,6 +10,10 @@ export interface AdapterSettings {
   showAreas: boolean;
   /** Silent app updates (Settings → 자동 업데이트). */
   autoUpdate: boolean;
+  /** OS notification on join/leave of the public office (lan/notify.ts). */
+  notifyPresence: boolean;
+  /** OS notification when one of this PC's agents waits for an answer or finishes. */
+  notifyAgents: boolean;
 }
 
 /** All keys in AdapterSettings. Used by FileStateAdapter to map `pixel-agents.foo` → `foo`. */
@@ -18,6 +22,8 @@ export const ADAPTER_SETTING_KEYS = [
   'alwaysShowLabels',
   'showAreas',
   'autoUpdate',
+  'notifyPresence',
+  'notifyAgents',
 ] as const;
 
 export type AdapterSettingKey = (typeof ADAPTER_SETTING_KEYS)[number];
@@ -32,6 +38,8 @@ const DEFAULT_ADAPTER_SETTINGS: AdapterSettings = {
   alwaysShowLabels: false,
   showAreas: false,
   autoUpdate: true,
+  notifyPresence: true,
+  notifyAgents: true,
 };
 
 function getConfigFilePath(): string {
@@ -54,6 +62,14 @@ function parseAdapterSettings(raw: unknown): AdapterSettings {
       typeof obj.showAreas === 'boolean' ? obj.showAreas : DEFAULT_ADAPTER_SETTINGS.showAreas,
     autoUpdate:
       typeof obj.autoUpdate === 'boolean' ? obj.autoUpdate : DEFAULT_ADAPTER_SETTINGS.autoUpdate,
+    notifyPresence:
+      typeof obj.notifyPresence === 'boolean'
+        ? obj.notifyPresence
+        : DEFAULT_ADAPTER_SETTINGS.notifyPresence,
+    notifyAgents:
+      typeof obj.notifyAgents === 'boolean'
+        ? obj.notifyAgents
+        : DEFAULT_ADAPTER_SETTINGS.notifyAgents,
   };
 }
 

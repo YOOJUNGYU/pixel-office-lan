@@ -51,7 +51,8 @@ export type ClientMessage =
   | SetActiveView
   | GetOfficeCode
   | SendChat
-  | DeleteChat;
+  | DeleteChat
+  | SetNotifications;
 
 export interface LayoutLoaded {
   type: 'layoutLoaded';
@@ -150,6 +151,8 @@ export interface SettingsLoaded {
   externalAssetDirectories: string[];
   showAreas: boolean;
   autoUpdate: boolean;
+  notifyPresence: boolean;
+  notifyAgents: boolean;
 }
 
 export interface ExternalAssetDirectoriesUpdated {
@@ -403,4 +406,10 @@ export interface SendChat {
 
 export interface DeleteChat {
   type: 'deleteChat';
+}
+
+export interface SetNotifications {
+  type: 'setNotifications';
+  presence?: boolean;
+  agents?: boolean;
 }

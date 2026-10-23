@@ -72,6 +72,8 @@ const KEY_SOUND_ENABLED = 'pixel-agents.soundEnabled';
 const KEY_ALWAYS_SHOW_LABELS = 'pixel-agents.alwaysShowLabels';
 const KEY_SHOW_AREAS = 'pixel-agents.showAreas';
 const KEY_AUTO_UPDATE = 'pixel-agents.autoUpdate';
+const KEY_NOTIFY_PRESENCE = 'pixel-agents.notifyPresence';
+const KEY_NOTIFY_AGENTS = 'pixel-agents.notifyAgents';
 
 /**
  * Handle an incoming ClientMessage from a WebSocket client. The server is the
@@ -122,6 +124,12 @@ export function handleClientMessage(
 
     case 'setAutoUpdate':
       if (typeof msg.enabled === 'boolean') adapter.setSetting(KEY_AUTO_UPDATE, msg.enabled);
+      break;
+
+    // OS notifications (lan/notify.ts reads them from config.json when it has news).
+    case 'setNotifications':
+      if (typeof msg.presence === 'boolean') adapter.setSetting(KEY_NOTIFY_PRESENCE, msg.presence);
+      if (typeof msg.agents === 'boolean') adapter.setSetting(KEY_NOTIFY_AGENTS, msg.agents);
       break;
 
     case 'addExternalAssetDirectory': {
@@ -387,6 +395,8 @@ function settingsSnapshot(ctx: ClientMessageContext) {
     externalAssetDirectories: externalAssetDirectoriesFor(ctx),
     showAreas: adapter.getSetting(KEY_SHOW_AREAS, false),
     autoUpdate: adapter.getSetting(KEY_AUTO_UPDATE, true),
+    notifyPresence: adapter.getSetting(KEY_NOTIFY_PRESENCE, true),
+    notifyAgents: adapter.getSetting(KEY_NOTIFY_AGENTS, true),
   } as const;
 }
 
@@ -405,6 +415,7 @@ const KNOWN_CLIENT_TYPES: ReadonlySet<string> = new Set<ClientMessage['type']>([
   'addExternalAssetDirectory',
   'removeExternalAssetDirectory',
   'setShowAreas',
+  'setNotifications',
   'saveProfile',
   'installUpdate',
   'checkUpdate',
@@ -448,6 +459,7 @@ function refuseReadOnly(
     case 'setSoundEnabled':
     case 'setAlwaysShowLabels':
     case 'setShowAreas':
+    case 'setNotifications':
       send(settingsSnapshot(ctx));
       return;
     case 'addExternalAssetDirectory':

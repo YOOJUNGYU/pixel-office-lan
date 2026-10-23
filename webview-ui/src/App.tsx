@@ -114,7 +114,8 @@ function App() {
     lan,
     chats,
     people,
-    presenceToasts,
+    notify,
+    setNotify,
     profileError,
     clearProfileError,
     layoutSaveRejections,
@@ -648,20 +649,6 @@ function App() {
           </div>
         )}
 
-        {/* Join/leave notices of the public office: bottom center, newest last. */}
-        {presenceToasts.length > 0 && (
-          <div
-            role="status"
-            className="absolute left-1/2 -translate-x-1/2 bottom-10 max-sm:bottom-60 z-20 flex flex-col items-center gap-4 pointer-events-none max-w-[calc(100%-20px)]"
-          >
-            {presenceToasts.map((x) => (
-              <div key={x.id} className="pixel-panel text-sm py-4 px-10 truncate max-w-full">
-                {t(x.key, x.params)}
-              </div>
-            ))}
-          </div>
-        )}
-
         {offices && !editor.isEditMode && <OfficeSwitcher state={offices} />}
 
         {/* Top right, stacked so nothing overlaps: update banner, install popup, people panel
@@ -783,6 +770,8 @@ function App() {
             transport.send({ type: 'setAutoUpdate', enabled: !autoUpdate });
             setAutoUpdate(!autoUpdate);
           }}
+          notify={notify}
+          onNotifyChange={setNotify}
           offices={offices}
           officeReply={officeReply}
           onOfficeReplyHandled={clearOfficeReply}

@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 
 import type { Lang } from '../../../core/src/lan.js';
 import type { AutostartState, OfficesState } from '../../../core/src/messages.js';
-import type { OfficeReply } from '../hooks/useExtensionMessages.js';
+import type { NotifySettings, OfficeReply } from '../hooks/useExtensionMessages.js';
 import { LANG_NAMES, setLang, t, useLang } from '../i18n.js';
 import { OfficeSettings } from '../lan/OfficeSettings.js';
 import { isSoundEnabled, setSoundEnabled } from '../notificationSound.js';
@@ -36,6 +36,9 @@ interface SettingsModalProps {
   /** Silent app updates (Settings → 자동 업데이트). */
   autoUpdate: boolean;
   onToggleAutoUpdate: () => void;
+  /** OS notifications (kept by the server); hidden until settingsLoaded. */
+  notify: NotifySettings | null;
+  onNotifyChange: (v: NotifySettings) => void;
   /** Team offices (this PC's browser only); the 오피스 section is hidden when null. */
   offices: Omit<OfficesState, 'type'> | null;
   officeReply: OfficeReply | null;
@@ -58,6 +61,8 @@ export function SettingsModal({
   autostart,
   autoUpdate,
   onToggleAutoUpdate,
+  notify,
+  onNotifyChange,
   offices,
   officeReply,
   onOfficeReplyHandled,
@@ -189,6 +194,19 @@ export function SettingsModal({
           />
         </div>
       )}
+      {notify &&
+        (['presence', 'agents'] as const).map((k) => (
+          <Checkbox
+            key={k}
+            label={t(k === 'presence' ? 'settings.notifyPresence' : 'settings.notifyAgents')}
+            checked={notify[k]}
+            onChange={() => {
+              const next = { ...notify, [k]: !notify[k] };
+              onNotifyChange(next);
+              transport.send({ type: 'setNotifications', [k]: next[k] });
+            }}
+          />
+        ))}
       {showAreasAvailable && (
         <Checkbox
           label={t('settings.showAreas')}
