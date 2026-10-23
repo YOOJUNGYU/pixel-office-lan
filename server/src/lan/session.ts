@@ -1,5 +1,10 @@
 import type { Act, AgentView, Provider, Room } from '../../../core/src/lan.js';
-import { PERMISSION_DELAY_MS, ROOM_DEBOUNCE_MS, TEXT_IDLE_DELAY_MS } from '../constants.js';
+import {
+  PERMISSION_DELAY_MS,
+  ROOM_DEBOUNCE_MS,
+  SESSION_PROMPT_MAX,
+  TEXT_IDLE_DELAY_MS,
+} from '../constants.js';
 
 export { PERMISSION_DELAY_MS, ROOM_DEBOUNCE_MS, TEXT_IDLE_DELAY_MS };
 
@@ -27,6 +32,19 @@ export interface SessionState {
   turnEnded: boolean;
   /** shellId -> target (command or its description) and its brief */
   shells: Map<string, { target: string; brief: string }>;
+  /** LOCAL ONLY (notifications on this PC): never copied into an AgentView, so never sent. */
+  local: LocalInfo;
+}
+
+/** What a session is about, picked up from the tailed lines. */
+export interface LocalInfo {
+  /** Claude: renamed by the user (wins over aiTitle) */
+  customTitle: string;
+  /** Claude: latest auto title */
+  aiTitle: string;
+  /** first real user prompt seen (clipped) */
+  prompt: string;
+  cwd: string;
 }
 
 export function newSession(
@@ -56,6 +74,7 @@ export function newSession(
     textOnlyAt: null,
     turnEnded: false,
     shells: new Map(),
+    local: { customTitle: '', aiTitle: '', prompt: '', cwd: '' },
   };
 }
 
@@ -121,6 +140,17 @@ export function tick(s: SessionState, now: number): void {
   }
   if (s.candidate !== s.room && now - s.candidateSince >= ROOM_DEBOUNCE_MS) s.room = s.candidate;
 }
+
+/** A user prompt kept as the session's fallback title (the first one seen). */
+export function notePrompt(s: SessionState, text: string): void {
+  const t = text.trim();
+  // command wrappers, environment/AGENTS.md preambles, interrupts
+  if (s.local.prompt || !t || /^(<|\[Request interrupted|Caveat:|# AGENTS\.md)/.test(t)) return;
+  s.local.prompt = t.replace(/\s+/g, ' ').slice(0, SESSION_PROMPT_MAX);
+}
+
+/** Project folder name of a cwd (POSIX or Windows path). */
+export const folderOf = (cwd: string): string => cwd.split(/[\\/]/).filter(Boolean).pop() ?? '';
 
 /** brief=true (hideDetails) shares commands as program name / description only. */
 export function toViews(s: SessionState, brief = false): AgentView[] {

@@ -13,6 +13,8 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { PUBLIC_VIEW } from '../../../core/src/lan.js';
+import { createIdentity } from '../../src/lan/crypto.js';
 import type { CheckPids, PidState } from '../../src/lan/liveness.js';
 import {
   checkLocal,
@@ -22,6 +24,7 @@ import {
   sameDomain,
   statStart,
 } from '../../src/lan/liveness.js';
+import { LanService } from '../../src/lan/office.js';
 import { discoverRoots, Scanner, wslSessionsToCheck } from '../../src/lan/scanner.js';
 import { newSession } from '../../src/lan/session.js';
 
@@ -120,6 +123,73 @@ describe('Scanner', () => {
     await scanner.discover();
     const nums = Object.fromEntries(scanner.views().map((v) => [v.id, v.num]));
     expect(nums).toEqual({ b: 2, c: 1 });
+  });
+
+  it('session titles stay local: Scanner.info has them, the peer packet never does', async () => {
+    const line = (o: unknown) => JSON.stringify(o) + '\n';
+    writeFileSync(
+      join(proj, 'cl.jsonl'),
+      line({ type: 'user', cwd: '/w/secret-repo', message: { content: 'SECRET prompt text' } }) +
+        line({ type: 'ai-title', aiTitle: 'AUTO title' }) +
+        line({ type: 'custom-title', customTitle: 'MY secret title' }) +
+        edit('a.ts'),
+    );
+    const d = new Date(t);
+    const day = join(
+      dir,
+      'codex',
+      String(d.getFullYear()),
+      String(d.getMonth() + 1).padStart(2, '0'),
+      String(d.getDate()).padStart(2, '0'),
+    );
+    mkdirSync(day, { recursive: true });
+    writeFileSync(
+      join(day, 'rollout-x.jsonl'),
+      line({ type: 'session_meta', payload: { id: 'cx', cwd: '/w/codex-repo' } }) +
+        line({
+          type: 'response_item',
+          payload: {
+            type: 'message',
+            role: 'user',
+            content: [{ type: 'input_text', text: 'CODEX prompt' }],
+          },
+        }),
+    );
+    await scanner.discover();
+    expect(scanner.info('cl')).toEqual({ title: 'MY secret title', folder: 'secret-repo' });
+    expect(scanner.info('cx')).toEqual({ title: 'CODEX prompt', folder: 'codex-repo' });
+    // the index appears / is renamed (appended): re-read on change, last line wins
+    const idx = join(dir, 'session_index.jsonl');
+    writeFileSync(idx, line({ id: 'cx', thread_name: 'Old name' }));
+    await scanner.discover();
+    appendFileSync(idx, line({ id: 'cx', thread_name: 'CODEX thread' }));
+    ago(idx, -5_000); // a different mtime, as a real append gives
+    await scanner.discover();
+    expect(scanner.info('cx')?.title).toBe('CODEX thread');
+
+    for (const hideDetails of [false, true]) {
+      const lan = new LanService(
+        {
+          peerId: 'me',
+          nickname: '',
+          palette: 0,
+          hueShift: 0,
+          hideDetails,
+          manualPeers: [],
+          identity: (({ publicKey, privateKeyPem }) => ({ publicKey, privateKeyPem }))(
+            createIdentity('me'),
+          ),
+          offices: [],
+          activeView: PUBLIC_VIEW,
+          setUp: false,
+          nicknameSince: 0,
+        },
+        scanner,
+      );
+      const sent = JSON.stringify(lan.packet(PUBLIC_VIEW));
+      expect(sent).toContain('"provider":"codex"'); // the views are there
+      expect(sent).not.toMatch(/SECRET|secret|AUTO title|CODEX|codex-repo|Old name/);
+    }
   });
 
   it('finds codex rollouts in today dir, subagent id from meta', async () => {

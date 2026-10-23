@@ -12,6 +12,26 @@ import {
   presenceText,
   PresenceWatcher,
 } from '../../src/lan/notify.js';
+import type { AgentInfo } from '../../src/lan/scanner.js';
+import { Scanner } from '../../src/lan/scanner.js';
+
+/** A Scanner that reports given views/infos (the Notifier only accepts a real Scanner). */
+class FakeScanner extends Scanner {
+  constructor(
+    private readonly list: () => AgentView[],
+    private readonly infos: Record<string, AgentInfo> = {},
+  ) {
+    super({ claude: [], codex: [] });
+  }
+  override views(): AgentView[] {
+    return this.list();
+  }
+  override info(id: string): AgentInfo | undefined {
+    return this.infos[id];
+  }
+}
+const fake = (list: () => AgentView[], infos: Record<string, AgentInfo> = {}) =>
+  new FakeScanner(list, infos);
 
 const me = { peerId: 'me', account: 'me', nickname: '', self: true };
 const p = (id: string, nickname = '') => ({ peerId: id, account: id, nickname, self: false });
@@ -160,7 +180,7 @@ describe('Notifier', () => {
       {
         view: () => 'public',
         people: () => people,
-        agents: () => agents,
+        local: fake(() => agents),
         settings: () => settings,
       },
       { lang: 'ko', notify: (b) => (sent.push(b), true) },
@@ -195,7 +215,7 @@ describe('Notifier', () => {
       {
         view: () => 'personal',
         people: () => people,
-        agents: () => agents,
+        local: fake(() => agents),
         settings: () => ({ presence: true, agents: true }),
       },
       { lang: 'en', notify: (b) => (sent.push(b), true) },
@@ -205,5 +225,76 @@ describe('Notifier', () => {
     people = [me, p('x')];
     n.tick(SETTLE * 3);
     expect(sent).toEqual(['Claude #1 finished its work']);
+  });
+
+  it('my agents carry their local title + folder; merged ones list short titles', () => {
+    const sent: string[] = [];
+    let agents = [agent(), agent({ id: 's2', num: 2 })];
+    const n = new Notifier(
+      {
+        view: () => 'personal',
+        people: () => [me],
+        local: fake(() => agents, {
+          s1: { title: '검진라이브러리 검색 index 설정', folder: 'pixel-office-lan' },
+          s2: { title: 'x'.repeat(100), folder: '' },
+        }),
+        settings: () => ({ presence: true, agents: true }),
+      },
+      { lang: 'ko', notify: (b) => (sent.push(b), true) },
+    );
+    n.tick(0);
+    agents = [agent({ act: 'ask', room: 'lounge', target: '' }), agent({ id: 's2', num: 2 })];
+    n.tick(1000);
+    agents = [agent(idle), agent({ id: 's2', num: 2, ...idle })];
+    n.tick(2000);
+    expect(sent[0]).toBe(
+      'Claude #1 · pixel-office-lan\n검진라이브러리 검색 index 설정 — 응답을 기다립니다',
+    );
+    expect(sent[1]).toBe(
+      `Claude #1 · 검진라이브러리 검색 index 설정 — 작업을 마쳤습니다\nClaude #2 · ${'x'.repeat(23)}… — 작업을 마쳤습니다`,
+    );
+  });
+
+  it("a peer's agents (office snapshot) never notify, whatever they do", () => {
+    // what lan.office() returns: peers' views carry `peer` — not ours even if fed in
+    const peer = { id: 'p', account: 'p', nickname: '', palette: 0, hueShift: 0 };
+    const peerView = (o: Partial<AgentView>) => ({
+      ...agent({ id: 'p1', ...o }),
+      key: 'p:p1',
+      peer,
+    });
+    const sent: string[] = [];
+    let views: AgentView[] = [peerView({})];
+    const n = new Notifier(
+      {
+        view: () => 'public',
+        people: () => [me, p('p')],
+        local: fake(() => views),
+        settings: () => ({ presence: true, agents: true }),
+      },
+      { lang: 'ko', notify: (b) => (sent.push(b), true) },
+    );
+    n.tick(0);
+    views = [peerView({ permission: true })];
+    n.tick(1000);
+    views = [peerView(idle)];
+    n.tick(2000);
+    expect(sent).toEqual([]);
+  });
+});
+
+describe('agentText with a title', () => {
+  const e = { kind: 'waiting', label: 'Codex #2', context: '' } as const;
+  it('clips the title; no title = label + folder on one line', () => {
+    expect(agentText('en', { ...e, title: 't'.repeat(80), folder: 'repo' })).toBe(
+      `Codex #2 · repo\n${'t'.repeat(59)}… — waiting for you`,
+    );
+    expect(agentText('en', { ...e, kind: 'done', title: 'Fix login' })).toBe(
+      'Codex #2\nFix login — finished',
+    );
+    expect(agentText('ko', { ...e, folder: 'repo' })).toBe('Codex #2 · repo — 응답을 기다립니다');
+    expect(agentText('en', { ...e, kind: 'done', folder: 'repo' })).toBe(
+      'Codex #2 · repo finished its work',
+    );
   });
 });

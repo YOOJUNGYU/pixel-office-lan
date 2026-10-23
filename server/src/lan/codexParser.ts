@@ -1,6 +1,6 @@
 import type { Act, Room } from '../../../core/src/lan.js';
 import type { SessionState } from './session.js';
-import { programName, setActivity, setIdle } from './session.js';
+import { notePrompt, programName, setActivity, setIdle } from './session.js';
 
 type Obj = Record<string, unknown>;
 
@@ -127,6 +127,7 @@ function onItem(s: SessionState, p: Obj, now: number): void {
     }
     case 'message':
       if (p.role === 'assistant') setReason(s, textOf(p.content));
+      else if (p.role === 'user') notePrompt(s, textOf(p.content));
   }
 }
 
@@ -163,18 +164,44 @@ export function applyCodexLine(s: SessionState, line: string, now: number): void
   if (!rec || typeof rec !== 'object') return;
   s.lastLineAt = now;
   const { type, payload } = rec as Obj;
+  const cwd = obj(payload).cwd;
+  if ((type === 'turn_context' || type === 'session_meta') && typeof cwd === 'string') {
+    s.local.cwd = cwd; // local only (notifications)
+  }
   if (type === 'response_item') onItem(s, obj(payload), now);
   else if (type === 'event_msg') onEvent(s, obj(payload), now);
 }
 
-export function codexSessionMeta(firstLine: string): { id: string; parentId?: string } | null {
+/** `~/.codex/session_index.jsonl` (appended as threads are renamed): session id → its
+ *  latest thread name (last line wins). A torn first/last line is skipped. */
+export function parseCodexIndex(
+  text: string,
+  into = new Map<string, string>(),
+): Map<string, string> {
+  for (const line of text.split('\n')) {
+    try {
+      const r = obj(JSON.parse(line));
+      if (typeof r.id === 'string' && typeof r.thread_name === 'string' && r.thread_name.trim()) {
+        into.set(r.id, r.thread_name.trim());
+      }
+    } catch {
+      /* torn or blank line */
+    }
+  }
+  return into;
+}
+
+export function codexSessionMeta(
+  firstLine: string,
+): { id: string; parentId?: string; cwd?: string } | null {
   try {
     const rec = obj(JSON.parse(firstLine));
     const p = obj(rec.payload);
     if (rec.type !== 'session_meta' || typeof p.id !== 'string') return null;
     // ponytail: Codex 서브에이전트 포맷 미검증(로컬 표본 없음), 실제 표본 확보 시 픽스처로 고정
     const parentId = obj(obj(obj(p.source).subagent).thread_spawn).parent_thread_id;
-    return typeof parentId === 'string' ? { id: p.id, parentId } : { id: p.id };
+    const cwd = typeof p.cwd === 'string' ? { cwd: p.cwd } : {};
+    return typeof parentId === 'string' ? { id: p.id, parentId, ...cwd } : { id: p.id, ...cwd };
   } catch {
     return null;
   }

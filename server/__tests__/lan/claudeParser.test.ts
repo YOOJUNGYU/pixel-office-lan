@@ -207,3 +207,35 @@ describe('applyClaudeLine', () => {
     toViews(s);
   });
 });
+
+describe('local title (notifications only)', () => {
+  const line = (o: unknown) => JSON.stringify(o);
+  const user = (content: unknown, extra = {}) =>
+    line({ type: 'user', message: { content }, ...extra });
+
+  it('custom-title beats ai-title; the latest ai-title wins; first real prompt is the fallback', () => {
+    const s = mk();
+    applyClaudeLine(s, user('<command-name>/clear</command-name>'), 0);
+    applyClaudeLine(s, user('Caveat: meta', { isMeta: true }), 0);
+    applyClaudeLine(s, user([{ type: 'tool_result', tool_use_id: 'x', content: 'out' }]), 0);
+    applyClaudeLine(
+      s,
+      user([{ type: 'text', text: '  검색 index\n설정해 줘 ' }], { cwd: '/w/repo' }),
+      0,
+    );
+    applyClaudeLine(s, user('second prompt'), 0);
+    expect(s.local).toEqual({
+      customTitle: '',
+      aiTitle: '',
+      prompt: '검색 index 설정해 줘',
+      cwd: '/w/repo',
+    });
+    applyClaudeLine(s, line({ type: 'ai-title', aiTitle: 'Old' }), 0);
+    applyClaudeLine(s, line({ type: 'ai-title', aiTitle: 'New' }), 0);
+    expect(s.local.aiTitle).toBe('New');
+    applyClaudeLine(s, line({ type: 'custom-title', customTitle: 'Mine' }), 0);
+    applyClaudeLine(s, line({ type: 'ai-title', aiTitle: 'Newer' }), 0);
+    expect(s.local).toMatchObject({ customTitle: 'Mine', aiTitle: 'Newer' });
+    expect(JSON.stringify(toViews(s))).not.toMatch(/Mine|Newer|검색|repo/);
+  });
+});

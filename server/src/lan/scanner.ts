@@ -9,6 +9,7 @@ import {
   CHILD_ENDED_HIDE_MS,
   CHILD_IDLE_TTL_MS,
   CODEX_ENDED_TTL_MS,
+  CODEX_INDEX_MAX_BYTES,
   CODEX_META_MAX_BYTES,
   DISCOVER_INTERVAL_MS,
   POLL_INTERVAL_MS,
@@ -16,16 +17,24 @@ import {
   TAIL_BYTES,
 } from '../constants.js';
 import { applyClaudeLine } from './claudeParser.js';
-import { applyCodexLine, codexSessionMeta } from './codexParser.js';
+import { applyCodexLine, codexSessionMeta, parseCodexIndex } from './codexParser.js';
 import type { CheckPids, RegEntry } from './liveness.js';
 import { checkPids, domainOf, readRegistry } from './liveness.js';
 import type { Roots } from './roots.js';
 import type { SessionState } from './session.js';
-import { newSession, tick, toViews } from './session.js';
+import { folderOf, newSession, tick, toViews } from './session.js';
 
 export { CHILD_IDLE_TTL_MS, SESSION_TTL_MS, TAIL_BYTES };
 export type { Roots } from './roots.js';
 export { discoverRoots, parseWslList } from './roots.js';
+
+/** What a main session is about, for this PC's own notifications. LOCAL ONLY. */
+export interface AgentInfo {
+  /** user rename > auto title (Claude) / thread name (Codex) > first prompt; '' unknown */
+  title: string;
+  /** project folder (basename of the session cwd); '' unknown */
+  folder: string;
+}
 
 // ── Scanner ────────────────────────────────────────────────
 
@@ -107,6 +116,8 @@ export class Scanner {
   private closed = new Set<string>();
   /** file → mtime when it was turned away (closed / expired): skipped until it changes. */
   private rejected = new Map<string, number>();
+  /** Codex session_index.jsonl per path: `mtime:size` read last + id → thread name. */
+  private codexIndex = new Map<string, { key: string; names: Map<string, string> }>();
 
   /** A function is re-run every discover cycle (running WSL distros come and go). */
   constructor(
@@ -167,6 +178,7 @@ export class Scanner {
       }
     }
     await this.refreshClosed();
+    await this.refreshCodexIndex();
     const candidates = await this.candidates();
     const present = new Set(candidates.map((c) => c.file));
     for (const f of this.rejected.keys()) if (!present.has(f)) this.rejected.delete(f);
@@ -210,6 +222,48 @@ export class Scanner {
         this.rejected.set(file, t.mtimeMs);
       }
     }
+  }
+
+  /** Codex thread names: re-read (its last CODEX_INDEX_MAX_BYTES) only when it changed. */
+  private async refreshCodexIndex(): Promise<void> {
+    const seen = new Set<string>();
+    for (const root of this.roots.codex) {
+      const file = path.join(path.dirname(root), 'session_index.jsonl');
+      seen.add(file);
+      try {
+        const st = await stat(file);
+        const key = `${st.mtimeMs.toString()}:${st.size.toString()}`;
+        if (this.codexIndex.get(file)?.key === key) continue;
+        const fh = await open(file, 'r');
+        let text: string;
+        try {
+          text = (
+            await readRange(fh, Math.max(0, st.size - CODEX_INDEX_MAX_BYTES), st.size)
+          ).toString('utf8');
+        } finally {
+          await fh.close();
+        }
+        this.codexIndex.set(file, { key, names: parseCodexIndex(text) });
+      } catch {
+        this.codexIndex.delete(file); // no index (older Codex) / unreadable
+      }
+    }
+    for (const f of this.codexIndex.keys()) if (!seen.has(f)) this.codexIndex.delete(f);
+  }
+
+  /** This PC's main session `id`: title + folder for its notifications. LOCAL ONLY —
+   *  never put into views()/packets. */
+  info(id: string): AgentInfo | undefined {
+    for (const { s } of this.files.values()) {
+      if (s.id !== id || s.kind !== 'main') continue;
+      const l = s.local;
+      let named = l.customTitle || l.aiTitle;
+      if (s.provider === 'codex') {
+        for (const idx of this.codexIndex.values()) named ||= idx.names.get(id) ?? '';
+      }
+      return { title: named || l.prompt, folder: folderOf(l.cwd) };
+    }
+    return undefined;
   }
 
   /** brief=true: commands as program name / description only (hideDetails) */
@@ -294,6 +348,7 @@ export class Scanner {
     if (this.rejected.get(c.file) === st.mtimeMs) return;
     let parentId = c.parentId;
     let id = parentId ? `${parentId}/sub/${jsonlBase(c.file)}` : jsonlBase(c.file);
+    let codexCwd = '';
     if (now - st.mtimeMs > (parentId ? CHILD_IDLE_TTL_MS : SESSION_TTL_MS)) return;
     if (c.provider === 'claude' && this.closed.has(parentId ?? id)) {
       if (domainOf(c.file) === 'local') {
@@ -307,11 +362,13 @@ export class Scanner {
     if (c.provider === 'codex') {
       const meta = codexSessionMeta(await firstLine(c.file));
       parentId = meta?.parentId;
+      codexCwd = meta?.cwd ?? '';
       const metaId = meta?.id ?? UUID_RE.exec(c.file)?.[0] ?? jsonlBase(c.file);
       id = parentId ? `${parentId}/sub/${metaId}` : metaId;
       if (parentId && now - st.mtimeMs > CHILD_IDLE_TTL_MS) return;
     }
     const s = newSession(c.provider, id, parentId ? 'subagent' : 'main', now, parentId);
+    if (c.provider === 'codex') s.local.cwd = codexCwd;
     if (s.kind === 'main') s.num = this.freeNum();
     const start = Math.max(0, st.size - TAIL_BYTES);
     const t: Tracked = {

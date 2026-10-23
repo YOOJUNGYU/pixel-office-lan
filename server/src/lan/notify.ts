@@ -9,9 +9,12 @@ import {
   NOTIFY_BODY_MAX,
   NOTIFY_CONTEXT_MAX,
   NOTIFY_NAME_MAX,
+  NOTIFY_TITLE_MAX,
+  NOTIFY_TITLE_SHORT_MAX,
   PRESENCE_LEAVE_GRACE_MS,
   PRESENCE_SETTLE_MS,
 } from '../constants.js';
+import type { AgentInfo, Scanner } from './scanner.js';
 
 interface Person {
   peerId: string;
@@ -84,6 +87,9 @@ export interface AgentEvent {
   label: string;
   /** waiting: what it waits on (command, file…), '' if none. */
   context: string;
+  /** LOCAL ONLY (Scanner.info): session title / prompt and project folder. */
+  title?: string;
+  folder?: string;
 }
 
 const waiting = (v: AgentView): boolean => v.permission || v.act === 'ask';
@@ -100,19 +106,31 @@ const idle = (v: AgentView): boolean => v.room === 'lounge' && v.act === 'idle';
 export class AgentWatcher {
   private last = new Map<string, { waiting: boolean; idle: boolean }>();
 
-  apply(views: AgentView[]): AgentEvent[] {
+  apply(
+    views: AgentView[],
+    info: (id: string) => AgentInfo | undefined = () => undefined,
+  ): AgentEvent[] {
     const out: AgentEvent[] = [];
     const next = new Map<string, { waiting: boolean; idle: boolean }>();
     for (const v of views) {
-      if (v.kind !== 'main') continue;
+      // a peer's agent (an office snapshot entry carries `peer`) is never ours to announce
+      if (v.kind !== 'main' || 'peer' in v) continue;
       const now = { waiting: waiting(v), idle: idle(v) };
       const prev = this.last.get(v.id);
       next.set(v.id, now);
       if (!prev) continue;
       const label = `${v.provider === 'claude' ? 'Claude' : 'Codex'} #${v.num.toString()}`;
-      if (now.waiting && !prev.waiting) {
-        out.push({ kind: 'waiting', label, context: v.permission ? v.target : '' });
-      } else if (now.idle && !prev.idle) out.push({ kind: 'done', label, context: '' });
+      const kind =
+        now.waiting && !prev.waiting ? 'waiting' : now.idle && !prev.idle ? 'done' : null;
+      if (!kind) continue;
+      const { title, folder } = info(v.id) ?? {};
+      out.push({
+        kind,
+        label,
+        context: kind === 'waiting' && v.permission ? v.target : '',
+        ...(title && { title }),
+        ...(folder && { folder }),
+      });
     }
     this.last = next;
     return out;
@@ -141,14 +159,29 @@ export function presenceText(lang: NotifyLang, c: PresenceChange): string[] {
   return out;
 }
 
-export function agentText(lang: NotifyLang, e: AgentEvent): string {
+/**
+ * One agent event. With a title: `Claude #1 · folder` + newline + `title — 응답을 기다립니다`;
+ * `short` (several merged): one line `Claude #1 · short title — …`. No title: the label
+ * (+ folder) and the verb on one line.
+ */
+export function agentText(lang: NotifyLang, e: AgentEvent, short = false): string {
   const ctx = e.context ? ` (${clip(e.context, NOTIFY_CONTEXT_MAX)})` : '';
-  if (e.kind === 'waiting') {
-    return lang === 'ko'
-      ? `${e.label} — 응답을 기다립니다${ctx}`
-      : `${e.label} is waiting for you${ctx}`;
+  const head = e.folder ? `${e.label} · ${clip(e.folder, NOTIFY_NAME_MAX)}` : e.label;
+  const ko = lang === 'ko';
+  if (!e.title) {
+    if (e.kind === 'waiting')
+      return ko ? `${head} — 응답을 기다립니다${ctx}` : `${head} is waiting for you${ctx}`;
+    return ko ? `${head} — 작업을 마쳤습니다` : `${head} finished its work`;
   }
-  return lang === 'ko' ? `${e.label} — 작업을 마쳤습니다` : `${e.label} finished its work`;
+  const verb =
+    e.kind === 'waiting'
+      ? (ko ? '응답을 기다립니다' : 'waiting for you') + ctx
+      : ko
+        ? '작업을 마쳤습니다'
+        : 'finished';
+  return short
+    ? `${e.label} · ${clip(e.title, NOTIFY_TITLE_SHORT_MAX)} — ${verb}`
+    : `${head}\n${clip(e.title, NOTIFY_TITLE_MAX)} — ${verb}`;
 }
 
 export interface NotifySettings {
@@ -164,8 +197,9 @@ export class Notifier {
     private readonly src: {
       view(): string;
       people(view: string): Person[];
-      /** This PC's own agents (the scanner), never peers'. */
-      agents(): AgentView[];
+      /** This PC's own agents: the Scanner itself (a class with private fields, so only a
+       *  real Scanner fits — never the office snapshot with peers' agents). */
+      local: Scanner;
       settings(): NotifySettings;
     },
     private readonly out: { lang: NotifyLang; notify(body: string): boolean },
@@ -176,13 +210,14 @@ export class Notifier {
     const view = this.src.view();
     if (view !== this.presence.view) this.presence.reset(view); // start / another office: new baseline
     const change = this.presence.apply(this.src.people(view), now);
-    const events = this.agents.apply(this.src.agents());
+    const { local } = this.src;
+    const events = this.agents.apply(local.views(), (id) => local.info(id));
     if (change.joined.length + change.left.length + events.length === 0) return;
     const { lang } = this.out;
     const settings = this.src.settings();
     for (const body of settings.presence ? presenceText(lang, change) : []) this.send(body);
     if (settings.agents && events.length > 0) {
-      this.send(events.map((e) => agentText(lang, e)).join('\n'));
+      this.send(events.map((e) => agentText(lang, e, events.length > 1)).join('\n'));
     }
   }
 

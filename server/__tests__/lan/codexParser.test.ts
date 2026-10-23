@@ -4,7 +4,12 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import type { Act } from '../../../core/src/lan.js';
-import { applyCodexLine, classifyShell, codexSessionMeta } from '../../src/lan/codexParser.js';
+import {
+  applyCodexLine,
+  classifyShell,
+  codexSessionMeta,
+  parseCodexIndex,
+} from '../../src/lan/codexParser.js';
 import { newSession, tick, toViews } from '../../src/lan/session.js';
 
 const fixture = (name: string) =>
@@ -243,5 +248,38 @@ describe('codexSessionMeta', () => {
     });
     expect(codexSessionMeta('{"type":"event_msg","payload":{}}')).toBeNull();
     expect(codexSessionMeta('nope')).toBeNull();
+  });
+});
+
+describe('local title (notifications only)', () => {
+  it('session_index: the last line per id wins; torn lines skipped', () => {
+    const idx = [
+      '{"id":"a","thread_name":"first","updated_at":"1"}',
+      '{"id":"b","thread_name":"bee","updated_at":"2"}',
+      '{"id":"a","thread_name":"renamed","updated_at":"3"}',
+      '{"id":"c","thread_na',
+    ].join('\n');
+    expect([...parseCodexIndex(idx)]).toEqual([
+      ['a', 'renamed'],
+      ['b', 'bee'],
+    ]);
+  });
+
+  it('first real user message is the fallback; cwd from turn_context / session_meta', () => {
+    const s = mk();
+    const user = (text: string) =>
+      item({ type: 'message', role: 'user', content: [{ type: 'input_text', text }] });
+    applyCodexLine(s, user('# AGENTS.md instructions for /x'), 0);
+    applyCodexLine(s, user('<environment_context>…</environment_context>'), 0);
+    applyCodexLine(s, user('내원현황 정렬 개선'), 0);
+    applyCodexLine(s, user('later'), 0);
+    applyCodexLine(s, JSON.stringify({ type: 'turn_context', payload: { cwd: 'C:\\w\\fe' } }), 0);
+    expect(s.local).toMatchObject({ prompt: '내원현황 정렬 개선', cwd: 'C:\\w\\fe' });
+    expect(codexSessionMeta('{"type":"session_meta","payload":{"id":"c1","cwd":"/w/fe"}}')).toEqual(
+      {
+        id: 'c1',
+        cwd: '/w/fe',
+      },
+    );
   });
 });

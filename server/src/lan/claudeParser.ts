@@ -1,6 +1,6 @@
 import type { Act, Room } from '../../../core/src/lan.js';
 import type { SessionState } from './session.js';
-import { programName, setActivity, setIdle } from './session.js';
+import { notePrompt, programName, setActivity, setIdle } from './session.js';
 
 type Input = Record<string, unknown>;
 interface Block {
@@ -102,7 +102,7 @@ function onAssistant(s: SessionState, content: Block[], now: number): void {
   if (!sawTool && content.some((b) => b?.type === 'text')) s.textOnlyAt = now;
 }
 
-function onUser(s: SessionState, content: unknown, now: number): void {
+function onUser(s: SessionState, content: unknown, now: number, meta: boolean): void {
   const results = Array.isArray(content)
     ? (content as Block[]).filter((b) => b?.type === 'tool_result')
     : [];
@@ -119,6 +119,7 @@ function onUser(s: SessionState, content: unknown, now: number): void {
     return;
   }
   const text = textOf(content);
+  if (!meta) notePrompt(s, text);
   const taskId = TASK_ID_RE.exec(text)?.[1];
   if (taskId && DONE_RE.test(text)) s.shells.delete(taskId);
   // Esc: no turn_duration follows
@@ -138,6 +139,10 @@ export function applyClaudeLine(s: SessionState, line: string, now: number): voi
     subtype?: string;
     message?: { content?: unknown };
     permissionMode?: unknown;
+    isMeta?: unknown;
+    cwd?: unknown;
+    customTitle?: unknown;
+    aiTitle?: unknown;
   };
   try {
     rec = JSON.parse(line);
@@ -150,8 +155,15 @@ export function applyClaudeLine(s: SessionState, line: string, now: number): voi
   if (typeof rec.permissionMode === 'string') {
     s.bypass = rec.permissionMode === 'bypassPermissions';
   }
+  // local only (notifications): cwd, titles — see SessionState.local
+  if (typeof rec.cwd === 'string') s.local.cwd = rec.cwd;
+  if (rec.type === 'custom-title' && typeof rec.customTitle === 'string') {
+    s.local.customTitle = rec.customTitle.trim();
+  } else if (rec.type === 'ai-title' && typeof rec.aiTitle === 'string') {
+    s.local.aiTitle = rec.aiTitle.trim();
+  }
   const content = rec.message?.content;
   if (rec.type === 'assistant' && Array.isArray(content)) onAssistant(s, content, now);
-  else if (rec.type === 'user') onUser(s, content, now);
+  else if (rec.type === 'user') onUser(s, content, now, rec.isMeta === true);
   else if (rec.type === 'system' && rec.subtype === 'turn_duration') setIdle(s, now);
 }

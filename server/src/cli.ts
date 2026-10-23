@@ -311,7 +311,7 @@ export async function main(boot = true): Promise<void> {
       {
         view: () => lan.profile.activeView,
         people: (view) => lan.people(view),
-        agents: () => scanner.views(),
+        local: scanner,
         settings: () => {
           const s = readConfig().standalone;
           return { presence: s.notifyPresence, agents: s.notifyAgents };

@@ -220,3 +220,11 @@ export const NOTIFY_NAME_MAX = 40;
 export const NOTIFY_CONTEXT_MAX = 60;
 /** Whole notification body; Windows balloon text is capped at 255 chars. */
 export const NOTIFY_BODY_MAX = 250;
+/** A session's title (or prompt) in a single-agent notification. */
+export const NOTIFY_TITLE_MAX = 60;
+/** …and per line when several agents are merged into one notification. */
+export const NOTIFY_TITLE_SHORT_MAX = 24;
+/** A session's first prompt is kept (local only) up to this many chars as its fallback title. */
+export const SESSION_PROMPT_MAX = 200;
+/** Codex `session_index.jsonl` (thread names): only its last this-many bytes are read. */
+export const CODEX_INDEX_MAX_BYTES = 256 * 1024;
