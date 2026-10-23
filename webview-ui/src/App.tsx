@@ -114,6 +114,7 @@ function App() {
     lan,
     chats,
     people,
+    presenceToasts,
     profileError,
     clearProfileError,
     layoutSaveRejections,
@@ -642,6 +643,20 @@ function App() {
             className="absolute left-1/2 -translate-x-1/2 bottom-80 z-20 bg-danger text-white text-sm py-3 px-8 rounded-none border-2 border-border shadow-pixel pointer-events-none whitespace-nowrap"
           >
             {t(saveError.key === 'rejected' ? 'app.layoutSaveRejected' : 'app.layoutSaveTimeout')}
+          </div>
+        )}
+
+        {/* Join/leave notices of the public office: bottom center, newest last. */}
+        {presenceToasts.length > 0 && (
+          <div
+            role="status"
+            className="absolute left-1/2 -translate-x-1/2 bottom-10 max-sm:bottom-60 z-20 flex flex-col items-center gap-4 pointer-events-none max-w-[calc(100%-20px)]"
+          >
+            {presenceToasts.map((x) => (
+              <div key={x.id} className="pixel-panel text-sm py-4 px-10 truncate max-w-full">
+                {t(x.key, x.params)}
+              </div>
+            ))}
           </div>
         )}
 

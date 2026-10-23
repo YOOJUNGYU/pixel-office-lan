@@ -440,6 +440,16 @@ export const TAGS_HIDDEN_KEY = 'pixel-office.tagsHidden';
 export const ROOM_LEGEND_TOP_PX = 100;
 export const ROOM_LEGEND_MOBILE_TOP_PX = 56;
 
+// ── Join/leave notices (public office) ───────────────────────
+/** A peer gone this long is reported as left; back sooner = nothing (presence TTL is ~5 s). */
+export const PRESENCE_LEAVE_GRACE_MS = 10_000;
+/** After a view switch / reconnect, people seen this soon after the first snapshot count as already there. */
+export const PRESENCE_SETTLE_MS = 5_000;
+/** How long a join/leave toast stays. */
+export const PRESENCE_TOAST_MS = 4_000;
+/** At most this many join/leave toasts at once (the oldest goes first). */
+export const PRESENCE_TOAST_MAX = 3;
+
 // ── People panel ─────────────────────────────────────────────
 /** localStorage: '1' = collapsed, '0' = expanded (per viewer); unset = by screen width. */
 export const PEOPLE_COLLAPSED_KEY = 'pixel-office.people.collapsed';

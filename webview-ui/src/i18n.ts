@@ -69,6 +69,10 @@ const ko = {
   'app.importInvalid': '올바른 레이아웃 파일이 아닙니다.',
   'app.layoutSaveRejected': '레이아웃을 저장하지 못했습니다 (올바르지 않은 레이아웃).',
   'app.layoutSaveTimeout': '레이아웃 저장 응답이 없습니다. 서버 연결을 확인해 주세요.',
+  'presence.joined': '{name} 님이 접속했습니다',
+  'presence.left': '{name} 님이 나갔습니다',
+  'presence.joinedMany': '{n}명이 접속했습니다',
+  'presence.leftMany': '{n}명이 나갔습니다',
   'app.importFailed': '레이아웃 파일을 읽지 못했습니다.',
 
   'conn.connecting': '연결 중…',
@@ -388,6 +392,10 @@ const en: Record<Key, string> = {
   'app.importInvalid': 'This is not a valid layout file.',
   'app.layoutSaveRejected': 'The layout was not saved (not a valid layout).',
   'app.layoutSaveTimeout': 'No answer to the layout save. Check the server connection.',
+  'presence.joined': '{name} joined',
+  'presence.left': '{name} left',
+  'presence.joinedMany': '{n} people joined',
+  'presence.leftMany': '{n} people left',
   'app.importFailed': 'Could not read the layout file.',
 
   'conn.connecting': 'Connecting…',

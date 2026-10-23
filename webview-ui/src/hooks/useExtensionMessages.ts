@@ -16,10 +16,11 @@ import type {
   UpdateAvailable,
   UpdateStatus,
 } from '../../../core/src/messages.js';
-import { LAN_READING_TOOLS } from '../constants.js';
+import { LAN_READING_TOOLS, PRESENCE_TOAST_MAX, PRESENCE_TOAST_MS } from '../constants.js';
 import { ChatBubbles } from '../lan/chat.js';
 import { LanAgents } from '../lan/lanAgents.js';
 import { disambiguate } from '../lan/nicknames.js';
+import { PresenceWatcher } from '../lan/presence.js';
 import { setSoundEnabled } from '../notificationSound.js';
 import { requestRender } from '../office/engine/gameLoop.js';
 import type { OfficeState } from '../office/engine/officeState.js';
@@ -34,6 +35,14 @@ import type { OfficeLayout } from '../office/types.js';
 import { setWallSprites } from '../office/wallTiles.js';
 import { reloadIfNewVersion } from '../pwa.js';
 import { transport } from '../transport/index.js';
+
+let toastSeq = 0;
+
+export interface PresenceToast {
+  id: number;
+  key: 'presence.joined' | 'presence.left' | 'presence.joinedMany' | 'presence.leftMany';
+  params: Record<string, string>;
+}
 
 interface FurnitureAsset {
   id: string;
@@ -96,6 +105,8 @@ interface ExtensionMessageState {
   autostart: AutostartState | null;
   /** Team offices + active view (this PC's browser only); null for read-only viewers. */
   offices: Omit<OfficesState, 'type'> | null;
+  /** Join/leave notices of the public office, oldest first (each hides after PRESENCE_TOAST_MS). */
+  presenceToasts: PresenceToast[];
   /** Latest reply to an office request from this browser (each a new object). */
   officeReply: OfficeReply | null;
   /** Drop the reply once handled, so reopening Settings does not apply it again. */
@@ -132,6 +143,10 @@ export function useExtensionMessages(
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
   const [autostart, setAutostart] = useState<AutostartState | null>(null);
   const [offices, setOffices] = useState<Omit<OfficesState, 'type'> | null>(null);
+  const [presenceToasts, setPresenceToasts] = useState<PresenceToast[]>([]);
+  const presenceRef = useRef<PresenceWatcher | null>(null);
+  presenceRef.current ??= new PresenceWatcher();
+  const presence = presenceRef.current;
   const [officeReply, setOfficeReply] = useState<OfficeReply | null>(null);
   const clearOfficeReply = useCallback(() => setOfficeReply(null), []);
   const lanRef = useRef<LanAgents | null>(null);
@@ -184,6 +199,25 @@ export function useExtensionMessages(
         setPeople(snap.people);
         chats.apply(snap.people);
         setNicknames({ taken: snap.taken, selfLost: snap.selfLost });
+        const { joined, left } = presence.apply(snap.people, Date.now());
+        const add: PresenceToast[] = [];
+        for (const [names, one, many] of [
+          [joined, 'presence.joined', 'presence.joinedMany'],
+          [left, 'presence.left', 'presence.leftMany'],
+        ] as const) {
+          if (names.length === 1)
+            add.push({ id: ++toastSeq, key: one, params: { name: names[0] } });
+          else if (names.length > 1)
+            add.push({ id: ++toastSeq, key: many, params: { n: String(names.length) } });
+        }
+        if (add.length > 0) {
+          setPresenceToasts((list) => [...list, ...add].slice(-PRESENCE_TOAST_MAX));
+          const ids = new Set(add.map((a) => a.id));
+          setTimeout(
+            () => setPresenceToasts((list) => list.filter((x) => !ids.has(x.id))),
+            PRESENCE_TOAST_MS,
+          );
+        }
         if (layoutReadyRef.current) applyAgents(agents);
         else pendingAgentsRef.current = agents;
       } else if (msg.type === 'profileLoaded') {
@@ -203,6 +237,7 @@ export function useExtensionMessages(
       } else if (msg.type === 'officesState') {
         const { offices, activeView } = msg as OfficesState;
         setOffices({ offices, activeView });
+        if (activeView !== presence.currentView) presence.reset(activeView); // another office: new baseline
       } else if (
         msg.type === 'officeCreated' ||
         msg.type === 'officeCode' ||
@@ -279,8 +314,13 @@ export function useExtensionMessages(
       handler(msg);
       requestRender('message'); // whatever it changed shows on the next frame
     });
+    // A dropped socket may have missed joins/leaves: the next snapshot is a new baseline.
+    const unsubscribeState = transport.onStateChange(() => presence.reset(presence.currentView));
     transport.send({ type: 'webviewReady' });
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+      unsubscribeState();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [getOfficeState]);
 
@@ -297,6 +337,7 @@ export function useExtensionMessages(
     chats,
     lanVersion,
     people,
+    presenceToasts,
     profile,
     profileError,
     layoutSaveRejections,
