@@ -13,7 +13,7 @@ Get the file for your PC from [GitHub Releases](https://github.com/YOOJUNGYU/pix
 | Windows 10/11 (64-bit)             | `PixelOffice-<ver>-Windows.exe` |
 | Mac (Apple silicon or Intel, both) | `PixelOffice-<ver>-Mac.pkg`     |
 
-There is one Mac file for every Mac, so no need to check your chip. `PixelOffice-Setup-…exe`, `…-arm64.pkg` and `…-x64.pkg` are for automatic updates of older versions only; you don't need them.
+There is one Mac file for every Mac, so no need to check your chip.
 
 ## 2. Windows
 

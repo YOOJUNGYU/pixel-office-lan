@@ -19,19 +19,14 @@ import {
 const DL = 'https://github.com/YOOJUNGYU/pixel-office-lan/releases/download/v0.2.0/';
 const ASSETS = [
   {
-    name: 'PixelOffice-Setup-0.2.0.exe',
-    browser_download_url: `${DL}PixelOffice-Setup-0.2.0.exe`,
+    name: 'PixelOffice-0.2.0-Windows.exe',
+    browser_download_url: `${DL}PixelOffice-0.2.0-Windows.exe`,
     size: 5,
   },
   {
-    name: 'PixelOffice-0.2.0-arm64.pkg',
-    browser_download_url: `${DL}PixelOffice-0.2.0-arm64.pkg`,
+    name: 'PixelOffice-0.2.0-Mac.pkg',
+    browser_download_url: `${DL}PixelOffice-0.2.0-Mac.pkg`,
     size: 6,
-  },
-  {
-    name: 'PixelOffice-0.2.0-x64.pkg',
-    browser_download_url: `${DL}PixelOffice-0.2.0-x64.pkg`,
-    size: 7,
   },
 ];
 const RELEASE = {
@@ -79,47 +74,40 @@ describe('repoUrl', () => {
 
   it('a notes URL outside the repo falls back to the releases page', async () => {
     const evil = { ...RELEASE, html_url: `${RELEASE.html_url}/../../../../evil/x/releases/y` };
-    const info = await checkForUpdate('0.1.0', json(evil), 'win32', 'x64');
+    const info = await checkForUpdate('0.1.0', json(evil), 'win32');
     expect(info?.notesUrl).toBe('https://github.com/YOOJUNGYU/pixel-office-lan/releases');
   });
 });
 
 describe('pickAsset', () => {
+  const asset = (name: string) => ({ name, browser_download_url: `${DL}${name}`, size: 1 });
+
   it('picks the installer for this platform', () => {
-    expect(pickAsset(ASSETS, 'win32', 'x64')?.name).toBe('PixelOffice-Setup-0.2.0.exe');
-    expect(pickAsset(ASSETS, 'darwin', 'arm64')?.name).toBe('PixelOffice-0.2.0-arm64.pkg');
-    expect(pickAsset(ASSETS, 'darwin', 'x64')?.url).toBe(`${DL}PixelOffice-0.2.0-x64.pkg`);
-    expect(pickAsset(ASSETS, 'linux', 'x64')).toBeNull();
+    expect(pickAsset(ASSETS, 'win32')?.name).toBe('PixelOffice-0.2.0-Windows.exe');
+    expect(pickAsset(ASSETS, 'darwin')?.url).toBe(`${DL}PixelOffice-0.2.0-Mac.pkg`);
+    expect(pickAsset(ASSETS, 'linux')).toBeNull();
   });
 
-  it('prefers the OS-named installers and falls back to the legacy names', () => {
-    const asset = (name: string) => ({ name, browser_download_url: `${DL}${name}`, size: 1 });
-    const both = [
-      ...ASSETS,
-      asset('PixelOffice-0.2.0-Windows.exe'),
-      asset('PixelOffice-0.2.0-Mac.pkg'),
-    ];
-    expect(pickAsset(both, 'win32', 'x64')?.name).toBe('PixelOffice-0.2.0-Windows.exe');
-    expect(pickAsset(both, 'darwin', 'arm64')?.name).toBe('PixelOffice-0.2.0-Mac.pkg');
-    expect(pickAsset(both, 'darwin', 'x64')?.url).toBe(`${DL}PixelOffice-0.2.0-Mac.pkg`);
-    // Only the universal pkg: any Mac arch takes it.
-    expect(pickAsset([asset('PixelOffice-0.2.0-Mac.pkg')], 'darwin', 'ia32')?.name).toBe(
-      'PixelOffice-0.2.0-Mac.pkg',
-    );
-    // Names outside the pattern are never picked.
-    expect(pickAsset([asset('PixelOffice-0.2.0-Windows.exe.bat')], 'win32', 'x64')).toBeNull();
-    expect(pickAsset([asset('Evil-0.2.0-Mac.pkg')], 'darwin', 'arm64')).toBeNull();
-    expect(pickAsset([asset('PixelOffice-a/b-Mac.pkg')], 'darwin', 'arm64')).toBeNull();
+  it('does not pick legacy names', () => {
+    expect(pickAsset([asset('PixelOffice-Setup-0.2.0.exe')], 'win32')).toBeNull();
+    expect(pickAsset([asset('PixelOffice-0.2.0-arm64.pkg')], 'darwin')).toBeNull();
+    expect(pickAsset([asset('PixelOffice-0.2.0-x64.pkg')], 'darwin')).toBeNull();
+  });
+
+  it('never picks names outside the pattern', () => {
+    expect(pickAsset([asset('PixelOffice-0.2.0-Windows.exe.bat')], 'win32')).toBeNull();
+    expect(pickAsset([asset('Evil-0.2.0-Mac.pkg')], 'darwin')).toBeNull();
+    expect(pickAsset([asset('PixelOffice-a/b-Mac.pkg')], 'darwin')).toBeNull();
   });
 });
 
 describe('checkForUpdate', () => {
   it('returns the update for a newer release', async () => {
-    const info = await checkForUpdate('0.1.0', json(RELEASE), 'darwin', 'arm64');
+    const info = await checkForUpdate('0.1.0', json(RELEASE), 'darwin');
     expect(info).toEqual({
       version: '0.2.0',
-      assetUrl: `${DL}PixelOffice-0.2.0-arm64.pkg`,
-      assetName: 'PixelOffice-0.2.0-arm64.pkg',
+      assetUrl: `${DL}PixelOffice-0.2.0-Mac.pkg`,
+      assetName: 'PixelOffice-0.2.0-Mac.pkg',
       assetSize: 6,
       notesUrl: RELEASE.html_url,
     });
@@ -127,12 +115,12 @@ describe('checkForUpdate', () => {
 
   it('null when up to date, 404, or the network fails', async () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {});
-    expect(await checkForUpdate('0.2.0', json(RELEASE), 'win32', 'x64')).toBeNull();
-    expect(await checkForUpdate('0.1.0', json({}, 404), 'win32', 'x64')).toBeNull();
+    expect(await checkForUpdate('0.2.0', json(RELEASE), 'win32')).toBeNull();
+    expect(await checkForUpdate('0.1.0', json({}, 404), 'win32')).toBeNull();
     const boom = (async () => {
       throw new Error('offline');
     }) as unknown as typeof fetch;
-    expect(await checkForUpdate('0.1.0', boom, 'win32', 'x64')).toBeNull();
+    expect(await checkForUpdate('0.1.0', boom, 'win32')).toBeNull();
   });
 
   it('PIXEL_OFFICE_ALLOW_PRERELEASE lists releases and takes the newest non-draft', async () => {
@@ -147,7 +135,7 @@ describe('checkForUpdate', () => {
         ]),
       );
     }) as unknown as typeof fetch;
-    const info = await checkForUpdate('0.2.0-rc1', fetchFn, 'win32', 'x64');
+    const info = await checkForUpdate('0.2.0-rc1', fetchFn, 'win32');
     expect(urls[0]).toContain('/releases?per_page=5');
     expect(info?.version).toBe('0.2.0-rc2');
   });
@@ -166,11 +154,11 @@ describe('downloadAndRun', () => {
   it('rejects a URL outside the release download prefix', async () => {
     const launch = vi.fn();
     for (const assetUrl of [
-      'https://evil.example/PixelOffice-Setup-0.2.0.exe',
+      'https://evil.example/PixelOffice-0.2.0-Windows.exe',
       'https://github.com/someone/else/releases/download/v1/x.exe',
       'http://github.com/YOOJUNGYU/pixel-office-lan/releases/download/v0.2.0/x.exe',
-      `${DL}../../../../evil/repo/releases/download/v1/PixelOffice-Setup-1.exe`,
-      `${DL}%2e%2e/%2e%2e/%2e%2e/%2e%2e/evil/repo/releases/download/v1/PixelOffice-Setup-1.exe`,
+      `${DL}../../../../evil/repo/releases/download/v1/PixelOffice-1-Windows.exe`,
+      `${DL}%2e%2e/%2e%2e/%2e%2e/%2e%2e/evil/repo/releases/download/v1/PixelOffice-1-Windows.exe`,
       `${DL}%2E%2E/x.exe`,
       'https://github.com.evil.example/YOOJUNGYU/pixel-office-lan/releases/download/v1/x.exe',
     ]) {
@@ -381,7 +369,7 @@ describe('reopen marker (window after an update)', () => {
     u.info = {
       version: '0.2.0',
       assetUrl: '',
-      assetName: 'PixelOffice-Setup-0.2.0.exe',
+      assetName: 'PixelOffice-0.2.0-Windows.exe',
       assetSize: 1,
       notesUrl: '',
     };

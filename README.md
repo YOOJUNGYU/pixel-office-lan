@@ -149,8 +149,6 @@ WSL 안에서 돌리는 Claude Code와 Codex는 Windows에 설치한 앱이 함�
    | Windows               | `PixelOffice-<버전>-Windows.exe` |
    | Mac (Apple 칩, Intel) | `PixelOffice-<버전>-Mac.pkg`     |
 
-   `PixelOffice-Setup-…exe`, `…-arm64.pkg`, `…-x64.pkg` 는 예전 버전 자동 업데이트용이라 받을 필요가 없습니다.
-
 2. 실행합니다. 코드 서명이 없는 무료 프로젝트라 경고가 뜹니다.
    - **Windows**: "Windows의 PC 보호" → **추가 정보** → **실행**, 이어서 사용자 계정 컨트롤 → **예**
    - **Mac**: 막히면 **시스템 설정 → 개인정보 보호 및 보안 → 그래도 열기**. 방화벽이 켜져 있으면 "들어오는 연결 허용"

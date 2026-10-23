@@ -149,8 +149,6 @@ Claude Code and Codex running inside WSL are read by the Windows app; there is n
    | Windows                    | `PixelOffice-<version>-Windows.exe` |
    | Mac (Apple silicon, Intel) | `PixelOffice-<version>-Mac.pkg`     |
 
-   `PixelOffice-Setup-…exe`, `…-arm64.pkg` and `…-x64.pkg` are for automatic updates of older versions only; you don't need them.
-
 2. Run it. It is a free project without code signing, so you will see a warning:
    - **Windows**: "Windows protected your PC" → **More info** → **Run anyway**, then User Account Control → **Yes**
    - **Mac**: if blocked, **System Settings → Privacy & Security → Open Anyway**; if the firewall is on, "Allow incoming connections"

@@ -1,6 +1,4 @@
 # Installers: PixelOffice-<ver>-Windows.exe, PixelOffice-<ver>-Mac.pkg (universal: Apple silicon + Intel).
-# The release also attaches legacy-named copies (PixelOffice-Setup-<ver>.exe, PixelOffice-<ver>-arm64.pkg,
-# PixelOffice-<ver>-x64.pkg): apps <= 0.7.2 only auto-update from those names.
 # workflow_dispatch → build and upload as run artifacts only.
 # push tag v<ver>    → also publish a GitHub Release (prerelease when the tag has a "-").
 
@@ -168,14 +166,6 @@ jobs:
           pattern: PixelOffice-*
           path: release
           merge-multiple: true
-      - name: Legacy-named copies (auto-update of apps <= 0.7.2)
-        env:
-          VERSION: ${{ needs.build.outputs.version }}
-        run: |
-          cp "release/PixelOffice-$VERSION-Windows.exe" "release/PixelOffice-Setup-$VERSION.exe"
-          cp "release/PixelOffice-$VERSION-Mac.pkg" "release/PixelOffice-$VERSION-arm64.pkg"
-          cp "release/PixelOffice-$VERSION-Mac.pkg" "release/PixelOffice-$VERSION-x64.pkg"
-          ls -l release
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -192,7 +182,6 @@ jobs:
             echo '| --- | --- |'
             echo "| Windows 10/11 | \`PixelOffice-$VERSION-Windows.exe\` |"
             echo "| Mac (Apple 칩 또는 Intel / Apple silicon or Intel) | \`PixelOffice-$VERSION-Mac.pkg\` |"
-            echo "| — | \`PixelOffice-Setup-$VERSION.exe\`, \`PixelOffice-$VERSION-arm64.pkg\`, \`PixelOffice-$VERSION-x64.pkg\`: 자동 업데이트용 — 직접 받을 필요 없음 / for automatic updates only |"
             echo
           } > notes.md
           gh release create "$TAG" release/* --repo "$GITHUB_REPOSITORY" --title "Pixel Office $TAG" \

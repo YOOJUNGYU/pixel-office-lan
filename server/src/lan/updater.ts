@@ -32,11 +32,9 @@ const NOTES_PATH = '/YOOJUNGYU/pixel-office-lan/releases/';
 const RELEASES_PAGE = 'https://github.com/YOOJUNGYU/pixel-office-lan/releases';
 
 /**
- * Installer names from scripts/package (Release assets): `-Windows.exe` / `-Mac.pkg` (0.7.3+),
- * plus the legacy `Setup-<ver>.exe` / `-<arm64|x64>.pkg` copies kept for apps ≤ 0.7.2.
+ * Installer names from scripts/package (Release assets): `-Windows.exe` / `-Mac.pkg`.
  */
-const ASSET_NAME =
-  /^PixelOffice-(Setup-[\w.-]+\.exe|[\w.-]+-Windows\.exe|[\w.-]+-(arm64|x64|Mac)\.pkg)$/;
+const ASSET_NAME = /^PixelOffice-[\w.-]+-(Windows\.exe|Mac\.pkg)$/;
 
 export interface UpdateInfo {
   version: string;
@@ -95,20 +93,11 @@ export function isNewer(latest: string, current: string, allowPrerelease = false
 export function pickAsset(
   assets: ReleaseAsset[],
   platform: NodeJS.Platform,
-  arch: string,
 ): { name: string; url: string; size: number } | null {
-  // New name first, then the legacy one (a release made before 0.7.3 only has those).
-  const suffixes =
-    platform === 'win32'
-      ? ['-Windows.exe', '.exe']
-      : platform === 'darwin'
-        ? ['-Mac.pkg', ...(arch === 'arm64' || arch === 'x64' ? [`-${arch}.pkg`] : [])]
-        : [];
-  for (const suffix of suffixes) {
-    const a = assets.find((x) => ASSET_NAME.test(x.name) && x.name.endsWith(suffix));
-    if (a) return { name: a.name, url: a.browser_download_url, size: a.size ?? 0 };
-  }
-  return null;
+  const suffix = platform === 'win32' ? '-Windows.exe' : platform === 'darwin' ? '-Mac.pkg' : null;
+  if (!suffix) return null;
+  const a = assets.find((x) => ASSET_NAME.test(x.name) && x.name.endsWith(suffix));
+  return a ? { name: a.name, url: a.browser_download_url, size: a.size ?? 0 } : null;
 }
 
 let warnedCheck = false;
@@ -118,7 +107,6 @@ export async function checkForUpdate(
   current: string,
   fetchFn: typeof fetch = fetch,
   platform: NodeJS.Platform = process.platform,
-  arch: string = process.arch,
 ): Promise<UpdateInfo | null> {
   const allowPre = process.env[ALLOW_PRERELEASE_ENV] === '1';
   try {
@@ -138,7 +126,7 @@ export async function checkForUpdate(
       return null;
     }
     if (!isNewer(release.tag_name, current, allowPre)) return null;
-    const asset = pickAsset(release.assets as ReleaseAsset[], platform, arch);
+    const asset = pickAsset(release.assets as ReleaseAsset[], platform);
     if (!asset) return null;
     const notes = release.html_url;
     return {
