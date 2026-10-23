@@ -29,7 +29,6 @@ const ko = {
   'act.tool': '{t} 사용 중',
 
   'bubble.permission': '확인 필요',
-  'legend.title': '방 안내',
   'tags.hide': '이름표 숨기기',
   'tags.show': '이름표 보이기',
   'legend.coding': '파일을 직접 고칠 때 (Edit·Write, Codex apply_patch)',
@@ -39,7 +38,7 @@ const ko = {
   'legend.lounge': '입력·승인 대기, 작업 끝남 (머리 위 빨간 ! = 확인 필요)',
   'tour.roomLegend.title': '방 안내',
   'tour.roomLegend.body':
-    '어떤 일을 하면 어느 방으로 가는지 여기서 언제든 볼 수 있습니다. 제목을 누르면 접히고 펼쳐집니다. 캐릭터 이름표는 처음엔 숨겨져 있고 마우스를 올리면 나타납니다. 아래 [이름표 보이기] 버튼으로 항상 보이게 할 수 있습니다.',
+    '방 명패에 마우스를 올리면 어떤 일을 할 때 그 방으로 가는지 보입니다. 캐릭터 이름표는 처음엔 숨겨져 있고 마우스를 올리면 나타납니다. 왼쪽 위 [이름표 보이기] 버튼으로 항상 보이게 할 수 있습니다.',
   'app.restarting': '새 버전으로 다시 시작합니다…',
   'people.title': '접속 중 {n}명',
   'people.you': '(나)',
@@ -355,7 +354,6 @@ const en: Record<Key, string> = {
   'act.tool': 'Using {t}',
 
   'bubble.permission': 'Needs attention',
-  'legend.title': 'Rooms',
   'tags.hide': 'Hide name tags',
   'tags.show': 'Show name tags',
   'legend.coding': 'Editing files',
@@ -364,7 +362,7 @@ const en: Record<Key, string> = {
   'legend.lounge': 'Waiting for input/approval or done (red ! = needs you)',
   'tour.roomLegend.title': 'Rooms',
   'tour.roomLegend.body':
-    'Which activity sends an agent to which room, any time. Click the title to fold or unfold it. Character name tags start hidden and appear when you hover a character; the button below shows them all the time.',
+    'Hover a room plate to see which activity sends an agent there. Character name tags start hidden and appear when you hover a character; the button at the top left shows them all the time.',
   'app.restarting': 'Restarting into the new version…',
   'people.title': '{n} online',
   'people.you': '(you)',

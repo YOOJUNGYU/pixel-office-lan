@@ -34,7 +34,7 @@ export interface Scene {
   walk?: Room;
   /** People panel expanded even if the viewer collapsed it. */
   people?: boolean;
-  /** Room legend open even if the viewer collapsed it. */
+  /** The first room plate's tooltip shown without a hover. */
   legend?: boolean;
   /** Name tags shown even if the viewer keeps them hidden. */
   tags?: boolean;
@@ -95,7 +95,11 @@ export const STEPS: Step[] = [
   { id: 'roomLibrary', targets: [{ room: 'library' }], scene: { walk: 'library' } },
   { id: 'roomServer', targets: [{ room: 'server' }], scene: { walk: 'server' } },
   { id: 'roomLounge', targets: [{ room: 'lounge' }], scene: { walk: 'lounge' } },
-  { id: 'roomLegend', targets: [{ dom: 'room-legend' }], scene: { legend: true } },
+  {
+    id: 'roomLegend',
+    targets: [{ dom: 'room-plate' }, { dom: 'tags-toggle' }],
+    scene: { legend: true },
+  },
   { id: 'tag', targets: [{ agent: 'tag' }], scene: { tags: true } },
   {
     id: 'bubble',

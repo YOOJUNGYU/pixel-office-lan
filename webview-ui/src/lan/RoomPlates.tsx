@@ -1,7 +1,8 @@
 import { type MutableRefObject, type RefObject, useEffect, useState } from 'react';
 
-import { ROOM_PLATE_INSET_PX, ROOM_PLATE_Z_INDEX } from '../constants.js';
-import { useLang } from '../i18n.js';
+import { ROOM_LABELS, ROOM_ORDER } from '../../../core/src/lan.js';
+import { ROOM_PLATE_INSET_PX, ROOM_PLATE_TIP_Z_INDEX, ROOM_PLATE_Z_INDEX } from '../constants.js';
+import { t, useLang } from '../i18n.js';
 import { onFrame } from '../office/engine/gameLoop.js';
 import type { OfficeState } from '../office/engine/officeState.js';
 import { overlayProjection } from '../office/projection.js';
@@ -38,7 +39,12 @@ interface RoomPlatesProps {
   containerRef: RefObject<HTMLDivElement | null>;
   zoom: number;
   panRef: MutableRefObject<{ x: number; y: number }>;
+  /** The tour's room step shows the first room's tooltip without a hover. */
+  forceTip: boolean;
 }
+
+/** What sends an agent to this room (`legend.<room>`), by the layout's room label. */
+const roomOf = (label: string) => ROOM_ORDER.find((r) => ROOM_LABELS[r] === label);
 
 /**
  * Room name plates (`코딩실 5 · +3`) as DOM badges just inside each room's
@@ -46,9 +52,10 @@ interface RoomPlatesProps {
  * every canvas frame (`onFrame`), re-rendered only when a plate moved or
  * changed text — nothing at all while the office is idle.
  */
-export function RoomPlates({ officeState, containerRef, zoom, panRef }: RoomPlatesProps) {
+export function RoomPlates({ officeState, containerRef, zoom, panRef, forceTip }: RoomPlatesProps) {
   const lang = useLang();
   const [plates, setPlates] = useState<Plate[]>([]);
+  const [hovered, setHovered] = useState<string | null>(null);
   useEffect(() => {
     let key = '';
     const update = () => {
@@ -83,16 +90,37 @@ export function RoomPlates({ officeState, containerRef, zoom, panRef }: RoomPlat
 
   return (
     <>
-      {plates.map((pl) => (
-        <div
-          key={pl.label}
-          data-room-plate={pl.label}
-          className="absolute pixel-panel px-6 py-1 text-sm font-bold leading-normal whitespace-nowrap pointer-events-none select-none"
-          style={{ left: pl.left, top: pl.top, zIndex: ROOM_PLATE_Z_INDEX }}
-        >
-          {pl.text}
-        </div>
-      ))}
+      {plates.map((pl, i) => {
+        const room = roomOf(pl.label);
+        const tip = room && (hovered === pl.label || (forceTip && i === 0));
+        return (
+          <div
+            key={pl.label}
+            data-room-plate={pl.label}
+            data-tour={i === 0 ? 'room-plate' : undefined}
+            className="absolute select-none"
+            style={{
+              left: pl.left,
+              top: pl.top,
+              zIndex: tip ? ROOM_PLATE_TIP_Z_INDEX : ROOM_PLATE_Z_INDEX,
+            }}
+            onMouseEnter={() => setHovered(pl.label)}
+            onMouseLeave={() => setHovered((h) => (h === pl.label ? null : h))}
+          >
+            <div className="pixel-panel px-6 py-1 text-sm font-bold leading-normal whitespace-nowrap cursor-help">
+              {pl.text}
+            </div>
+            {tip && (
+              <div
+                role="tooltip"
+                className="pixel-panel mt-4 px-8 py-4 text-xs text-text-muted w-max max-w-[260px]"
+              >
+                {t(`legend.${room}`)}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </>
   );
 }

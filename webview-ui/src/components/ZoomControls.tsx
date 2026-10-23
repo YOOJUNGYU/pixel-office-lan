@@ -123,8 +123,8 @@ export function ZoomControls({ zoom, onZoomChange, showZoom }: ZoomControlsProps
         </div>
       )}
 
-      {/* Top-left: theme toggle, then + and − side by side */}
-      <div className="absolute top-8 left-8 z-10 flex flex-col items-start gap-4">
+      {/* Top-left: theme toggle, + and − in one row */}
+      <div className="absolute top-8 left-8 z-10 flex items-start gap-4">
         <ThemeToggle />
         {showZoom && (
           <div data-tour="zoom" className="flex gap-4">

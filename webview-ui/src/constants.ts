@@ -394,6 +394,8 @@ export const CHAT_INPUT_Z_INDEX = 44;
 export const ROOM_PLATE_INSET_PX = 4;
 /** Room plates: above the canvas, below the top-left/top-right chrome (z-10) and the tags. */
 export const ROOM_PLATE_Z_INDEX = 5;
+/** A plate's hover tooltip (what sends an agent to that room): above the tags and chat. */
+export const ROOM_PLATE_TIP_Z_INDEX = 46;
 
 // ── Team offices ─────────────────────────────────────────────
 /** Office name length the server accepts (server MAX_OFFICE_NAME). */
@@ -436,13 +438,10 @@ export const DEV_SERVER_VERSION = '0.0.0';
 export const VERSION_RELOAD_KEY = 'pixel-office.reloadedFor';
 
 // ── Room legend (top left) ───────────────────────────────────
-/** localStorage: '1' = open, '0' = collapsed (per viewer); unset = open on a wide screen. */
-export const ROOM_LEGEND_KEY = 'pixel-office.roomLegend';
-/** Below the zoom buttons (desktop) / the Settings button (mobile), CSS px. */
 /** localStorage: '0' = name tags always shown (per viewer); unset or '1' = hidden (hover shows one). */
 export const TAGS_HIDDEN_KEY = 'pixel-office.tagsHidden';
-export const ROOM_LEGEND_TOP_PX = 100;
-export const ROOM_LEGEND_MOBILE_TOP_PX = 56;
+/** Name-tag toggle, below the theme/zoom row, CSS px. */
+export const TAG_TOGGLE_TOP_PX = 56;
 
 // ── People panel ─────────────────────────────────────────────
 /** localStorage: '1' = collapsed, '0' = expanded (per viewer); unset = by screen width. */

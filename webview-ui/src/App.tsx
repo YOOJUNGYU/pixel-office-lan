@@ -37,8 +37,8 @@ import { OfficeSwitcher } from './lan/OfficeSwitcher.js';
 import { peopleRows } from './lan/peopleModel.js';
 import { PeoplePanel } from './lan/PeoplePanel.js';
 import { ProfileModal } from './lan/ProfileModal.js';
-import { RoomLegend } from './lan/RoomLegend.js';
 import { RoomPlates } from './lan/RoomPlates.js';
+import { TagToggle } from './lan/TagToggle.js';
 import { readTagsHidden, saveTagsHidden } from './lan/tagVisibility.js';
 import { UpdateBanner } from './lan/UpdateBanner.js';
 import { OfficeCanvas } from './office/components/OfficeCanvas.js';
@@ -534,6 +534,7 @@ function App() {
             containerRef={containerRef}
             zoom={editor.zoom}
             panRef={editor.panRef}
+            forceTip={scene?.legend === true}
           />
         )}
 
@@ -575,15 +576,7 @@ function App() {
           showZoom={!isMobile}
         />
 
-        {!editor.isEditMode && (
-          <RoomLegend
-            areas={officeState.getLayout().areas}
-            isMobile={isMobile}
-            forceOpen={scene?.legend === true}
-            tagsHidden={tagsHidden}
-            onToggleTags={toggleTags}
-          />
-        )}
+        {!editor.isEditMode && <TagToggle tagsHidden={tagsHidden} onToggleTags={toggleTags} />}
 
         {/* Vignette overlay */}
         <div
