@@ -186,7 +186,7 @@ export function TourOverlay({
     const root = containerRef.current;
     if (!root) return;
     const live = (c: Element) =>
-      c.querySelector('canvas') !== null || c.matches('[data-tour="zoom"]');
+      c.querySelector('canvas, [data-tour="zoom"]') !== null || c.matches('[data-tour="zoom"]');
     const els = (interactive ? [...root.children].filter((c) => !live(c)) : [root]).filter(
       (c): c is HTMLElement => c instanceof HTMLElement,
     );

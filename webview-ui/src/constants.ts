@@ -360,16 +360,10 @@ export const LAN_TAG_FONT = '13px Pretendard';
 export const LAN_TAG_BADGE_FONT = 'bold 11px Pretendard';
 export const LAN_PERMISSION_Z_INDEX = 41;
 export const LAN_BUBBLE_Z_INDEX = 42;
-/** Room names on the map outside Show Areas: light text, dark outline, top of each room. */
-export const LAN_ROOM_LABEL_COLOR = '#f2f2f2';
-export const LAN_ROOM_LABEL_OUTLINE_COLOR = '#000000';
-/** Outline stroke width in device px. */
-export const LAN_ROOM_LABEL_OUTLINE_PX = 4;
-/** Font size per zoom step (sprite px), floored at the minimum in device px. */
-export const LAN_ROOM_LABEL_FONT_PX = 7;
-export const LAN_ROOM_LABEL_MIN_FONT_PX = 13;
-/** Room name plate inset from the room's top-left tile corner, in world px (scaled by zoom). */
-export const LAN_ROOM_LABEL_PAD_PX = 3;
+/** Room name plate (DOM badge) inset from the room's top-left tile corner, CSS px. */
+export const ROOM_PLATE_INSET_PX = 4;
+/** Room plates: above the canvas, below the top-left/top-right chrome (z-10) and the tags. */
+export const ROOM_PLATE_Z_INDEX = 5;
 
 // ── Team offices ─────────────────────────────────────────────
 /** Office name length the server accepts (server MAX_OFFICE_NAME). */
@@ -455,11 +449,6 @@ export const LIGHT_THEME_TRANSFORMS = {
   floor: { lo: 0.68, hi: 0.92, lift: 1, sat: 0.85 },
   wall: { lo: 0.68, hi: 0.95, lift: 1, sat: 0.3 },
   furniture: { lo: 0, hi: 1, lift: 1.3, sat: 0.95 },
-} as const;
-/** Room name plates on the map, per theme. */
-export const LAN_ROOM_LABEL_COLORS = {
-  dark: { fill: LAN_ROOM_LABEL_COLOR, outline: LAN_ROOM_LABEL_OUTLINE_COLOR },
-  light: { fill: '#2a2838', outline: '#ffffff' },
 } as const;
 /** Editor grid / VOID outline on the canvas, per theme. */
 export const GRID_LINE_COLORS = { dark: GRID_LINE_COLOR, light: 'rgba(0,0,0,0.14)' } as const;

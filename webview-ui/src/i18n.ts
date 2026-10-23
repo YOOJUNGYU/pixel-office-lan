@@ -87,6 +87,8 @@ const ko = {
   'theme.dark': '다크',
   'theme.light': '라이트',
   'theme.system': '시스템',
+  'theme.toLight': '라이트 테마로 바꾸기',
+  'theme.toDark': '다크 테마로 바꾸기',
   'settings.checkUpdate': '업데이트 확인',
   'settings.offices': '오피스',
 
@@ -236,7 +238,7 @@ const ko = {
     '같은 망의 PC들에서 돌고 있는 Claude Code · Codex 에이전트가 이 픽셀 사무실의 캐릭터로 나타납니다.\n지금 보이는 캐릭터 중 일부는 안내용 예시이며, 안내가 끝나면 사라집니다.',
   'tour.roomCoding.title': '코딩실',
   'tour.roomCoding.body':
-    '에이전트는 하는 일에 따라 방을 옮겨 다닙니다. 파일을 고치거나 쓰는 동안은 코딩실 책상에 앉아 있습니다.',
+    '에이전트는 하는 일에 따라 방을 옮겨 다닙니다. 파일을 고치거나 쓰는 동안은 코딩실 책상에 앉아 있습니다.\n방 왼쪽 위 이름판의 숫자는 그 방의 메인 에이전트 수, +N 은 서브에이전트·셸 수입니다.',
   'tour.roomLibrary.title': '자료실',
   'tour.roomLibrary.body': '파일을 읽거나 검색하고, 웹을 찾아볼 때는 자료실로 갑니다.',
   'tour.roomLibrary.bodyDemo':
@@ -270,7 +272,7 @@ const ko = {
   'tour.settingsButton.body': '언어, 테마, 프로필, 팀 오피스 같은 설정은 모두 여기에 있습니다.',
   'tour.language.title': '언어 · 테마',
   'tour.language.body':
-    '화면 언어와 다크/라이트 테마는 브라우저마다 따로 고릅니다. 다른 PC의 에이전트 활동도 내가 고른 언어로 보입니다.',
+    '화면 언어와 다크/라이트 테마는 브라우저마다 따로 고릅니다. 다른 PC의 에이전트 활동도 내가 고른 언어로 보입니다.\n왼쪽 위 해/달 버튼으로 다크와 라이트를 바로 바꿀 수도 있습니다.',
   'tour.profile.title': '내 프로필',
   'tour.profile.body':
     '이 PC 에이전트들의 캐릭터(사람 6종 또는 펫 Claudio · Gitcat)와 색, 선택 닉네임을 정합니다. 이름은 항상 PC 계정 이름이 먼저 보이고, 계정 이름은 바꿀 수 없습니다.\n"상세 내용 숨기기" 를 켜면 다른 사람에게는 파일 이름이나 이유 없이 방과 활동 종류만 보입니다.',
@@ -392,6 +394,8 @@ const en: Record<Key, string> = {
   'theme.dark': 'Dark',
   'theme.light': 'Light',
   'theme.system': 'System',
+  'theme.toLight': 'Switch to the light theme',
+  'theme.toDark': 'Switch to the dark theme',
   'settings.checkUpdate': 'Check for updates',
   'settings.offices': 'Offices',
 
@@ -540,7 +544,7 @@ const en: Record<Key, string> = {
     'Claude Code and Codex agents running on the PCs of your network show up as characters in this pixel office.\nSome characters you see now are examples for this tour; they leave when it ends.',
   'tour.roomCoding.title': 'Coding room',
   'tour.roomCoding.body':
-    'Agents move between rooms by what they are doing. While editing or writing files they sit at a desk in the coding room.',
+    'Agents move between rooms by what they are doing. While editing or writing files they sit at a desk in the coding room.\nThe plate at the top left of each room counts its main agents; +N counts subagents and shells.',
   'tour.roomLibrary.title': 'Library',
   'tour.roomLibrary.body':
     'Reading, searching files or browsing the web takes them to the library.',
@@ -575,7 +579,7 @@ const en: Record<Key, string> = {
   'tour.settingsButton.body': 'Language, theme, profile, team offices and more live here.',
   'tour.language.title': 'Language & theme',
   'tour.language.body':
-    'Each browser picks its own language and dark/light theme. Activity of agents on other PCs is shown in your language too.',
+    'Each browser picks its own language and dark/light theme. Activity of agents on other PCs is shown in your language too.\nThe sun/moon button at the top left switches dark and light in one click.',
   'tour.profile.title': 'My profile',
   'tour.profile.body':
     'Character (six people or the pets Claudio and Gitcat), color and optional nickname of this PC’s agents. Your PC account name always shows first and cannot be changed.\n"Hide details" shows others only the room and the kind of activity — no file names or reasons.',

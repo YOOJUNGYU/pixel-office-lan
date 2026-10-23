@@ -35,6 +35,7 @@ import { peopleRows } from './lan/peopleModel.js';
 import { PeoplePanel } from './lan/PeoplePanel.js';
 import { ProfileModal } from './lan/ProfileModal.js';
 import { RoomLegend } from './lan/RoomLegend.js';
+import { RoomPlates } from './lan/RoomPlates.js';
 import { readTagsHidden, saveTagsHidden } from './lan/tagVisibility.js';
 import { UpdateBanner } from './lan/UpdateBanner.js';
 import { OfficeCanvas } from './office/components/OfficeCanvas.js';
@@ -514,6 +515,15 @@ function App() {
           tapSelectsFirst={isMobile}
         />
 
+        {!effectiveShowAreas && (
+          <RoomPlates
+            officeState={officeState}
+            containerRef={containerRef}
+            zoom={editor.zoom}
+            panRef={editor.panRef}
+          />
+        )}
+
         <LanOverlay
           officeState={officeState}
           lan={lan}
@@ -523,7 +533,11 @@ function App() {
           tagsHidden={tagsHidden && scene?.tags !== true}
         />
 
-        {!isMobile && <ZoomControls zoom={editor.zoom} onZoomChange={editor.handleZoomChange} />}
+        <ZoomControls
+          zoom={editor.zoom}
+          onZoomChange={editor.handleZoomChange}
+          showZoom={!isMobile}
+        />
 
         {!editor.isEditMode && (
           <RoomLegend

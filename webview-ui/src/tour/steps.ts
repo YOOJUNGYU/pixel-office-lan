@@ -115,7 +115,7 @@ export const STEPS: Step[] = [
   { id: 'settingsButton', targets: [{ dom: 'settings-button' }] },
   {
     id: 'language',
-    targets: [{ dom: 'settings-language' }, { dom: 'settings-theme' }],
+    targets: [{ dom: 'settings-language' }, { dom: 'settings-theme' }, { dom: 'theme-toggle' }],
     scene: { settings: true },
   },
   {
