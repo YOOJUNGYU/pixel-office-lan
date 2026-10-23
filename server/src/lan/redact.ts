@@ -84,6 +84,7 @@ export function redactText(s: string): string {
   return out;
 }
 
+/** The reason is the agent's own reply text: free prose, so it is not sent at all. */
 export function redactView(v: AgentView): AgentView {
-  return { ...v, target: redactText(v.target), reason: redactText(v.reason) };
+  return { ...v, target: redactText(v.target), reason: '' };
 }

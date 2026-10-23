@@ -112,7 +112,7 @@ Switch the office you are looking at with the office switcher at the top of the 
 ### Security and privacy
 
 - Only **read-only state** is shared. Nobody can reach your terminals, run your agents, or change your settings; write actions are accepted only from the browser on your own PC.
-- **Hide details** (on by default): file paths, user names, IPs and hostnames, URL paths, and token- or password-like strings **never leave your PC**. Commands are sent as the program name only (or Claude's own description). Your own screen still shows your agents verbatim.
+- **Hide details** (on by default): file paths, user names, IPs and hostnames, URL paths, and token- or password-like strings, and the AI's reply text (the reason), **never leave your PC**. Commands are sent as the program name only (or Claude's own description). Your own screen still shows your agents verbatim.
 - Your PC login account name is the name tag, so other PCs always see it (hide details does not apply).
 - Claude Code and Codex settings are **never modified**; the app only reads the transcript files these tools already write.
 
@@ -203,7 +203,7 @@ Data is stored only in `~/.pixel-office/` (profile, keys and team codes, layout 
 
 - Broadcasts reach **only the same subnet**. Across subnets, add PC IPs under **Settings → My profile → Advanced: when a PC isn't found automatically**.
 - Codex doesn't record approval requests, so ❗ for Codex appears only when it asks you a question. Codex subagents are not yet verified against real transcripts.
-- Hide details filters paths, addresses and token shapes, but may not catch every password fragment an agent writes in prose.
+- Hide details filters paths, addresses and token shapes and does not send the AI's reply text at all, but may not catch every password fragment written inside a command or search pattern.
 - The public office cannot stop people who installed the app from joining.
 - There is no watching from another PC's browser without the app (remote viewing was removed in v0.4.0).
 - v0.1.0 PCs and 0.2.0 PCs don't see each other; everyone needs 0.2.0 or later.

@@ -162,7 +162,7 @@ const ko = {
   'profile.color': '색상',
   'profile.hideDetails': '상세 내용 숨기기',
   'profile.hideDetailsHint':
-    '켜면 파일 경로·주소·토큰 같은 민감 정보는 다른 사람에게 보내지 않습니다',
+    '켜면 파일 경로·주소·토큰 같은 민감 정보와 AI 답변 내용은 다른 사람에게 보내지 않습니다',
   'profile.manualPeers': '직접 연결할 PC IP',
   'profile.advanced': '고급: 자동으로 안 보일 때',
   'profile.manualPeersHint':
@@ -474,7 +474,7 @@ const en: Record<Key, string> = {
   'profile.color': 'Color',
   'profile.hideDetails': 'Hide details',
   'profile.hideDetailsHint':
-    'When on, sensitive info such as file paths, addresses and tokens is never sent to others',
+    "When on, sensitive info such as file paths, addresses and tokens, and the AI's reply text, is never sent to others",
   'profile.manualPeers': 'PC IPs to connect directly',
   'profile.advanced': "Advanced: when a PC isn't found automatically",
   'profile.manualPeersHint':
