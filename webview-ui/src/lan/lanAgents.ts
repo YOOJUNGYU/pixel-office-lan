@@ -1,13 +1,7 @@
 import type { AvatarDir, OfficeAgent, Room } from '../../../core/src/lan.js';
 import { parseAvatar, ROOM_LABELS } from '../../../core/src/lan.js';
 import type { OfficePersonMessage } from '../../../core/src/messages.js';
-import {
-  LAN_KIND_BADGES,
-  LAN_ROOM_TOOL,
-  LAN_SHELL_PALETTE,
-  LAN_SUBAGENT_HUE_OFFSET,
-  MAX_HUE_DEG,
-} from '../constants.js';
+import { LAN_KIND_BADGES, LAN_ROOM_TOOL } from '../constants.js';
 import { areaName } from '../i18n.js';
 import { requestRender } from '../office/engine/gameLoop.js';
 import type { OfficeState } from '../office/engine/officeState.js';
@@ -80,16 +74,9 @@ const peerLook = (p: OfficeAgent['peer']): Look => ({
   pet: p.pet,
 });
 
-/** Look of an agent's character: main = its PC's (human or pet), subagent = the
- *  same, hue-rotated, shell = fixed human. */
-export function looks(a: OfficeAgent): Look {
-  if (a.kind === 'shell') return { palette: LAN_SHELL_PALETTE, hueShift: 0 };
-  const look = peerLook(a.peer);
-  if (a.kind === 'subagent') {
-    look.hueShift = (look.hueShift + LAN_SUBAGENT_HUE_OFFSET) % MAX_HUE_DEG;
-  }
-  return look;
-}
+/** Look of an agent's character: its PC's (human or pet) for main, subagent and shell
+ *  alike — the MAIN / SUB / SHELL badge tells them apart. */
+export const looks = (a: OfficeAgent): Look => peerLook(a.peer);
 
 /** Agents per room: main agents by room, `extra` = subagents + shells. */
 export interface RoomCount {

@@ -305,8 +305,6 @@ export const LAN_READING_TOOLS = ['Read'];
 export const AVATAR_TAG_MIN_SATURATION = 0.25;
 export const AVATAR_TAG_TEXT_DARK = '#1E1E2E';
 export const AVATAR_TAG_TEXT_LIGHT = '#FFFFFF';
-/** Subagents wear their PC's palette, hue-rotated by this much. */
-export const LAN_SUBAGENT_HUE_OFFSET = 120;
 export const MAX_HUE_DEG = 360;
 /** Skin colors of char_0..5.png (measured); exempt from a character's hue shift. */
 export const CHARACTER_SKIN_COLORS: ReadonlySet<string> = new Set([
@@ -327,8 +325,6 @@ export const CHARACTER_SKIN_COLORS: ReadonlySet<string> = new Set([
   '#B67352',
   '#8C583F',
 ]);
-/** Shell characters share one fixed look. */
-export const LAN_SHELL_PALETTE = 3;
 /** Provider badge dot in a main agent's name tag. */
 export const LAN_PROVIDER_COLORS: Record<Provider, string> = {
   claude: '#D97757',

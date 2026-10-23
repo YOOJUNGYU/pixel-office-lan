@@ -94,10 +94,10 @@ test('a changed peer look is applied to existing characters', () => {
   assert.equal(main.hueShift, 90);
   const sub = os.characters.get(lan.idFor('p1:c')!)!;
   assert.equal(sub.palette, 4);
-  assert.equal(sub.hueShift, (90 + 120) % 360);
+  assert.equal(sub.hueShift, 90);
 });
 
-test('a pet profile: main and subagent (hue-offset) wear the pet; the shell stays human; switching back to the human', () => {
+test('a pet profile: main, subagent and shell all wear the same pet; switching back to the human', () => {
   const { os, lan } = setup();
   const pet = { ...peer, pet: 'gitcat' as const };
   const shell = (p: typeof peer) => ({
@@ -116,8 +116,9 @@ test('a pet profile: main and subagent (hue-offset) wear the pet; the shell stay
   assert.equal(main.pet, 'gitcat');
   assert.equal(main.hueShift, 30);
   assert.equal(sub.pet, 'gitcat');
-  assert.equal(sub.hueShift, 150);
-  assert.equal(sh.pet, undefined, 'shells keep the shell look');
+  assert.equal(sub.hueShift, 30);
+  assert.equal(sh.pet, 'gitcat', 'shells look like their main character');
+  assert.equal(sh.hueShift, 30);
 
   lan.apply(snap(peer)); // profile switched back to the human
   assert.equal(main.pet, undefined);
@@ -235,10 +236,10 @@ test('permission toggles the bubble; subagent and shell looks', () => {
   assert.equal(a.bubbleType, 'permission');
   const s = os.characters.get(lan.idFor('p1:s')!)!;
   assert.equal(s.palette, 2);
-  assert.equal(s.hueShift, 150);
+  assert.equal(s.hueShift, 30, 'a subagent looks like its main character');
   const h = os.characters.get(lan.idFor('p1:h')!)!;
-  assert.equal(h.palette, 3);
-  assert.equal(h.hueShift, 0);
+  assert.equal(h.palette, 2, 'a shell looks like its main character');
+  assert.equal(h.hueShift, 30);
   lan.apply([agent('a', 'server')]);
   assert.equal(a.bubbleType, null);
 });
