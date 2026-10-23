@@ -20,6 +20,7 @@ import { LAN_READING_TOOLS } from '../constants.js';
 import { LanAgents } from '../lan/lanAgents.js';
 import { disambiguate } from '../lan/nicknames.js';
 import { setSoundEnabled } from '../notificationSound.js';
+import { requestRender } from '../office/engine/gameLoop.js';
 import type { OfficeState } from '../office/engine/officeState.js';
 import { setFloorSprites } from '../office/floorTiles.js';
 import { buildDynamicCatalog } from '../office/layout/furnitureCatalog.js';
@@ -267,7 +268,10 @@ export function useExtensionMessages(
       }
     };
     setProviderCapabilities({ readingTools: LAN_READING_TOOLS, subagentToolNames: [] });
-    const unsubscribe = transport.onMessage(handler);
+    const unsubscribe = transport.onMessage((msg) => {
+      handler(msg);
+      requestRender('message'); // whatever it changed shows on the next frame
+    });
     transport.send({ type: 'webviewReady' });
     return unsubscribe;
     // eslint-disable-next-line react-hooks/exhaustive-deps

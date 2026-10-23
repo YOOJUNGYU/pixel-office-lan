@@ -16,6 +16,7 @@ import {
 } from '../constants.js';
 import { t, useLang } from '../i18n.js';
 import type { LanAgents } from '../lan/lanAgents.js';
+import { requestRender } from '../office/engine/gameLoop.js';
 import type { OfficeState } from '../office/engine/officeState.js';
 import { type OverlayProjection, overlayProjection } from '../office/projection.js';
 import { CharacterState, TILE_SIZE } from '../office/types.js';
@@ -148,7 +149,11 @@ export function TourOverlay({
     const tick = () => {
       if (hoverRef.current) {
         const pick = roleAgents('bubble', lan.all());
-        officeState.hoveredAgentId = (pick && lan.idFor(pick.focus.key)) ?? null;
+        const id = (pick && lan.idFor(pick.focus.key)) ?? null;
+        if (officeState.hoveredAgentId !== id) {
+          officeState.hoveredAgentId = id;
+          requestRender('tour');
+        }
       }
       setTick((n) => n + 1);
       raf = requestAnimationFrame(tick);
@@ -157,9 +162,11 @@ export function TourOverlay({
     return () => cancelAnimationFrame(raf);
   }, [lan, officeState]);
   useEffect(() => {
+    requestRender('tour'); // a step may move the camera or open things the canvas shows
     if (!step.scene?.hover) return;
     return () => {
       officeState.hoveredAgentId = null;
+      requestRender('tour');
     };
   }, [step, officeState]);
 

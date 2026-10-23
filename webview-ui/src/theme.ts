@@ -85,10 +85,13 @@ export function setThemePref(next: ThemePref): void {
   apply();
 }
 
+/** Call `cb` whenever the theme (or preference) changes; returns the unsubscribe. */
+export function subscribeTheme(cb: () => void): () => void {
+  listeners.add(cb);
+  return () => listeners.delete(cb);
+}
+
 /** Current preference; re-renders the caller when it changes. */
 export function useThemePref(): ThemePref {
-  return useSyncExternalStore((cb) => {
-    listeners.add(cb);
-    return () => listeners.delete(cb);
-  }, getThemePref);
+  return useSyncExternalStore(subscribeTheme, getThemePref);
 }

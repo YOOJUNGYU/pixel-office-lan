@@ -24,6 +24,7 @@ import {
   PET_HEAD_DROP_PX,
 } from '../constants.js';
 import { actText, t } from '../i18n.js';
+import { onFrame } from '../office/engine/gameLoop.js';
 import type { OfficeState } from '../office/engine/officeState.js';
 import { overlayProjection, renderScale } from '../office/projection.js';
 import { getCachedSprite } from '../office/sprites/spriteCache.js';
@@ -95,8 +96,8 @@ interface LanOverlayProps {
 
 /**
  * Name tags under every LAN character, permission bubbles over waiting ones,
- * and the hover bubble (room, activity, reason) in the viewer's language. Re-rendered every animation
- * frame so the DOM follows walking sprites; tags are keyed so React only
+ * and the hover bubble (room, activity, reason) in the viewer's language. Re-rendered after every
+ * canvas frame (`onFrame`) so the DOM follows walking sprites; tags are keyed so React only
  * moves them. All text is React text nodes.
  */
 /** Badge colors; MAIN has its own pair in the light theme. */
@@ -114,16 +115,9 @@ export function LanOverlay({
   panRef,
   tagsHidden,
 }: LanOverlayProps) {
+  // Re-render after every canvas frame (the on-demand schedule), never when idle.
   const [, setTick] = useState(0);
-  useEffect(() => {
-    let raf = 0;
-    const tick = () => {
-      setTick((n) => n + 1);
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, []);
+  useEffect(() => onFrame(() => setTick((n) => n + 1)), []);
 
   const el = containerRef.current;
   if (!el) return null;

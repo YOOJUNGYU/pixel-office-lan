@@ -210,6 +210,7 @@ Data is stored only in `~/.pixel-office/` (profile, keys and team codes, layout 
 - **0.4.x PCs** can't see a PC with very many agents (a state larger than one datagram) and show pets as people. Update every PC.
 - Layouts are not shared automatically; exchange an exported file to use the same one.
 - Characters whose outfits are near-greyscale barely change with the color setting.
+- Performance: the office redraws only when something changes. Headless Chromium, main-thread time per 10 s: empty office ~3.8 s → 0.13 s (−97%), 20 PCs × 5 agents seated ~4.4 s → 1.1 s (−76%; only typing/monitor animation frames are drawn), walking unchanged (every frame). The server uses ~1% CPU and ~100 MB with 20 PCs connected.
 
 ## Development
 

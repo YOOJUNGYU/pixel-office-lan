@@ -1,4 +1,5 @@
 import type { ColorValue } from './components/ui/types.js';
+import { renderStats } from './office/engine/gameLoop.js';
 import { OfficeState } from './office/engine/officeState.js';
 import { isGhostHeadlessAgentsEnabled } from './office/engine/renderer.js';
 import { carpetJunctionCase } from './office/sprites/carpetTiles.js';
@@ -106,6 +107,8 @@ declare global {
       selectAgent?: (id: number) => void;
       /** Camera zoom (fps measurements at fixed zooms). */
       getZoom?: () => number;
+      /** Canvas frames drawn + render requests by reason (on-demand scheduler). */
+      getRenderStats?: () => { frames: number; reasons: Record<string, number> };
       setZoom?: (zoom: number) => void;
     };
   }
@@ -159,6 +162,8 @@ export function installTestHooks(officeStateRef: { current: OfficeState | null }
   // The ghost setting lives in the renderer module (read every rAF frame), not
   // in OfficeState, so e2e reads it from there to assert what is actually drawn.
   hooks.getGhostHeadlessAgents = () => isGhostHeadlessAgentsEnabled();
+
+  hooks.getRenderStats = renderStats;
 
   hooks.getCameraFollowId = () => officeStateRef.current?.cameraFollowId ?? null;
 

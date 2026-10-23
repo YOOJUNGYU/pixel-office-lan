@@ -8,6 +8,7 @@ import {
   MAX_HUE_DEG,
 } from '../constants.js';
 import { areaName } from '../i18n.js';
+import { requestRender } from '../office/engine/gameLoop.js';
 import type { OfficeState } from '../office/engine/officeState.js';
 import { isDemoKey } from '../tour/demoAgents.js';
 import { peerLabel } from './nicknames.js';
@@ -94,8 +95,16 @@ export class LanAgents {
   private demo: OfficeAgent[] = [];
   private nextId = 1;
   private readonly os: OfficeState;
+  private highlight: string | null = null;
   /** Peer whose name tags are emphasized (people panel hover); null = none. */
-  highlightPeer: string | null = null;
+  get highlightPeer(): string | null {
+    return this.highlight;
+  }
+  set highlightPeer(peerId: string | null) {
+    if (this.highlight === peerId) return;
+    this.highlight = peerId;
+    requestRender('highlight');
+  }
 
   constructor(os: OfficeState) {
     this.os = os;
@@ -172,6 +181,7 @@ export class LanAgents {
         this.enterRoom(id, a.room);
       }
     }
+    requestRender('snapshot');
   }
 
   /** A PC edited its profile: existing characters take the new look. */

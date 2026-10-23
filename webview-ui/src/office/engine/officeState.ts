@@ -15,6 +15,8 @@ import {
   PET_HIT_HALF_WIDTH,
   PET_HIT_HALF_WIDTH_SIDE,
   PET_HIT_HEIGHT,
+  PET_IDLE_FRAME_DURATION_SEC,
+  TYPE_FRAME_DURATION_SEC,
   WAITING_BUBBLE_DURATION_SEC,
 } from '../../constants.js';
 import { getAnimationFrames, getCatalogEntry, getOnStateType } from '../layout/furnitureCatalog.js';
@@ -37,6 +39,7 @@ import type {
 } from '../types.js';
 import { CharacterState, Direction, TILE_SIZE } from '../types.js';
 import { createCharacter, updateCharacter } from './characters.js';
+import { requestRender } from './gameLoop.js';
 import { advanceMatrixEffect, startMatrixEffect } from './matrixEffectState.js';
 import { anchorTile, closestFreeSeat } from './seatPlacement.js';
 
@@ -60,6 +63,8 @@ export class OfficeState {
   characters: Map<number, Character> = new Map();
   /** Accumulated time for furniture animation frame cycling */
   furnitureAnimTimer = 0;
+  /** Some ON furniture cycles animation frames (see rebuildFurnitureInstances). */
+  private furnitureAnimated = false;
   private _selectedAgentId: number | null = null;
   private readonly selectionListeners = new Set<(id: number | null) => void>();
   get selectedAgentId(): number | null {
@@ -68,6 +73,7 @@ export class OfficeState {
   set selectedAgentId(id: number | null) {
     if (this._selectedAgentId === id) return;
     this._selectedAgentId = id;
+    requestRender('selection');
     for (const listener of this.selectionListeners) listener(id);
   }
   /** Observe selectedAgentId changes. React (the card bars) subscribes so
@@ -132,6 +138,7 @@ export class OfficeState {
     this.rebuildFurnitureInstances();
     this.walkableTiles = getWalkableTiles(this.tileMap, this.blockedTiles);
     this.indexAreaTiles();
+    requestRender('layout');
 
     // Where each character was headed before the edit: its seat (sitting or
     // walking there), else the end of its path, else nowhere.
@@ -835,7 +842,10 @@ export class OfficeState {
       Math.abs(ch.tileCol - anchor.tileCol),
       Math.abs(ch.tileRow - anchor.tileRow),
     );
-    if (dist <= 1) return;
+    if (dist <= 1) {
+      ch.followTimer = 0; // beside the anchor: no retry pending (nextFrameIn)
+      return;
+    }
     if (ch.followTimer > 0) {
       ch.followTimer -= dt;
       return;
@@ -1004,6 +1014,7 @@ export class OfficeState {
       }
     }
 
+    this.furnitureAnimated = false;
     if (autoOnTiles.size === 0) {
       this.furniture = layoutToFurnitureInstances(this.layout.furniture);
       return;
@@ -1025,6 +1036,7 @@ export class OfficeState {
               if (frames && frames.length > 1) {
                 const frameIdx = animFrame % frames.length;
                 onType = frames[frameIdx];
+                this.furnitureAnimated = true;
               }
               return { ...item, type: onType };
             }
@@ -1127,6 +1139,45 @@ export class OfficeState {
     if (!ch) return;
     ch.contextTokens = contextTokens;
     ch.maxContextTokens = maxContextTokens;
+  }
+
+  /**
+   * Seconds until the scene changes by itself (the frame scheduler sleeps that
+   * long): 0 while anything walks, materializes or is about to path, else the
+   * nearest animation boundary (typing/reading frame, pet idle frame on the
+   * wall clock `nowSec`, follow retry, waiting bubble, animated furniture);
+   * Infinity when everything is still. Must mirror update()/updateCharacter.
+   */
+  nextFrameIn(nowSec: number): number {
+    if (this.greeter?.matrixEffect) return 0;
+    let next = Infinity;
+    for (const ch of this.characters.values()) {
+      if (ch.matrixEffect || ch.state === CharacterState.WALK || ch.path.length > 0) return 0;
+      if (
+        ch.state === CharacterState.IDLE &&
+        ch.followId === undefined &&
+        ((ch.seatId !== null && this.seats.has(ch.seatId)) || ch.isActive)
+      ) {
+        return 0; // heads for its seat (or starts typing) next tick
+      }
+      if (ch.state === CharacterState.TYPE && ch.isActive) {
+        next = Math.min(next, TYPE_FRAME_DURATION_SEC - ch.frameTimer);
+      }
+      if (ch.pet) {
+        next = Math.min(next, PET_IDLE_FRAME_DURATION_SEC - (nowSec % PET_IDLE_FRAME_DURATION_SEC));
+      }
+      if (ch.followTimer > 0 && ch.followId !== undefined && this.characters.has(ch.followId)) {
+        next = Math.min(next, ch.followTimer);
+      }
+      if (ch.bubbleType === 'waiting') next = Math.min(next, ch.bubbleTimer);
+    }
+    if (this.furnitureAnimated) {
+      next = Math.min(
+        next,
+        FURNITURE_ANIM_INTERVAL_SEC - (this.furnitureAnimTimer % FURNITURE_ANIM_INTERVAL_SEC),
+      );
+    }
+    return Math.max(0, next);
   }
 
   update(dt: number): void {

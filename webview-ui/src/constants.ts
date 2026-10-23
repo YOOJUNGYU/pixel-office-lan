@@ -221,6 +221,8 @@ export const WHATS_NEW_FADE_MS = 1000;
 
 // ── Game Logic ───────────────────────────────────────────────
 export const MAX_DELTA_TIME_SEC = 0.1;
+/** dt cap for a frame woken by the animation-boundary timer (only timers advance then). */
+export const MAX_IDLE_DELTA_TIME_SEC = 1;
 export const WAITING_BUBBLE_DURATION_SEC = 2.0;
 export const DISMISS_BUBBLE_FAST_FADE_SEC = 0.3;
 /** Default/fallback palette count (bundled characters). Actual count comes from getLoadedCharacterCount(). */

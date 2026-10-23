@@ -8,10 +8,11 @@ import {
   PAN_MARGIN_FRACTION,
 } from '../../constants.js';
 import { unlockAudio } from '../../notificationSound.js';
+import { subscribeTheme } from '../../theme.js';
 import { furnitureAt } from '../editor/editorActions.js';
 import { buildEditorRenderState } from '../editor/editorRenderState.js';
 import type { EditorState } from '../editor/editorState.js';
-import { startGameLoop } from '../engine/gameLoop.js';
+import { requestRender, startGameLoop } from '../engine/gameLoop.js';
 import type { OfficeState } from '../engine/officeState.js';
 import type {
   DeleteButtonBounds,
@@ -138,12 +139,49 @@ export function OfficeCanvas({
 
     resizeCanvas();
 
-    const observer = new ResizeObserver(() => resizeCanvas());
+    const observer = new ResizeObserver(() => {
+      resizeCanvas();
+      requestRender('resize');
+    });
     if (containerRef.current) {
       observer.observe(containerRef.current);
     }
 
-    const stop = startGameLoop(canvas, {
+    // On-demand frames: any input may change hover, selection, pan or the editor
+    // ghost, so it asks for a frame (cheap: one per vsync at most). Snapshots,
+    // layout edits and selection ask from where they happen.
+    const onInput = () => requestRender('input');
+    // Mouse/touch events too: they can land after the pointer event's frame ran.
+    const inputEvents = [
+      'pointermove',
+      'pointerdown',
+      'pointerup',
+      'pointercancel',
+      'pointerout',
+      'mousemove',
+      'mousedown',
+      'mouseup',
+      'mouseout',
+      'click',
+      'contextmenu',
+      'touchstart',
+      'touchmove',
+      'touchend',
+      'wheel',
+      'keydown',
+      'keyup',
+    ] as const;
+    for (const type of inputEvents) {
+      window.addEventListener(type, onInput, { capture: true, passive: true });
+    }
+    const onFonts = () => requestRender('fonts');
+    document.fonts?.addEventListener('loadingdone', onFonts);
+    const unsubscribeTheme = subscribeTheme(() => requestRender('theme'));
+    /** The camera is still gliding toward its follow target. */
+    let cameraMoving = false;
+
+    const stop = startGameLoop(canvas.getContext('2d')!, {
+      nextFrameIn: () => (cameraMoving ? 0 : officeState.nextFrameIn(performance.now() / 1000)),
       update: (dt) => {
         officeState.update(dt);
       },
@@ -165,6 +203,7 @@ export function OfficeCanvas({
             ? officeState.characters.get(officeState.cameraFollowId)
             : undefined;
         const cameraFocus = followCh ?? officeState.greeterCameraTarget;
+        cameraMoving = false;
         if (cameraFocus) {
           const layout = officeState.getLayout();
           const mapW = layout.cols * TILE_SIZE * zoom;
@@ -179,6 +218,7 @@ export function OfficeCanvas({
           ) {
             panRef.current = { x: targetX, y: targetY };
           } else {
+            cameraMoving = true;
             panRef.current = {
               x: panRef.current.x + dx * CAMERA_FOLLOW_LERP,
               y: panRef.current.y + dy * CAMERA_FOLLOW_LERP,
@@ -229,6 +269,9 @@ export function OfficeCanvas({
     return () => {
       stop();
       observer.disconnect();
+      for (const type of inputEvents) window.removeEventListener(type, onInput, { capture: true });
+      document.fonts?.removeEventListener('loadingdone', onFonts);
+      unsubscribeTheme();
     };
     // No edit tick here: the loop reads the editor state every frame (a restart per edit is waste).
   }, [officeState, resizeCanvas, isEditMode, editorState, zoom, panRef, showAreas]);

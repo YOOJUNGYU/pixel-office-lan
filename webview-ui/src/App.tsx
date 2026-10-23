@@ -40,6 +40,7 @@ import { UpdateBanner } from './lan/UpdateBanner.js';
 import { OfficeCanvas } from './office/components/OfficeCanvas.js';
 import { EditorState } from './office/editor/editorState.js';
 import { EditorToolbar } from './office/editor/EditorToolbar.js';
+import { requestRender } from './office/engine/gameLoop.js';
 import { OfficeState } from './office/engine/officeState.js';
 import { exportLayoutToFile } from './office/layout/exportLayout.js';
 import { isRotatable } from './office/layout/furnitureCatalog.js';
@@ -86,6 +87,10 @@ function App() {
       void import('./browserMock.js').then(({ dispatchMockMessages }) => dispatchMockMessages());
     }
   }, []);
+
+  // Safety net for the on-demand canvas: anything that re-renders the app
+  // (tour steps, editor state, toggles, timers) may change what is drawn.
+  useEffect(() => requestRender('app'));
 
   const editor = useEditorActions(getOfficeState, editorState);
 
