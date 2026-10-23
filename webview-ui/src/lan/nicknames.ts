@@ -14,9 +14,13 @@ interface Named {
 
 export { peerLabel };
 
-/** A name tag (avatar and agents): the nickname alone when set (tie-broken), else the account. */
-export const avatarLabel = (p: { account: string; nickname: string }): string =>
-  p.nickname || p.account;
+/** A name tag (avatar and agents): the nickname alone when set (tie-broken), else the account;
+ *  `nickname (account)` when the nickname is also someone's tag (see tieBreak). */
+export const avatarLabel = (p: {
+  account: string;
+  nickname: string;
+  withAccount?: boolean;
+}): string => (p.withAccount ? `${p.nickname} (${p.account})` : p.nickname || p.account);
 
 const suffix = (s: string, peerId: string): string => `${s} · ${peerId.slice(0, SHORT_PEER_ID)}`;
 
@@ -49,29 +53,36 @@ function losers(
  * 1. same nickname (nicknameKey; '' exempt): whoever set it first (nickSince,
  *    then the smaller peerId) keeps it; the others' nickname gets
  *    " · <peerId prefix>";
- * 2. name tags still identical (avatarLabel: a shared account without nickname,
- *    or a nickname equal to another's account): the same suffix on what the tag
- *    shows (nickname, else account) of all but the smallest peerId.
+ * 2. name tags still alike (nicknameKey of avatarLabel): a nickname equal to
+ *    another's account shows its account too (`withAccount`, `nickname (account)`);
+ *    a shared account without nickname gets the same suffix on the account of
+ *    all but the smallest peerId.
  */
-export function tieBreak(people: Named[]): Map<string, { account: string; nickname: string }> {
+export function tieBreak(
+  people: Named[],
+): Map<string, { account: string; nickname: string; withAccount?: boolean }> {
   const uniq = [...new Map(people.map((p) => [p.peerId, p] as const)).values()];
   const nick = losers(uniq, (p) => nicknameKey(p.nickname), keepsNickname);
   const named = uniq.map((p) => ({
     ...p,
     nickname: nick.has(p.peerId) ? suffix(p.nickname, p.peerId) : p.nickname,
   }));
-  const label = losers(
-    named,
-    (p) => avatarLabel(p),
+  const tagKey = (p: Named) => nicknameKey(avatarLabel(p));
+  const plain = losers(
+    named.filter((p) => !p.nickname),
+    tagKey,
     (a, b) => a.peerId < b.peerId,
   );
-  const out = new Map<string, { account: string; nickname: string }>();
+  const crowded = new Map<string, number>();
+  for (const p of named) crowded.set(tagKey(p), (crowded.get(tagKey(p)) ?? 0) + 1);
+  const out = new Map<string, { account: string; nickname: string; withAccount?: boolean }>();
   for (const p of named) {
-    if (!nick.has(p.peerId) && !label.has(p.peerId)) continue;
-    const tag = label.has(p.peerId);
+    const withAccount = p.nickname !== '' && (crowded.get(tagKey(p)) ?? 0) > 1;
+    if (!nick.has(p.peerId) && !plain.has(p.peerId) && !withAccount) continue;
     out.set(p.peerId, {
-      account: tag && !p.nickname ? suffix(p.account, p.peerId) : p.account,
-      nickname: tag && p.nickname ? suffix(p.nickname, p.peerId) : p.nickname,
+      account: plain.has(p.peerId) ? suffix(p.account, p.peerId) : p.account,
+      nickname: p.nickname,
+      ...(withAccount && { withAccount }),
     });
   }
   return out;

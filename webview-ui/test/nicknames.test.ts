@@ -4,7 +4,7 @@ import { test } from 'vitest';
 
 import type { OfficeAgent } from '../../core/src/lan.js';
 import type { OfficePersonMessage } from '../../core/src/messages.js';
-import { disambiguate, peerLabel, tieBreak } from '../src/lan/nicknames.js';
+import { avatarLabel, disambiguate, peerLabel, tieBreak } from '../src/lan/nicknames.js';
 
 const person = (
   peerId: string,
@@ -64,12 +64,19 @@ test('tieBreak: identical labels (same account, no nickname) suffix the later ac
   assert.equal(shown.has('cc'), false); // "kim (x)" is already distinct
 });
 
-test("tieBreak: a nickname equal to another PC's account (tags show the nickname alone) is suffixed on what each tag shows", () => {
-  const shown = tieBreak([person('aa', 'kim'), person('bb', 'lee', 'kim')]);
-  assert.equal(shown.get('aa'), undefined);
-  assert.deepEqual(shown.get('bb'), { account: 'lee', nickname: 'kim · bb' });
-  const rev = tieBreak([person('bb', 'kim'), person('aa', 'lee', 'kim')]);
-  assert.deepEqual(rev.get('bb'), { account: 'kim · bb', nickname: '' });
+test('tieBreak: a nickname equal to another PC\'s account shows "nickname (account)"', () => {
+  for (const order of [
+    [person('aa', 'kim'), person('bb', 'lee', 'Kim')],
+    [person('bb', 'lee', 'Kim'), person('aa', 'kim')],
+  ]) {
+    const shown = tieBreak(order);
+    assert.equal(shown.get('aa'), undefined); // the account-only tag stays as is
+    const bb = shown.get('bb');
+    assert.deepEqual(bb, { account: 'lee', nickname: 'Kim', withAccount: true });
+    assert.equal(avatarLabel(bb!), 'Kim (lee)');
+  }
+  assert.equal(avatarLabel({ account: 'lee', nickname: 'Kim' }), 'Kim');
+  assert.equal(avatarLabel({ account: 'lee', nickname: '' }), 'lee');
 });
 
 test('disambiguate: renames people and agents, reports taken names and a lost self', () => {
