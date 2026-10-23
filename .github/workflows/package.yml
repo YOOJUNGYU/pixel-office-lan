@@ -1,4 +1,6 @@
-# Installers: PixelOffice-Setup-<ver>.exe, PixelOffice-<ver>-arm64.pkg, PixelOffice-<ver>-x64.pkg.
+# Installers: PixelOffice-<ver>-Windows.exe, PixelOffice-<ver>-Mac.pkg (universal: Apple silicon + Intel).
+# The release also attaches legacy-named copies (PixelOffice-Setup-<ver>.exe, PixelOffice-<ver>-arm64.pkg,
+# PixelOffice-<ver>-x64.pkg): apps <= 0.7.2 only auto-update from those names.
 # workflow_dispatch → build and upload as run artifacts only.
 # push tag v<ver>    → also publish a GitHub Release (prerelease when the tag has a "-").
 
@@ -99,21 +101,14 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/upload-artifact@v7
         with:
-          name: PixelOffice-Setup-${{ env.VERSION }}.exe
-          path: release/PixelOffice-Setup-${{ env.VERSION }}.exe
+          name: PixelOffice-${{ env.VERSION }}-Windows.exe
+          path: release/PixelOffice-${{ env.VERSION }}-Windows.exe
           if-no-files-found: error
 
   macos:
-    name: macOS installer (${{ matrix.arch }})
+    name: macOS installer (universal)
     needs: build
-    strategy:
-      matrix:
-        include:
-          - arch: arm64
-            runner: macos-latest
-          - arch: x64
-            runner: macos-15-intel
-    runs-on: ${{ matrix.runner }}
+    runs-on: macos-latest
     timeout-minutes: 20
     env:
       VERSION: ${{ needs.build.outputs.version }}
@@ -126,17 +121,28 @@ jobs:
         with:
           name: dist
           path: dist
-      - run: scripts/package/macos.sh ${{ matrix.arch }} "$VERSION"
+      - run: scripts/package/macos.sh "$VERSION"
+      - name: Universal node (both slices, signature, runs here)
+        run: |
+          NODE="build/mac/root/Applications/Pixel Office.app/Contents/Resources/node"
+          ARCHS=$(lipo -archs "$NODE")
+          echo "lipo -archs: $ARCHS"
+          [[ " $ARCHS " == *" arm64 "* && " $ARCHS " == *" x86_64 "* ]]
+          codesign --verify --verbose=2 "$NODE"
+          codesign -dv "$NODE" 2>&1 | grep -E '^(Identifier|Format|Signature|TeamIdentifier)=' || true
+          echo "runner arch: $(uname -m) → $("$NODE" -p process.arch)"
+          # Intel slice via Rosetta, when the runner has it (informational).
+          arch -x86_64 "$NODE" -p process.arch || echo "::notice::x86_64 slice not run (no Rosetta)"
       - name: postinstall home lookup matches $HOME
         run: |
           # Runs the exact HOME_DIR line from the generated postinstall for the runner user.
           USER_NAME=$(id -un)
-          eval "$(grep '^HOME_DIR=' build/mac-${{ matrix.arch }}/scripts/postinstall)"
+          eval "$(grep '^HOME_DIR=' build/mac/scripts/postinstall)"
           echo "HOME_DIR=$HOME_DIR HOME=$HOME"
           test -n "$HOME_DIR" && test "$HOME_DIR" = "$HOME"
       - name: Smoke test packaged app
         run: |
-          RES="build/mac-${{ matrix.arch }}/root/Applications/Pixel Office.app/Contents/Resources"
+          RES="build/mac/root/Applications/Pixel Office.app/Contents/Resources"
           plutil -lint "$RES/com.pixeloffice.agent.plist"
           test -f "$RES/LICENSE.txt"
           "$RES/node" "$RES/app/cli.js" --port 47899 &
@@ -145,8 +151,8 @@ jobs:
           kill $!
       - uses: actions/upload-artifact@v7
         with:
-          name: PixelOffice-${{ env.VERSION }}-${{ matrix.arch }}.pkg
-          path: release/PixelOffice-${{ env.VERSION }}-${{ matrix.arch }}.pkg
+          name: PixelOffice-${{ env.VERSION }}-Mac.pkg
+          path: release/PixelOffice-${{ env.VERSION }}-Mac.pkg
           if-no-files-found: error
 
   release:
@@ -162,11 +168,32 @@ jobs:
           pattern: PixelOffice-*
           path: release
           merge-multiple: true
+      - name: Legacy-named copies (auto-update of apps <= 0.7.2)
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          cp "release/PixelOffice-$VERSION-Windows.exe" "release/PixelOffice-Setup-$VERSION.exe"
+          cp "release/PixelOffice-$VERSION-Mac.pkg" "release/PixelOffice-$VERSION-arm64.pkg"
+          cp "release/PixelOffice-$VERSION-Mac.pkg" "release/PixelOffice-$VERSION-x64.pkg"
+          ls -l release
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
+          VERSION: ${{ needs.build.outputs.version }}
         run: |
           PRE=()
           [[ "$TAG" == *-* ]] && PRE=(--prerelease)
-          gh release create "$TAG" release/* --repo "$GITHUB_REPOSITORY" --title "Pixel Office $TAG" --generate-notes "${PRE[@]}"
+          # --notes-file + --generate-notes: gh prepends our table to the generated notes.
+          {
+            echo '## 어떤 파일을 받나요? / Which file do I download?'
+            echo
+            echo '| 컴퓨터 / Computer | 파일 / File |'
+            echo '| --- | --- |'
+            echo "| Windows 10/11 | \`PixelOffice-$VERSION-Windows.exe\` |"
+            echo "| Mac (Apple 칩 또는 Intel / Apple silicon or Intel) | \`PixelOffice-$VERSION-Mac.pkg\` |"
+            echo "| — | \`PixelOffice-Setup-$VERSION.exe\`, \`PixelOffice-$VERSION-arm64.pkg\`, \`PixelOffice-$VERSION-x64.pkg\`: 자동 업데이트용 — 직접 받을 필요 없음 / for automatic updates only |"
+            echo
+          } > notes.md
+          gh release create "$TAG" release/* --repo "$GITHUB_REPOSITORY" --title "Pixel Office $TAG" \
+            --notes-file notes.md --generate-notes "${PRE[@]}"

@@ -91,6 +91,26 @@ describe('pickAsset', () => {
     expect(pickAsset(ASSETS, 'darwin', 'x64')?.url).toBe(`${DL}PixelOffice-0.2.0-x64.pkg`);
     expect(pickAsset(ASSETS, 'linux', 'x64')).toBeNull();
   });
+
+  it('prefers the OS-named installers and falls back to the legacy names', () => {
+    const asset = (name: string) => ({ name, browser_download_url: `${DL}${name}`, size: 1 });
+    const both = [
+      ...ASSETS,
+      asset('PixelOffice-0.2.0-Windows.exe'),
+      asset('PixelOffice-0.2.0-Mac.pkg'),
+    ];
+    expect(pickAsset(both, 'win32', 'x64')?.name).toBe('PixelOffice-0.2.0-Windows.exe');
+    expect(pickAsset(both, 'darwin', 'arm64')?.name).toBe('PixelOffice-0.2.0-Mac.pkg');
+    expect(pickAsset(both, 'darwin', 'x64')?.url).toBe(`${DL}PixelOffice-0.2.0-Mac.pkg`);
+    // Only the universal pkg: any Mac arch takes it.
+    expect(pickAsset([asset('PixelOffice-0.2.0-Mac.pkg')], 'darwin', 'ia32')?.name).toBe(
+      'PixelOffice-0.2.0-Mac.pkg',
+    );
+    // Names outside the pattern are never picked.
+    expect(pickAsset([asset('PixelOffice-0.2.0-Windows.exe.bat')], 'win32', 'x64')).toBeNull();
+    expect(pickAsset([asset('Evil-0.2.0-Mac.pkg')], 'darwin', 'arm64')).toBeNull();
+    expect(pickAsset([asset('PixelOffice-a/b-Mac.pkg')], 'darwin', 'arm64')).toBeNull();
+  });
 });
 
 describe('checkForUpdate', () => {
@@ -163,6 +183,9 @@ describe('downloadAndRun', () => {
     const launch = vi.fn();
     await expect(
       downloadAndRun({ ...info, assetName: '../evil.exe' }, tmp(), { launch }),
+    ).rejects.toThrow();
+    await expect(
+      downloadAndRun({ ...info, assetName: 'PixelOffice-../x-Mac.pkg' }, tmp(), { launch }),
     ).rejects.toThrow();
     expect(launch).not.toHaveBeenCalled();
   });

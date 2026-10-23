@@ -144,11 +144,12 @@ Claude Code and Codex running inside WSL are read by the Windows app; there is n
 
 1. Download the file for your PC from [Releases](https://github.com/YOOJUNGYU/pixel-office-lan/releases/latest).
 
-   | PC                  | File                              |
-   | ------------------- | --------------------------------- |
-   | Windows             | `PixelOffice-Setup-<version>.exe` |
-   | Mac (Apple silicon) | `PixelOffice-<version>-arm64.pkg` |
-   | Mac (Intel)         | `PixelOffice-<version>-x64.pkg`   |
+   | PC                         | File                                |
+   | -------------------------- | ----------------------------------- |
+   | Windows                    | `PixelOffice-<version>-Windows.exe` |
+   | Mac (Apple silicon, Intel) | `PixelOffice-<version>-Mac.pkg`     |
+
+   `PixelOffice-Setup-…exe`, `…-arm64.pkg` and `…-x64.pkg` are for automatic updates of older versions only; you don't need them.
 
 2. Run it. It is a free project without code signing, so you will see a warning:
    - **Windows**: "Windows protected your PC" → **More info** → **Run anyway**, then User Account Control → **Yes**

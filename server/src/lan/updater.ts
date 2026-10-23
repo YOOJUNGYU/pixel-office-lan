@@ -31,8 +31,12 @@ const DOWNLOAD_PATH = '/YOOJUNGYU/pixel-office-lan/releases/download/';
 const NOTES_PATH = '/YOOJUNGYU/pixel-office-lan/releases/';
 const RELEASES_PAGE = 'https://github.com/YOOJUNGYU/pixel-office-lan/releases';
 
-/** Installer names from scripts/package (Release assets). */
-const ASSET_NAME = /^PixelOffice-(Setup-[\w.-]+\.exe|[\w.-]+-(arm64|x64)\.pkg)$/;
+/**
+ * Installer names from scripts/package (Release assets): `-Windows.exe` / `-Mac.pkg` (0.7.3+),
+ * plus the legacy `Setup-<ver>.exe` / `-<arm64|x64>.pkg` copies kept for apps ≤ 0.7.2.
+ */
+const ASSET_NAME =
+  /^PixelOffice-(Setup-[\w.-]+\.exe|[\w.-]+-Windows\.exe|[\w.-]+-(arm64|x64|Mac)\.pkg)$/;
 
 export interface UpdateInfo {
   version: string;
@@ -93,15 +97,18 @@ export function pickAsset(
   platform: NodeJS.Platform,
   arch: string,
 ): { name: string; url: string; size: number } | null {
-  const suffix =
+  // New name first, then the legacy one (a release made before 0.7.3 only has those).
+  const suffixes =
     platform === 'win32'
-      ? '.exe'
-      : platform === 'darwin' && (arch === 'arm64' || arch === 'x64')
-        ? `-${arch}.pkg`
-        : null;
-  if (!suffix) return null;
-  const a = assets.find((x) => ASSET_NAME.test(x.name) && x.name.endsWith(suffix));
-  return a ? { name: a.name, url: a.browser_download_url, size: a.size ?? 0 } : null;
+      ? ['-Windows.exe', '.exe']
+      : platform === 'darwin'
+        ? ['-Mac.pkg', ...(arch === 'arm64' || arch === 'x64' ? [`-${arch}.pkg`] : [])]
+        : [];
+  for (const suffix of suffixes) {
+    const a = assets.find((x) => ASSET_NAME.test(x.name) && x.name.endsWith(suffix));
+    if (a) return { name: a.name, url: a.browser_download_url, size: a.size ?? 0 };
+  }
+  return null;
 }
 
 let warnedCheck = false;

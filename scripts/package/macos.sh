@@ -1,12 +1,12 @@
 #!/bin/bash
-# Builds release/PixelOffice-<version>-<arch>.pkg (run on macOS, after `npm run package`).
-#   scripts/package/macos.sh <arm64|x64> <version>
+# Builds release/PixelOffice-<version>-Mac.pkg, one universal (arm64 + x86_64) installer
+# (run on macOS, after `npm run package`).
+#   scripts/package/macos.sh <version>
 set -euo pipefail
-ARCH="$1"
-VERSION="$2"
+VERSION="$1"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 REPO="$(cd "$HERE/../.." && pwd)"
-WORK="$REPO/build/mac-$ARCH"
+WORK="$REPO/build/mac"
 ROOT="$WORK/root"
 APP="$ROOT/Applications/Pixel Office.app"
 RES="$APP/Contents/Resources"
@@ -14,7 +14,18 @@ RES="$APP/Contents/Resources"
 rm -rf "$WORK"
 mkdir -p "$APP/Contents/MacOS" "$RES" "$WORK/scripts" "$REPO/release"
 
-node "$HERE/fetch-node.mjs" "darwin-$ARCH" "$RES"
+# Universal node: the official arm64 + x64 binaries (each SHA-256 checked) merged by lipo.
+# lipo keeps each slice's own signature; re-sign ad hoc only if the merged file fails to verify.
+for A in arm64 x64; do node "$HERE/fetch-node.mjs" "darwin-$A" "$WORK/node-$A"; done
+lipo -create "$WORK/node-arm64/node" "$WORK/node-x64/node" -output "$RES/node"
+cp "$WORK/node-arm64/LICENSE-node.txt" "$RES/"
+lipo -archs "$RES/node"
+if ! codesign --verify --verbose=2 "$RES/node"; then
+  echo "codesign --verify failed for the universal node: ad-hoc signing" >&2
+  codesign --force --sign - "$RES/node"
+  codesign --verify --verbose=2 "$RES/node"
+fi
+"$RES/node" --version
 rsync -a --exclude '*.map' "$REPO/dist/" "$RES/app/"
 cp "$HERE/com.pixeloffice.agent.plist" "$RES/"
 cp "$REPO/LICENSE" "$RES/LICENSE.txt"
@@ -90,7 +101,7 @@ chmod +x "$WORK/scripts/postinstall"
 pkgbuild --analyze --root "$ROOT" "$WORK/component.plist"
 plutil -replace 0.BundleIsRelocatable -bool NO "$WORK/component.plist"
 
-OUT="$REPO/release/PixelOffice-$VERSION-$ARCH.pkg"
+OUT="$REPO/release/PixelOffice-$VERSION-Mac.pkg"
 pkgbuild --root "$ROOT" --component-plist "$WORK/component.plist" --scripts "$WORK/scripts" \
   --identifier com.pixeloffice.pkg --version "$VERSION" --install-location / "$OUT"
 echo "✓ $OUT"

@@ -144,11 +144,12 @@ WSL 안에서 돌리는 Claude Code와 Codex는 Windows에 설치한 앱이 함�
 
 1. [Releases](https://github.com/YOOJUNGYU/pixel-office-lan/releases/latest)에서 내 PC에 맞는 파일을 받습니다.
 
-   | PC             | 파일                           |
-   | -------------- | ------------------------------ |
-   | Windows        | `PixelOffice-Setup-<버전>.exe` |
-   | Mac (Apple 칩) | `PixelOffice-<버전>-arm64.pkg` |
-   | Mac (Intel)    | `PixelOffice-<버전>-x64.pkg`   |
+   | PC                    | 파일                             |
+   | --------------------- | -------------------------------- |
+   | Windows               | `PixelOffice-<버전>-Windows.exe` |
+   | Mac (Apple 칩, Intel) | `PixelOffice-<버전>-Mac.pkg`     |
+
+   `PixelOffice-Setup-…exe`, `…-arm64.pkg`, `…-x64.pkg` 는 예전 버전 자동 업데이트용이라 받을 필요가 없습니다.
 
 2. 실행합니다. 코드 서명이 없는 무료 프로젝트라 경고가 뜹니다.
    - **Windows**: "Windows의 PC 보호" → **추가 정보** → **실행**, 이어서 사용자 계정 컨트롤 → **예**

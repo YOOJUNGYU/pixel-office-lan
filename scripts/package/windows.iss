@@ -1,6 +1,7 @@
 ﻿; Pixel Office — Windows installer (Inno Setup 6).
 ; Build: iscc /DAppVersion=<ver> /DStage=<dir with node.exe, launch.vbs, app\> scripts\package\windows.iss
-; Output: release\PixelOffice-Setup-<ver>.exe
+; Output: release\PixelOffice-<ver>-Windows.exe (the release job also attaches a legacy
+;         PixelOffice-Setup-<ver>.exe copy for the auto-updater of apps <= 0.7.2)
 
 #ifndef AppVersion
   #error Pass /DAppVersion=<version>
@@ -23,7 +24,7 @@ PrivilegesRequired=admin
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir=..\..\release
-OutputBaseFilename=PixelOffice-Setup-{#AppVersion}
+OutputBaseFilename=PixelOffice-{#AppVersion}-Windows
 UninstallDisplayName=Pixel Office
 UninstallDisplayIcon={app}\icon.ico
 Compression=lzma2

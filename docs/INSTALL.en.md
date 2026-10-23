@@ -8,15 +8,16 @@ Pixel Office shows the coding agents (Claude Code, Codex) of every PC on the sam
 
 Get the file for your PC from [GitHub Releases](https://github.com/YOOJUNGYU/pixel-office-lan/releases/latest).
 
-| PC                           | File                          |
-| ---------------------------- | ----------------------------- |
-| Windows 10/11 (64-bit)       | `PixelOffice-Setup-<ver>.exe` |
-| Mac with Apple silicon (M1+) | `PixelOffice-<ver>-arm64.pkg` |
-| Mac with Intel               | `PixelOffice-<ver>-x64.pkg`   |
+| PC                                 | File                            |
+| ---------------------------------- | ------------------------------- |
+| Windows 10/11 (64-bit)             | `PixelOffice-<ver>-Windows.exe` |
+| Mac (Apple silicon or Intel, both) | `PixelOffice-<ver>-Mac.pkg`     |
+
+There is one Mac file for every Mac, so no need to check your chip. `PixelOffice-Setup-…exe`, `…-arm64.pkg` and `…-x64.pkg` are for automatic updates of older versions only; you don't need them.
 
 ## 2. Windows
 
-1. Run `PixelOffice-Setup-<ver>.exe`.
+1. Run `PixelOffice-<ver>-Windows.exe`.
 2. If **"Windows protected your PC"** (SmartScreen) appears, click **More info** → **Run anyway**. The installer is not code-signed.
 3. Approve the **User Account Control** prompt. Admin rights are used only to install into Program Files and add the Windows Firewall rule "Pixel Office".
 4. On **Select Additional Tasks** both options are checked by default; untick what you don't want:
