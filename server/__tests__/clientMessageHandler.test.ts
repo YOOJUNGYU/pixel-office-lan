@@ -241,6 +241,16 @@ describe('clientMessageHandler', () => {
       );
       warn.mockRestore();
     });
+
+    it('quitApp quits for this PC only (and never through the updater)', () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const onQuitApp = vi.fn();
+      send({ type: 'quitApp' }, { ...ctx(false), onQuitApp });
+      expect(onQuitApp).not.toHaveBeenCalled();
+      send({ type: 'quitApp' }, { ...ctx(true), onQuitApp });
+      expect(onQuitApp).toHaveBeenCalledOnce();
+      warn.mockRestore();
+    });
   });
 
   describe('updates', () => {

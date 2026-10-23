@@ -34,6 +34,7 @@ import { checkExisting, LanService } from './lan/office.js';
 import { PeerNet } from './lan/peerNet.js';
 import { KnownPeers, loadProfile } from './lan/profile.js';
 import { discoverRoots, Scanner } from './lan/scanner.js';
+import { startTray, trayCheck } from './lan/tray.js';
 import { APP_VERSION, consumeReopenMarker, Updater } from './lan/updater.js';
 import { PixelAgentsServer } from './server.js';
 
@@ -46,6 +47,8 @@ export interface CliArgs {
   open: boolean;
   /** Installer hook: set start-at-login and exit (no server). */
   autostart?: AutostartMode;
+  /** CI/support: start the tray helper once in smoke mode, exit 0 if it came up. */
+  trayCheck?: boolean;
 }
 
 const AUTOSTART_MODES = ['on', 'off', 'default'] as const;
@@ -85,6 +88,8 @@ export function parseArgs(argv: string[]): CliArgs {
       }
       args.autostart = mode as AutostartMode;
       i++;
+    } else if (argv[i] === '--tray-check') {
+      args.trayCheck = true;
     } else if (argv[i] === '--help') {
       console.log(`Usage: pixel-office [options]
 
@@ -93,6 +98,7 @@ Options:
   --host <string>       Host to bind to (default: ${LAN_HTTP_HOST}; the UI only serves this PC's browser)
   --open                Open the office (installed app or app window on Windows)
   --autostart <mode>    Set start at login (on|off|default) and exit — used by the installer
+  --tray-check          Start the tray icon helper once (smoke test) and exit 0 if it works
   --help                Show this help message`);
       process.exit(0);
     }
@@ -115,6 +121,12 @@ async function main(): Promise<void> {
     const state = await applyInstallerChoice(args.autostart);
     console.log(`[Pixel Office] start at login: ${JSON.stringify(state)}`);
     process.exit(0);
+  }
+
+  if (args.trayCheck) {
+    const ok = await trayCheck();
+    console.log(`[Pixel Office] tray helper: ${ok ? 'ready' : 'FAILED'}`);
+    process.exit(ok ? 0 : 1);
   }
 
   // One office per PC: a second launch just (re)opens the browser.
@@ -176,7 +188,8 @@ async function main(): Promise<void> {
   const updater = new Updater(APP_VERSION);
 
   let shuttingDown = false;
-  const shutdown = async (): Promise<void> => {
+  /** `quit` = the user quit the app (tray, Settings): open pages stop reconnecting. */
+  const shutdown = async (quit = false): Promise<void> => {
     if (shuttingDown) return;
     shuttingDown = true;
     console.log('\nShutting down...');
@@ -184,9 +197,12 @@ async function main(): Promise<void> {
     peerNet.stop();
     pins.flush();
     updater.stop();
-    await server.stop();
+    await server.stop(quit);
+    // Exit 0 = clean: the macOS LaunchAgent (KeepAlive SuccessfulExit=false) does not respawn.
     process.exit(0);
   };
+  // Tray / Settings → 완전 종료. Never the updater's reopen marker (that is /api/quit only).
+  const quitApp = (): void => void shutdown(true);
 
   // Re-run the loaders (bundled + external dirs) after an external-asset-
   // directory change, then re-send the updated sprites to the requesting
@@ -236,6 +252,7 @@ async function main(): Promise<void> {
         updater.onQuit();
         setTimeout(() => void shutdown(), QUIT_DELAY_MS);
       },
+      onQuitApp: quitApp,
       updater,
       autostart: { get: () => getAutostart(), set: (on) => setAutostart(on) },
     });
@@ -248,6 +265,8 @@ async function main(): Promise<void> {
       args.host === '0.0.0.0' || args.host === '::' || args.host === '' ? 'localhost' : args.host;
     console.log(`\n  Pixel Office running at http://${displayHost}:${port}\n`);
     if (reopen === 'open' || (reopen === null && args.open)) openOffice(localUrl);
+    // Only the instance that owns the server gets here (a second launch exited above).
+    startTray({ onOpen: () => openOffice(localUrl), onQuit: quitApp });
 
     process.on('SIGINT', () => void shutdown());
     process.on('SIGTERM', () => void shutdown());

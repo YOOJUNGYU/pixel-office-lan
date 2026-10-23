@@ -158,6 +158,7 @@ WSL 안에서 돌리는 Claude Code와 Codex는 Windows에 설치한 앱이 함�
 ### 실행 방법
 
 - **로그인할 때 자동 실행** — 기본으로 켜져 있습니다. Windows는 설치 때 체크를 풀 수 있고, 언제든 **설정 → 로그인할 때 자동 실행**으로 끄고 켭니다.
+- **끄기** — 트레이(Windows 알림 영역, Mac 메뉴 막대)의 Pixel Office 아이콘 → **Pixel Office 종료**, 또는 **설정 → 완전 종료**. 아이콘의 **Pixel Office 열기**(Windows 는 왼쪽 클릭)로 창을 엽니다.
 - **Windows**: 바탕화면 **Pixel Office** 바로가기(설치 때 "바탕화면에 바로가기 만들기") 또는 시작 메뉴 → **Pixel Office 열기**. 사무실이 꺼져 있으면 켜고, **앱으로 설치해 두었으면 그 앱 창**(Edge, 없으면 Chrome)을, 아니면 Edge(또는 Chrome) 새 창에서 열어 앱 설치 창을 보여 줍니다. 둘 다 없으면 기본 브라우저로 엽니다.
 - **Mac**: **응용 프로그램** 폴더나 **Launchpad**의 **Pixel Office** (Mac 관례대로 바탕화면 바로가기는 만들지 않습니다)
 - 어디서든 브라우저로 `http://localhost:47801`

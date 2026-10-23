@@ -158,6 +158,7 @@ Claude Code and Codex running inside WSL are read by the Windows app; there is n
 ### How to open
 
 - **Start at login** — on by default. On Windows you can untick it in the installer; anytime, toggle **Settings → Start at login**.
+- **Quitting** — the Pixel Office icon in the tray (Windows notification area, Mac menu bar) → **Quit Pixel Office**, or **Settings → Quit Pixel Office**. **Open Pixel Office** on the icon (a left click on Windows) opens the window.
 - **Windows**: the **Pixel Office** desktop shortcut ("Create a desktop shortcut" in the installer) or Start → **Pixel Office 열기**. It starts the office if needed and opens **the installed app** (Edge, else Chrome) if you installed it, otherwise a new Edge (or Chrome) window where the install popup appears, otherwise the default browser.
 - **Mac**: **Pixel Office** in **Applications** or **Launchpad** (no desktop alias, following macOS convention)
 - Anywhere: `http://localhost:47801` in a browser

@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 
+import { WS_CLOSE_APP_QUIT } from '../../core/src/constants.js';
 import type {
   AssetCache,
   ClientMessageContext,
@@ -22,6 +23,7 @@ import type { Updater } from './lan/updater.js';
  */
 export class PixelAgentsServer {
   private app: FastifyInstance | null = null;
+  private closeClients: ((code: number) => void) | null = null;
 
   /** Start listening. Resolves with the bound port. */
   async start(options?: {
@@ -34,10 +36,11 @@ export class PixelAgentsServer {
     logger?: boolean;
     lan?: LanService;
     onQuit?: () => void;
+    onQuitApp?: () => void;
     updater?: Updater;
     autostart?: ClientMessageContext['autostart'];
   }): Promise<{ port: number }> {
-    const { app, port } = await createHttpServer({
+    const { app, port, closeClients } = await createHttpServer({
       host: options?.host,
       port: options?.port,
       adapter: options?.adapter ?? new FileStateAdapter(),
@@ -47,15 +50,18 @@ export class PixelAgentsServer {
       logger: options?.logger,
       lan: options?.lan,
       onQuit: options?.onQuit,
+      onQuitApp: options?.onQuitApp,
       updater: options?.updater,
       autostart: options?.autostart,
     });
     this.app = app;
+    this.closeClients = closeClients;
     return { port };
   }
 
-  /** Stop the server. */
-  async stop(): Promise<void> {
+  /** Stop the server. `quit`: the user quit the app — pages get WS_CLOSE_APP_QUIT and stop reconnecting. */
+  async stop(quit = false): Promise<void> {
+    if (quit) this.closeClients?.(WS_CLOSE_APP_QUIT);
     await this.app?.close();
     this.app = null;
   }

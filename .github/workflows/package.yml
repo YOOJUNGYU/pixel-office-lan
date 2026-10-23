@@ -75,6 +75,11 @@ jobs:
           Start-Sleep -Seconds 5
           (Invoke-WebRequest -UseBasicParsing http://127.0.0.1:47899/api/ping).Content
           Stop-Process -Id $p.Id
+      - name: Smoke test tray icon (PowerShell NotifyIcon helper, smoke mode)
+        shell: pwsh
+        run: |
+          build/win/node.exe build/win/app/cli.js --tray-check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Smoke test start at login (per-user Startup shortcut)
         shell: pwsh
         run: |
@@ -147,6 +152,14 @@ jobs:
           sleep 5
           curl -sf http://127.0.0.1:47899/api/ping
           kill $!
+      - name: Tray icon script compiles (JXA)
+        run: |
+          node -e "const s=require('fs').readFileSync('server/src/lan/tray.ts','utf8');process.stdout.write(s.match(/MAC_TRAY_JXA = String.raw\`([\s\S]*?)\`;/)[1])" > "$RUNNER_TEMP/tray.js"
+          osacompile -l JavaScript -o "$RUNNER_TEMP/tray.scpt" "$RUNNER_TEMP/tray.js"
+      - name: Smoke test tray icon (NSStatusBar helper, smoke mode)
+        run: |
+          RES="build/mac/root/Applications/Pixel Office.app/Contents/Resources"
+          "$RES/node" "$RES/app/cli.js" --tray-check
       - uses: actions/upload-artifact@v7
         with:
           name: PixelOffice-${{ env.VERSION }}-Mac.pkg

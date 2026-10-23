@@ -60,6 +60,8 @@ export interface ClientMessageContext {
     get(): AutostartState;
     set(enabled: boolean): Promise<AutostartState>;
   };
+  /** Settings → 완전 종료. Absent in tests. */
+  onQuitApp?: () => void;
 }
 
 // ── Setting keys ──
@@ -194,6 +196,10 @@ export function handleClientMessage(
       void autostart.set(msg.enabled).then((state) => send(autostartMessage(state)));
       break;
     }
+
+    case 'quitApp':
+      ctx.onQuitApp?.();
+      break;
 
     default:
       break;
@@ -379,6 +385,7 @@ const KNOWN_CLIENT_TYPES: ReadonlySet<string> = new Set<ClientMessage['type']>([
   'installUpdate',
   'checkUpdate',
   'setAutostart',
+  'quitApp',
   'createOffice',
   'joinOffice',
   'leaveOffice',

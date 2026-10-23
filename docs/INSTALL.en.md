@@ -37,6 +37,7 @@ It starts at every login (`~/Library/LaunchAgents/com.pixeloffice.agent.plist`, 
 ## 4. How to open
 
 - **Start at login**: runs in the background without a window. Turn it off or on in the office under **Settings → Start at login** (applies from the next login; the running office keeps running). Installing an update keeps your choice.
+- **Tray icon · quitting**: while it runs, a Pixel Office icon sits in the Windows notification area (the tray; look under **^** if hidden) or the Mac menu bar. Click it (on Windows a left click opens the office) → **Open Pixel Office** / **Quit Pixel Office**. Quitting removes this PC from the other PCs too, and it stays off until the next login (if start at login is on) or until you open it again from the shortcut / app. No icon? **Settings → Quit Pixel Office** in the office does the same (an open window then says it was quit).
 - **Updates**: checked once when the app starts (Settings → Check for updates checks again). Installing with the **Update** button at the top right reloads the open window into the new version; no second window opens.
 - **Open the office**
   - Windows: the **Pixel Office** desktop shortcut, or Start → **Pixel Office 열기**

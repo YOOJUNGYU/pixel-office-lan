@@ -116,6 +116,7 @@ components:
         - $ref: '#/components/schemas/InstallUpdate'
         - $ref: '#/components/schemas/CheckUpdate'
         - $ref: '#/components/schemas/SetAutostart'
+        - $ref: '#/components/schemas/QuitApp'
         - $ref: '#/components/schemas/CreateOffice'
         - $ref: '#/components/schemas/JoinOffice'
         - $ref: '#/components/schemas/LeaveOffice'
@@ -978,6 +979,19 @@ components:
           const: setAutostart
         enabled:
           type: boolean
+
+    QuitApp:
+      description: >-
+        Quit Pixel Office on this PC (loopback browser only; Settings → 완전
+        종료). The server closes every UI socket with 4010 (WS_CLOSE_APP_QUIT)
+        and exits; unlike POST /api/quit it never leaves the update reopen
+        marker.
+      type: object
+      additionalProperties: false
+      required: [type]
+      properties:
+        type:
+          const: quitApp
 
     CreateOffice:
       description: >-

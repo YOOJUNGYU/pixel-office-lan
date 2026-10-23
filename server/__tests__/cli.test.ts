@@ -58,6 +58,7 @@ function isolatedEnv(home: string): NodeJS.ProcessEnv {
     HOME: home,
     USERPROFILE: home,
     PIXEL_OFFICE_NO_PEERS: '1',
+    PIXEL_OFFICE_NO_TRAY: '1', // never a tray icon on the developer's desktop
     CLAUDE_CONFIG_DIR: path.join(home, '.claude'),
     CODEX_HOME: path.join(home, '.codex'),
   };
@@ -85,6 +86,7 @@ describe('parseArgs', () => {
     expect(parseArgs([])).toEqual({ host: '127.0.0.1', port: 47801, open: false });
     expect(parseArgs(['--open']).open).toBe(true);
     expect(parseArgs(['--autostart', 'default']).autostart).toBe('default');
+    expect(parseArgs(['--tray-check']).trayCheck).toBe(true);
     expect(() => parseArgs(['--autostart', 'maybe'])).toThrow(CliArgsError);
     expect(() => parseArgs(['--autostart'])).toThrow(CliArgsError);
   });
@@ -191,7 +193,11 @@ describe('dist/cli.js entry-point guard', { timeout: CLI_TEST_TIMEOUT_MS }, () =
    *  bind; readiness is always probed over loopback, which every bind serves. */
   async function runCliServer(
     tmpHome: string,
-    body: (ctx: { output: () => string; port: number }) => Promise<void>,
+    body: (ctx: {
+      output: () => string;
+      port: number;
+      exitCode: () => number | null;
+    }) => Promise<void>,
     host = '127.0.0.1',
   ): Promise<void> {
     const workspaceDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pxl-cli-workspace-'));
@@ -215,7 +221,7 @@ describe('dist/cli.js entry-point guard', { timeout: CLI_TEST_TIMEOUT_MS }, () =
           return false;
         }
       });
-      await body({ output: () => output, port });
+      await body({ output: () => output, port, exitCode: () => child.exitCode });
     } finally {
       await stopChild(child);
       fs.rmSync(tmpHome, { recursive: true, force: true });
@@ -231,6 +237,24 @@ describe('dist/cli.js entry-point guard', { timeout: CLI_TEST_TIMEOUT_MS }, () =
     if (!match?.[1]) throw new Error(`No server URL in CLI output:\n${output}`);
     return new URL(match[1]);
   }
+
+  // Settings → 완전 종료: clean exit 0 (no LaunchAgent respawn), pages told to stop
+  // reconnecting (4010), and no update reopen marker (that is POST /api/quit's).
+  itBuilt('quitApp: closes pages with 4010, exits 0, writes no reopen marker', async () => {
+    const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), 'pxl-cli-quit-'));
+    await runCliServer(tmpHome, async ({ port, exitCode }) => {
+      const ws = new WebSocket(`ws://127.0.0.1:${port.toString()}/ws`);
+      await new Promise((r) => ws.addEventListener('open', r, { once: true }));
+      const closed = new Promise<number>((r) =>
+        ws.addEventListener('close', (e) => r(e.code), { once: true }),
+      );
+      ws.send(JSON.stringify({ type: 'quitApp' }));
+      expect(await closed).toBe(4010);
+      await waitForCondition(() => exitCode() !== null);
+      expect(exitCode()).toBe(0);
+      expect(fs.existsSync(path.join(tmpHome, '.pixel-office', 'updates', 'reopen'))).toBe(false);
+    });
+  });
 
   itBuilt('prints a browsable URL serving the SPA', async () => {
     const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), 'pxl-cli-url-'));
