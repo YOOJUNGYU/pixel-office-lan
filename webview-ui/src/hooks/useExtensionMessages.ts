@@ -182,7 +182,7 @@ export function useExtensionMessages(
         const snap = disambiguate((msg as OfficeSnapshot).people, msg.agents as OfficeAgent[]);
         const { agents } = snap;
         setPeople(snap.people);
-        chats.apply(snap.people, Date.now());
+        chats.apply(snap.people);
         setNicknames({ taken: snap.taken, selfLost: snap.selfLost });
         if (layoutReadyRef.current) applyAgents(agents);
         else pendingAgentsRef.current = agents;

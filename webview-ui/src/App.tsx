@@ -541,14 +541,21 @@ function App() {
           containerRef={containerRef}
           zoom={editor.zoom}
           panRef={editor.panRef}
-          canType={!editor.isEditMode && !touring && !officeReadOnly && !isMobile}
+          // Only in an office this PC is live in (I am in its snapshot): a chat goes nowhere else.
+          canType={
+            !editor.isEditMode &&
+            !touring &&
+            !officeReadOnly &&
+            !isMobile &&
+            people.some((p) => p.self)
+          }
           onSend={(text, col, row) => {
-            const me = people.find((p) => p.self);
-            const said = me ? chats.say(me, text, col, row, Date.now()) : null;
+            const said = chats.say(text, Date.now());
             if (said === null) return false;
             transport.send({ type: 'sendChat', text: said, col, row });
             return true;
           }}
+          onDelete={() => transport.send({ type: 'deleteChat' })}
         />
 
         <ZoomControls

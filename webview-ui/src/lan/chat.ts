@@ -1,22 +1,19 @@
-// Chat bubbles pinned to map spots: who said what where, for how long. Pure
-// except for the expiry timer, which asks the canvas for a frame.
+// Chat bubbles pinned to map spots: one per person, from the office snapshot. Pure.
 import {
   CHAT_MIN_INTERVAL_MS,
-  CHAT_SHOW_MS,
   chatCoord,
   cleanChatText,
   MAX_LAYOUT_COLS,
   MAX_LAYOUT_ROWS,
 } from '../../../core/src/lan.js';
 import type { OfficePersonMessage } from '../../../core/src/messages.js';
-import { requestRender } from '../office/engine/gameLoop.js';
 import type { OverlayProjection } from '../office/projection.js';
 import { TILE_SIZE } from '../office/types.js';
 import { peerLabel } from './nicknames.js';
 
 export interface Bubble {
   peerId: string;
-  /** The server's chat id; '' = my local echo, not yet in a snapshot. */
+  /** The sender's chat id: a new id = a new bubble. */
   id: string;
   text: string;
   /** Sender label, `account (nickname)`. */
@@ -24,95 +21,43 @@ export interface Bubble {
   /** World tile coordinates (floats). */
   col: number;
   row: number;
-  /** Shown until this time (ms epoch, this browser's clock). */
-  until: number;
+  /** My own bubble (gets the delete button). */
+  self: boolean;
 }
 
-const LOCAL = '';
-
 /**
- * One bubble per sender. A snapshot's (sender, id) is shown once, for the time
- * the server says is left (≤ CHAT_SHOW_MS) from its first arrival; later
- * snapshots never extend it. My own line shows at once (say) and is matched to
- * the server's id when it comes back.
+ * The bubbles of the viewed office = the latest snapshot's `people[].chat`
+ * (a person without one, or gone, has none). No local echo: the server answers
+ * sendChat/deleteChat with a fresh snapshot at once.
  */
 export class ChatBubbles {
-  private by = new Map<string, Bubble>();
+  private list: Bubble[] = [];
   private lastSaid = -Infinity;
-  private timer: ReturnType<typeof setTimeout> | null = null;
 
-  apply(people: readonly OfficePersonMessage[], now: number): void {
-    const next = new Map<string, Bubble>();
+  apply(people: readonly OfficePersonMessage[]): void {
+    const next: Bubble[] = [];
     for (const p of people) {
-      const prev = this.by.get(p.peerId);
       const c = p.chat;
-      const label = peerLabel(p);
-      if (prev?.id === LOCAL && p.self) {
-        // My echo: keep it until the server's copy (same text) takes over its timer.
-        const text = c ? cleanChatText(c.text) : null;
-        if (c && text === prev.text) next.set(p.peerId, { ...prev, id: c.id, label });
-        else if (prev.until > now) next.set(p.peerId, prev);
-        continue;
-      }
       if (!c) continue;
-      if (prev?.id === c.id) {
-        next.set(p.peerId, { ...prev, label });
-        continue;
-      }
       const text = cleanChatText(c.text);
       const col = chatCoord(c.col, MAX_LAYOUT_COLS - 1);
       const row = chatCoord(c.row, MAX_LAYOUT_ROWS - 1);
-      if (text === null || col === null || row === null) continue;
-      const left = Math.min(Math.max(Number(c.left) || 0, 0), CHAT_SHOW_MS);
-      next.set(p.peerId, { peerId: p.peerId, id: c.id, text, label, col, row, until: now + left });
+      if (text === null || col === null || row === null || typeof c.id !== 'string') continue;
+      next.push({ peerId: p.peerId, id: c.id, text, label: peerLabel(p), col, row, self: p.self });
     }
-    this.by = next;
-    this.schedule(now);
+    this.list = next;
   }
 
-  /** My own line, shown at once; the cleaned text, or null = empty or less than 2 s since the last. */
-  say(
-    me: OfficePersonMessage,
-    rawText: string,
-    col: number,
-    row: number,
-    now: number,
-  ): string | null {
+  /** The cleaned text to send, or null = empty or less than 2 s since the last. */
+  say(rawText: string, now: number): string | null {
     const text = cleanChatText(rawText);
     if (text === null || now - this.lastSaid < CHAT_MIN_INTERVAL_MS) return null;
     this.lastSaid = now;
-    this.by.set(me.peerId, {
-      peerId: me.peerId,
-      id: LOCAL,
-      text,
-      label: peerLabel(me),
-      col,
-      row,
-      until: now + CHAT_SHOW_MS,
-    });
-    this.schedule(now);
-    requestRender('chat');
     return text;
   }
 
-  active(now = Date.now()): Bubble[] {
-    return [...this.by.values()].filter((b) => b.until > now);
-  }
-
-  /** One timer at the next expiry: the bubble disappears on time even on an idle canvas. */
-  private schedule(now: number): void {
-    if (this.timer !== null) clearTimeout(this.timer);
-    this.timer = null;
-    const next = Math.min(...this.active(now).map((b) => b.until));
-    if (!Number.isFinite(next)) return;
-    this.timer = setTimeout(
-      () => {
-        this.timer = null;
-        requestRender('chat');
-        this.schedule(Date.now());
-      },
-      next - now + 1,
-    );
+  active(): Bubble[] {
+    return this.list;
   }
 }
 

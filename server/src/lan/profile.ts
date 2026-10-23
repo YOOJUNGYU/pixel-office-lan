@@ -3,12 +3,13 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
-import type { PetId } from '../../../core/src/lan.js';
+import type { PeerChat, PetId } from '../../../core/src/lan.js';
 import {
   cleanAccount,
   isPetId,
   isValidManualPeer,
   MAX_ACCOUNT,
+  parseChat,
   PUBLIC_VIEW,
   takeCodePoints,
 } from '../../../core/src/lan.js';
@@ -48,7 +49,11 @@ export interface Profile {
   setUp: boolean;
   /** When the current nickname was set (ms epoch); the earlier one keeps a clashing nickname. */
   nicknameSince: number;
+  /** This PC's chat bubble and the office view it was said in; absent = none. */
+  chat?: SavedChat;
 }
+
+export type SavedChat = PeerChat & { view: string };
 
 /** What saveProfile may change; identity/offices/views change only via their own messages. */
 export type EditableProfile = Pick<
@@ -108,6 +113,19 @@ function parseOffices(x: unknown): TeamOffice[] {
     if (out.length < MAX_OFFICES && !out.some((e) => e.tag === office.tag)) out.push(office);
   }
   return out;
+}
+
+/** The office `view` is open on this PC: public only while in no team, a team once joined. */
+export const isViewOpen = (offices: TeamOffice[], view: unknown): boolean =>
+  view === PUBLIC_VIEW ? offices.length === 0 : offices.some((o) => o.tag === view);
+
+/** A stored chat, or undefined when malformed or its office is no longer open. */
+function parseSavedChat(raw: unknown, offices: TeamOffice[]): SavedChat | undefined {
+  const chat = parseChat(raw);
+  const view = isObj(raw) ? raw.view : undefined;
+  return chat && typeof view === 'string' && isViewOpen(offices, view)
+    ? { ...chat, view }
+    : undefined;
 }
 
 /** Validates a client-supplied update. Returns a fresh object, or null if anything is off.
@@ -212,6 +230,8 @@ export function loadProfile(dir: string = defaultDir()): Profile {
     setUp: raw.setUp === true || nick !== '',
     nicknameSince: nicknameSinceOf(raw, editable.nickname, dir),
   };
+  const chat = parseSavedChat(raw.chat, offices);
+  if (chat) profile.chat = chat;
   if (JSON.stringify(profile) !== JSON.stringify(raw)) {
     try {
       saveProfile(profile, dir);

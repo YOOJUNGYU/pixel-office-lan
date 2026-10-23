@@ -164,13 +164,13 @@ export interface PeerInfo {
   /** Pet character instead of the `palette` human; absent = human. Unknown ids are dropped. */
   pet?: PetId;
 }
-/** A chat line pinned to a map spot, sent in every presence packet for CHAT_SHOW_MS. */
+/** This PC's chat bubble pinned to a map spot, in every presence of its channel until replaced or deleted. */
 export interface PeerChat {
-  /** Random CHAT_ID_LENGTH chars; receivers show each (sender, id) once. */
+  /** Random CHAT_ID_LENGTH chars; a new id = a new bubble. */
   id: string;
   /** Sanitised (cleanChatText), 1..CHAT_MAX_CHARS code points. */
   text: string;
-  /** Sender's send time (ms epoch); receivers time the bubble from first receipt. */
+  /** Sender's send time (ms epoch). */
   ts: number;
   /** World tile coordinates of the spot (floats, 0..MAX_LAYOUT_COLS-1 / ROWS-1). */
   col: number;
@@ -226,9 +226,7 @@ export const cleanNickname = (s: string): string => s.replace(/\p{C}/gu, '').tri
 
 // ── Chat ──
 export const CHAT_MAX_CHARS = 100;
-/** A bubble is shown (and the sender keeps sending it) this long. */
-export const CHAT_SHOW_MS = 10_000;
-/** One message per sender per this interval (sender, server and receivers). */
+/** One message per this interval (webview and server). */
 export const CHAT_MIN_INTERVAL_MS = 2_000;
 export const CHAT_ID_LENGTH = 8;
 const CHAT_ID = /^[0-9a-z]{8}$/i;

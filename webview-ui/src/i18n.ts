@@ -52,6 +52,7 @@ const ko = {
   'people.status.idle': '쉬는 중',
   'chat.placeholder': '메시지 입력 후 Enter',
   'chat.label': '채팅 메시지',
+  'chat.delete': '내 말풍선 지우기',
   'nickname.conflict':
     '이 닉네임은 다른 PC가 먼저 쓰고 있었습니다. 다른 사람에게는 내 닉네임 뒤에 짧은 구분 표시가 붙어 보이니 닉네임을 바꿔 주세요.',
   'nickname.change': '닉네임 바꾸기',
@@ -272,7 +273,7 @@ const ko = {
     '지금 이 오피스에 접속한 사람이 모두 보입니다. 에이전트가 없는 사람도요.\n❗ 는 확인을 기다리는 에이전트가 있다는 뜻입니다. 이름을 누르면 그 사람의 에이전트로 화면이 따라갑니다.',
   'tour.chat.title': '채팅',
   'tour.chat.body':
-    '/ 를 누르면 마우스 위치에 채팅 입력창이 열립니다. Enter 로 보내면 그 자리에 10초 동안 말풍선이 떠서 같은 오피스의 모두가 봅니다. Esc 는 취소입니다.\n어디에도 저장되지 않습니다.',
+    '/ 를 누르면 마우스 위치에 채팅 입력창이 열립니다. Enter 로 보내면 그 자리에 말풍선이 붙어서 같은 오피스의 모두가 봅니다. Esc 는 취소입니다.\n말풍선은 한 사람에 하나라 새로 쓰면 이전 것이 바뀌고, 내 말풍선의 × 로 지울 수 있습니다.',
   'tour.settingsButton.title': '설정',
   'tour.settingsButton.body': '언어, 테마, 프로필, 팀 오피스 같은 설정은 모두 여기에 있습니다.',
   'tour.language.title': '언어 · 테마',
@@ -364,6 +365,7 @@ const en: Record<Key, string> = {
   'people.status.idle': 'Idle',
   'chat.placeholder': 'Type and press Enter',
   'chat.label': 'Chat message',
+  'chat.delete': 'Delete my bubble',
   'nickname.conflict':
     'Another PC was using this nickname first. Others see yours with a short tag after it, so please change your nickname.',
   'nickname.change': 'Change nickname',
@@ -584,7 +586,7 @@ const en: Record<Key, string> = {
     "Everyone connected to this office is listed here, even people with no agents.\n❗ means one of their agents is waiting for them. Click a name and the view follows that person's agent.",
   'tour.chat.title': 'Chat',
   'tour.chat.body':
-    'Press / to open a chat box at the mouse pointer. Enter sends it: a bubble appears on that spot for 10 seconds for everyone in this office. Esc cancels.\nNothing is stored anywhere.',
+    'Press / to open a chat box at the mouse pointer. Enter pins a bubble on that spot for everyone in this office. Esc cancels.\nEveryone has one bubble: a new one replaces the old, and the × on yours deletes it.',
   'tour.settingsButton.title': 'Settings',
   'tour.settingsButton.body': 'Language, theme, profile, team offices and more live here.',
   'tour.language.title': 'Language & theme',

@@ -16,6 +16,7 @@ import { FileStateAdapter } from '../../src/fileStateAdapter.js';
 import { createIdentity } from '../../src/lan/crypto.js';
 import { LanService } from '../../src/lan/office.js';
 import type { Profile } from '../../src/lan/profile.js';
+import { loadProfile } from '../../src/lan/profile.js';
 
 const chat = (o: Partial<PeerChat> = {}): PeerChat => ({
   id: 'abcd1234',
@@ -90,38 +91,49 @@ describe('LanService chat', () => {
   };
   afterEach(() => fs.rmSync(dir, { recursive: true, force: true }));
 
-  it('sendChat: sanitised, sent at once, in packets for 10 s; one per 2 s', () => {
+  it('sendChat: sanitised, sent at once, no expiry; one per 2 s; a new one replaces the old', () => {
     const { lan, sendNow } = mk();
     const c = lan.sendChat(' hi‮ ', 2, 3, 1000)!;
     expect(c).toMatchObject({ text: 'hi', col: 2, row: 3, ts: 1000 });
     expect(c.id).toMatch(/^[0-9a-z]{8}$/i);
     expect(sendNow).toHaveBeenCalledOnce();
-    expect(lan.packet(PUBLIC_VIEW, 1000).chat).toEqual(c);
+    expect(lan.packet(PUBLIC_VIEW).chat).toEqual(c);
     expect(lan.sendChat('again', 0, 0, 2999)).toBeNull();
-    expect(lan.packet(PUBLIC_VIEW, 10_999).chat).toEqual(c);
-    expect(lan.packet(PUBLIC_VIEW, 11_000)).not.toHaveProperty('chat');
     expect(lan.sendChat('', 0, 0, 20_000)).toBeNull();
     expect(lan.sendChat('x', Number.NaN, 0, 20_000)).toBeNull();
-    expect(lan.sendChat('ok', 0, 0, 3000)).not.toBeNull();
+    expect(lan.packet(PUBLIC_VIEW).chat).toEqual(c); // refused ones change nothing, still there
+    const d = lan.sendChat('moved', 7, 8, 3000)!;
+    expect(d.id).not.toBe(c.id);
+    expect(lan.packet(PUBLIC_VIEW).chat).toEqual(d);
+    expect(lan.people(PUBLIC_VIEW)[0].chat).toEqual({ id: d.id, text: 'moved', col: 7, row: 8 });
   });
 
-  it('own chat: in my snapshot row with the time left; only in the view it was said in', () => {
+  it('deleteChat clears my bubble (persisted); the rate limit is not reset by it', () => {
+    const { lan, sendNow } = mk();
+    lan.sendChat('bye', 1, 1, 0);
+    lan.deleteChat();
+    expect(sendNow).toHaveBeenCalledTimes(2);
+    expect(lan.packet()).not.toHaveProperty('chat');
+    expect(lan.people(PUBLIC_VIEW)[0]).not.toHaveProperty('chat');
+    expect(loadProfile(dir)).not.toHaveProperty('chat');
+    expect(lan.sendChat('spam', 1, 1, 1000)).toBeNull();
+  });
+
+  it('persisted in profile.json; loaded back; malformed or a gone view is dropped', () => {
     const { lan } = mk();
-    const c = lan.sendChat('hi', 1, 1, 0)!;
-    expect(lan.people(PUBLIC_VIEW, 4000)[0].chat).toEqual({
-      id: c.id,
-      text: 'hi',
-      col: 1,
-      row: 1,
-      left: 6000,
-    });
-    lan.createOffice('팀'); // now in a team: the public chat goes nowhere
-    const tag = lan.profile.activeView;
-    expect(lan.packet(tag, 4000)).not.toHaveProperty('chat');
-    expect(lan.people(tag, 4000)[0]).not.toHaveProperty('chat');
+    const c = lan.sendChat('stay', 4, 5, 0)!;
+    expect(loadProfile(dir).chat).toEqual({ ...c, view: PUBLIC_VIEW });
+    const again = new LanService(loadProfile(dir), { views: () => [] }, dir);
+    expect(again.packet().chat).toEqual(c);
+    const file = path.join(dir, 'profile.json');
+    const raw = JSON.parse(fs.readFileSync(file, 'utf-8'));
+    for (const bad of [{ ...raw.chat, id: 'x' }, { ...raw.chat, view: 'gone' }, 'nope']) {
+      fs.writeFileSync(file, JSON.stringify({ ...raw, chat: bad }));
+      expect(loadProfile(dir)).not.toHaveProperty('chat');
+    }
   });
 
-  it('team chat goes only on its team channel, never public', () => {
+  it('a team chat goes only on its team channel, survives switching views, dies with the team', () => {
     const { lan } = mk();
     lan.createOffice('팀');
     const tag = lan.profile.activeView;
@@ -129,24 +141,35 @@ describe('LanService chat', () => {
     const other = lan.profile.activeView;
     lan.setActiveView(tag);
     lan.sendChat('team only', 0, 0, 0);
-    expect(lan.packet(tag, 1).chat?.text).toBe('team only');
-    expect(lan.packet(other, 1)).not.toHaveProperty('chat');
-    expect(lan.packet(PUBLIC_VIEW, 1)).not.toHaveProperty('chat');
+    expect(lan.packet(tag).chat?.text).toBe('team only');
+    expect(lan.packet(other)).not.toHaveProperty('chat');
+    expect(lan.packet(PUBLIC_VIEW)).not.toHaveProperty('chat');
+    lan.setActiveView(other);
+    expect(lan.packet(tag).chat?.text).toBe('team only');
+    expect(lan.people(other)[0]).not.toHaveProperty('chat');
+    lan.leaveOffice(tag);
+    expect(lan.profile).not.toHaveProperty('chat');
   });
 
-  it('received: shown once per (sender, id) for 10 s from first receipt; new ids within 2 s ignored', () => {
+  it('a public chat is dropped when joining a team', () => {
+    const { lan } = mk();
+    lan.sendChat('hi', 1, 1, 0);
+    lan.createOffice('팀');
+    expect(lan.profile).not.toHaveProperty('chat');
+    expect(lan.packet(PUBLIC_VIEW)).not.toHaveProperty('chat');
+  });
+
+  it("received: each live peer's current chat, replaced by a new id, gone when absent", () => {
     const peers: Record<string, PeerPacket[]> = { [PUBLIC_VIEW]: [pkt('p', chat())] };
     const { lan } = mk(peers);
-    const row = (t: number) => lan.people(PUBLIC_VIEW, t).find((p) => p.peerId === 'p')!;
-    expect(row(5000).chat).toMatchObject({ id: 'abcd1234', left: 10_000 });
-    peers[PUBLIC_VIEW] = [pkt('p', chat({ id: 'zzzz0000', text: 'spam' }))];
-    expect(row(6000).chat).toMatchObject({ id: 'abcd1234', left: 9000 }); // rate limited
-    peers[PUBLIC_VIEW] = [pkt('p', chat())];
-    expect(row(14_999).chat?.left).toBe(1);
-    expect(row(15_000)).not.toHaveProperty('chat');
-    expect(row(30_000)).not.toHaveProperty('chat'); // the same id never comes back
+    const row = () => lan.people(PUBLIC_VIEW).find((p) => p.peerId === 'p');
+    expect(row()?.chat).toEqual({ id: 'abcd1234', text: 'hi', col: 3, row: 4.5 });
     peers[PUBLIC_VIEW] = [pkt('p', chat({ id: 'next0001', text: 'new' }))];
-    expect(row(31_000).chat).toMatchObject({ text: 'new', left: 10_000 });
+    expect(row()?.chat).toMatchObject({ id: 'next0001', text: 'new' });
+    peers[PUBLIC_VIEW] = [pkt('p')];
+    expect(row()).not.toHaveProperty('chat');
+    peers[PUBLIC_VIEW] = [];
+    expect(row()).toBeUndefined();
   });
 
   it('a chat heard in a team is never in the public snapshot', () => {
@@ -154,17 +177,29 @@ describe('LanService chat', () => {
     lan.createOffice('팀');
     const tag = lan.profile.activeView;
     lan.net.peers = (v) => (v === tag ? [pkt('mate', chat())] : [pkt('pub', chat())]);
-    expect(lan.people(tag, 0).find((p) => p.peerId === 'mate')?.chat?.text).toBe('hi');
-    expect(lan.people(PUBLIC_VIEW, 0)).toEqual([]);
+    expect(lan.people(tag).find((p) => p.peerId === 'mate')?.chat?.text).toBe('hi');
+    expect(lan.people(PUBLIC_VIEW)).toEqual([]);
   });
 
-  it('sendChat message: privileged only', () => {
+  it('sendChat / deleteChat messages: privileged only; answered with a fresh snapshot', () => {
     const { lan } = mk();
     const adapter = new FileStateAdapter();
-    const msg = { type: 'sendChat', text: 'hey', col: 1, row: 2 };
-    handleClientMessage(msg, () => {}, { adapter, cache: null, lan, privileged: false });
+    const sent: Array<Record<string, unknown>> = [];
+    const send = (m: Record<string, unknown>) => sent.push(m);
+    const say = { type: 'sendChat', text: 'hey', col: 1, row: 2 };
+    handleClientMessage(say, send, { adapter, cache: null, lan, privileged: false });
     expect(lan.packet()).not.toHaveProperty('chat');
-    handleClientMessage(msg, () => {}, { adapter, cache: null, lan, privileged: true });
+    handleClientMessage(say, send, { adapter, cache: null, lan, privileged: true });
     expect(lan.packet().chat?.text).toBe('hey');
+    expect(sent.at(-1)).toMatchObject({
+      type: 'officeSnapshot',
+      people: [{ chat: { text: 'hey' } }],
+    });
+    const del = { type: 'deleteChat' };
+    handleClientMessage(del, send, { adapter, cache: null, lan, privileged: false });
+    expect(lan.packet().chat?.text).toBe('hey');
+    handleClientMessage(del, send, { adapter, cache: null, lan, privileged: true });
+    expect(lan.packet()).not.toHaveProperty('chat');
+    expect(sent.at(-1)).toMatchObject({ type: 'officeSnapshot' });
   });
 });

@@ -48,7 +48,8 @@ export type ClientMessage =
   | LeaveOffice
   | SetActiveView
   | GetOfficeCode
-  | SendChat;
+  | SendChat
+  | DeleteChat;
 
 export interface LayoutLoaded {
   type: 'layoutLoaded';
@@ -226,7 +227,6 @@ export interface ChatMessage {
   text: string;
   col: number;
   row: number;
-  left: number;
 }
 
 export interface ProfileLoaded {
@@ -387,4 +387,8 @@ export interface SendChat {
   text: string;
   col: number;
   row: number;
+}
+
+export interface DeleteChat {
+  type: 'deleteChat';
 }

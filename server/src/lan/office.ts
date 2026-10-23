@@ -11,7 +11,6 @@ import type {
 import {
   CHAT_ID_LENGTH,
   CHAT_MIN_INTERVAL_MS,
-  CHAT_SHOW_MS,
   nicknameKey,
   parseChat,
   PUBLIC_VIEW,
@@ -26,7 +25,13 @@ import { inviteText, newInviteCode, parseInviteCode, teamKey } from './crypto.js
 import type { TeamChannel } from './peerNet.js';
 import { fitPacket } from './peerNet.js';
 import type { EditableProfile, Profile, TeamOffice } from './profile.js';
-import { officeFromSecret, osAccount, saveProfile, validateOfficeName } from './profile.js';
+import {
+  isViewOpen,
+  officeFromSecret,
+  osAccount,
+  saveProfile,
+  validateOfficeName,
+} from './profile.js';
 import { redactView } from './redact.js';
 
 const toAgents = (peer: PeerInfo, views: AgentView[]): OfficeAgent[] =>
@@ -46,13 +51,14 @@ export function buildOffice(
   return [...toAgents(self, local), ...peers.flatMap((p) => toAgents(p.peer, p.views))];
 }
 
-const toChatMessage = (c: PeerChat, left: number): ChatMessage => ({
+const toChatMessage = (c: PeerChat): ChatMessage => ({
   id: c.id,
   text: c.text,
   col: c.col,
   row: c.row,
-  left: Math.max(0, Math.round(left)),
 });
+
+const toPeerChat = ({ id, text, ts, col, row }: PeerChat): PeerChat => ({ id, text, ts, col, row });
 
 /** True when a Pixel Office already answers on this port. */
 export async function checkExisting(port: number): Promise<boolean> {
@@ -84,10 +90,8 @@ export class LanService {
   private channels: { src: TeamOffice[]; list: TeamChannel[] } | null = null;
   /** This PC's OS account name: fixed, read at start, never from a client. */
   readonly account = osAccount();
-  /** This PC's last chat and the office view it was said in (only that channel carries it). */
-  private said: { chat: PeerChat; view: string } | null = null;
-  /** view → sender → the chat id shown and when it was first received (dedupe + expiry). */
-  private heard = new Map<string, Map<string, { chat: PeerChat; first: number }>>();
+  /** When this PC last sent a chat (rate limit; deleting doesn't reset it). */
+  private lastChatAt = -Infinity;
 
   constructor(
     public profile: Profile,
@@ -112,7 +116,7 @@ export class LanService {
 
   /** What PeerNet sends (encrypted) on `channel` (PUBLIC_VIEW or a team tag). Never
    *  throws: a failing scan sends no views. The chat goes only to the view it was said in. */
-  packet(channel: string = PUBLIC_VIEW, now = Date.now()): PeerPacket {
+  packet(channel: string = PUBLIC_VIEW): PeerPacket {
     let views: AgentView[] = [];
     try {
       const hide = this.profile.hideDetails;
@@ -122,14 +126,15 @@ export class LanService {
       console.error('[Pixel Office] Building peer packet failed:', err);
       views = [];
     }
-    const chat = this.ownChat(channel, now);
+    const chat = this.ownChat(channel);
     return fitPacket({ v: 1, peer: this.self(), views, ...(chat && { chat }) });
   }
 
-  /** Say `text` at map spot (col, row) in the active view. null = refused (empty,
-   *  bad spot, or less than CHAT_MIN_INTERVAL_MS after the last one). */
+  /** Pin `text` at map spot (col, row) in the active view, replacing this PC's
+   *  previous bubble (saved in profile.json). null = refused (empty, bad spot, or
+   *  less than CHAT_MIN_INTERVAL_MS after the last one). */
   sendChat(text: unknown, col: unknown, row: unknown, now = Date.now()): PeerChat | null {
-    if (this.said && now - this.said.chat.ts < CHAT_MIN_INTERVAL_MS) return null;
+    if (now - this.lastChatAt < CHAT_MIN_INTERVAL_MS) return null;
     const id = randomBytes(CHAT_ID_LENGTH)
       .toString('base64')
       .replace(/[^0-9a-z]/gi, '')
@@ -137,35 +142,19 @@ export class LanService {
       .slice(0, CHAT_ID_LENGTH);
     const chat = parseChat({ id, text, ts: now, col, row });
     if (!chat) return null;
-    this.said = { chat, view: this.profile.activeView };
-    this.net.sendNow();
+    this.lastChatAt = now;
+    this.update({ chat: { ...chat, view: this.profile.activeView } });
     return chat;
   }
 
-  private ownChat(view: string, now: number): PeerChat | undefined {
-    const s = this.said;
-    return s && s.view === view && now - s.chat.ts < CHAT_SHOW_MS ? s.chat : undefined;
+  /** Remove this PC's bubble. */
+  deleteChat(): void {
+    if (this.profile.chat) this.update({ chat: undefined });
   }
 
-  /** Received chats of one view: each (sender, id) shown once for CHAT_SHOW_MS from
-   *  first receipt; a new id within CHAT_MIN_INTERVAL_MS of the last is ignored. */
-  private heardChats(view: string, peers: PeerPacket[], now: number): Map<string, ChatMessage> {
-    const prev = this.heard.get(view) ?? new Map<string, { chat: PeerChat; first: number }>();
-    const next = new Map<string, { chat: PeerChat; first: number }>();
-    const out = new Map<string, ChatMessage>();
-    for (const { peer, chat } of peers) {
-      if (!chat) continue;
-      const old = prev.get(peer.id);
-      const e =
-        old && (old.chat.id === chat.id || now - old.first < CHAT_MIN_INTERVAL_MS)
-          ? old
-          : { chat, first: now };
-      next.set(peer.id, e);
-      const left = CHAT_SHOW_MS - (now - e.first);
-      if (left > 0) out.set(peer.id, toChatMessage(e.chat, left));
-    }
-    this.heard.set(view, next);
-    return out;
+  private ownChat(view: string): PeerChat | undefined {
+    const c = this.profile.chat;
+    return c?.view === view ? toPeerChat(c) : undefined;
   }
 
   /** Joined team offices with their keys, for PeerNet (derived once per offices change). */
@@ -191,13 +180,10 @@ export class LanService {
   }
 
   /** Everyone in one office (this PC first, then live peers, agents or not); same gate as office(). */
-  people(view: string, now = Date.now()): OfficePersonMessage[] {
+  people(view: string): OfficePersonMessage[] {
     if (!this.isOpen(view)) return [];
-    const peers = this.net.peers(view);
-    const chats = this.heardChats(view, peers, now);
-    const own = this.ownChat(view, now);
-    if (own) chats.set(this.profile.peerId, toChatMessage(own, CHAT_SHOW_MS - (now - own.ts)));
-    return [this.self(), ...peers.map((p) => p.peer)].map((p, i) => ({
+    const rows = [{ peer: this.self(), chat: this.ownChat(view) }, ...this.net.peers(view)];
+    return rows.map(({ peer: p, chat }, i) => ({
       peerId: p.id,
       account: p.account,
       nickname: p.nickname,
@@ -206,7 +192,7 @@ export class LanService {
       hueShift: p.hueShift,
       ...(p.pet && { pet: p.pet }),
       self: i === 0,
-      ...(chats.has(p.id) && { chat: chats.get(p.id) }),
+      ...(chat && { chat: toChatMessage(chat) }),
     }));
   }
 
@@ -225,8 +211,7 @@ export class LanService {
 
   /** The public office only while in no team; a team office only once joined. */
   private isOpen(view: string): boolean {
-    const { offices } = this.profile;
-    return view === PUBLIC_VIEW ? offices.length === 0 : offices.some((o) => o.tag === view);
+    return isViewOpen(this.profile.offices, view);
   }
 
   /** Offices for this PC's browser: names only, never secrets. */
@@ -311,6 +296,8 @@ export class LanService {
 
   private update(patch: Partial<Profile>): void {
     const next: Profile = { ...this.profile, ...patch };
+    // A bubble lives in its office: leaving it (or joining a team, for public) drops it.
+    if (!next.chat || !isViewOpen(next.offices, next.chat.view)) delete next.chat;
     saveProfile(next, this.dir);
     this.profile = next;
     this.net.sendNow();

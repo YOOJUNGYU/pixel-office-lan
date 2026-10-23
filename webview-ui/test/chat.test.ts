@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import type { OfficePersonMessage } from '../../core/src/messages.js';
 import { ChatBubbles, isTextEntry, pointerTile, stackBubbles, wrapLines } from '../src/lan/chat.js';
@@ -23,61 +23,53 @@ const msg = (o: Partial<NonNullable<OfficePersonMessage['chat']>> = {}) => ({
   text: 'hello',
   col: 5,
   row: 6.5,
-  left: 10_000,
   ...o,
 });
 
-afterEach(() => vi.useRealTimers());
-
 describe('ChatBubbles', () => {
-  it('a (sender, id) shows once for the time left from first arrival; never extended or revived', () => {
-    vi.useFakeTimers();
+  it('one bubble per person from the snapshot; no expiry; a new id replaces, a missing chat removes', () => {
     const c = new ChatBubbles();
-    c.apply([person('p', msg())], 0);
-    expect(c.active(0)).toMatchObject([
-      { peerId: 'p', text: 'hello', label: 'p (nick)', col: 5, row: 6.5, until: 10_000 },
+    c.apply([person('me', msg({ text: 'mine' }), true), person('p', msg())]);
+    expect(c.active()).toMatchObject([
+      { peerId: 'me', text: 'mine', self: true },
+      {
+        peerId: 'p',
+        id: 'abcd1234',
+        text: 'hello',
+        label: 'p (nick)',
+        col: 5,
+        row: 6.5,
+        self: false,
+      },
     ]);
-    c.apply([person('p', msg({ left: 10_000 }))], 4000); // later snapshot: same id
-    expect(c.active(9999)).toHaveLength(1);
-    expect(c.active(10_000)).toEqual([]);
-    c.apply([person('p', msg({ left: 500 }))], 10_500);
-    expect(c.active(10_500)).toEqual([]); // expired id stays expired
-    c.apply([person('p', msg({ id: 'next0001', left: 99_999 }))], 11_000);
-    expect(c.active(11_000)[0].until).toBe(21_000); // capped at 10 s
+    c.apply([person('p', msg())]); // later snapshots: still there (no timer)
+    expect(c.active()).toHaveLength(1);
+    c.apply([person('p', msg({ id: 'next0001', text: 'moved', col: 9 }))]);
+    expect(c.active()).toMatchObject([{ id: 'next0001', text: 'moved', col: 9 }]);
+    c.apply([person('p')]); // deleted
+    expect(c.active()).toEqual([]);
+    c.apply([person('p', msg())]);
+    c.apply([]); // went offline
+    expect(c.active()).toEqual([]);
   });
 
   it('sanitises received text and clamps the spot; drops unusable chats', () => {
     const c = new ChatBubbles();
-    c.apply(
-      [
-        person('a', msg({ text: 'x‮y\nz', col: -3, row: 1e9 })),
-        person('b', msg({ text: '​' })),
-        person('c', msg({ col: Number.NaN })),
-      ],
-      0,
-    );
-    expect(c.active(0)).toMatchObject([{ peerId: 'a', text: 'xy z', col: 0, row: 127 }]);
+    c.apply([
+      person('a', msg({ text: 'x‮y\nz', col: -3, row: 1e9 })),
+      person('b', msg({ text: '​' })),
+      person('c', msg({ col: Number.NaN })),
+    ]);
+    expect(c.active()).toMatchObject([{ peerId: 'a', text: 'xy z', col: 0, row: 127 }]);
   });
 
-  it('my line shows at once, then takes the server id without restarting; 1 per 2 s', () => {
-    vi.useFakeTimers();
+  it('say: cleaned text, nothing shown locally; 1 per 2 s', () => {
     const c = new ChatBubbles();
-    const me = person('me', undefined, true);
-    expect(c.say(me, '  hi ', 1, 2, 0)).toBe('hi');
-    expect(c.active(0)).toMatchObject([{ id: '', text: 'hi', until: 10_000 }]);
-    expect(c.say(me, 'again', 1, 2, 1999)).toBeNull();
-    expect(c.say(me, '\u0007', 1, 2, 5000)).toBeNull();
-    c.apply([me], 500); // snapshot from before the server heard it: echo stays
-    expect(c.active(500)).toHaveLength(1);
-    c.apply([person('me', msg({ text: 'hi', left: 9000 }), true)], 1000);
-    expect(c.active(1000)).toMatchObject([{ id: 'abcd1234', until: 10_000 }]);
-  });
-
-  it('a sender gone from the snapshot is forgotten', () => {
-    const c = new ChatBubbles();
-    c.apply([person('p', msg())], 0);
-    c.apply([], 1);
-    expect(c.active(1)).toEqual([]);
+    expect(c.say('  hi ', 0)).toBe('hi');
+    expect(c.active()).toEqual([]);
+    expect(c.say('again', 1999)).toBeNull();
+    expect(c.say('\u0007', 5000)).toBeNull();
+    expect(c.say('ok', 2000)).toBe('ok');
   });
 });
 

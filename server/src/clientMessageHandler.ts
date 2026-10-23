@@ -166,7 +166,11 @@ export function handleClientMessage(
       break;
 
     case 'sendChat':
-      ctx.lan?.sendChat(msg.text, msg.col, msg.row);
+    case 'deleteChat':
+      if (!ctx.lan) break;
+      if (msg.type === 'sendChat') ctx.lan.sendChat(msg.text, msg.col, msg.row);
+      else ctx.lan.deleteChat();
+      send(snapshotMessage(ctx.lan)); // my bubble changes now, not on the next tick
       break;
 
     case 'getOfficeCode': {

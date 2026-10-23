@@ -3,6 +3,8 @@ import { type MutableRefObject, type RefObject, useEffect, useRef, useState } fr
 import { CHAT_MAX_CHARS, takeCodePoints } from '../../../core/src/lan.js';
 import {
   CHAT_BORDER_PX,
+  CHAT_DELETE_GAP_PX,
+  CHAT_DELETE_PX,
   CHAT_DOT_PX,
   CHAT_FONT,
   CHAT_INPUT_WIDTH_PX,
@@ -38,6 +40,8 @@ interface ChatLayerProps {
   canType: boolean;
   /** Send a line said at (col, row); false = refused (empty, too soon). */
   onSend: (text: string, col: number, row: number) => boolean;
+  /** Delete my bubble. */
+  onDelete: () => void;
 }
 
 /**
@@ -53,6 +57,7 @@ export function ChatLayer({
   panRef,
   canType,
   onSend,
+  onDelete,
 }: ChatLayerProps) {
   const [, setTick] = useState(0);
   useEffect(() => onFrame(() => setTick((n) => n + 1)), []);
@@ -107,11 +112,11 @@ export function ChatLayer({
 
   const bubbles = chats.active().map((b) => {
     const lines = wrapLines(b.text, CHAT_TEXT_MAX_PX, (s) => textWidth(s, CHAT_FONT));
+    const head =
+      textWidth(b.label, CHAT_LABEL_FONT) + (b.self ? CHAT_DELETE_GAP_PX + CHAT_DELETE_PX : 0);
     const inner = Math.min(
       CHAT_TEXT_MAX_PX,
-      Math.ceil(
-        Math.max(textWidth(b.label, CHAT_LABEL_FONT), ...lines.map((l) => textWidth(l, CHAT_FONT))),
-      ),
+      Math.ceil(Math.max(head, ...lines.map((l) => textWidth(l, CHAT_FONT)))),
     );
     const at = spot(b.col, b.row);
     return {
@@ -163,12 +168,34 @@ export function ChatLayer({
           zIndex: CHAT_Z_INDEX,
         }}
       >
-        <span
-          className="text-2xs font-bold text-text-muted truncate"
-          style={{ lineHeight: `${CHAT_LABEL_LINE_PX}px` }}
-        >
-          {b.label}
-        </span>
+        <div className="flex items-start">
+          <span
+            className="flex-1 min-w-0 text-2xs font-bold text-text-muted truncate"
+            style={{ lineHeight: `${CHAT_LABEL_LINE_PX}px` }}
+          >
+            {b.label}
+          </span>
+          {b.self && (
+            <button
+              type="button"
+              data-testid="chat-delete"
+              aria-label={t('chat.delete')}
+              title={t('chat.delete')}
+              className="pointer-events-auto shrink-0 flex items-center justify-center text-sm font-bold text-text-muted hover:text-text hover:bg-btn-hover cursor-pointer"
+              style={{
+                width: CHAT_DELETE_PX,
+                height: CHAT_DELETE_PX,
+                marginLeft: CHAT_DELETE_GAP_PX,
+                marginTop: (CHAT_LABEL_LINE_PX - CHAT_DELETE_PX) / 2,
+                marginBottom: (CHAT_LABEL_LINE_PX - CHAT_DELETE_PX) / 2,
+                lineHeight: 1,
+              }}
+              onClick={onDelete}
+            >
+              ×
+            </button>
+          )}
+        </div>
         <span
           data-chat-text
           className="text-sm text-text"

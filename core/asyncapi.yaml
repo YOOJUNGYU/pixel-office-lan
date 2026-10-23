@@ -122,6 +122,7 @@ components:
         - $ref: '#/components/schemas/SetActiveView'
         - $ref: '#/components/schemas/GetOfficeCode'
         - $ref: '#/components/schemas/SendChat'
+        - $ref: '#/components/schemas/DeleteChat'
       discriminator: type
 
     # ── Server message variants ────────────────────────────────────
@@ -602,13 +603,12 @@ components:
 
     ChatMessage:
       description: >-
-        This PC's active chat line, pinned to a map spot (world tile
-        coordinates, clamped to 0..127). Sanitised by the server; `left` = ms
-        it is still shown (each (sender, id) is shown once, 10 s from first
-        receipt). Never stored.
+        This person's chat bubble, pinned to a map spot (world tile
+        coordinates, clamped to 0..127). Sanitised by the server. One per PC;
+        it stays until its sender replaces or deletes it or goes offline.
       type: object
       additionalProperties: false
-      required: [id, text, col, row, left]
+      required: [id, text, col, row]
       properties:
         id:
           type: string
@@ -618,9 +618,6 @@ components:
           type: number
         row:
           type: number
-        left:
-          type: integer
-          minimum: 0
 
     ProfileLoaded:
       description: >-
@@ -1049,10 +1046,10 @@ components:
 
     SendChat:
       description: >-
-        Say something at a map spot (loopback browser only): shown above that
-        tile for 10 s to everyone in the active office view. Text is
-        sanitised and capped at 100 code points; one message per 2 s. Not
-        stored anywhere.
+        Pin this PC's chat bubble at a map spot (loopback browser only),
+        replacing the previous one: shown above that tile to everyone in the
+        active office view while this PC is live there. Text is sanitised and
+        capped at 100 code points; one message per 2 s. Kept in profile.json.
       type: object
       additionalProperties: false
       required: [type, text, col, row]
@@ -1065,3 +1062,14 @@ components:
           type: number
         row:
           type: number
+
+    DeleteChat:
+      description: >-
+        Remove this PC's chat bubble (loopback browser only). Peers see it
+        disappear with the next presence.
+      type: object
+      additionalProperties: false
+      required: [type]
+      properties:
+        type:
+          const: deleteChat

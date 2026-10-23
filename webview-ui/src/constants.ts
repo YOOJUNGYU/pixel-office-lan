@@ -377,6 +377,9 @@ export const CHAT_STACK_GAP_PX = 4;
 /** The anchor dot on the chosen spot (CSS px). */
 export const CHAT_DOT_PX = 4;
 export const CHAT_INPUT_WIDTH_PX = 240;
+/** The × on my own bubble (square, CSS px) and its gap from the label. */
+export const CHAT_DELETE_PX = 16;
+export const CHAT_DELETE_GAP_PX = 6;
 /** Bubbles with the "!" sprites; the input above everything but the top-right stack's modals. */
 export const CHAT_Z_INDEX = 41;
 export const CHAT_INPUT_Z_INDEX = 44;
