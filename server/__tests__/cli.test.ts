@@ -9,6 +9,9 @@ import { CliArgsError, parseArgs } from '../src/cli.js';
 
 const CLI_BUNDLE = path.join(__dirname, '../../dist/cli.js');
 const CLI_START_TIMEOUT_MS = 10_000;
+/** Start wait + body + up to 2 s shutdown: must exceed the start wait or a slow
+ *  (loaded) machine times the test out before the helper's own deadline. */
+const CLI_TEST_TIMEOUT_MS = 30_000;
 
 async function getFreePort(): Promise<number> {
   return await new Promise((resolve, reject) => {
@@ -144,7 +147,7 @@ describe('parseArgs', () => {
  * Requires `npm run compile` (or `node esbuild.js`) to have produced
  * dist/cli.js first; reported as a loud skip if it hasn't.
  */
-describe('dist/cli.js entry-point guard', () => {
+describe('dist/cli.js entry-point guard', { timeout: CLI_TEST_TIMEOUT_MS }, () => {
   /** These tests spawn the BUNDLED CLI, so they need `npm run compile` to have
    *  run. Reported as a loud skip rather than an early `return`, which Vitest
    *  shows as PASSED with no message — a false green over a test that never
