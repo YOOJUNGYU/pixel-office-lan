@@ -20,7 +20,6 @@ import { LAN_READING_TOOLS } from '../constants.js';
 import { ChatBubbles } from '../lan/chat.js';
 import { avatarDirName, LanAgents } from '../lan/lanAgents.js';
 import { disambiguate } from '../lan/nicknames.js';
-import { setSoundEnabled } from '../notificationSound.js';
 import { requestRender } from '../office/engine/gameLoop.js';
 import type { OfficeState } from '../office/engine/officeState.js';
 import { setFloorSprites } from '../office/floorTiles.js';
@@ -84,6 +83,8 @@ interface ExtensionMessageState {
   lanVersion: number;
   /** Everyone in the viewed office (latest officeSnapshot). */
   people: OfficePersonMessage[];
+  /** People live per open office (view → count, me included); {} in personal mode. */
+  online: Record<string, number>;
   /** This PC's profile and whether this browser may edit it; null until loaded. */
   profile: Omit<ProfileLoaded, 'type'> | null;
   /** Why the last saveProfile was refused (profileError); null = none / cleared. */
@@ -131,6 +132,7 @@ export function useExtensionMessages(
   const [restarting, setRestarting] = useState(false);
   const [lanVersion, setLanVersion] = useState(0);
   const [people, setPeople] = useState<OfficePersonMessage[]>([]);
+  const [online, setOnline] = useState<Record<string, number>>({});
   const [profile, setProfile] = useState<Omit<ProfileLoaded, 'type'> | null>(null);
   const [profileError, setProfileError] = useState<ProfileErrorReason | null>(null);
   const [layoutSaveRejections, setLayoutSaveRejections] = useState(0);
@@ -200,6 +202,7 @@ export function useExtensionMessages(
         const snap = disambiguate((msg as OfficeSnapshot).people, msg.agents as OfficeAgent[]);
         const { agents } = snap;
         setPeople(snap.people);
+        setOnline((msg as OfficeSnapshot).online);
         chats.apply(snap.people);
         setNicknames({ taken: snap.taken, selfLost: snap.selfLost });
         if (layoutReadyRef.current) applyAgents(agents, snap.people);
@@ -265,7 +268,6 @@ export function useExtensionMessages(
         console.log(`[Webview] Received ${sets.length} carpet variant(s)`);
         setCarpetSprites(sets);
       } else if (msg.type === 'settingsLoaded') {
-        setSoundEnabled(msg.soundEnabled as boolean);
         if (typeof msg.alwaysShowLabels === 'boolean') {
           setAlwaysShowLabels(msg.alwaysShowLabels as boolean);
         }
@@ -324,6 +326,7 @@ export function useExtensionMessages(
     chats,
     lanVersion,
     people,
+    online,
     notify,
     setNotify,
     profile,

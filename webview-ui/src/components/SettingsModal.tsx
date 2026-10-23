@@ -1,11 +1,10 @@
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 
 import type { Lang } from '../../../core/src/lan.js';
 import type { AutostartState, OfficesState } from '../../../core/src/messages.js';
 import type { NotifySettings, OfficeReply } from '../hooks/useExtensionMessages.js';
 import { LANG_NAMES, setLang, t, useLang } from '../i18n.js';
 import { OfficeSettings } from '../lan/OfficeSettings.js';
-import { isSoundEnabled, setSoundEnabled } from '../notificationSound.js';
 import type { ThemePref } from '../theme.js';
 import { setThemePref, THEME_PREFS, useThemePref } from '../theme.js';
 import { transport } from '../transport/index.js';
@@ -68,7 +67,6 @@ export function SettingsModal({
   onOfficeReplyHandled,
   onReplayTour,
 }: SettingsModalProps) {
-  const [soundLocal, setSoundLocal] = useState(isSoundEnabled);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const lang = useLang();
   const themePref = useThemePref();
@@ -174,16 +172,6 @@ export function SettingsModal({
           {t('settings.resetDefaultLayout')}
         </MenuItem>
       )}
-      <Checkbox
-        label={t('settings.sound')}
-        checked={soundLocal}
-        onChange={() => {
-          const newVal = !isSoundEnabled();
-          setSoundEnabled(newVal);
-          setSoundLocal(newVal);
-          transport.send({ type: 'setSoundEnabled', enabled: newVal });
-        }}
-      />
       {autostart?.supported && (
         // Not optimistic: the server answers with the real state (autostartState).
         <div data-tour="settings-autostart">
@@ -194,19 +182,22 @@ export function SettingsModal({
           />
         </div>
       )}
-      {notify &&
-        (['presence', 'agents'] as const).map((k) => (
-          <Checkbox
-            key={k}
-            label={t(k === 'presence' ? 'settings.notifyPresence' : 'settings.notifyAgents')}
-            checked={notify[k]}
-            onChange={() => {
-              const next = { ...notify, [k]: !notify[k] };
-              onNotifyChange(next);
-              transport.send({ type: 'setNotifications', [k]: next[k] });
-            }}
-          />
-        ))}
+      {notify && (
+        <div data-tour="settings-notify">
+          {(['presence', 'agents'] as const).map((k) => (
+            <Checkbox
+              key={k}
+              label={t(k === 'presence' ? 'settings.notifyPresence' : 'settings.notifyAgents')}
+              checked={notify[k]}
+              onChange={() => {
+                const next = { ...notify, [k]: !notify[k] };
+                onNotifyChange(next);
+                transport.send({ type: 'setNotifications', [k]: next[k] });
+              }}
+            />
+          ))}
+        </div>
+      )}
       {showAreasAvailable && (
         <Checkbox
           label={t('settings.showAreas')}

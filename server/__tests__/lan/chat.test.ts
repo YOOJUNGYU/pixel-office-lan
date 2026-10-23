@@ -9,6 +9,7 @@ import {
   cleanChatText,
   parseChat,
   parsePeerPacket,
+  PERSONAL_VIEW,
   PUBLIC_VIEW,
 } from '../../../core/src/lan.js';
 import { handleClientMessage } from '../../src/clientMessageHandler.js';
@@ -143,6 +144,18 @@ describe('LanService chat', () => {
     expect(lan.people(other)[0]).not.toHaveProperty('chat');
     lan.leaveOffice(tag);
     expect(lan.profile).not.toHaveProperty('chat');
+  });
+
+  it('online: me + live peers per open office, none in personal mode', () => {
+    const peers: Record<string, PeerPacket[]> = { [PUBLIC_VIEW]: [pkt('p'), pkt('q')] };
+    const { lan } = mk(peers);
+    expect(lan.online()).toEqual({ [PUBLIC_VIEW]: 3 });
+    lan.createOffice('팀');
+    const tag = lan.profile.activeView;
+    peers[tag] = [pkt('r')];
+    expect(lan.online()).toEqual({ [tag]: 2 }); // public is closed while in a team
+    lan.setActiveView(PERSONAL_VIEW);
+    expect(lan.online()).toEqual({});
   });
 
   it('a public chat is dropped when joining a team', () => {

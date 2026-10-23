@@ -215,7 +215,6 @@ describe('clientMessageHandler', () => {
       const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
       for (const msg of [
         { type: 'saveLayout', layout: { version: 1, cols: 1, rows: 1, tiles: [0], furniture: [] } },
-        { type: 'setSoundEnabled', enabled: false },
         { type: 'setAlwaysShowLabels', enabled: true },
         { type: 'addExternalAssetDirectory', path: '/x' },
         { type: 'removeExternalAssetDirectory', path: '/x' },

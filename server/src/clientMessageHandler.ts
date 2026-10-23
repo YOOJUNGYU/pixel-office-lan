@@ -68,7 +68,6 @@ export interface ClientMessageContext {
 }
 
 // ── Setting keys ──
-const KEY_SOUND_ENABLED = 'pixel-agents.soundEnabled';
 const KEY_ALWAYS_SHOW_LABELS = 'pixel-agents.alwaysShowLabels';
 const KEY_SHOW_AREAS = 'pixel-agents.showAreas';
 const KEY_AUTO_UPDATE = 'pixel-agents.autoUpdate';
@@ -109,10 +108,6 @@ export function handleClientMessage(
       send({ type: ok ? 'layoutSaved' : 'layoutSaveRejected' });
       break;
     }
-
-    case 'setSoundEnabled':
-      adapter.setSetting(KEY_SOUND_ENABLED, msg.enabled);
-      break;
 
     case 'setAlwaysShowLabels':
       adapter.setSetting(KEY_ALWAYS_SHOW_LABELS, msg.enabled);
@@ -308,6 +303,7 @@ export function snapshotMessage(lan: LanService) {
     type: 'officeSnapshot',
     agents: lan.office(view),
     people: lan.people(view),
+    online: lan.online(),
     selfPeerId: lan.profile.peerId,
   } as const;
 }
@@ -394,7 +390,6 @@ function settingsSnapshot(ctx: ClientMessageContext) {
   const { adapter } = ctx;
   return {
     type: 'settingsLoaded',
-    soundEnabled: adapter.getSetting(KEY_SOUND_ENABLED, true),
     alwaysShowLabels: adapter.getSetting(KEY_ALWAYS_SHOW_LABELS, false),
     externalAssetDirectories: externalAssetDirectoriesFor(ctx),
     showAreas: adapter.getSetting(KEY_SHOW_AREAS, false),
@@ -414,7 +409,6 @@ function externalAssetDirectoriesFor(ctx: ClientMessageContext): string[] {
 const KNOWN_CLIENT_TYPES: ReadonlySet<string> = new Set<ClientMessage['type']>([
   'webviewReady',
   'saveLayout',
-  'setSoundEnabled',
   'setAlwaysShowLabels',
   'addExternalAssetDirectory',
   'removeExternalAssetDirectory',
@@ -460,7 +454,6 @@ function refuseReadOnly(
     );
   }
   switch (msg.type) {
-    case 'setSoundEnabled':
     case 'setAlwaysShowLabels':
     case 'setShowAreas':
     case 'setNotifications':

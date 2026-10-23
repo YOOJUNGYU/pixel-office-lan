@@ -277,10 +277,7 @@ export function dispatchMockMessages(): void {
   dispatch({ type: 'carpetTilesLoaded', sets: carpetSets });
   dispatch({ type: 'furnitureAssetsLoaded', catalog: furnitureCatalog, sprites: furnitureSprites });
   dispatch({ type: 'layoutLoaded', layout });
-  dispatch({
-    type: 'settingsLoaded',
-    soundEnabled: false,
-  });
+  dispatch({ type: 'settingsLoaded' });
 
   console.log('[BrowserMock] Messages dispatched');
 }

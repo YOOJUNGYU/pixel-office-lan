@@ -90,7 +90,6 @@ const ko = {
   'settings.profile': '내 프로필',
   'settings.export': '레이아웃 내보내기',
   'settings.import': '레이아웃 가져오기',
-  'settings.sound': '알림 소리',
   'settings.autostart': '로그인할 때 자동 실행',
   'settings.notifyPresence': '접속·퇴장 알림 (PC 알림)',
   'settings.notifyAgents': '내 에이전트 알림 (응답 대기·작업 완료)',
@@ -110,6 +109,7 @@ const ko = {
 
   'office.label': '오피스',
   'office.public': '🌐 공개 오피스',
+  'office.online': '{n}명',
   'office.unnamed': '이름 모를 팀',
   'office.personal': '🏠 개인용',
   'office.personalHint':
@@ -273,7 +273,7 @@ const ko = {
     '할 일을 기다리거나 확인을 기다릴 때는 대기실에서 쉽니다.\n방 이동은 3초 정도 상태가 이어져야 일어나서, 잠깐씩 바뀌는 작업에 캐릭터가 왔다 갔다 하지 않습니다.',
   'tour.tag.title': '이름표',
   'tour.tag.body':
-    '캐릭터 아래 이름표는 두 줄입니다. 윗줄은 "PC 계정 (닉네임)", 아랫줄은 "Claude/Codex #번호" 예요. 닉네임은 정한 사람만 보입니다. 아랫줄 앞의 색 점은 제공자예요 — 주황은 Claude, 초록은 Codex.\n메인 에이전트는 아랫줄 끝에 MAIN 배지가, 서브에이전트와 셸은 부모의 이름표 아랫줄 끝에 SUB / SHELL 배지가 붙습니다.',
+    '윗줄은 "PC 계정 (닉네임)", 아랫줄은 "Claude/Codex #번호" 입니다. 아랫줄 앞 색 점은 주황 = Claude, 초록 = Codex.\nMAIN = 메인 에이전트, SUB / SHELL = 서브에이전트와 셸(부모의 이름표로 보임).',
   'tour.bubble.title': '말풍선',
   'tour.bubble.body':
     '캐릭터에 마우스를 올리면 어느 방에서 무엇을 하는지, 그리고 이유가 보입니다.\n머리 위 빨간 ! 는 사용자의 확인(권한 승인이나 답변)을 기다린다는 뜻입니다.',
@@ -293,7 +293,7 @@ const ko = {
     '지금 이 오피스에 접속한 사람이 모두 보입니다. 에이전트가 없는 사람도요.\n❗ 는 확인을 기다리는 에이전트가 있다는 뜻입니다. 이름을 누르면 그 사람의 에이전트로 화면이 따라갑니다.',
   'tour.chat.title': '내 캐릭터와 채팅',
   'tour.chat.body':
-    '사람마다 캐릭터가 하나 있습니다 (에이전트가 없어도). 방향키(↑↓←→)로 내 캐릭터를 움직이세요.\n아래 가운데 채팅창에 쓰고 Enter 를 누르면 내 캐릭터 위에 말풍선이 떠서 따라다닙니다. 새 말이 이전 말을 바꾸고, ×로 지웁니다. 아무 곳도 선택되지 않았을 때 Space+Enter = 채팅창, Esc = 다시 방향키.',
+    '에이전트와 별개로 사람마다 캐릭터가 하나 있습니다. 방향키(↑↓←→)로 내 캐릭터를 움직이세요.\n아래 가운데 채팅창에 쓰고 Enter → 내 캐릭터 위에 말풍선(새로 쓰면 바뀌고 × 로 지움). 아무것도 선택되지 않았을 때 Space+Enter = 채팅창, Esc = 방향키로 복귀.',
   'tour.settingsButton.title': '설정',
   'tour.settingsButton.body': '언어, 테마, 프로필, 팀 오피스 같은 설정은 모두 여기에 있습니다.',
   'tour.language.title': '언어 · 테마',
@@ -301,15 +301,15 @@ const ko = {
     '화면 언어와 다크/라이트 테마는 브라우저마다 따로 고릅니다. 다른 PC의 에이전트 활동도 내가 고른 언어로 보입니다.\n왼쪽 위 해/달 버튼으로 다크와 라이트를 바로 바꿀 수도 있습니다.',
   'tour.profile.title': '내 프로필',
   'tour.profile.body':
-    '이 PC 에이전트들의 캐릭터(사람 6종 또는 펫 Claudio · Gitcat)와 색, 선택 닉네임을 정합니다. 이름은 항상 PC 계정 이름이 먼저 보이고, 계정 이름은 바꿀 수 없습니다.\n"상세 내용 숨기기" 를 켜면 다른 사람에게는 파일 이름이나 이유 없이 방과 활동 종류만 보입니다.',
+    '캐릭터(사람 6종 또는 펫 Claudio · Gitcat)와 색, 닉네임을 정합니다. 내 캐릭터와 이 PC 의 에이전트가 이 모습으로 나옵니다. 이름은 PC 계정 이름이 먼저이고 바꿀 수 없습니다.\n"상세 내용 숨기기" 를 켜면 다른 사람에게는 파일 이름이나 이유 없이 방과 활동 종류만 보입니다.',
   'tour.offices.title': '팀 오피스',
   'tour.offices.body':
     '팀 이름을 정해 만들면 초대 코드(PO2-…)가 나옵니다. 팀원은 그 코드로 참여합니다.\n팀 오피스의 내용은 팀원끼리만 암호화되어 오가고, 언제든 나갈 수 있습니다.',
-  'tour.system.title': '자동 실행 · 업데이트',
+  'tour.system.title': '자동 실행 · 알림 · 업데이트',
   'tour.system.body':
-    '로그인할 때 자동으로 켜지게 하거나, 새 버전이 있는지 바로 확인할 수 있습니다. 새 버전이 나오면 화면에 알림도 뜹니다.',
+    '로그인할 때 자동 실행과 PC 알림(접속·퇴장, 내 에이전트의 응답 대기·작업 완료)을 켜고 끕니다.\n새 버전은 자동으로 받아 다시 시작합니다. [업데이트 확인] 으로 바로 확인할 수도 있습니다.',
   'tour.system.bodyNoAutostart':
-    '새 버전이 있는지 바로 확인할 수 있습니다. 새 버전이 나오면 화면에 알림도 뜹니다.',
+    'PC 알림(접속·퇴장, 내 에이전트의 응답 대기·작업 완료)을 켜고 끕니다.\n새 버전은 자동으로 받아 다시 시작합니다. [업데이트 확인] 으로 바로 확인할 수도 있습니다.',
   'tour.layoutButton.title': '레이아웃 편집',
   'tour.layoutButton.body': '사무실 배치를 직접 꾸밀 수 있습니다. 편집기를 열어 볼게요.',
   'tour.floor.title': '바닥',
@@ -327,7 +327,7 @@ const ko = {
     '[지우기] 로 타일을 지울 수 있습니다. Ctrl+Z / Ctrl+Y 로 실행 취소 · 다시 실행.\n배치를 바꿔도 캐릭터는 있던 자리에 그대로 있습니다.',
   'tour.save.title': '저장',
   'tour.save.body':
-    '배치는 이 PC 에만 저장되고(공개·팀 오피스 모두), 다른 PC 의 화면은 바뀌지 않습니다. 편집한 내용은 바로바로 저장되고, [레이아웃] 버튼 옆 막대의 [저장] 은 저장한 뒤 편집을 닫습니다. [되돌리기] 는 확인 후 기본 레이아웃으로 되돌리고 편집을 닫습니다(직접 꾸민 내용은 사라집니다).\n배치를 나눠 쓰려면 설정 → [레이아웃 내보내기] 로 파일을 만들어 건네고, 받은 사람은 [레이아웃 가져오기] 로 엽니다.',
+    '편집은 바로 이 PC 에만 저장되고, 다른 PC 화면은 바뀌지 않습니다. [저장] 은 편집을 닫고, [되돌리기] 는 확인 후 기본 사무실로 되돌립니다.\n배치를 나누려면 설정 → [레이아웃 내보내기] / [레이아웃 가져오기].',
   'tour.install.title': '앱으로 설치',
   'tour.install.body':
     '이 PC의 브라우저에서는 Pixel Office 를 앱으로 설치할 수 있습니다(Edge·Chrome). 설치하면 바로가기가 탭이 아닌 앱 창으로 열립니다.\n안내 창을 닫았다면 주소창의 설치 아이콘을 쓰세요.',
@@ -423,7 +423,6 @@ const en: Record<Key, string> = {
   'settings.profile': 'My profile',
   'settings.export': 'Export layout',
   'settings.import': 'Import layout',
-  'settings.sound': 'Notification sound',
   'settings.autostart': 'Start at login',
   'settings.notifyPresence': 'Join/leave notifications (PC)',
   'settings.notifyAgents': 'My agents: waiting for me / finished (PC)',
@@ -442,6 +441,7 @@ const en: Record<Key, string> = {
 
   'office.label': 'Office',
   'office.public': '🌐 Public office',
+  'office.online': '{n} online',
   'office.unnamed': 'Unnamed team',
   'office.personal': '🏠 Personal',
   'office.personalHint':
@@ -605,7 +605,7 @@ const en: Record<Key, string> = {
     'Idle agents, and agents waiting for you, rest in the lounge.\nA move only happens after the new activity lasts about 3 seconds, so characters do not bounce around on quick tasks.',
   'tour.tag.title': 'Name tags',
   'tour.tag.body':
-    'The tag under a character has two lines: "PC account (nickname)" on top, "Claude/Codex #number" below; the nickname only when one is set. The dot before line 2 is the provider: orange = Claude, green = Codex.\nMain agents get a MAIN badge at the end of line 2; subagents and shells show their parent\'s tag with a SUB / SHELL badge.',
+    'Top line: "PC account (nickname)"; bottom line: "Claude/Codex #number". The dot before it: orange = Claude, green = Codex.\nMAIN = main agent; SUB / SHELL = subagents and shells (shown with their parent\'s tag).',
   'tour.bubble.title': 'Hover bubble',
   'tour.bubble.body':
     'Hover a character to see its room, what it is doing and why.\nA red ! over its head means it is waiting for you (a permission or an answer).',
@@ -625,7 +625,7 @@ const en: Record<Key, string> = {
     "Everyone connected to this office is listed here, even people with no agents.\n❗ means one of their agents is waiting for them. Click a name and the view follows that person's agent.",
   'tour.chat.title': 'Your character and chat',
   'tour.chat.body':
-    'Everyone has one character (agents or not). Move yours with the arrow keys (↑↓←→).\nType in the chat bar at the bottom centre and press Enter: the bubble floats above your character and follows it. A new line replaces the old one; × deletes it. With nothing focused, Space+Enter jumps to the chat bar; Esc gives the arrow keys back.',
+    'Besides agents, everyone has one character. Move yours with the arrow keys (↑↓←→).\nType in the chat bar at the bottom centre and press Enter → a bubble over your character (a new one replaces it, × deletes it). With nothing focused, Space+Enter = chat bar; Esc = back to the arrow keys.',
   'tour.settingsButton.title': 'Settings',
   'tour.settingsButton.body': 'Language, theme, profile, team offices and more live here.',
   'tour.language.title': 'Language & theme',
@@ -633,15 +633,15 @@ const en: Record<Key, string> = {
     'Each browser picks its own language and dark/light theme. Activity of agents on other PCs is shown in your language too.\nThe sun/moon button at the top left switches dark and light in one click.',
   'tour.profile.title': 'My profile',
   'tour.profile.body':
-    'Character (six people or the pets Claudio and Gitcat), color and optional nickname of this PC’s agents. Your PC account name always shows first and cannot be changed.\n"Hide details" shows others only the room and the kind of activity — no file names or reasons.',
+    'Character (six people or the pets Claudio · Gitcat), colour and nickname — for your own character and this PC\'s agents. Your PC account name always comes first and cannot be changed.\n"Hide details" shows others only the room and the kind of activity — no file names or reasons.',
   'tour.offices.title': 'Team offices',
   'tour.offices.body':
     'Create a team to get an invite code (PO2-…); teammates join with it.\nA team office is encrypted between its members, and you can leave any time.',
-  'tour.system.title': 'Start at login · Updates',
+  'tour.system.title': 'Start at login · Notifications · Updates',
   'tour.system.body':
-    'Start Pixel Office when you log in, or check for a new version right away. New versions are also announced on screen.',
+    'Turn start at login and PC notifications (join/leave, my agents waiting or finished) on or off.\nNew versions are installed automatically; [Check for updates] checks right now.',
   'tour.system.bodyNoAutostart':
-    'Check for a new version right away. New versions are also announced on screen.',
+    'Turn PC notifications (join/leave, my agents waiting or finished) on or off.\nNew versions are installed automatically; [Check for updates] checks right now.',
   'tour.layoutButton.title': 'Layout editor',
   'tour.layoutButton.body': 'Arrange the office yourself. Let’s open the editor.',
   'tour.floor.title': 'Floor',
@@ -661,7 +661,7 @@ const en: Record<Key, string> = {
     'Clear tiles with [Erase]. Ctrl+Z / Ctrl+Y undo and redo.\nChanging the layout never moves the characters.',
   'tour.save.title': 'Save',
   'tour.save.body':
-    'The layout is saved on this PC only (public and team offices alike); other PCs’ screens do not change. Every edit is saved right away; [Save] in the bar next to [Layout] saves and closes the editor, and [Reset] asks first, then restores the default layout and closes the editor (your customizations are lost).\nTo share a layout, make a file with Settings → [Export layout] and hand it over; the other person opens it with [Import layout].',
+    "Edits are saved right away, on this PC only; other PCs' screens do not change. [Save] closes the editor; [Reset] asks, then restores the default office.\nTo share a layout: Settings → [Export layout] / [Import layout].",
   'tour.install.title': 'Install as an app',
   'tour.install.body':
     'On this PC’s browser you can install Pixel Office as an app (Edge, Chrome). Shortcuts then open it in its own window instead of a tab.\nIf you closed the prompt, use the install icon in the address bar.',

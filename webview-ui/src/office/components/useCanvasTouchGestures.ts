@@ -2,7 +2,6 @@ import type { RefObject } from 'react';
 import { useEffect, useRef } from 'react';
 
 import { TOUCH_TAP_MAX_DURATION_MS } from '../../constants.js';
-import { unlockAudio } from '../../notificationSound.js';
 import { withinTapSlop } from '../../touch/touchPrimitives.js';
 import { clampZoom } from '../zoomAtPoint.js';
 
@@ -96,7 +95,6 @@ export function useCanvasTouchGestures(options: CanvasTouchOptions): void {
     };
 
     const onTouchStart = (e: TouchEvent) => {
-      unlockAudio();
       e.preventDefault();
       if (e.touches.length === 1) {
         panned = false;

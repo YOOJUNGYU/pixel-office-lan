@@ -4,8 +4,17 @@ import { t, useLang } from '../i18n.js';
 import { transport } from '../transport/index.js';
 import { switcherItems } from './offices.js';
 
-/** Top-centre office tabs: 🌐 public + 🔒 each team + 🏠 personal. This PC's browser only. */
-export function OfficeSwitcher({ state }: { state: Omit<OfficesState, 'type'> }) {
+/**
+ * Top-centre office tabs: 🌐 public + 🔒 each team + 🏠 personal. This PC's browser only.
+ * `online` = people live per open office (me included); a tab without one shows no count.
+ */
+export function OfficeSwitcher({
+  state,
+  online,
+}: {
+  state: Omit<OfficesState, 'type'>;
+  online: Record<string, number>;
+}) {
   useLang();
   return (
     <div
@@ -42,6 +51,8 @@ export function OfficeSwitcher({ state }: { state: Omit<OfficesState, 'type'> })
             : item.isPersonal
               ? t('office.personal')
               : `🔒 ${item.name || t('office.unnamed')}`}
+          {online[item.view] !== undefined &&
+            ` · ${t('office.online', { n: String(online[item.view]) })}`}
         </Button>
       ))}
     </div>

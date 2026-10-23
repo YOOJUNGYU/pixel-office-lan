@@ -107,7 +107,6 @@ components:
       oneOf:
         - $ref: '#/components/schemas/WebviewReady'
         - $ref: '#/components/schemas/SaveLayout'
-        - $ref: '#/components/schemas/SetSoundEnabled'
         - $ref: '#/components/schemas/SetAlwaysShowLabels'
         - $ref: '#/components/schemas/AddExternalAssetDirectory'
         - $ref: '#/components/schemas/RemoveExternalAssetDirectory'
@@ -328,7 +327,6 @@ components:
       additionalProperties: false
       required:
         - type
-        - soundEnabled
         - alwaysShowLabels
         - externalAssetDirectories
         - showAreas
@@ -338,8 +336,6 @@ components:
       properties:
         type:
           const: settingsLoaded
-        soundEnabled:
-          type: boolean
         alwaysShowLabels:
           type: boolean
         externalAssetDirectories:
@@ -569,10 +565,17 @@ components:
         sender when its profile hides details.
       type: object
       additionalProperties: false
-      required: [type, agents, people, selfPeerId]
+      required: [type, agents, people, online, selfPeerId]
       properties:
         type:
           const: officeSnapshot
+        online:
+          type: object
+          description: >-
+            People live per open office (public while in no team, else each
+            joined team tag), this PC included; empty in personal mode.
+          additionalProperties:
+            type: integer
         agents:
           type: array
           items:
@@ -819,16 +822,6 @@ components:
         layout:
           type: object
           description: Opaque layout object; format owned by the rendering layer.
-
-    SetSoundEnabled:
-      type: object
-      additionalProperties: false
-      required: [type, enabled]
-      properties:
-        type:
-          const: setSoundEnabled
-        enabled:
-          type: boolean
 
     SetAlwaysShowLabels:
       type: object

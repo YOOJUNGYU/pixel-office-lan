@@ -34,7 +34,6 @@ export type ServerMessage =
 export type ClientMessage =
   | WebviewReady
   | SaveLayout
-  | SetSoundEnabled
   | SetAlwaysShowLabels
   | AddExternalAssetDirectory
   | RemoveExternalAssetDirectory
@@ -147,7 +146,6 @@ export interface OfficeAccess {
 
 export interface SettingsLoaded {
   type: 'settingsLoaded';
-  soundEnabled: boolean;
   alwaysShowLabels: boolean;
   externalAssetDirectories: string[];
   showAreas: boolean;
@@ -163,6 +161,7 @@ export interface ExternalAssetDirectoriesUpdated {
 
 export interface OfficeSnapshot {
   type: 'officeSnapshot';
+  online: Record<string, number>;
   agents: OfficeAgentMessage[];
   people: OfficePersonMessage[];
   selfPeerId: string;
@@ -325,11 +324,6 @@ export interface WebviewReady {
 export interface SaveLayout {
   type: 'saveLayout';
   layout: Record<string, any>;
-}
-
-export interface SetSoundEnabled {
-  type: 'setSoundEnabled';
-  enabled: boolean;
 }
 
 export interface SetAlwaysShowLabels {

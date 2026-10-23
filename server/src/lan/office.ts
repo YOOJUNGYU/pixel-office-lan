@@ -264,6 +264,15 @@ export class LanService {
   }
 
   /** Live peers of a view; none at all in personal mode (PeerNet is offline too). */
+  /** How many people each open office has right now (me included), for the switcher tabs;
+   *  none in personal mode (offline, nobody else is known). */
+  online(): Record<string, number> {
+    if (this.personal) return {};
+    const { offices } = this.profile;
+    const views = offices.length === 0 ? [PUBLIC_VIEW] : offices.map((o) => o.tag);
+    return Object.fromEntries(views.map((v) => [v, 1 + this.peersIn(v).length]));
+  }
+
   private peersIn(view: string): PeerPacket[] {
     return this.personal ? [] : this.net.peers(view);
   }

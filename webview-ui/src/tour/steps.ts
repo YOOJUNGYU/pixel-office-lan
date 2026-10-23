@@ -141,7 +141,11 @@ export const STEPS: Step[] = [
   },
   {
     id: 'system',
-    targets: [{ dom: 'settings-autostart' }, { dom: 'settings-update' }],
+    targets: [
+      { dom: 'settings-autostart' },
+      { dom: 'settings-notify' },
+      { dom: 'settings-update' },
+    ],
     scene: { settings: true },
   },
   { id: 'layoutButton', targets: [{ dom: 'layout-button' }], requires: ['edit'] },

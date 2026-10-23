@@ -7,7 +7,6 @@ import {
   PAN_DRAG_THRESHOLD_PX,
   PAN_MARGIN_FRACTION,
 } from '../../constants.js';
-import { unlockAudio } from '../../notificationSound.js';
 import { subscribeTheme } from '../../theme.js';
 import { furnitureAt } from '../editor/editorActions.js';
 import { buildEditorRenderState } from '../editor/editorRenderState.js';
@@ -478,7 +477,6 @@ export function OfficeCanvas({
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
-      unlockAudio();
       // Middle mouse button (button 1) starts panning
       if (e.button === 1) {
         e.preventDefault();

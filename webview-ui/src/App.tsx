@@ -65,7 +65,7 @@ import { transport } from './transport/index.js';
 const officeStateRef = { current: null as OfficeState | null };
 const editorState = new EditorState();
 
-// Test-only observability hooks (message/sound logs, addAgent wrapper, selectAgent).
+// Test-only observability hooks (message logs, addAgent wrapper, selectAgent).
 // Installed only under the e2e harness so they never patch prototypes or grow
 // unbounded logs in a real user's session.
 if (isE2E) installTestHooks(officeStateRef);
@@ -115,6 +115,7 @@ function App() {
     lan,
     chats,
     people,
+    online,
     notify,
     setNotify,
     profileError,
@@ -644,7 +645,7 @@ function App() {
           </div>
         )}
 
-        {offices && !editor.isEditMode && <OfficeSwitcher state={offices} />}
+        {offices && !editor.isEditMode && <OfficeSwitcher state={offices} online={online} />}
 
         {/* Top right, stacked so nothing overlaps: update banner, install popup, people panel
           (which takes the height left below them). */}

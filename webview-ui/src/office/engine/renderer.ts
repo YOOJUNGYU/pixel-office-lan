@@ -86,7 +86,7 @@ import { renderMatrixEffect } from './matrixEffect.js';
  * "Display headless as ghosts" — whether headless agents render translucent.
  * Module state rather than a render param: the rAF loop reads it every frame,
  * so a toggle takes effect on the next one without threading a 21st argument
- * through renderFrame. Same shape as setProviderCapabilities / setSoundEnabled.
+ * through renderFrame. Same shape as setProviderCapabilities.
  * Mirrors the server default (off) — the cue is opt-in, so an office looks the
  * same as it did before the setting existed until someone turns it on.
  */

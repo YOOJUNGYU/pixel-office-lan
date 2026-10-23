@@ -7,7 +7,6 @@ import { carpetJunctionCase } from './office/sprites/carpetTiles.js';
 declare global {
   interface Window {
     __pixelAgentsTestHooks?: {
-      playedSounds?: Array<{ kind: string; at: number }>;
       getCharacters?: () => Array<{
         id: number;
         matrixEffect: 'spawn' | 'despawn' | null;
@@ -125,8 +124,6 @@ declare global {
  *   log captures matrixEffect AT addAgent time (synchronously inside the
  *   wrapper), eliminating the ~300ms matrix-effect lifetime race that would
  *   let a regression slip past a snapshot-based check.
- * - playedSounds: populated separately by notificationSound.ts (same namespace,
- *   different owner).
  * - selectAgent(id): sets officeState.selectedAgentId directly, the same state
  *   a canvas click produces. Lets e2e reveal an agent's "Close agent" (×)
  *   button deterministically instead of pixel-hunting the sprite on the canvas
