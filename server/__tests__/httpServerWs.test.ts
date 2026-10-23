@@ -5,6 +5,7 @@ import * as path from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { WebSocket } from 'ws';
 
+import { PUBLIC_VIEW } from '../../core/src/lan.js';
 import { WS_CLOSE_FORBIDDEN } from '../src/constants.js';
 import type { CreatedOffice } from '../src/lan/office.js';
 
@@ -58,17 +59,29 @@ function connect(port: number, headers: Record<string, string> = {}): Promise<Co
   });
 }
 
-/** Wait for one JSON message of the given type (or resolve null on timeout). */
-function waitForMessage(socket: WebSocket, type: string, ms = 2_000): Promise<unknown | null> {
+/**
+ * Wait for one JSON message of the given type that also passes `match` (or resolve
+ * null on timeout). A type alone can catch a stale reply still in flight from an
+ * earlier request — e.g. the officesState every refused office message re-sends.
+ */
+function waitForMessage(
+  socket: WebSocket,
+  type: string,
+  ms = 2_000,
+  match: (msg: Record<string, unknown>) => boolean = () => true,
+): Promise<unknown | null> {
   return new Promise((resolve) => {
-    const timer = setTimeout(() => resolve(null), ms);
-    socket.on('message', (data: Buffer) => {
-      const msg = JSON.parse(data.toString()) as { type?: string };
-      if (msg.type === type) {
-        clearTimeout(timer);
-        resolve(msg);
-      }
-    });
+    const done = (msg: unknown): void => {
+      clearTimeout(timer);
+      socket.off('message', onMessage);
+      resolve(msg);
+    };
+    const onMessage = (data: Buffer): void => {
+      const msg = JSON.parse(data.toString()) as Record<string, unknown>;
+      if (msg.type === type && match(msg)) done(msg);
+    };
+    const timer = setTimeout(() => done(null), ms);
+    socket.on('message', onMessage);
   });
 }
 
@@ -297,7 +310,8 @@ describe('/ws LAN office', () => {
     a.send(JSON.stringify({ type: 'joinOffice', code: 'PO2-NOPE' }));
     expect(await err).toEqual({ type: 'officeError', reason: 'invalidCode' });
 
-    const ok = waitForMessage(a, 'officesState');
+    // The refusal above also re-sent officesState (still public); it may land only now.
+    const ok = waitForMessage(a, 'officesState', 2_000, (m) => m.activeView === created.tag);
     a.send(JSON.stringify({ type: 'joinOffice', code: created.code.toLowerCase() }));
     expect(await ok).toMatchObject({ activeView: created.tag });
 
@@ -309,7 +323,10 @@ describe('/ws LAN office', () => {
     const bad = waitForMessage(a, 'officeError');
     a.send(JSON.stringify({ type: 'createOffice', name: '' }));
     expect(await bad).toEqual({ type: 'officeError', reason: 'nameInvalid' });
-    await new Promise((r) => setTimeout(r, SETTLE_MS));
+    // Barrier: leaving broadcasts an empty officesState to b after everything sent before it.
+    const left = waitForMessage(b, 'officesState', 2_000, (m) => m.activeView === PUBLIC_VIEW);
+    a.send(JSON.stringify({ type: 'leaveOffice', tag: created.tag }));
+    expect(await left).not.toBeNull();
     expect(bTypes).not.toContain('officeError');
   });
 

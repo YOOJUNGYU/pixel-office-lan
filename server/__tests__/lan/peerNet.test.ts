@@ -47,8 +47,9 @@ const freePort = (): Promise<number> =>
     });
   });
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-const until = async (f: () => boolean) => {
-  for (let i = 0; i < 100 && !f(); i++) await sleep(20);
+/** Poll until f() holds or a generous deadline passes (the caller's expect reports it). */
+const until = async (f: () => boolean, ms = 5_000) => {
+  for (const end = Date.now() + ms; !f() && Date.now() < end;) await sleep(20);
 };
 const ids = (ps: PeerPacket[]) => ps.map((p) => p.peer.id).sort();
 const nick = (ps: PeerPacket[], id: string) => ps.find((p) => p.peer.id === id)?.peer.nickname;
@@ -217,7 +218,6 @@ describe('PeerNet public office', () => {
       pub(9, 'evil', 'X', 'X', 'B'), // not addressed to A
       pub(10, 'evil', 'X', 'X', 'A', pairKey(other.privateKeyPem, a.id.publicKey, 'X', 'A')!), // wrong key
       { ...pub(11, 'evil'), n: '!!' },
-      { v: 1, peer: { id: 'X', nickname: 'evil', palette: 0, hueShift: 0 }, views: [] },
       { v: 2, t: 'team', tag: 'AAAAAAAAAAA', n: flipped.n, c: flipped.c },
       { v: 2, t: 'hello', id: 'X', pk: other.publicKey }, // key substitution for a known id
       'x'.repeat(MAX_PACKET_BYTES + 1),
@@ -226,10 +226,14 @@ describe('PeerNet public office', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     for (const f of forged) await send(f);
     await send(Buffer.from([0xff, 0xfe, 0x00]).toString('latin1'));
-    await sleep(100);
+    // Sent last: one socket → one socket on loopback is FIFO, so once its warning shows,
+    // every forged datagram above has been handled — no fixed sleep.
+    await send({ v: 1, peer: { id: 'X', nickname: 'evil', palette: 0, hueShift: 0 }, views: [] });
+    const warnedV1 = () => warn.mock.calls.some((m) => String(m[0]).includes('구버전'));
+    await until(warnedV1);
+    expect(warnedV1()).toBe(true);
     expect(seen()).toBe('two');
     expect(ids(a.net.peers(PUBLIC_VIEW))).toEqual(['X']);
-    expect(warn.mock.calls.some((m) => String(m[0]).includes('구버전'))).toBe(true);
   });
 
   it('a max-size presence splits into ≤ MAX_PRESENCE_PARTS datagrams of ≤ MAX_DATAGRAM_BYTES', () => {
@@ -363,11 +367,16 @@ describe('PeerNet team offices', () => {
     expect(ids(c.net.peers(PUBLIC_VIEW))).toEqual(['A']);
 
     a.offices = [channel(newInviteCode().secret)];
+    // A hello sent before the switch (pump's last round or PeerNet's own 1 s tick) may still
+    // be in flight. A → raw is FIFO, so A's first team datagram means it has landed.
+    const isTeam = (g: string) => (JSON.parse(g) as { t: string }).t === 'team';
+    a.net.sendNow();
+    await until(() => raw.got.some(isTeam));
     raw.got.length = 0;
     await pump([a, c], () => false, 5);
     expect(raw.got.length).toBeGreaterThan(0);
     expect(raw.got.filter(helloFromA)).toEqual([]);
-    expect(raw.got.some((g) => (JSON.parse(g) as { t: string }).t === 'team')).toBe(true);
+    expect(raw.got.some(isTeam)).toBe(true);
     expect(a.net.peers(PUBLIC_VIEW)).toEqual([]);
     c.t += PEER_TTL_MS + 1;
     await pump([a, c], () => false, 5);
