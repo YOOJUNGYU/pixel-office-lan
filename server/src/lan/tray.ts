@@ -3,9 +3,10 @@
  * server can be opened and fully quit. No dependencies: a helper child process
  * built from OS built-ins draws it —
  *
- * - win32: `powershell.exe -STA` with System.Windows.Forms.NotifyIcon
- *   (icon: `<install>\icon.ico`, else node.exe's icon, else the system one).
- *   Exits when the server pid is gone (polled every second).
+ * - win32: `PixelOfficeTray.exe --pid <pid>` next to node.exe (C# WinForms NotifyIcon,
+ *   scripts/package/tray/, built by package.yml, installed by windows.iss). Never
+ *   PowerShell: a hidden -EncodedCommand helper gets the install deleted by endpoint AV.
+ *   Exits when the server pid is gone (polled every second). Missing exe (dev) = no tray.
  * - darwin: `osascript -l JavaScript` (JXA) with NSStatusBar + NSMenu,
  *   accessory policy (no Dock icon); icon `Contents/Resources/AppIcon.icns`,
  *   else the title "PO". Exits on stdin EOF (the server's end of the pipe).
@@ -13,11 +14,12 @@
  * IPC = one word per line on the helper's stdout: `ko`|`en` (OS UI language,
  * before `ready`), `ready`, `open`, `quit`; one command per line on its stdin:
  * `notify <base64 of the UTF-8 body>` → an OS notification titled "Pixel Office"
- * (win32 toast under our AppUserModelID, else a balloon tip; darwin `displayNotification`). Values reach the scripts
- * only through environment variables (PO_*) and base64 stdin lines, never
- * spliced into the script text. A helper that dies is logged, never respawned.
+ * (win32 balloon tip = a toast attributed to the exe; darwin `displayNotification`).
+ * Values reach the helpers only through argv/env (PO_*) and base64 stdin lines,
+ * never spliced into script text. A helper that dies is logged, never respawned.
  */
 import { spawn } from 'node:child_process';
+import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { createInterface } from 'node:readline';
 
@@ -27,9 +29,7 @@ import {
   NO_TRAY_ENV,
   TRAY_CHECK_TIMEOUT_MS,
   TRAY_SMOKE_ENV,
-  WIN_DEFAULT_SYSTEM_ROOT,
-  WIN_NOTIFY_AUMID,
-  WIN_TRAY_ICON_NAME,
+  WIN_TRAY_EXE_NAME,
 } from '../constants.js';
 
 export const TRAY_EVENTS = ['ready', 'open', 'quit', 'ko', 'en'] as const;
@@ -44,81 +44,6 @@ export function parseTrayLine(line: string): TrayEvent | null {
 export function notifyCommand(body: string): string {
   return `notify ${Buffer.from(body, 'utf8').toString('base64')}\n`;
 }
-
-export const WIN_TRAY_PS = String.raw`
-$ErrorActionPreference = 'Stop'
-$ProgressPreference = 'SilentlyContinue'
-Add-Type -AssemblyName System.Windows.Forms, System.Drawing
-function Say($s) { try { [Console]::Out.WriteLine($s); [Console]::Out.Flush() } catch {} }
-$ko = [Globalization.CultureInfo]::CurrentUICulture.TwoLetterISOLanguageName -eq 'ko'
-$icon = $null
-try { if ($env:PO_ICON -and (Test-Path -LiteralPath $env:PO_ICON)) { $icon = New-Object System.Drawing.Icon $env:PO_ICON } } catch {}
-if (-not $icon) { try { $icon = [System.Drawing.Icon]::ExtractAssociatedIcon($env:PO_NODE) } catch {} }
-if (-not $icon) { $icon = [System.Drawing.SystemIcons]::Application }
-$ni = New-Object System.Windows.Forms.NotifyIcon
-$ni.Icon = $icon
-$ni.Text = 'Pixel Office'
-function Leave { try { $ni.Visible = $false; $ni.Dispose() } catch {}; [System.Windows.Forms.Application]::Exit() }
-# Notifications: a real toast under our own AppUserModelID (HKCU registration = per user, no
-# admin: header "Pixel Office" + our icon), else the NotifyIcon balloon (shown as PowerShell).
-$toast = $null
-try {
-  $k = "HKCU:\Software\Classes\AppUserModelId\$env:PO_AUMID"
-  [void](New-Item -Path $k -Force)
-  [void](New-ItemProperty -Path $k -Name DisplayName -Value 'Pixel Office' -PropertyType String -Force)
-  if ($env:PO_ICON -and (Test-Path -LiteralPath $env:PO_ICON)) { [void](New-ItemProperty -Path $k -Name IconUri -Value $env:PO_ICON -PropertyType String -Force) }
-  [void][Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime]
-  [void][Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime]
-  $toast = [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier($env:PO_AUMID)
-} catch {}
-function Notify($b) {
-  if ($toast) {
-    try {
-      $x = New-Object Windows.Data.Xml.Dom.XmlDocument
-      $x.LoadXml('<toast><visual><binding template="ToastGeneric"><text>Pixel Office</text><text/></binding></visual></toast>')
-      $x.GetElementsByTagName('text').Item(1).InnerText = $b # a text node: never parsed as XML
-      $toast.Show([Windows.UI.Notifications.ToastNotification]::new($x))
-      return
-    } catch {}
-  }
-  try { $ni.ShowBalloonTip(5000, 'Pixel Office', $b, [System.Windows.Forms.ToolTipIcon]::None) } catch {}
-}
-$menu = New-Object System.Windows.Forms.ContextMenuStrip
-$open = $menu.Items.Add($(if ($ko) { 'Pixel Office 열기' } else { 'Open Pixel Office' }))
-$open.add_Click({ Say 'open' })
-[void]$menu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator))
-$quit = $menu.Items.Add($(if ($ko) { 'Pixel Office 종료' } else { 'Quit Pixel Office' }))
-$quit.add_Click({ Say 'quit'; Leave })
-$ni.ContextMenuStrip = $menu
-$script:last = [DateTime]::MinValue
-$ni.add_MouseClick({ param($s, $e)
-  if ($e.Button -eq [System.Windows.Forms.MouseButtons]::Left -and ([DateTime]::Now - $script:last).TotalSeconds -gt 1) {
-    $script:last = [DateTime]::Now; Say 'open'
-  } })
-$ni.Visible = $true
-Say $(if ($ko) { 'ko' } else { 'en' })
-Say 'ready'
-if ($env:PO_TRAY_SMOKE -eq '1') { $ni.Visible = $false; $ni.Dispose(); exit 0 }
-$parent = $null
-try { if ([int]$env:PO_PID -gt 0) { $parent = [System.Diagnostics.Process]::GetProcessById([int]$env:PO_PID) } } catch {}
-if (-not $parent) { Leave; exit 0 }
-$timer = New-Object System.Windows.Forms.Timer
-$timer.Interval = 1000
-$in = New-Object System.IO.StreamReader([Console]::OpenStandardInput())
-$script:line = $in.ReadLineAsync()
-$timer.add_Tick({
-  try { if ($parent.HasExited) { Leave; return } } catch { Leave; return }
-  while ($script:line -and $script:line.IsCompleted) {
-    $l = $script:line.Result
-    if ($null -eq $l) { $script:line = $null; break }
-    if ($l -match '^notify ([A-Za-z0-9+/=]+)$') {
-      try { Notify ([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($Matches[1]))) } catch {}
-    }
-    $script:line = $in.ReadLineAsync()
-  } })
-$timer.Start()
-[System.Windows.Forms.Application]::Run()
-`;
 
 export const MAC_TRAY_JXA = String.raw`
 ObjC.import('Cocoa');
@@ -195,32 +120,14 @@ export interface TrayLaunch {
 /** How to start the helper on this OS; null = no tray here (Linux, WSL). */
 export function trayLaunch(
   platform: NodeJS.Platform,
-  env: NodeJS.ProcessEnv,
   execPath: string,
   pid: number,
 ): TrayLaunch | null {
   if (platform === 'win32') {
-    const w = path.win32;
-    const root = env.SystemRoot ?? WIN_DEFAULT_SYSTEM_ROOT;
     return {
-      cmd: w.join(root, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe'),
-      args: [
-        '-NoProfile',
-        '-NonInteractive',
-        '-ExecutionPolicy',
-        'Bypass',
-        '-WindowStyle',
-        'Hidden',
-        '-STA',
-        '-EncodedCommand',
-        Buffer.from(WIN_TRAY_PS, 'utf16le').toString('base64'),
-      ],
-      env: {
-        PO_PID: pid.toString(),
-        PO_NODE: execPath,
-        PO_ICON: w.join(w.dirname(execPath), WIN_TRAY_ICON_NAME),
-        PO_AUMID: WIN_NOTIFY_AUMID,
-      },
+      cmd: path.win32.join(path.win32.dirname(execPath), WIN_TRAY_EXE_NAME),
+      args: ['--pid', pid.toString()],
+      env: {},
     };
   }
   if (platform === 'darwin') {
@@ -236,6 +143,18 @@ export function trayLaunch(
 /** Whether the server should start a tray helper (not in tests: PIXEL_OFFICE_NO_TRAY=1). */
 export function wantTray(env: NodeJS.ProcessEnv): boolean {
   return env[NO_TRAY_ENV] !== '1';
+}
+
+/** This server's helper, if this OS has one and it is installed (a dev run has no tray exe). */
+function helperLaunch(): TrayLaunch | null {
+  const launch = trayLaunch(process.platform, process.execPath, process.pid);
+  if (launch && !fs.existsSync(launch.cmd)) {
+    console.warn(
+      `[Pixel Office] 트레이 도우미가 없어 트레이 아이콘 없이 실행합니다: ${launch.cmd}`,
+    );
+    return null;
+  }
+  return launch;
 }
 
 function spawnHelper(launch: TrayLaunch, extraEnv: Record<string, string> = {}) {
@@ -257,7 +176,7 @@ export interface TrayNotifier {
 export function startTray(handlers: { onOpen: () => void; onQuit: () => void }): TrayNotifier {
   const tray: TrayNotifier = { lang: 'en', notify: () => false };
   if (!wantTray(process.env)) return tray;
-  const launch = trayLaunch(process.platform, process.env, process.execPath, process.pid);
+  const launch = helperLaunch();
   if (!launch) return tray;
   try {
     const child = spawnHelper(launch);
@@ -287,7 +206,7 @@ export function startTray(handlers: { onOpen: () => void; onQuit: () => void }):
 
 /** `cli.js --tray-check`: start the helper in smoke mode; true once it prints `ready`. */
 export function trayCheck(): Promise<boolean> {
-  const launch = trayLaunch(process.platform, process.env, process.execPath, process.pid);
+  const launch = helperLaunch();
   if (!launch) return Promise.resolve(false);
   return new Promise((resolve) => {
     const child = spawnHelper(launch, { [TRAY_SMOKE_ENV]: '1' });

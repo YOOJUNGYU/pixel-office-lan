@@ -29,7 +29,7 @@ function fake(platform: NodeJS.Platform, execPath: string, files: string[], env 
     },
     run: async (file, args, e) => {
       runs.push({ file, args, env: e });
-      fsSet.add(e.PO_LNK); // PowerShell would have written the shortcut
+      if (args[0] === '--make-shortcut') fsSet.add(args[1]); // the helper would have written it
     },
   };
   return { deps, fsSet, log, runs };
@@ -56,20 +56,21 @@ describe('autostart', () => {
     expect(getAutostart(fake('darwin', '/usr/local/bin/node', []).deps).supported).toBe(false);
   });
 
-  it('win32: enable writes the Startup shortcut via env vars, disable removes it', async () => {
+  it('win32: enable writes the Startup shortcut via the tray exe (argv, no PowerShell), disable removes it', async () => {
     const f = fake('win32', WIN_EXE, [WIN_VBS], WIN_ENV);
     expect(getAutostart(f.deps)).toEqual({ enabled: false, supported: true });
     expect(await setAutostart(true, f.deps)).toEqual({ enabled: true, supported: true });
     const run = f.runs[0];
-    expect(run.file).toBe('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe');
-    expect(run.env).toEqual({
-      PO_LNK: WIN_LNK,
-      PO_TARGET: 'C:\\Windows\\System32\\wscript.exe',
-      PO_ARGS: `"${WIN_VBS}"`,
-      PO_DIR: 'C:\\Program Files\\PixelOffice',
-    });
-    // No path is spliced into the PowerShell source.
-    expect(run.args.join(' ')).not.toContain('Program Files');
+    expect(run.file).toBe('C:\\Program Files\\PixelOffice\\PixelOfficeTray.exe');
+    expect(run.args).toEqual([
+      '--make-shortcut',
+      WIN_LNK,
+      'C:\\Windows\\System32\\wscript.exe',
+      `"${WIN_VBS}"`,
+      'C:\\Program Files\\PixelOffice',
+    ]);
+    expect(run.env).toEqual({});
+    expect(`${run.file} ${run.args.join(' ')}`.toLowerCase()).not.toContain('powershell');
     expect(await setAutostart(false, f.deps)).toEqual({ enabled: false, supported: true });
     expect(f.fsSet.has(WIN_LNK)).toBe(false);
     expect(f.fsSet.has(MARKER)).toBe(true);
@@ -94,7 +95,7 @@ describe('autostart', () => {
     expect((await applyInstallerChoice('off', f.deps)).enabled).toBe(false);
   });
 
-  it('a failing PowerShell leaves it off and reports the real state', async () => {
+  it('a failing helper leaves it off and reports the real state', async () => {
     const f = fake('win32', WIN_EXE, [WIN_VBS], WIN_ENV);
     f.deps.run = () => Promise.reject(new Error('blocked'));
     expect(await setAutostart(true, f.deps)).toEqual({ enabled: false, supported: true });

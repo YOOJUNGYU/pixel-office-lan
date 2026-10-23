@@ -87,6 +87,19 @@ jobs:
           Copy-Item LICENSE build/win/LICENSE.txt
           Copy-Item -Recurse dist build/win/app
           Get-ChildItem build/win/app -Recurse -Filter *.map | Remove-Item
+      - name: Build tray helper (PixelOfficeTray.exe, csc.exe that ships with Windows)
+        shell: pwsh
+        run: |
+          $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
+          if (-not (Test-Path $csc)) { throw "csc.exe missing: $csc" }
+          & $csc /nologo /target:winexe /optimize+ /win32icon:build/win/icon.ico /r:System.Windows.Forms.dll /r:System.Drawing.dll /out:build/win/PixelOfficeTray.exe scripts/package/tray/PixelOfficeTray.cs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $v = (Get-Item build/win/PixelOfficeTray.exe).VersionInfo
+          "FileDescription=$($v.FileDescription) ProductName=$($v.ProductName)"
+          if ($v.FileDescription -ne 'Pixel Office') { throw 'FileDescription must be Pixel Office (notification name)' }
+          $out = & build/win/PixelOfficeTray.exe --smoke | Out-String
+          $out
+          if ($out -notmatch '(?m)^ready') { throw 'PixelOfficeTray.exe --smoke did not print ready' }
       - name: Smoke test staged app
         shell: pwsh
         run: |
@@ -94,11 +107,17 @@ jobs:
           Start-Sleep -Seconds 5
           (Invoke-WebRequest -UseBasicParsing http://127.0.0.1:47899/api/ping).Content
           Stop-Process -Id $p.Id
-      - name: Smoke test tray icon (PowerShell NotifyIcon helper, smoke mode)
+      - name: Smoke test tray icon (cli.js --tray-check → PixelOfficeTray.exe, no PowerShell)
         shell: pwsh
         run: |
           build/win/node.exe build/win/app/cli.js --tray-check
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # Without the exe there is no tray (never a PowerShell fallback).
+          Rename-Item build/win/PixelOfficeTray.exe PixelOfficeTray.off
+          build/win/node.exe build/win/app/cli.js --tray-check
+          $rc = $LASTEXITCODE
+          Rename-Item build/win/PixelOfficeTray.off PixelOfficeTray.exe
+          if ($rc -eq 0) { throw '--tray-check passed without PixelOfficeTray.exe' }
       - name: Smoke test start at login (per-user Startup shortcut)
         shell: pwsh
         run: |

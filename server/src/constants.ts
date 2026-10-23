@@ -141,14 +141,12 @@ export const AUTOSTART_OFF_MARKER = 'autostart-off';
 export const NO_TRAY_ENV = 'PIXEL_OFFICE_NO_TRAY';
 /** Set for the helper by `--tray-check`: build the icon, print `ready`, exit. */
 export const TRAY_SMOKE_ENV = 'PO_TRAY_SMOKE';
-/** Icons the installers put next to node: Windows `icon.ico`, macOS `AppIcon.icns`. */
-export const WIN_TRAY_ICON_NAME = 'icon.ico';
-/** Windows toast identity (AppUserModelID): the tray helper registers it under HKCU\Software\Classes\AppUserModelId
- *  with DisplayName "Pixel Office" + IconUri = icon.ico, so toasts show our name and icon. */
-export const WIN_NOTIFY_AUMID = 'PixelOffice.App';
+/** Windows tray helper (scripts/package/tray/PixelOfficeTray.cs), installed next to node.exe. */
+export const WIN_TRAY_EXE_NAME = 'PixelOfficeTray.exe';
+/** macOS: the icon the installer puts next to node. */
 export const MAC_TRAY_ICON_NAME = 'AppIcon.icns';
 export const MAC_OSASCRIPT = '/usr/bin/osascript';
-/** `--tray-check`: PowerShell's first start can be slow. */
+/** `--tray-check`: a cold first start (AV scan, .NET JIT) can be slow. */
 export const TRAY_CHECK_TIMEOUT_MS = 60_000;
 
 // ── v2 wire crypto (lan/crypto.ts) ─────────────────────────

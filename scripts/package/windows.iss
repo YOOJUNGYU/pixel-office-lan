@@ -1,5 +1,7 @@
 ﻿; Pixel Office — Windows installer (Inno Setup 6).
-; Build: iscc /DAppVersion=<ver> /DStage=<dir with node.exe, launch.vbs, app\> scripts\package\windows.iss
+; Build: iscc /DAppVersion=<ver> /DStage=<dir with node.exe, PixelOfficeTray.exe, launch.vbs, app\> scripts\package\windows.iss
+; PixelOfficeTray.exe (tray, notifications, Startup .lnk) lives here, not in app\: silent updates
+; replace app\ only, so a change to the helper needs an installer release.
 ; Output: release\PixelOffice-<ver>-Windows.exe
 
 #ifndef AppVersion
@@ -82,13 +84,15 @@ Filename: "{sys}\wscript.exe"; Parameters: """{app}\launch.vbs"""; Check: Wizard
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""Pixel Office"""; Flags: runhidden; RunOnceId: "DelFirewallRule"
 
 [Code]
-{ Ask a running office to exit (POST /api/quit, loopback only) so node.exe is not locked. Errors are ignored. }
+{ Ask a running office to exit (POST /api/quit, loopback only) so node.exe is not locked. Errors are
+  ignored (first install: no node.exe yet). Uses the installed node.exe, never PowerShell: endpoint AV
+  (Kaspersky PDM) flags hidden PowerShell started around our files. }
 procedure QuitRunningOffice;
 var
   Code: Integer;
 begin
-  Exec('powershell.exe',
-    '-NoProfile -ExecutionPolicy Bypass -Command "try { Invoke-WebRequest -UseBasicParsing -Method Post -Uri http://127.0.0.1:47801/api/quit -TimeoutSec 3 | Out-Null; Start-Sleep -Seconds 2 } catch {}"',
+  Exec(ExpandConstant('{app}\node.exe'),
+    '-e "fetch(''http://127.0.0.1:47801/api/quit'',{method:''POST'',signal:AbortSignal.timeout(3000)}).then(()=>new Promise(r=>setTimeout(r,2000)),()=>{})"',
     '', SW_HIDE, ewWaitUntilTerminated, Code);
 end;
 

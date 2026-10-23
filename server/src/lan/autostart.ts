@@ -3,9 +3,9 @@
  * `cli.js --autostart on|off|default`).
  *
  * - win32: a shortcut in the user's Startup folder → wscript "<install>\launch.vbs".
- *   A .lnk needs COM, so PowerShell's WScript.Shell writes it; every path is
- *   passed through environment variables (never spliced into the command) and
- *   comes from process.execPath / %APPDATA% only.
+ *   A .lnk needs COM, so the tray helper writes it (`PixelOfficeTray.exe
+ *   --make-shortcut <lnk> <target> <args> <dir>`, WScript.Shell; no PowerShell);
+ *   every path is argv only and comes from process.execPath / %APPDATA%.
  * - darwin: ~/Library/LaunchAgents/com.pixeloffice.agent.plist, copied from the
  *   template shipped in the app (the one postinstall uses). No launchctl: a
  *   bootout would kill this very server; the change applies at next login.
@@ -29,6 +29,7 @@ import {
   WIN_LAUNCHER_NAME,
   WIN_STARTUP_LINK_NAME,
   WIN_STARTUP_SUBDIR,
+  WIN_TRAY_EXE_NAME,
 } from '../constants.js';
 
 export interface AutostartState {
@@ -71,12 +72,6 @@ export const realDeps = (): AutostartDeps => ({
       );
     }),
 });
-
-/** Writes the shortcut from $env:PO_* only — nothing user-controlled in the script text. */
-const PS_CREATE_LINK =
-  '$s=(New-Object -ComObject WScript.Shell).CreateShortcut($env:PO_LNK);' +
-  '$s.TargetPath=$env:PO_TARGET;$s.Arguments=$env:PO_ARGS;' +
-  '$s.WorkingDirectory=$env:PO_DIR;$s.Save()';
 
 type Plan =
   | { kind: 'win'; link: string; installDir: string; systemRoot: string }
@@ -130,21 +125,15 @@ export async function setAutostart(
         const w = path.win32;
         d.mkdir(w.dirname(p.link));
         await d.run(
-          w.join(p.systemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe'),
+          w.join(p.installDir, WIN_TRAY_EXE_NAME),
           [
-            '-NoProfile',
-            '-NonInteractive',
-            '-ExecutionPolicy',
-            'Bypass',
-            '-Command',
-            PS_CREATE_LINK,
+            '--make-shortcut',
+            p.link,
+            w.join(p.systemRoot, 'System32', 'wscript.exe'),
+            `"${w.join(p.installDir, WIN_LAUNCHER_NAME)}"`,
+            p.installDir,
           ],
-          {
-            PO_LNK: p.link,
-            PO_TARGET: w.join(p.systemRoot, 'System32', 'wscript.exe'),
-            PO_ARGS: `"${w.join(p.installDir, WIN_LAUNCHER_NAME)}"`,
-            PO_DIR: p.installDir,
-          },
+          {},
         );
       } else {
         d.remove(p.link);
