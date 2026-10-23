@@ -64,7 +64,7 @@ function DeleteButton({ onDelete, testId }: { onDelete: () => void; testId: stri
 
 /**
  * Chat bubbles above each person's avatar (they follow it as it walks, and
- * pan/zoom), and the chat bar at the bottom centre. Enter with nothing
+ * pan/zoom), and the chat bar at the bottom centre. Space+Enter with nothing
  * focused focuses the bar; Esc leaves it (the arrow keys move the avatar
  * again). Re-rendered after every canvas frame. All text is React text nodes.
  */
@@ -86,16 +86,33 @@ export function ChatLayer({
 
   useEffect(() => {
     if (!canType) return;
+    let spaceHeld = false;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Enter' || e.ctrlKey || e.metaKey || e.altKey || e.isComposing) return;
       const el = document.activeElement;
-      // Only from the office itself: a focused button/field keeps its own Enter.
+      // Only from the office itself: a focused button/field keeps its own Space/Enter.
       if (el && el !== document.body && el.tagName !== 'CANVAS') return;
+      if (e.code === 'Space') {
+        spaceHeld = true;
+        return;
+      }
+      if (e.key !== 'Enter' || !spaceHeld || e.ctrlKey || e.metaKey || e.altKey || e.isComposing)
+        return;
       e.preventDefault();
+      spaceHeld = false;
       inputRef.current?.focus();
     };
+    const onUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space') spaceHeld = false;
+    };
+    const onBlur = () => (spaceHeld = false);
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener('keyup', onUp);
+    window.addEventListener('blur', onBlur);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('keyup', onUp);
+      window.removeEventListener('blur', onBlur);
+    };
   }, [canType]);
 
   const el = containerRef.current;

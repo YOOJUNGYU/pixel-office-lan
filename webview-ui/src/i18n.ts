@@ -49,7 +49,7 @@ const ko = {
   'people.status.attention': '확인을 기다림',
   'people.status.working': '작업 중',
   'people.status.idle': '쉬는 중',
-  'chat.placeholder': '채팅 입력… (Enter)',
+  'chat.placeholder': '채팅 입력 (Space+Enter) · 방향키로 캐릭터 이동',
   'chat.label': '채팅 메시지',
   'chat.delete': '내 말풍선 지우기',
   'nickname.conflict':
@@ -284,7 +284,7 @@ const ko = {
     '지금 이 오피스에 접속한 사람이 모두 보입니다. 에이전트가 없는 사람도요.\n❗ 는 확인을 기다리는 에이전트가 있다는 뜻입니다. 이름을 누르면 그 사람의 에이전트로 화면이 따라갑니다.',
   'tour.chat.title': '내 캐릭터와 채팅',
   'tour.chat.body':
-    '사람마다 캐릭터가 하나 있습니다 (에이전트가 없어도). 방향키(↑↓←→)로 내 캐릭터를 움직이세요.\n아래 가운데 채팅창에 쓰고 Enter 를 누르면 내 캐릭터 위에 말풍선이 떠서 따라다닙니다. 새 말이 이전 말을 바꾸고, ×로 지웁니다. 아무 곳도 선택되지 않았을 때 Enter = 채팅창, Esc = 다시 방향키.',
+    '사람마다 캐릭터가 하나 있습니다 (에이전트가 없어도). 방향키(↑↓←→)로 내 캐릭터를 움직이세요.\n아래 가운데 채팅창에 쓰고 Enter 를 누르면 내 캐릭터 위에 말풍선이 떠서 따라다닙니다. 새 말이 이전 말을 바꾸고, ×로 지웁니다. 아무 곳도 선택되지 않았을 때 Space+Enter = 채팅창, Esc = 다시 방향키.',
   'tour.settingsButton.title': '설정',
   'tour.settingsButton.body': '언어, 테마, 프로필, 팀 오피스 같은 설정은 모두 여기에 있습니다.',
   'tour.language.title': '언어 · 테마',
@@ -373,7 +373,7 @@ const en: Record<Key, string> = {
   'people.status.attention': 'Needs attention',
   'people.status.working': 'Working',
   'people.status.idle': 'Idle',
-  'chat.placeholder': 'Type a message… (Enter)',
+  'chat.placeholder': 'Chat (Space+Enter) · arrow keys move your character',
   'chat.label': 'Chat message',
   'chat.delete': 'Delete my bubble',
   'nickname.conflict':
@@ -607,7 +607,7 @@ const en: Record<Key, string> = {
     "Everyone connected to this office is listed here, even people with no agents.\n❗ means one of their agents is waiting for them. Click a name and the view follows that person's agent.",
   'tour.chat.title': 'Your character and chat',
   'tour.chat.body':
-    'Everyone has one character (agents or not). Move yours with the arrow keys (↑↓←→).\nType in the chat bar at the bottom centre and press Enter: the bubble floats above your character and follows it. A new line replaces the old one; × deletes it. With nothing focused, Enter jumps to the chat bar; Esc gives the arrow keys back.',
+    'Everyone has one character (agents or not). Move yours with the arrow keys (↑↓←→).\nType in the chat bar at the bottom centre and press Enter: the bubble floats above your character and follows it. A new line replaces the old one; × deletes it. With nothing focused, Space+Enter jumps to the chat bar; Esc gives the arrow keys back.',
   'tour.settingsButton.title': 'Settings',
   'tour.settingsButton.body': 'Language, theme, profile, team offices and more live here.',
   'tour.language.title': 'Language & theme',

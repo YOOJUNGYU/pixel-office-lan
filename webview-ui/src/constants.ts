@@ -385,7 +385,7 @@ export const CHAT_BORDER_PX = 2;
 export const CHAT_TAIL_PX = 8;
 export const CHAT_STACK_GAP_PX = 4;
 /** The chat bar at the bottom centre (CSS px): width, gap from the bottom edge. */
-export const CHAT_BAR_WIDTH_PX = 360;
+export const CHAT_BAR_WIDTH_PX = 440;
 export const CHAT_BAR_BOTTOM_PX = 10;
 /** The × on my own bubble (square, CSS px) and its gap from the text. */
 export const CHAT_DELETE_PX = 16;
