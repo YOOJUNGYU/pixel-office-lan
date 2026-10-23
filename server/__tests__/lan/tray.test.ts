@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   MAC_TRAY_JXA,
+  notifyCommand,
   parseTrayLine,
   trayLaunch,
   wantTray,
@@ -36,6 +37,7 @@ describe('tray helper', () => {
       PO_PID: '42',
       PO_NODE: 'C:\\Pixel Office\\node.exe',
       PO_ICON: 'C:\\Pixel Office\\icon.ico',
+      PO_AUMID: 'PixelOffice.App',
     });
     // Windows' command line limit is 32767 chars.
     expect(enc.length).toBeLessThan(16_000);
@@ -54,6 +56,9 @@ describe('tray helper', () => {
   });
 
   it('the scripts speak the same words the server parses', () => {
+    expect(WIN_TRAY_PS).toContain(`Say $(if ($ko) { 'ko' } else { 'en' })`);
+    expect(MAC_TRAY_JXA).toContain(`say(ko ? 'ko' : 'en')`);
+    expect(parseTrayLine('ko')).toBe('ko');
     for (const word of ['ready', 'open', 'quit']) {
       expect(WIN_TRAY_PS).toContain(`Say '${word}'`);
       expect(MAC_TRAY_JXA).toContain(`say('${word}')`);
@@ -63,5 +68,19 @@ describe('tray helper', () => {
   it('the JXA script is valid JavaScript', () => {
     // osacompile runs in CI (package.yml, macOS); here at least the syntax.
     expect(() => new Function(MAC_TRAY_JXA)).not.toThrow();
+  });
+
+  it('a notification is one base64 stdin line: hostile text stays data', () => {
+    const body = 'a\'b"c\n$(rm -rf ~)`whoami`;\r\nnotify x ${x} 한글 \u202e';
+    const cmd = notifyCommand(body);
+    // The same pattern both helpers accept (WIN_TRAY_PS -match, JXA RegExp).
+    const re = /^notify ([A-Za-z0-9+/=]+)$/;
+    expect(cmd.endsWith('\n')).toBe(true);
+    const lines = cmd.slice(0, -1).split('\n');
+    expect(lines).toHaveLength(1);
+    const m = re.exec(lines[0])!;
+    expect(Buffer.from(m[1], 'base64').toString('utf8')).toBe(body);
+    expect(WIN_TRAY_PS).toContain("'^notify ([A-Za-z0-9+/=]+)$'");
+    expect(MAC_TRAY_JXA).toContain('/^notify ([A-Za-z0-9+\\/=]+)$/');
   });
 });

@@ -1,7 +1,7 @@
 // Who is who: "account (nickname)" labels, and same-name tie-breaks. No central
 // server, so every viewer computes the same answer from the same snapshot.
 import type { OfficeAgent } from '../../../core/src/lan.js';
-import { nicknameKey, SHORT_PEER_ID } from '../../../core/src/lan.js';
+import { nicknameKey, peerLabel, SHORT_PEER_ID } from '../../../core/src/lan.js';
 import type { OfficePersonMessage } from '../../../core/src/messages.js';
 
 interface Named {
@@ -12,12 +12,7 @@ interface Named {
   nickSince?: number;
 }
 
-/** The label everywhere a PC is named: the fixed account, then the optional
- *  nickname (left out when it just repeats the account). */
-export const peerLabel = (p: { account: string; nickname: string }): string =>
-  p.nickname && nicknameKey(p.nickname) !== nicknameKey(p.account)
-    ? `${p.account} (${p.nickname})`
-    : p.account;
+export { peerLabel };
 
 const suffix = (s: string, peerId: string): string => `${s} · ${peerId.slice(0, SHORT_PEER_ID)}`;
 

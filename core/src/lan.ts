@@ -203,6 +203,13 @@ export function isValidManualPeer(s: string): boolean {
 export const nicknameKey = (s: string): string =>
   s.normalize('NFC').trim().replace(/\s+/g, ' ').toLocaleLowerCase();
 
+/** The label everywhere a PC is named: the fixed account, then the optional
+ *  nickname (left out when it just repeats the account). */
+export const peerLabel = (p: { account: string; nickname: string }): string =>
+  p.nickname && nicknameKey(p.nickname) !== nicknameKey(p.account)
+    ? `${p.account} (${p.nickname})`
+    : p.account;
+
 export const MAX_ACCOUNT = 32;
 /** Length of the peer-id prefix shown to tell same-looking PCs apart (and as a 0.3.x account stand-in). */
 export const SHORT_PEER_ID = 4;

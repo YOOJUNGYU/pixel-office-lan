@@ -25,11 +25,13 @@ import {
   MIN_PORT,
   NO_PEERS_ENV,
   QUIT_DELAY_MS,
+  SNAPSHOT_INTERVAL_MS,
   UDP_PORT_ENV,
   UDP_TARGETS_ENV,
 } from './constants.js';
 import { openOffice } from './lan/appWindow.js';
 import { applyInstallerChoice, getAutostart, setAutostart } from './lan/autostart.js';
+import { Notifier } from './lan/notify.js';
 import { checkExisting, LanService } from './lan/office.js';
 import { PeerNet } from './lan/peerNet.js';
 import { KnownPeers, loadProfile } from './lan/profile.js';
@@ -267,7 +269,27 @@ async function main(): Promise<void> {
     console.log(`\n  Pixel Office running at http://${displayHost}:${port}\n`);
     if (reopen === 'open' || (reopen === null && args.open)) openOffice(localUrl);
     // Only the instance that owns the server gets here (a second launch exited above).
-    startTray({ onOpen: () => openOffice(localUrl), onQuit: quitApp });
+    const tray = startTray({ onOpen: () => openOffice(localUrl), onQuit: quitApp });
+    // OS notifications (join/leave, my agents): decided here, so no window needs to be open.
+    const notifier = new Notifier(
+      {
+        view: () => lan.profile.activeView,
+        people: (view) => lan.people(view),
+        agents: () => scanner.views(),
+        settings: () => {
+          const s = readConfig().standalone;
+          return { presence: s.notifyPresence, agents: s.notifyAgents };
+        },
+      },
+      tray,
+    );
+    setInterval(() => {
+      try {
+        notifier.tick();
+      } catch (err) {
+        console.error('[Pixel Office] notification tick failed:', err);
+      }
+    }, SNAPSHOT_INTERVAL_MS).unref();
 
     process.on('SIGINT', () => void shutdown());
     process.on('SIGTERM', () => void shutdown());

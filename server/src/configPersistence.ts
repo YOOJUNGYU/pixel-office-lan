@@ -8,10 +8,20 @@ export interface AdapterSettings {
   soundEnabled: boolean;
   alwaysShowLabels: boolean;
   showAreas: boolean;
+  /** OS notification on join/leave of the public office (lan/notify.ts). */
+  notifyPresence: boolean;
+  /** OS notification when one of this PC's agents waits for an answer or finishes. */
+  notifyAgents: boolean;
 }
 
 /** All keys in AdapterSettings. Used by FileStateAdapter to map `pixel-agents.foo` → `foo`. */
-export const ADAPTER_SETTING_KEYS = ['soundEnabled', 'alwaysShowLabels', 'showAreas'] as const;
+export const ADAPTER_SETTING_KEYS = [
+  'soundEnabled',
+  'alwaysShowLabels',
+  'showAreas',
+  'notifyPresence',
+  'notifyAgents',
+] as const;
 
 export type AdapterSettingKey = (typeof ADAPTER_SETTING_KEYS)[number];
 
@@ -24,6 +34,8 @@ const DEFAULT_ADAPTER_SETTINGS: AdapterSettings = {
   soundEnabled: true,
   alwaysShowLabels: false,
   showAreas: false,
+  notifyPresence: true,
+  notifyAgents: true,
 };
 
 function getConfigFilePath(): string {
@@ -44,6 +56,14 @@ function parseAdapterSettings(raw: unknown): AdapterSettings {
         : DEFAULT_ADAPTER_SETTINGS.alwaysShowLabels,
     showAreas:
       typeof obj.showAreas === 'boolean' ? obj.showAreas : DEFAULT_ADAPTER_SETTINGS.showAreas,
+    notifyPresence:
+      typeof obj.notifyPresence === 'boolean'
+        ? obj.notifyPresence
+        : DEFAULT_ADAPTER_SETTINGS.notifyPresence,
+    notifyAgents:
+      typeof obj.notifyAgents === 'boolean'
+        ? obj.notifyAgents
+        : DEFAULT_ADAPTER_SETTINGS.notifyAgents,
   };
 }
 

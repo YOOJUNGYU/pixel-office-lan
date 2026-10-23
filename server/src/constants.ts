@@ -110,6 +110,9 @@ export const NO_TRAY_ENV = 'PIXEL_OFFICE_NO_TRAY';
 export const TRAY_SMOKE_ENV = 'PO_TRAY_SMOKE';
 /** Icons the installers put next to node: Windows `icon.ico`, macOS `AppIcon.icns`. */
 export const WIN_TRAY_ICON_NAME = 'icon.ico';
+/** Windows toast identity (AppUserModelID): the tray helper registers it under HKCU\Software\Classes\AppUserModelId
+ *  with DisplayName "Pixel Office" + IconUri = icon.ico, so toasts show our name and icon. */
+export const WIN_NOTIFY_AUMID = 'PixelOffice.App';
 export const MAC_TRAY_ICON_NAME = 'AppIcon.icns';
 export const MAC_OSASCRIPT = '/usr/bin/osascript';
 /** `--tray-check`: PowerShell's first start can be slow. */
@@ -170,3 +173,15 @@ export const MAX_OFFICE_NAME = 20;
 // ── App window (lan/appWindow.ts) ──────────────────────────
 /** Chromium web app id length: first 16 bytes of the (double) SHA-256, as letters a-p. */
 export const WEB_APP_ID_BYTES = 16;
+
+// ── OS notifications (lan/notify.ts, through the tray helper) ──
+/** A peer gone this long is reported as left; back sooner = nothing (presence TTL is ~5 s). */
+export const PRESENCE_LEAVE_GRACE_MS = 10_000;
+/** After a view switch / start, people seen this soon after the first tick count as already there. */
+export const PRESENCE_SETTLE_MS = 5_000;
+/** Peer names (untrusted) are clipped to this many code points in a notification. */
+export const NOTIFY_NAME_MAX = 40;
+/** An agent's waiting context (command, file…) is clipped to this many code points. */
+export const NOTIFY_CONTEXT_MAX = 60;
+/** Whole notification body; Windows balloon text is capped at 255 chars. */
+export const NOTIFY_BODY_MAX = 250;

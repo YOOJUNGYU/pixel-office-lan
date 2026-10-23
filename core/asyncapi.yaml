@@ -124,6 +124,7 @@ components:
         - $ref: '#/components/schemas/GetOfficeCode'
         - $ref: '#/components/schemas/SendChat'
         - $ref: '#/components/schemas/DeleteChat'
+        - $ref: '#/components/schemas/SetNotifications'
       discriminator: type
 
     # ── Server message variants ────────────────────────────────────
@@ -329,6 +330,8 @@ components:
         - alwaysShowLabels
         - externalAssetDirectories
         - showAreas
+        - notifyPresence
+        - notifyAgents
       properties:
         type:
           const: settingsLoaded
@@ -342,6 +345,12 @@ components:
             type: string
         showAreas:
           type: boolean
+        notifyPresence:
+          type: boolean
+          description: OS notification on join/leave of the public office (default true).
+        notifyAgents:
+          type: boolean
+          description: OS notification when one of this PC's agents waits for an answer or finishes (default true).
 
     ExternalAssetDirectoriesUpdated:
       description: External asset directory list changed (after add/remove).
@@ -841,6 +850,19 @@ components:
         type:
           const: setShowAreas
         enabled:
+          type: boolean
+
+    SetNotifications:
+      description: Turn the OS notifications (sent through the tray helper) on or off; an absent field is unchanged.
+      type: object
+      additionalProperties: false
+      required: [type]
+      properties:
+        type:
+          const: setNotifications
+        presence:
+          type: boolean
+        agents:
           type: boolean
 
     # ── Supporting schemas ─────────────────────────────────────────

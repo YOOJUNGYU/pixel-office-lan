@@ -71,6 +71,8 @@ export interface ClientMessageContext {
 const KEY_SOUND_ENABLED = 'pixel-agents.soundEnabled';
 const KEY_ALWAYS_SHOW_LABELS = 'pixel-agents.alwaysShowLabels';
 const KEY_SHOW_AREAS = 'pixel-agents.showAreas';
+const KEY_NOTIFY_PRESENCE = 'pixel-agents.notifyPresence';
+const KEY_NOTIFY_AGENTS = 'pixel-agents.notifyAgents';
 
 /**
  * Handle an incoming ClientMessage from a WebSocket client. The server is the
@@ -117,6 +119,12 @@ export function handleClientMessage(
 
     case 'setShowAreas':
       adapter.setSetting(KEY_SHOW_AREAS, msg.enabled as boolean);
+      break;
+
+    // OS notifications (lan/notify.ts reads them from config.json when it has news).
+    case 'setNotifications':
+      if (typeof msg.presence === 'boolean') adapter.setSetting(KEY_NOTIFY_PRESENCE, msg.presence);
+      if (typeof msg.agents === 'boolean') adapter.setSetting(KEY_NOTIFY_AGENTS, msg.agents);
       break;
 
     case 'addExternalAssetDirectory': {
@@ -381,6 +389,8 @@ function settingsSnapshot(ctx: ClientMessageContext) {
     alwaysShowLabels: adapter.getSetting(KEY_ALWAYS_SHOW_LABELS, false),
     externalAssetDirectories: externalAssetDirectoriesFor(ctx),
     showAreas: adapter.getSetting(KEY_SHOW_AREAS, false),
+    notifyPresence: adapter.getSetting(KEY_NOTIFY_PRESENCE, true),
+    notifyAgents: adapter.getSetting(KEY_NOTIFY_AGENTS, true),
   } as const;
 }
 
@@ -399,6 +409,7 @@ const KNOWN_CLIENT_TYPES: ReadonlySet<string> = new Set<ClientMessage['type']>([
   'addExternalAssetDirectory',
   'removeExternalAssetDirectory',
   'setShowAreas',
+  'setNotifications',
   'saveProfile',
   'installUpdate',
   'checkUpdate',
@@ -441,6 +452,7 @@ function refuseReadOnly(
     case 'setSoundEnabled':
     case 'setAlwaysShowLabels':
     case 'setShowAreas':
+    case 'setNotifications':
       send(settingsSnapshot(ctx));
       return;
     case 'addExternalAssetDirectory':
