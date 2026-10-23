@@ -118,7 +118,7 @@ export class LanService {
   }
 
   self(): PeerInfo {
-    const { peerId, nickname, palette, hueShift, pet, nicknameSince } = this.profile;
+    const { peerId, nickname, palette, hueShift, pet, tagColors, nicknameSince } = this.profile;
     return {
       id: peerId,
       account: this.account,
@@ -126,6 +126,7 @@ export class LanService {
       palette,
       hueShift,
       ...(pet && { pet }),
+      ...(tagColors && { tagColors }),
       ...(nickname !== '' && { nickSince: nicknameSince }),
     };
   }
@@ -246,6 +247,7 @@ export class LanService {
       palette: p.palette,
       hueShift: p.hueShift,
       ...(p.pet && { pet: p.pet }),
+      ...(p.tagColors && { tagColors: p.tagColors }),
       self: i === 0,
       ...(chat && { chat: toChatMessage(chat) }),
       ...(avatar && { avatar: { ...avatar } }),
@@ -352,6 +354,7 @@ export class LanService {
     this.update({
       ...update,
       pet: update.pet, // absent in the update = back to the human
+      tagColors: update.tagColors, // absent = the default tag
       setUp: true,
       nicknameSince: !changed
         ? this.profile.nicknameSince

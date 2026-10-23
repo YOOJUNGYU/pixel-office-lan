@@ -300,11 +300,10 @@ export const LAN_ROOM_TOOL: Record<Room, string | null> = {
 };
 /** Tools drawn with the reading animation (no provider sends providerCapabilities). */
 export const LAN_READING_TOOLS = ['Read'];
-/** Avatar name tag (lan/tagColor.ts): background = the character's most common pixel at
- *  least this saturated (HSL 0–1); text = whichever of these two contrasts more with it. */
-export const AVATAR_TAG_MIN_SATURATION = 0.25;
-export const AVATAR_TAG_TEXT_DARK = '#1E1E2E';
-export const AVATAR_TAG_TEXT_LIGHT = '#FFFFFF';
+/** Avatar name tag colours the profile's pickers start from (a profile without
+ *  `tagColors` shows the theme's `--avatar-tag-bg` / `--avatar-tag-fg`). */
+export const AVATAR_TAG_DEFAULT_BG = '#127068';
+export const AVATAR_TAG_DEFAULT_FG = '#FFFFFF';
 export const MAX_HUE_DEG = 360;
 /** Skin colors of char_0..5.png (measured); exempt from a character's hue shift. */
 export const CHARACTER_SKIN_COLORS: ReadonlySet<string> = new Set([

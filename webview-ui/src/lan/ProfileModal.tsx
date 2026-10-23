@@ -2,11 +2,17 @@ import { useEffect, useRef, useState } from 'react';
 
 import type { PetId } from '../../../core/src/lan.js';
 import { isValidManualPeer, nicknameKey, PET_IDS } from '../../../core/src/lan.js';
-import type { ProfileErrorReason, ProfileMessage } from '../../../core/src/messages.js';
+import type { ProfileErrorReason, ProfileMessage, TagColors } from '../../../core/src/messages.js';
 import { Button } from '../components/ui/Button.js';
 import { Checkbox } from '../components/ui/Checkbox.js';
 import { Modal } from '../components/ui/Modal.js';
-import { CHARACTER_SKIN_COLORS, MAX_HUE_DEG, PALETTE_COUNT } from '../constants.js';
+import {
+  AVATAR_TAG_DEFAULT_BG,
+  AVATAR_TAG_DEFAULT_FG,
+  CHARACTER_SKIN_COLORS,
+  MAX_HUE_DEG,
+  PALETTE_COUNT,
+} from '../constants.js';
 import { t, useLang } from '../i18n.js';
 import { adjustSprite } from '../office/colorize.js';
 import { getPetSprites, tintPetSprite } from '../office/sprites/petSpriteData.js';
@@ -98,6 +104,7 @@ export function ProfileModal({
   const [palette, setPalette] = useState(profile.palette);
   const [hueShift, setHueShift] = useState(profile.hueShift);
   const [pet, setPet] = useState<PetId | undefined>(profile.pet);
+  const [tagColors, setTagColors] = useState<TagColors | undefined>(profile.tagColors);
   const [hideDetails, setHideDetails] = useState(profile.hideDetails);
   const [peersText, setPeersText] = useState(profile.manualPeers.join('\n'));
   // Advanced (manual peers) starts collapsed unless some are already set.
@@ -129,7 +136,15 @@ export function ProfileModal({
 
   const save = () => {
     if (!valid) return;
-    onSave({ nickname: trimmed, palette, hueShift, ...(pet && { pet }), hideDetails, manualPeers });
+    onSave({
+      nickname: trimmed,
+      palette,
+      hueShift,
+      ...(pet && { pet }),
+      ...(tagColors && { tagColors }),
+      hideDetails,
+      manualPeers,
+    });
   };
 
   return (
@@ -247,6 +262,46 @@ export function ProfileModal({
             className="flex-1 min-w-0"
           />
           <span className="w-30 text-right text-text-muted">{hueShift}°</span>
+        </div>
+
+        {/* My avatar's name tag: colours picked here, else the theme's default tag. */}
+        <div>{t('profile.tagColors')}</div>
+        <div className="flex items-center gap-8 flex-wrap">
+          <span
+            data-testid="profile-tag-preview"
+            className="whitespace-nowrap text-sm leading-none px-3 py-1"
+            style={{
+              background: tagColors?.bg ?? 'var(--avatar-tag-bg)',
+              color: tagColors?.fg ?? 'var(--avatar-tag-fg)',
+            }}
+          >
+            {trimmed || account}
+          </span>
+          {(['bg', 'fg'] as const).map((k) => (
+            <label key={k} className="flex items-center gap-4">
+              {t(k === 'bg' ? 'profile.tagBg' : 'profile.tagFg')}
+              <input
+                type="color"
+                data-testid={`profile-tag-${k}`}
+                value={(
+                  tagColors?.[k] ?? (k === 'bg' ? AVATAR_TAG_DEFAULT_BG : AVATAR_TAG_DEFAULT_FG)
+                ).toLowerCase()}
+                onChange={(e) =>
+                  setTagColors({
+                    bg: tagColors?.bg ?? AVATAR_TAG_DEFAULT_BG,
+                    fg: tagColors?.fg ?? AVATAR_TAG_DEFAULT_FG,
+                    [k]: e.target.value.toUpperCase(),
+                  })
+                }
+                className="w-28 h-20 p-0 bg-bg border-2 border-border rounded-none cursor-pointer"
+              />
+            </label>
+          ))}
+          {tagColors && (
+            <Button size="sm" onClick={() => setTagColors(undefined)}>
+              {t('profile.tagDefault')}
+            </Button>
+          )}
         </div>
 
         {/* First run asks only for name, character and colour; hideDetails keeps

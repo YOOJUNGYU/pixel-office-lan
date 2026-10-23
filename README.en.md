@@ -49,7 +49,7 @@ Once an activity lasts 3 seconds, the agent walks to its room and sits on a free
 | 🗄️ Server Room | Running commands (`Bash`, Codex shell), background shells                                        |
 | 🛋️ Lounge      | Waiting for input or approval, turn finished                                                     |
 
-- **Name tags**: top line the nickname (else the PC account), bottom line `Claude #1` / `Codex #1` + a **MAIN** / **SUB** / **SHELL** badge. Hidden until you hover; **Show agent name tags** at the top left keeps them on. People's own characters always show their tag, in the character's colour (yours with a yellow frame).
+- **Name tags**: top line the nickname (else the PC account), bottom line `Claude #1` / `Codex #1` + a **MAIN** / **SUB** / **SHELL** badge. Hidden until you hover; **Show agent name tags** at the top left keeps them on. People's own characters always show their tag, in the colours each person picks in their profile (yours with a yellow frame).
 - **Bubble**: hover a character to see which file it edits and why, what it searches or runs. A **red !** overhead = waiting for you.
 - **Subagents and shells** hold their parent's hand in the same room, and work on their own in another.
 - **Map**: drag to pan, wheel to zoom (or + / − at the top left).
@@ -79,7 +79,7 @@ Each tab shows how many people are online there (you included; in personal mode,
 
 ### More
 
-- **Profile**: character (6 humans or the pets Claudio · Gitcat), colour, nickname. Your PC account name always comes first and cannot be changed. Nicknames are unique (whoever set it later gets a mark like `· a1b2`).
+- **Profile**: character (6 humans or the pets Claudio · Gitcat), colour, nickname, your character's name tag colours. Your PC account name always comes first and cannot be changed. Nicknames are unique (whoever set it later gets a mark like `· a1b2`).
 - **Language · theme**: 한국어/English and dark/light/system, per viewer. The sun/moon button at the top left switches instantly.
 - **Layout editor**: floors (one click paints a whole room), walls, furniture, the background outside. The four rooms and the office size (90×60) are fixed. Layouts are saved **on this PC only**; share with **Settings → Export / Import layout**.
 - **Install as an app (PWA)**: in Edge · Chrome, the popup at the top right → a tab-less app window. Opening the app while the server is off shows **[Start]**.

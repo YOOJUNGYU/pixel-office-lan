@@ -1,3 +1,4 @@
+/* eslint-disable pixel-agents/no-inline-colors -- test fixtures */
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -156,6 +157,25 @@ describe('validateProfileUpdate', () => {
       expect(r).not.toBeNull();
       expect(r).not.toHaveProperty('pet');
       expect(r?.palette).toBe(1);
+    }
+  });
+  it('tagColors: two hex colours kept (upper-cased); anything else ignored, not an error', () => {
+    expect(
+      validateProfileUpdate({ ...ok, tagColors: { bg: '#12ab34', fg: '#FFFFFF' } })?.tagColors,
+    ).toEqual({
+      bg: '#12AB34',
+      fg: '#FFFFFF',
+    });
+    for (const bad of [
+      { bg: 'red', fg: '#FFFFFF' },
+      { bg: '#123', fg: '#FFFFFF' },
+      { bg: '#123456' },
+      '#123456',
+      null,
+    ]) {
+      const r = validateProfileUpdate({ ...ok, tagColors: bad });
+      expect(r).not.toBeNull();
+      expect(r).not.toHaveProperty('tagColors');
     }
   });
   it.each([

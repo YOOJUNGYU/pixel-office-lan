@@ -180,6 +180,10 @@ const ko = {
   'profile.pet.claudio': '클로디오 (반려동물)',
   'profile.pet.gitcat': '깃캣 (반려동물)',
   'profile.color': '색상',
+  'profile.tagColors': '내 캐릭터 이름표 색',
+  'profile.tagBg': '배경',
+  'profile.tagFg': '글자',
+  'profile.tagDefault': '기본값',
   'profile.hideDetails': '상세 내용 숨기기',
   'profile.hideDetailsHint':
     '켜면 파일 경로·주소·토큰 같은 민감 정보와 AI 답변 내용은 다른 사람에게 보내지 않습니다',
@@ -301,7 +305,7 @@ const ko = {
     '화면 언어와 다크/라이트 테마는 브라우저마다 따로 고릅니다. 다른 PC의 에이전트 활동도 내가 고른 언어로 보입니다.\n왼쪽 위 해/달 버튼으로 다크와 라이트를 바로 바꿀 수도 있습니다.',
   'tour.profile.title': '내 프로필',
   'tour.profile.body':
-    '캐릭터(사람 6종 또는 펫 Claudio · Gitcat)와 색, 닉네임을 정합니다. 내 캐릭터와 이 PC 의 에이전트가 이 모습으로 나옵니다. 이름은 PC 계정 이름이 먼저이고 바꿀 수 없습니다.\n"상세 내용 숨기기" 를 켜면 다른 사람에게는 파일 이름이나 이유 없이 방과 활동 종류만 보입니다.',
+    '캐릭터(사람 6종 또는 펫 Claudio · Gitcat)와 색, 닉네임, 내 캐릭터 이름표 색을 정합니다. 내 캐릭터와 이 PC 의 에이전트가 이 모습으로 나옵니다. 이름은 PC 계정 이름이 먼저이고 바꿀 수 없습니다.\n"상세 내용 숨기기" 를 켜면 다른 사람에게는 파일 이름이나 이유 없이 방과 활동 종류만 보입니다.',
   'tour.offices.title': '팀 오피스',
   'tour.offices.body':
     '팀 이름을 정해 만들면 초대 코드(PO2-…)가 나옵니다. 팀원은 그 코드로 참여합니다.\n팀 오피스의 내용은 팀원끼리만 암호화되어 오가고, 언제든 나갈 수 있습니다.',
@@ -511,6 +515,10 @@ const en: Record<Key, string> = {
   'profile.pet.claudio': 'Claudio (pet)',
   'profile.pet.gitcat': 'Gitcat (pet)',
   'profile.color': 'Color',
+  'profile.tagColors': "My character's name tag",
+  'profile.tagBg': 'Background',
+  'profile.tagFg': 'Text',
+  'profile.tagDefault': 'Default',
   'profile.hideDetails': 'Hide details',
   'profile.hideDetailsHint':
     "When on, sensitive info such as file paths, addresses and tokens, and the AI's reply text, is never sent to others",
@@ -633,7 +641,7 @@ const en: Record<Key, string> = {
     'Each browser picks its own language and dark/light theme. Activity of agents on other PCs is shown in your language too.\nThe sun/moon button at the top left switches dark and light in one click.',
   'tour.profile.title': 'My profile',
   'tour.profile.body':
-    'Character (six people or the pets Claudio · Gitcat), colour and nickname — for your own character and this PC\'s agents. Your PC account name always comes first and cannot be changed.\n"Hide details" shows others only the room and the kind of activity — no file names or reasons.',
+    'Character (six people or the pets Claudio · Gitcat), colour, nickname and your name tag colours — for your own character and this PC\'s agents. Your PC account name always comes first and cannot be changed.\n"Hide details" shows others only the room and the kind of activity — no file names or reasons.',
   'tour.offices.title': 'Team offices',
   'tour.offices.body':
     'Create a team to get an invite code (PO2-…); teammates join with it.\nA team office is encrypted between its members, and you can leave any time.',

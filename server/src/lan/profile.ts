@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
-import type { AvatarPos, PeerChat, PetId } from '../../../core/src/lan.js';
+import type { AvatarPos, PeerChat, PetId, TagColors } from '../../../core/src/lan.js';
 import {
   cleanAccount,
   isPetId,
@@ -11,6 +11,7 @@ import {
   MAX_ACCOUNT,
   parseAvatar,
   parseChat,
+  parseTagColors,
   PERSONAL_VIEW,
   PUBLIC_VIEW,
   takeCodePoints,
@@ -41,6 +42,8 @@ export interface Profile {
   hueShift: number;
   /** Pet character instead of the `palette` human; absent = human. */
   pet?: PetId;
+  /** Avatar name tag colours; absent = the default tag. */
+  tagColors?: TagColors;
   hideDetails: boolean;
   manualPeers: string[];
   identity: { publicKey: string; privateKeyPem: string };
@@ -76,7 +79,7 @@ function parseSavedAvatars(raw: unknown): SavedAvatars | undefined {
 /** What saveProfile may change; identity/offices/views change only via their own messages. */
 export type EditableProfile = Pick<
   Profile,
-  'nickname' | 'palette' | 'hueShift' | 'pet' | 'hideDetails' | 'manualPeers'
+  'nickname' | 'palette' | 'hueShift' | 'pet' | 'tagColors' | 'hideDetails' | 'manualPeers'
 >;
 
 const PROFILE_FILE_NAME = 'profile.json';
@@ -149,7 +152,7 @@ function parseSavedChat(raw: unknown, offices: TeamOffice[]): SavedChat | undefi
 }
 
 /** Validates a client-supplied update. Returns a fresh object, or null if anything is off.
- *  `pet` is optional: an unknown id is ignored (the palette human), not an error. */
+ *  `pet` and `tagColors` are optional: an unknown id or bad colours are ignored (defaults), not an error. */
 export function validateProfileUpdate(x: unknown): EditableProfile | null {
   if (!isObj(x)) return null;
   const o = x;
@@ -158,6 +161,7 @@ export function validateProfileUpdate(x: unknown): EditableProfile | null {
   if (nickname.length > MAX_NICKNAME) return null; // optional: '' = account name only
   if (!isInt(o.palette, 0, 5) || !isInt(o.hueShift, 0, 360)) return null;
   if (!Array.isArray(o.manualPeers) || o.manualPeers.length > MAX_MANUAL_PEERS) return null;
+  const tagColors = parseTagColors(o.tagColors);
   const manualPeers: string[] = [];
   for (const p of o.manualPeers) {
     if (typeof p !== 'string') return null;
@@ -171,6 +175,7 @@ export function validateProfileUpdate(x: unknown): EditableProfile | null {
     palette: o.palette,
     hueShift: o.hueShift,
     ...(isPetId(o.pet) && { pet: o.pet }),
+    ...(tagColors && { tagColors }),
     hideDetails: o.hideDetails,
     manualPeers,
   };

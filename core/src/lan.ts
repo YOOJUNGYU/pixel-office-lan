@@ -163,6 +163,28 @@ export interface PeerInfo {
   hueShift: number;
   /** Pet character instead of the `palette` human; absent = human. Unknown ids are dropped. */
   pet?: PetId;
+  /** Avatar name tag colours; absent = the default tag. */
+  tagColors?: TagColors;
+}
+
+/** A person's avatar name tag colours (`#RRGGBB`, upper case), chosen in the profile. */
+export interface TagColors {
+  bg: string;
+  fg: string;
+}
+
+const HEX_COLOR = /^#[0-9A-F]{6}$/i;
+
+/** Untrusted tag colours → both valid hex colours (upper-cased), else undefined. */
+export function parseTagColors(raw: unknown): TagColors | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const { bg, fg } = raw as Record<string, unknown>;
+  return typeof bg === 'string' &&
+    typeof fg === 'string' &&
+    HEX_COLOR.test(bg) &&
+    HEX_COLOR.test(fg)
+    ? { bg: bg.toUpperCase(), fg: fg.toUpperCase() }
+    : undefined;
 }
 /** This PC's chat bubble (shown above its avatar), in every presence of its channel until replaced or deleted. */
 export interface PeerChat {
@@ -377,6 +399,8 @@ export function parsePeerPacket(text: string): PeerPacket | null {
     }
     const peer: PeerInfo = { id, account, nickname, palette, hueShift };
     if (isPetId(raw.peer.pet)) peer.pet = raw.peer.pet;
+    const tagColors = parseTagColors(raw.peer.tagColors);
+    if (tagColors) peer.tagColors = tagColors;
     const since = raw.peer.nickSince;
     if (typeof since === 'number' && Number.isSafeInteger(since) && since >= 0) {
       peer.nickSince = since;

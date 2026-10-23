@@ -1,3 +1,4 @@
+/* eslint-disable pixel-agents/no-inline-colors -- test fixtures */
 import { describe, expect, it } from 'vitest';
 
 import type { AgentView, PeerPacket } from '../../../core/src/lan.js';
@@ -65,6 +66,20 @@ describe('parsePeerPacket', () => {
       const out = parse(packet({ peer: { ...peer, pet: bad as never } }));
       expect(out?.peer).not.toHaveProperty('pet');
       expect(out?.peer.palette).toBe(2);
+    }
+  });
+
+  it('tagColors: optional pair of hex colours; anything else is dropped', () => {
+    const peer = packet().peer;
+    expect(parse(packet())?.peer).not.toHaveProperty('tagColors');
+    expect(
+      parse(packet({ peer: { ...peer, tagColors: { bg: '#abcdef', fg: '#000000' } } }))?.peer
+        .tagColors,
+    ).toEqual({ bg: '#ABCDEF', fg: '#000000' });
+    for (const bad of [{ bg: 'url(x)', fg: '#000000' }, { bg: '#abcdef' }, 'x', 1]) {
+      expect(
+        parse(packet({ peer: { ...peer, tagColors: bad as never } }))?.peer,
+      ).not.toHaveProperty('tagColors');
     }
   });
 

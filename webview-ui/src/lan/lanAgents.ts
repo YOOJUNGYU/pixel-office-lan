@@ -1,6 +1,6 @@
 import type { AvatarDir, OfficeAgent, Room } from '../../../core/src/lan.js';
 import { parseAvatar, ROOM_LABELS } from '../../../core/src/lan.js';
-import type { OfficePersonMessage } from '../../../core/src/messages.js';
+import type { OfficePersonMessage, TagColors } from '../../../core/src/messages.js';
 import { LAN_KIND_BADGES, LAN_ROOM_TOOL } from '../constants.js';
 import { areaName } from '../i18n.js';
 import { requestRender } from '../office/engine/gameLoop.js';
@@ -37,10 +37,8 @@ export interface AvatarRef {
   /** Nickname if set, else the account. */
   label: string;
   self: boolean;
-  /** Their character look (the tag takes its colour). */
-  palette: number;
-  hueShift: number;
-  pet?: string;
+  /** Their chosen tag colours; absent = the default tag. */
+  tagColors?: TagColors;
 }
 
 const providerName = (a: OfficeAgent): string => (a.provider === 'claude' ? 'Claude' : 'Codex');
@@ -193,8 +191,8 @@ export class LanAgents {
     for (const p of this.people) {
       const id = this.avatarIds.get(p.peerId);
       if (id === undefined) continue;
-      const { peerId, self, palette, hueShift, pet } = p;
-      out.push({ peerId, id, label: avatarLabel(p), self, palette, hueShift, pet });
+      const { peerId, self, tagColors } = p;
+      out.push({ peerId, id, label: avatarLabel(p), self, tagColors });
     }
     return out;
   }

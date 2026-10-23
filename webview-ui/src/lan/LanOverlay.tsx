@@ -33,7 +33,6 @@ import { BUBBLE_PERMISSION_SPRITE } from '../office/sprites/spriteData.js';
 import { type Character, CharacterState } from '../office/types.js';
 import { getTheme } from '../theme.js';
 import { type AvatarRef, type LanAgents, tagBadge, tagLines } from './lanAgents.js';
-import { avatarTagColors } from './tagColor.js';
 import { stackTags, type TagBox } from './tagStack.js';
 import { tagVisible } from './tagVisibility.js';
 import { textWidth } from './textWidth.js';
@@ -175,7 +174,6 @@ export function LanOverlay({
   shown.forEach((i, k) => (tops[i] = stacked[k]));
   avatarTags.forEach((v, k) => {
     const lit = v.peerId === lan.highlightPeer;
-    const colors = avatarTagColors(v);
     nodes.push(
       <div
         key={`avatar:${v.peerId}`}
@@ -184,8 +182,8 @@ export function LanOverlay({
         style={{
           left: v.box.x,
           top: stacked[shown.length + k],
-          background: colors?.bg ?? 'var(--avatar-tag-bg)',
-          color: colors?.fg ?? 'var(--avatar-tag-fg)',
+          background: v.tagColors?.bg ?? 'var(--avatar-tag-bg)',
+          color: v.tagColors?.fg ?? 'var(--avatar-tag-fg)',
           border: v.self ? '2px solid var(--avatar-tag-self-border)' : undefined,
           zIndex: lit ? LAN_PERMISSION_Z_INDEX : LAN_TAG_Z_INDEX,
         }}

@@ -212,9 +212,15 @@ export interface PeerInfoMessage {
   palette: number;
   hueShift: number;
   pet?: PetId;
+  tagColors?: TagColors;
 }
 
 export type PetId = 'claudio' | 'gitcat';
+
+export interface TagColors {
+  bg: string;
+  fg: string;
+}
 
 export interface OfficePersonMessage {
   peerId: string;
@@ -224,6 +230,7 @@ export interface OfficePersonMessage {
   palette: number;
   hueShift: number;
   pet?: PetId;
+  tagColors?: TagColors;
   self: boolean;
   chat?: ChatMessage;
   avatar?: AvatarMessage;
@@ -255,6 +262,7 @@ export interface ProfileMessage {
   palette: number;
   hueShift: number;
   pet?: PetId;
+  tagColors?: TagColors;
   hideDetails: boolean;
   manualPeers: string[];
 }

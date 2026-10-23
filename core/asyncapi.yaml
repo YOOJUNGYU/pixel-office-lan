@@ -616,6 +616,8 @@ components:
           type: integer
         pet:
           $ref: '#/components/schemas/PetId'
+        tagColors:
+          $ref: '#/components/schemas/TagColors'
         self:
           type: boolean
           description: This server's own PC.
@@ -699,6 +701,8 @@ components:
           maximum: 360
         pet:
           $ref: '#/components/schemas/PetId'
+        tagColors:
+          $ref: '#/components/schemas/TagColors'
         hideDetails:
           type: boolean
         manualPeers:
@@ -772,6 +776,23 @@ components:
           type: integer
         pet:
           $ref: '#/components/schemas/PetId'
+        tagColors:
+          $ref: '#/components/schemas/TagColors'
+
+    TagColors:
+      type: object
+      description: >-
+        The person's avatar name tag colours, chosen in the profile. Optional;
+        absent (or malformed) = the default tag.
+      additionalProperties: false
+      required: [bg, fg]
+      properties:
+        bg:
+          type: string
+          pattern: '^#[0-9A-Fa-f]{6}$'
+        fg:
+          type: string
+          pattern: '^#[0-9A-Fa-f]{6}$'
 
     PetId:
       type: string

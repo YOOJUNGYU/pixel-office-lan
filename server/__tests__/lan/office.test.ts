@@ -1,3 +1,4 @@
+/* eslint-disable pixel-agents/no-inline-colors -- test fixtures */
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -152,6 +153,21 @@ describe('LanService', () => {
     expect(JSON.parse(fs.readFileSync(path.join(dir, 'profile.json'), 'utf-8'))).not.toHaveProperty(
       'pet',
     );
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('tagColors: announced in self() and people(); a save without them goes back to the default', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pxl-lan-'));
+    const lan = new LanService({ ...profile }, { views: () => [] }, dir);
+    lan.net = { peers: () => [], sendNow: () => {}, teamName: () => undefined };
+    const { peerId: _, ...rest } = profile;
+    const tagColors = { bg: '#112233', fg: '#FFEEDD' };
+    lan.saveProfile({ ...rest, tagColors });
+    expect(lan.self().tagColors).toEqual(tagColors);
+    expect(lan.people('public')[0].tagColors).toEqual(tagColors);
+    expect(lan.packet().peer.tagColors).toEqual(tagColors);
+    lan.saveProfile({ ...rest });
+    expect(lan.self()).not.toHaveProperty('tagColors');
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
