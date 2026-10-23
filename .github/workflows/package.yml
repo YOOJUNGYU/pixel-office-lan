@@ -118,6 +118,7 @@ jobs:
           $rc = $LASTEXITCODE
           Rename-Item build/win/PixelOfficeTray.off PixelOfficeTray.exe
           if ($rc -eq 0) { throw '--tray-check passed without PixelOfficeTray.exe' }
+          exit 0  # the expected failure above must not fail the step
       - name: Smoke test start at login (per-user Startup shortcut)
         shell: pwsh
         run: |
