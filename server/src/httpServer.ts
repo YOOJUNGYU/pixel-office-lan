@@ -46,6 +46,8 @@ export interface HttpServerOptions {
   lan?: LanService;
   /** `POST /api/quit` from this PC: shut everything down. */
   onQuit?: () => void;
+  /** Settings → 완전 종료 (`quitApp`): quit without the updater's reopen marker. */
+  onQuitApp?: () => void;
   /** Update check/install; its messages go to every (loopback) socket. */
   updater?: Updater;
   /** Start at login. */
@@ -56,6 +58,8 @@ export interface HttpServerOptions {
 export interface HttpServerHandle {
   app: FastifyInstance;
   port: number;
+  /** Close every UI socket with this code (app quit). */
+  closeClients: (code: number) => void;
 }
 
 /** The parts of a request isLoopback reads (a FastifyRequest satisfies it). */
@@ -216,6 +220,7 @@ export async function createHttpServer(options: HttpServerOptions): Promise<Http
           onOfficesChanged,
           updater,
           autostart: options.autostart,
+          onQuitApp: options.onQuitApp,
         });
       } catch {
         // Malformed JSON, ignore
@@ -227,7 +232,13 @@ export async function createHttpServer(options: HttpServerOptions): Promise<Http
   const address = app.server.address();
   const port = typeof address === 'object' ? (address?.port ?? 0) : 0;
 
-  return { app, port };
+  return {
+    app,
+    port,
+    closeClients: (code) => {
+      for (const c of clients) c.close(code, 'quit');
+    },
+  };
 }
 
 interface WsLike {

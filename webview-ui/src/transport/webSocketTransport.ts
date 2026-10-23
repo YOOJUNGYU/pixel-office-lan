@@ -3,6 +3,7 @@ import {
   TRANSPORT_STATE_CONNECTING,
   TRANSPORT_STATE_DISCONNECTED,
   TRANSPORT_STATE_RECONNECTING,
+  WS_CLOSE_APP_QUIT,
 } from '../../../core/src/constants.js';
 import type { ClientMessage, ServerMessage } from '../../../core/src/messages.js';
 import { reconnectDelayMs } from './reconnectBackoff.js';
@@ -78,7 +79,13 @@ export class WebSocketTransport implements MessageTransport {
       }
     };
 
-    this.ws.onclose = () => {
+    this.ws.onclose = (e: CloseEvent) => {
+      // The user quit the app (tray / Settings): stop here, 'disconnected' shows "종료됨".
+      if (e.code === WS_CLOSE_APP_QUIT) {
+        this.disposed = true;
+        this.setState(TRANSPORT_STATE_DISCONNECTED);
+        return;
+      }
       if (!this.disposed) {
         this.setState(TRANSPORT_STATE_RECONNECTING);
         this.scheduleReconnect();

@@ -7,7 +7,8 @@ import type { TransportState } from '../transport/types.js';
 const STATE_LABELS: Partial<Record<TransportState, Key>> = {
   connecting: 'conn.connecting',
   reconnecting: 'conn.reconnecting',
-  disconnected: 'conn.disconnected',
+  // Only reached when the app was quit (WS_CLOSE_APP_QUIT): no reconnect follows.
+  disconnected: 'conn.quit',
 };
 
 /**
@@ -28,7 +29,7 @@ export function ConnectionIndicator() {
 
   if (state === 'connected') return null;
 
-  const label = t(STATE_LABELS[state] ?? 'conn.disconnected');
+  const label = t(STATE_LABELS[state] ?? 'conn.quit');
   const dotClass = state === 'connecting' ? 'bg-status-permission' : 'bg-status-error';
 
   return (

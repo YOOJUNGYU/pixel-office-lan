@@ -99,6 +99,18 @@ export const MAC_LAUNCH_AGENTS_SUBDIR = ['Library', 'LaunchAgents'];
 /** Marker in the data dir: the user turned start-at-login off; a silent update must not undo it. */
 export const AUTOSTART_OFF_MARKER = 'autostart-off';
 
+// ── Tray icon (lan/tray.ts) ────────────────────────────────
+/** `PIXEL_OFFICE_NO_TRAY=1`: no tray helper (tests, CI smoke runs). */
+export const NO_TRAY_ENV = 'PIXEL_OFFICE_NO_TRAY';
+/** Set for the helper by `--tray-check`: build the icon, print `ready`, exit. */
+export const TRAY_SMOKE_ENV = 'PO_TRAY_SMOKE';
+/** Icons the installers put next to node: Windows `icon.ico`, macOS `AppIcon.icns`. */
+export const WIN_TRAY_ICON_NAME = 'icon.ico';
+export const MAC_TRAY_ICON_NAME = 'AppIcon.icns';
+export const MAC_OSASCRIPT = '/usr/bin/osascript';
+/** `--tray-check`: PowerShell's first start can be slow. */
+export const TRAY_CHECK_TIMEOUT_MS = 60_000;
+
 // ── v2 wire crypto (lan/crypto.ts) ─────────────────────────
 /** HKDF salts/infos: public-office pair keys and team-office keys. */
 export const PUB_KEY_SALT = 'pixel-office/v2/pub';

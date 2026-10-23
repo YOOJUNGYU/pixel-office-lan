@@ -12,3 +12,6 @@ export const TRANSPORT_STATE_CONNECTING = 'connecting';
 export const TRANSPORT_STATE_CONNECTED = 'connected';
 export const TRANSPORT_STATE_RECONNECTING = 'reconnecting';
 export const TRANSPORT_STATE_DISCONNECTED = 'disconnected';
+
+/** WebSocket close code: the app was quit (tray / Settings) — the page stops reconnecting. */
+export const WS_CLOSE_APP_QUIT = 4010;

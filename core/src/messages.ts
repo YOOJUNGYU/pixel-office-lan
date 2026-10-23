@@ -43,6 +43,7 @@ export type ClientMessage =
   | InstallUpdate
   | CheckUpdate
   | SetAutostart
+  | QuitApp
   | CreateOffice
   | JoinOffice
   | LeaveOffice
@@ -354,6 +355,10 @@ export interface CheckUpdate {
 export interface SetAutostart {
   type: 'setAutostart';
   enabled: boolean;
+}
+
+export interface QuitApp {
+  type: 'quitApp';
 }
 
 export interface CreateOffice {

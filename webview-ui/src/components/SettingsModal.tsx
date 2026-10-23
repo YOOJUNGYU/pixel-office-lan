@@ -205,6 +205,16 @@ export function SettingsModal({
       {offices && (
         <OfficeSettings state={offices} reply={officeReply} onReplyHandled={onOfficeReplyHandled} />
       )}
+      {/* The server closes this page's socket with WS_CLOSE_APP_QUIT → the "종료됨" notice. */}
+      <MenuItem
+        onClick={() => {
+          if (!window.confirm(t('settings.quitConfirm'))) return;
+          transport.send({ type: 'quitApp' });
+          onClose();
+        }}
+      >
+        {t('settings.quitApp')}
+      </MenuItem>
     </Modal>
   );
 }

@@ -73,7 +73,7 @@ const ko = {
 
   'conn.connecting': '연결 중…',
   'conn.reconnecting': '다시 연결 중…',
-  'conn.disconnected': '연결 끊김',
+  'conn.quit': 'Pixel Office 를 종료했습니다. 다시 실행한 뒤 새로고침하세요.',
 
   'toolbar.layout': '레이아웃',
   'toolbar.layoutTitle': '사무실 배치 편집',
@@ -93,6 +93,9 @@ const ko = {
   'theme.toLight': '라이트 테마로 바꾸기',
   'theme.toDark': '다크 테마로 바꾸기',
   'settings.checkUpdate': '업데이트 확인',
+  'settings.quitApp': '완전 종료',
+  'settings.quitConfirm':
+    'Pixel Office 를 완전히 종료할까요? 다른 PC 에서도 이 PC 가 보이지 않게 됩니다.',
   'settings.offices': '오피스',
 
   'office.label': '오피스',
@@ -386,7 +389,7 @@ const en: Record<Key, string> = {
 
   'conn.connecting': 'Connecting…',
   'conn.reconnecting': 'Reconnecting…',
-  'conn.disconnected': 'Disconnected',
+  'conn.quit': 'Pixel Office was quit. Start it again, then reload this page.',
 
   'toolbar.layout': 'Layout',
   'toolbar.layoutTitle': 'Edit the office layout',
@@ -406,6 +409,8 @@ const en: Record<Key, string> = {
   'theme.toLight': 'Switch to the light theme',
   'theme.toDark': 'Switch to the dark theme',
   'settings.checkUpdate': 'Check for updates',
+  'settings.quitApp': 'Quit Pixel Office',
+  'settings.quitConfirm': 'Quit Pixel Office completely? Other PCs will no longer see this PC.',
   'settings.offices': 'Offices',
 
   'office.label': 'Office',
