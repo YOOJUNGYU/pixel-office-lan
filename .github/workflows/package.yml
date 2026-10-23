@@ -145,7 +145,9 @@ jobs:
         shell: pwsh
         run: |
           $app = Join-Path $env:ProgramFiles 'PixelOffice'
-          $p = Start-Process -PassThru -Wait "release/PixelOffice-$env:VERSION-Windows.exe" '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /LOG=install.log'
+          # WaitForExit, not -Wait: -Wait also waits for the office the installer starts (never exits).
+          $p = Start-Process -PassThru "release/PixelOffice-$env:VERSION-Windows.exe" '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /LOG=install.log'
+          if (-not $p.WaitForExit(300000)) { throw 'installer did not finish in 5 min' }
           if ($p.ExitCode -ne 0) { Get-Content install.log; throw "install exit $($p.ExitCode)" }
           # URL scheme: fixed command, never the URL (%1) — launch.vbs passes its arguments to cli.js.
           $key = 'Registry::HKEY_CLASSES_ROOT\pixeloffice'
