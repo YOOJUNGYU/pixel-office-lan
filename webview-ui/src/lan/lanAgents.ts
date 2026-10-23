@@ -15,15 +15,15 @@ import { peerLabel } from './nicknames.js';
 const providerName = (a: OfficeAgent): string => (a.provider === 'claude' ? 'Claude' : 'Codex');
 
 /**
- * Text of an agent's name tag (the provider dot and the MAIN/SUB/SHELL badge are
- * drawn separately): `account (nickname) · Provider #n`. A subagent or shell
- * shows its parent's label (`parent` = the parent's agent; without it, the
- * same PC and provider, no number).
+ * The two lines of an agent's name tag (the provider dot before line 2 and the
+ * MAIN/SUB/SHELL badge after it are drawn separately): `account (nickname)` and
+ * `Provider #n`. A subagent or shell shows its parent's provider and number
+ * (`parent` = the parent's agent; without it, the same PC and provider, no number).
  */
-export function tagText(a: OfficeAgent, parent?: OfficeAgent): string {
+export function tagLines(a: OfficeAgent, parent?: OfficeAgent): [string, string] {
   const main = a.kind === 'main' ? a : parent;
-  if (!main) return `${peerLabel(a.peer)} · ${providerName(a)}`;
-  return `${peerLabel(main.peer)} · ${providerName(main)} #${main.num}`;
+  if (!main) return [peerLabel(a.peer), providerName(a)];
+  return [peerLabel(main.peer), `${providerName(main)} #${main.num}`];
 }
 
 /** The badge after a tag (i18n-neutral): MAIN / SUB / SHELL. */

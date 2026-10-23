@@ -37,7 +37,7 @@ The original [pixel-agents](https://github.com/pixel-agents-hq/pixel-agents) sho
 | Install             | VS Code extension / `npx` (needs Node)                      | **One installer** (Windows `.exe` · macOS `.pkg`, Node bundled); **WSL sessions are read from Windows too**                                                                                                                          |
 | Detection           | Installs Claude hooks (edits `settings.json`) + transcripts | **Reads transcripts only** — never touches the tools' settings                                                                                                                                                                       |
 | Character placement | Fixed seat, state shown by animation                        | **Walks between rooms by activity** (Coding Room · Library · Server Room · Lounge)                                                                                                                                                   |
-| Activity            | Status text                                                 | Name tag (`account (nickname) · Claude #1`) + **hover bubble** (which file and why, what it searches)                                                                                                                                |
+| Activity            | Status text                                                 | Two-line name tag (`account (nickname)` / `Claude #1`) + **hover bubble** (which file and why, what it searches)                                                                                                                     |
 | Privacy             | n/a                                                         | **Hide details** (on by default): paths, IPs, tokens and command arguments never leave the PC                                                                                                                                        |
 | Your character      | Auto-assigned                                               | **Six people or a pet (Claudio · Gitcat)** + color (people keep their skin tone), optional nickname; the name is the PC account                                                                                                      |
 | Language · font     | English · pixel font                                        | **Korean/English** per viewer, **Pretendard**                                                                                                                                                                                        |
@@ -65,7 +65,7 @@ When an agent switches activity, its character walks to the matching room. So th
 
 ### Name tags and hover bubbles
 
-- Every character carries a tag: `account (nickname) · Claude #1` / `account · Codex #1`. The account is the PC login name (cannot be changed); the nickname shows only when set.
+- Every character carries a tag: two lines, `account (nickname)` (or just `account`) over `Claude #1` / `Codex #1`. The account is the PC login name (cannot be changed); the nickname shows only when set.
 - Hover a character to see **what it is doing right now**: which file it is editing and why, what it is searching for, which command it runs.
 - A **red !** appears above an agent that is waiting for a person.
 - Main agents' name tags end with a **MAIN** badge; subagent and shell name tags are the parent's name tag with a **SUB** / **SHELL** badge.

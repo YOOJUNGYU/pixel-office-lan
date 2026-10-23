@@ -246,7 +246,7 @@ const ko = {
     '할 일을 기다리거나 확인을 기다릴 때는 대기실에서 쉽니다.\n방 이동은 3초 정도 상태가 이어져야 일어나서, 잠깐씩 바뀌는 작업에 캐릭터가 왔다 갔다 하지 않습니다.',
   'tour.tag.title': '이름표',
   'tour.tag.body':
-    '캐릭터 아래 이름표는 "PC 계정 (닉네임) · Claude/Codex #번호" 입니다. 닉네임은 정한 사람만 보입니다. 앞의 색 점은 제공자예요 — 주황은 Claude, 초록은 Codex.\n메인 에이전트는 이름표 뒤에 MAIN 배지가, 서브에이전트와 셸은 부모의 이름표 뒤에 SUB / SHELL 배지가 붙습니다.',
+    '캐릭터 아래 이름표는 두 줄입니다. 윗줄은 "PC 계정 (닉네임)", 아랫줄은 "Claude/Codex #번호" 예요. 닉네임은 정한 사람만 보입니다. 아랫줄 앞의 색 점은 제공자예요 — 주황은 Claude, 초록은 Codex.\n메인 에이전트는 아랫줄 끝에 MAIN 배지가, 서브에이전트와 셸은 부모의 이름표 아랫줄 끝에 SUB / SHELL 배지가 붙습니다.',
   'tour.bubble.title': '말풍선',
   'tour.bubble.body':
     '캐릭터에 마우스를 올리면 어느 방에서 무엇을 하는지, 그리고 이유가 보입니다.\n머리 위 빨간 ! 는 사용자의 확인(권한 승인이나 답변)을 기다린다는 뜻입니다.',
@@ -549,7 +549,7 @@ const en: Record<Key, string> = {
     'Idle agents, and agents waiting for you, rest in the lounge.\nA move only happens after the new activity lasts about 3 seconds, so characters do not bounce around on quick tasks.',
   'tour.tag.title': 'Name tags',
   'tour.tag.body':
-    'The tag under a character reads "PC account (nickname) · Claude/Codex #number"; the nickname only when one is set. The dot is the provider: orange = Claude, green = Codex.\nMain agents get a MAIN badge; subagents and shells show their parent\'s tag followed by a SUB / SHELL badge.',
+    'The tag under a character has two lines: "PC account (nickname)" on top, "Claude/Codex #number" below; the nickname only when one is set. The dot before line 2 is the provider: orange = Claude, green = Codex.\nMain agents get a MAIN badge at the end of line 2; subagents and shells show their parent\'s tag with a SUB / SHELL badge.',
   'tour.bubble.title': 'Hover bubble',
   'tour.bubble.body':
     'Hover a character to see its room, what it is doing and why.\nA red ! over its head means it is waiting for you (a permission or an answer).',

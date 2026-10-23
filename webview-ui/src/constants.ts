@@ -347,10 +347,12 @@ export const LAN_BUBBLE_MAX_WIDTH_PX = 300;
 /** Hover bubble sits this many world px above a character's feet (sprite height). */
 export const LAN_BUBBLE_HEAD_OFFSET = 32;
 export const LAN_TAG_Z_INDEX = 40;
-/** Name tag box for overlap stacking (CSS px): text-sm leading-none + py-1; side chrome = px-3 ×2 + dot 6 + gap 4; badge = gap 4 + px-2 ×2. */
-export const LAN_TAG_HEIGHT_PX = 15;
+/** Name tag box for overlap stacking (CSS px), two lines: text-sm leading-none (13) ×2 + gap-1 + py-1 ×2. Width = the wider line: line 1 = PAD ×2 + text; line 2 = PAD ×2 + dot 6 + gap 4 + text + badge (gap 4 + px-2 ×2). */
+export const LAN_TAG_LINE_PX = 13;
+export const LAN_TAG_HEIGHT_PX = 2 * LAN_TAG_LINE_PX + 1 + 2;
 export const LAN_TAG_STACK_GAP_PX = 2;
-export const LAN_TAG_CHROME_PX = 16;
+export const LAN_TAG_PAD_X_PX = 6;
+export const LAN_TAG_CHROME_PX = LAN_TAG_PAD_X_PX + 10;
 export const LAN_TAG_BADGE_CHROME_PX = 8;
 export const LAN_TAG_FONT = '13px Pretendard';
 export const LAN_TAG_BADGE_FONT = 'bold 11px Pretendard';

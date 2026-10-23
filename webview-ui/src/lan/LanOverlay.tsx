@@ -18,6 +18,7 @@ import {
   LAN_TAG_CHROME_PX,
   LAN_TAG_FONT,
   LAN_TAG_HEIGHT_PX,
+  LAN_TAG_PAD_X_PX,
   LAN_TAG_STACK_GAP_PX,
   LAN_TAG_Z_INDEX,
   PET_HEAD_DROP_PX,
@@ -29,7 +30,7 @@ import { getCachedSprite } from '../office/sprites/spriteCache.js';
 import { BUBBLE_PERMISSION_SPRITE } from '../office/sprites/spriteData.js';
 import { type Character, CharacterState } from '../office/types.js';
 import { getTheme } from '../theme.js';
-import { type LanAgents, tagBadge, tagText } from './lanAgents.js';
+import { type LanAgents, tagBadge, tagLines } from './lanAgents.js';
 import { stackTags, type TagBox } from './tagStack.js';
 
 /** Text widths for tag stacking, measured once per string (cleared when web fonts finish loading). */
@@ -131,29 +132,31 @@ export function LanOverlay({ officeState, lan, containerRef, zoom, panRef }: Lan
   const nodes = [];
   const byKey = new Map(lan.all().map((a) => [a.key, a] as const));
   // Project every tag first, then stack the ones that collide (side-by-side characters).
-  const tags: Array<{ a: OfficeAgent; ch: Character; text: string }> = [];
+  const tags: Array<{ a: OfficeAgent; ch: Character; lines: [string, string] }> = [];
   const boxes: TagBox[] = [];
   for (const a of lan.all()) {
     const id = lan.idFor(a.key);
     const ch = id !== undefined ? officeState.characters.get(id) : undefined;
     if (!ch) continue;
-    const text = tagText(a, a.parentKey !== undefined ? byKey.get(a.parentKey) : undefined);
+    const lines = tagLines(a, a.parentKey !== undefined ? byKey.get(a.parentKey) : undefined);
     const badge = tagBadge(a);
     const typing = ch.state === CharacterState.TYPE;
-    tags.push({ a, ch, text });
+    tags.push({ a, ch, lines });
     boxes.push({
       x: project.toScreenX(ch.x),
       y: project.toScreenY(ch.y + (typing ? CHARACTER_SITTING_OFFSET_PX : 0)),
-      w:
+      w: Math.max(
+        2 * LAN_TAG_PAD_X_PX + textWidth(lines[0], LAN_TAG_FONT),
         LAN_TAG_CHROME_PX +
-        textWidth(text, LAN_TAG_FONT) +
-        LAN_TAG_BADGE_CHROME_PX +
-        textWidth(badge, LAN_TAG_BADGE_FONT),
+          textWidth(lines[1], LAN_TAG_FONT) +
+          LAN_TAG_BADGE_CHROME_PX +
+          textWidth(badge, LAN_TAG_BADGE_FONT),
+      ),
     });
   }
   const tops = stackTags(boxes, LAN_TAG_HEIGHT_PX, LAN_TAG_STACK_GAP_PX);
   for (let i = 0; i < tags.length; i++) {
-    const { a, ch, text } = tags[i];
+    const { a, ch, lines } = tags[i];
     const typing = ch.state === CharacterState.TYPE;
     const x = boxes[i].x;
     const lit = a.peer.id === lan.highlightPeer;
@@ -161,24 +164,27 @@ export function LanOverlay({ officeState, lan, containerRef, zoom, panRef }: Lan
       <div
         key={a.key}
         data-agent-key={a.key}
-        className={`absolute -translate-x-1/2 flex items-center gap-4 whitespace-nowrap text-sm leading-none px-3 py-1 pointer-events-none ${lit ? 'bg-accent text-on-accent outline-2 outline-accent-bright' : 'bg-bg/75 text-text'}`}
+        className={`absolute -translate-x-1/2 flex flex-col items-center gap-1 whitespace-nowrap text-sm leading-none px-3 py-1 pointer-events-none ${lit ? 'bg-accent text-on-accent outline-2 outline-accent-bright' : 'bg-bg/75 text-text'}`}
         style={{
           left: x,
           top: tops[i],
           zIndex: lit ? LAN_PERMISSION_Z_INDEX : LAN_TAG_Z_INDEX,
         }}
       >
-        <span
-          className="w-6 h-6 shrink-0"
-          style={{ background: LAN_PROVIDER_COLORS[a.provider] }}
-        />
-        {text}
-        <span
-          data-badge={a.kind}
-          className="shrink-0 px-2 text-2xs font-bold leading-none"
-          style={badgeColors(a.kind)}
-        >
-          {tagBadge(a)}
+        <span>{lines[0]}</span>
+        <span className="flex items-center gap-4">
+          <span
+            className="w-6 h-6 shrink-0"
+            style={{ background: LAN_PROVIDER_COLORS[a.provider] }}
+          />
+          {lines[1]}
+          <span
+            data-badge={a.kind}
+            className="shrink-0 px-2 text-2xs font-bold leading-none"
+            style={badgeColors(a.kind)}
+          >
+            {tagBadge(a)}
+          </span>
         </span>
       </div>,
     );
