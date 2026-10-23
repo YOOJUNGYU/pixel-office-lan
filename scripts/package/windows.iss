@@ -159,7 +159,7 @@ begin
 end;
 
 { User data (~\.pixel-office: keys, layouts, staged updates) only on an explicit Yes (default No), never
-  in a silent uninstall. The uninstaller runs elevated: {%USERPROFILE} is the account that runs it,
+  in a silent uninstall. The uninstaller runs elevated: %USERPROFILE% is the account that runs it,
   i.e. the user's own folder unless another admin account typed its credentials. }
 procedure AskDeleteUserData;
 var
