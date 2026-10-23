@@ -43,6 +43,8 @@ korean.Autostart=로그인할 때 자동으로 실행
 english.Autostart=Start automatically at login
 korean.OpenOffice=Pixel Office 열기
 english.OpenOffice=Open Pixel Office
+korean.DeleteUserData=설정·레이아웃·사무실 정보까지 모두 삭제할까요?%n%n(%1)%n%n[아니요]를 누르면 남겨 두어 다시 설치했을 때 그대로 이어서 쓸 수 있습니다.
+english.DeleteUserData=Also delete your settings, layouts and office info?%n%n(%1)%n%nChoose No to keep them for a later reinstall.
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:DesktopIcon}"
@@ -58,6 +60,18 @@ Name: "{autodesktop}\Pixel Office"; Filename: "{sys}\wscript.exe"; Parameters: "
 ; rights. It is written by the app itself (cli.js --autostart), run as the ORIGINAL user below:
 ; {userstartup} here would be the elevated account's folder when a standard user typed admin
 ; credentials. Uninstall sweeps every profile (DeleteStartupLinks in [Code]).
+
+[Registry]
+; pixeloffice: URL scheme for the page's [시작] button (shown when the server is off, e.g. the
+; installed PWA opened alone). The browser asks once "Open Pixel Office?". The command is FIXED
+; and never gets the URL (no %1): launch.vbs forwards its arguments to cli.js, so passing the URL
+; would let any website add CLI flags. No --open: the page that asked reloads itself.
+; HKA = HKLM\Software\Classes here (admin install), i.e. every user; removed on uninstall.
+; server/__tests__/installer.test.ts checks the command.
+Root: HKA; Subkey: "Software\Classes\pixeloffice"; ValueType: string; ValueName: ""; ValueData: "URL:Pixel Office"; Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\pixeloffice"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""
+Root: HKA; Subkey: "Software\Classes\pixeloffice\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: """{app}\icon.ico"",0"
+Root: HKA; Subkey: "Software\Classes\pixeloffice\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{sys}\wscript.exe"" ""{app}\launch.vbs"""
 
 [InstallDelete]
 ; Older versions started the office for all users from the common Startup folder.
@@ -79,6 +93,10 @@ Filename: "{app}\node.exe"; Parameters: """{app}\app\cli.js"" --autostart defaul
 ; app's reopen marker (~\.pixel-office\updates\reopen) opens one only if none was open.
 Filename: "{sys}\wscript.exe"; Parameters: """{app}\launch.vbs"" --open"; Description: "{cm:OpenOffice}"; Flags: postinstall nowait skipifsilent
 Filename: "{sys}\wscript.exe"; Parameters: """{app}\launch.vbs"""; Check: WizardSilent; Flags: postinstall nowait
+
+[UninstallDelete]
+; Everything left in the install folder (files written after install) and the folder itself.
+Type: filesandordirs; Name: "{app}"
 
 [UninstallRun]
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""Pixel Office"""; Flags: runhidden; RunOnceId: "DelFirewallRule"
@@ -128,10 +146,39 @@ begin
   end;
 end;
 
+{ Uninstall: quit the office, then make sure the tray helper (it exits ~1 s after the server pid is
+  gone) is not left holding PixelOfficeTray.exe: a locked exe keeps the install folder. taskkill by
+  OUR image name only (never node.exe: other Node apps share that name). }
+procedure StopOfficeForUninstall;
+var
+  Code: Integer;
+begin
+  QuitRunningOffice;
+  Sleep(1500);
+  Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /IM PixelOfficeTray.exe', '', SW_HIDE, ewWaitUntilTerminated, Code);
+end;
+
+{ User data (~\.pixel-office: keys, layouts, staged updates) only on an explicit Yes (default No), never
+  in a silent uninstall. The uninstaller runs elevated: {%USERPROFILE} is the account that runs it,
+  i.e. the user's own folder unless another admin account typed its credentials. }
+procedure AskDeleteUserData;
+var
+  Dir: String;
+begin
+  Dir := ExpandConstant('{%USERPROFILE}\.pixel-office');
+  if UninstallSilent or not DirExists(Dir) then
+    exit;
+  if MsgBox(FmtMessage(CustomMessage('DeleteUserData'), [Dir]), mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES then
+    DelTree(Dir, True, True, True);
+end;
+
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 begin
   if CurUninstallStep = usUninstall then
-    QuitRunningOffice;
+    StopOfficeForUninstall;
   if CurUninstallStep = usPostUninstall then
+  begin
     DeleteStartupLinks;
+    AskDeleteUserData;
+  end;
 end;

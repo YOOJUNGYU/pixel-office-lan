@@ -55,6 +55,8 @@ Open the office in this PC's browser and an **Install Pixel Office as an app** p
 - **Safari**: **Share → Add to Dock** (Mac) / **Add to Home Screen** (iPhone, iPad)
 - **Firefox**: can't install apps; open it in Edge or Chrome.
 - **Later** hides it for 7 days. It never shows inside the app or after installing.
+- **Opened the PWA alone while the server is off?** It shows "The Pixel Office server is off" with a big **[Start]** button. Press it and the browser asks to **"Open Pixel Office"** → allow (tick **always allow** and it won't ask again). Once the server is up the window turns into the office by itself. Not up after 20 s? Start Pixel Office from the Start menu (Mac: Applications). A window left open after quitting shows the same [Start].
+  - [Start] uses the `pixeloffice:` link the installer registers, so it **needs the new installer once** (in-app silent updates can't register it). The link always runs the same fixed launch command; nothing from the link is passed on.
 - To remove the app, uninstall Pixel Office from `edge://apps` (Edge) or `chrome://apps` (Chrome). Shortcuts then open a new Edge (or Chrome) window again.
 
 ## 4-1. Public office and team offices
@@ -82,7 +84,9 @@ Other people's offices are **read-only**: nobody can run or change anything on y
 
 ## 6. Uninstall
 
-- **Windows**: Settings → Apps → Installed apps → **Pixel Office** → Uninstall (stops the office and removes the firewall rule, shortcuts and the start-at-login entry).
+- **Windows**: Settings → Apps → Installed apps → **Pixel Office** → Uninstall (or `unins000.exe` in the install folder). It stops the office and the tray icon and removes the whole install folder (`C:\Program Files\PixelOffice`), the firewall rule, shortcuts, the start-at-login entry and the `pixeloffice:` link.
+  - At the end it asks **"Also delete your settings, layouts and office info?"**. **Yes** also deletes your `%USERPROFILE%\.pixel-office` (profile, keys, team offices, layouts, downloaded updates); **No** (default) keeps it for a later reinstall. A silent uninstall (`/VERYSILENT`) never asks and keeps it.
+  - The uninstaller runs elevated: if another admin account's credentials were typed in, **that** account's `.pixel-office` is the one deleted. Delete your own `.pixel-office` by hand in that case.
 - **Mac**:
 
   ```bash

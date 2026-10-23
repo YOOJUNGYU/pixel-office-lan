@@ -39,6 +39,7 @@ export class PixelAgentsServer {
     onQuitApp?: () => void;
     updater?: Updater;
     autostart?: ClientMessageContext['autostart'];
+    onWaitingPage?: () => void;
   }): Promise<{ port: number }> {
     const { app, port, closeClients } = await createHttpServer({
       host: options?.host,
@@ -53,6 +54,7 @@ export class PixelAgentsServer {
       onQuitApp: options?.onQuitApp,
       updater: options?.updater,
       autostart: options?.autostart,
+      onWaitingPage: options?.onWaitingPage,
     });
     this.app = app;
     this.closeClients = closeClients;

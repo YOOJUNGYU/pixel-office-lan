@@ -66,6 +66,8 @@ export const PING_TIMEOUT_MS = 1_000;
 export const SNAPSHOT_INTERVAL_MS = 1_000;
 /** `POST /api/quit`: delay before exit so the reply reaches the caller. */
 export const QUIT_DELAY_MS = 100;
+/** `--open` at start: wait this long for a "server is off" page's health poll (webview polls every 1 s) before opening a window. */
+export const OPEN_WAIT_MS = 1_500;
 
 // ── Updates (GitHub Releases) ──────────────────────────────
 /** First automatic update check, this long after the server listens; then every UPDATE_RECHECK_MS. */

@@ -54,6 +54,8 @@ export interface HttpServerOptions {
   updater?: Updater;
   /** Start at login. */
   autostart?: ClientMessageContext['autostart'];
+  /** `GET /api/health?waiting`: a page showing "server is off" is polling (it reloads by itself). */
+  onWaitingPage?: () => void;
 }
 
 /** Result of createHttpServer(). */
@@ -141,12 +143,15 @@ export async function createHttpServer(options: HttpServerOptions): Promise<Http
     });
   }
 
-  app.get('/api/health', async () => ({
-    status: 'ok',
-    uptime: Math.floor((Date.now() - startTime) / 1000),
-    pid: process.pid,
-    version: APP_VERSION,
-  }));
+  app.get('/api/health', async (req) => {
+    if ((req.query as Record<string, unknown>).waiting !== undefined) options.onWaitingPage?.();
+    return {
+      status: 'ok',
+      uptime: Math.floor((Date.now() - startTime) / 1000),
+      pid: process.pid,
+      version: APP_VERSION,
+    };
+  });
 
   // Single-instance probe (cli.checkExisting probes 127.0.0.1).
   app.get('/api/ping', async () => ({ app: PING_APP }));

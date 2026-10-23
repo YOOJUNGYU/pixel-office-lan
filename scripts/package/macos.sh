@@ -55,6 +55,16 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>LSMinimumSystemVersion</key><string>11.0</string>
   <!-- No Dock icon: the launcher only opens the browser or runs the server. -->
   <key>LSUIElement</key><true/>
+  <!-- pixeloffice:// (the page's [시작] when the server is off): launches this app, which starts
+       the server like any other launch. The URL arrives as an Apple Event that the script (and
+       node) never read, so no part of it reaches cli.js; an already running app just ignores it. -->
+  <key>CFBundleURLTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleURLName</key><string>com.pixeloffice.start</string>
+      <key>CFBundleURLSchemes</key><array><string>pixeloffice</string></array>
+    </dict>
+  </array>
 </dict>
 </plist>
 PLIST
@@ -73,6 +83,11 @@ if [ -z "$HOME_DIR" ] || [ ! -d "$HOME_DIR" ]; then
   echo "Pixel Office: cannot find the home folder of $USER_NAME" >&2
   exit 1
 fi
+# Register the app (and its pixeloffice:// scheme) in the user's Launch Services database now,
+# so the page's [시작] works before Finder has ever looked at the app.
+LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
+launchctl asuser "$USER_ID" sudo -u "$USER_NAME" "$LSREGISTER" -f "/Applications/Pixel Office.app" || true
+
 AGENTS="$HOME_DIR/Library/LaunchAgents"
 PLIST="$AGENTS/com.pixeloffice.agent.plist"
 

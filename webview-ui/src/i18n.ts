@@ -40,6 +40,15 @@ const ko = {
   'tour.roomLegend.body':
     '방 명패에 마우스를 올리면 어떤 일을 할 때 그 방으로 가는지 보입니다. 캐릭터 이름표는 처음엔 숨겨져 있고 마우스를 올리면 나타납니다. 왼쪽 위 [이름표 보이기] 버튼으로 항상 보이게 할 수 있습니다.',
   'app.restarting': '새 버전으로 다시 시작합니다…',
+  'server.offTitle': 'Pixel Office 서버가 꺼져 있습니다',
+  'server.quitTitle': 'Pixel Office 를 종료했습니다',
+  'server.body':
+    '[시작]을 누르면 브라우저가 "Pixel Office 열기"를 묻습니다. 허용해 주세요 (항상 허용을 켜 두면 다음부터는 묻지 않습니다).',
+  'server.bodyAgain': '전에 [시작]으로 실행한 적이 있습니다. [시작]을 누르면 다시 켜집니다.',
+  'server.start': '시작',
+  'server.starting': '시작하는 중… 켜지면 자동으로 열립니다.',
+  'server.timeout':
+    '아직 켜지지 않았습니다. 시작 메뉴/응용 프로그램의 Pixel Office 로 실행해 주세요. (예전 설치본이면 새 설치 프로그램으로 한 번 다시 설치해야 [시작]이 동작합니다.)',
   'people.title': '접속 중 {n}명',
   'people.you': '(나)',
   'people.noAgents': '에이전트 없음',
@@ -364,6 +373,15 @@ const en: Record<Key, string> = {
   'tour.roomLegend.body':
     'Hover a room plate to see which activity sends an agent there. Character name tags start hidden and appear when you hover a character; the button at the top left shows them all the time.',
   'app.restarting': 'Restarting into the new version…',
+  'server.offTitle': 'The Pixel Office server is off',
+  'server.quitTitle': 'Pixel Office was quit',
+  'server.body':
+    'Press [Start] and your browser asks to "Open Pixel Office". Allow it (tick "always allow" and it won\'t ask again).',
+  'server.bodyAgain': 'You started it from here before. Press [Start] to turn it on again.',
+  'server.start': 'Start',
+  'server.starting': 'Starting… this page opens the office as soon as it is up.',
+  'server.timeout':
+    'Still not running. Start Pixel Office from the Start menu / Applications. (An older install needs the new installer once for [Start] to work.)',
   'people.title': '{n} online',
   'people.you': '(you)',
   'people.noAgents': 'No agents',
