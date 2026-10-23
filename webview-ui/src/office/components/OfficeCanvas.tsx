@@ -373,8 +373,8 @@ export function OfficeCanvas({
           // click-drag) lives in useEditorActions.
           if (
             editorState.isDragging &&
-            (editorState.activeTool === EditTool.TILE_PAINT ||
-              editorState.activeTool === EditTool.WALL_PAINT ||
+            // The floor tool fills on click only (no drag painting).
+            (editorState.activeTool === EditTool.WALL_PAINT ||
               editorState.activeTool === EditTool.ERASE ||
               editorState.activeTool === EditTool.CARPET_PAINT) &&
             !editorState.dragUid

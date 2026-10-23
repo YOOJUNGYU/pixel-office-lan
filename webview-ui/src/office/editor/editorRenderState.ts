@@ -3,7 +3,12 @@ import type { EditorRenderState, GhostSprite } from '../engine/renderer.js';
 import { getCatalogEntry, isRotatable } from '../layout/furnitureCatalog.js';
 import type { OfficeLayout, PlacedFurniture, SpriteData } from '../types.js';
 import { EditTool } from '../types.js';
-import { canPlaceFurniture, getWallPlacementRow, planFurnitureMove } from './editorActions.js';
+import {
+  canPlaceFurniture,
+  floorFillRegion,
+  getWallPlacementRow,
+  planFurnitureMove,
+} from './editorActions.js';
 import type { EditorState } from './editorState.js';
 
 /** One ghost sprite for an item at its (target) position; null for unknown types. */
@@ -37,6 +42,7 @@ export function buildEditorRenderState(
   const render: EditorRenderState = {
     showGrid: true,
     ghosts: [],
+    fillTiles: [],
     ghostValid: editorState.ghostValid,
     selectedCol: 0,
     selectedRow: 0,
@@ -49,6 +55,11 @@ export function buildEditorRenderState(
   };
 
   const hovering = editorState.ghostCol >= 0;
+
+  // Floor tool: highlight the region a click would fill
+  if (tool === EditTool.TILE_PAINT && hovering) {
+    render.fillTiles = floorFillRegion(layout, editorState.ghostCol, editorState.ghostRow);
+  }
 
   // Ghost preview for furniture placement
   const placingType = editorState.placingType;

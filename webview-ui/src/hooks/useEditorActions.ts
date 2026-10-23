@@ -13,10 +13,11 @@ import {
   dropFurniture,
   eraseCarpet,
   eraseTile,
+  floorFillRegion,
   furnitureAt,
   isFloorTile,
   paintCarpet,
-  paintTile,
+  paintTiles,
   placeNewFurniture,
   recolorWalls,
   removeFurniture,
@@ -463,16 +464,22 @@ export function useEditorActions(
       if (col < 0 || col >= layout.cols || row < 0 || row >= layout.rows) return;
       switch (editorState.activeTool) {
         case EditTool.TILE_PAINT:
+          // One click fills the whole room (or the connected corridor): one undo entry.
+          applyEdit(
+            paintTiles(
+              layout,
+              floorFillRegion(layout, col, row),
+              editorState.selectedTileType,
+              editorState.floorColor,
+            ),
+          );
+          return;
         case EditTool.WALL_PAINT: {
           const floor = { type: editorState.selectedTileType, color: editorState.floorColor };
-          if (editorState.activeTool === EditTool.TILE_PAINT) {
-            applyStrokeEdit(paintTile(layout, col, row, floor.type, floor.color));
-          } else {
-            // The stroke's first tile decides whether it adds or removes walls.
-            editorState.wallDragAdding ??= wallStrokeAdds(layout, col, row);
-            const adding = editorState.wallDragAdding;
-            applyStrokeEdit(wallStrokeTile(layout, col, row, adding, editorState.wallColor, floor));
-          }
+          // The stroke's first tile decides whether it adds or removes walls.
+          editorState.wallDragAdding ??= wallStrokeAdds(layout, col, row);
+          const adding = editorState.wallDragAdding;
+          applyStrokeEdit(wallStrokeTile(layout, col, row, adding, editorState.wallColor, floor));
           return;
         }
         case EditTool.ERASE:

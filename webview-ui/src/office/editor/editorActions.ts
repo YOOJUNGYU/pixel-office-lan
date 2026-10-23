@@ -51,6 +51,72 @@ export function paintTile(
   return { ...layout, tiles, tileColors };
 }
 
+/**
+ * Tile indices the floor tool fills for a click on (col, row): the whole room
+ * when the tile carries a room label, else the 4-connected region of unlabelled
+ * floor around it. Walls / VOID / out of grid → []. Never includes walls or VOID.
+ */
+export function floorFillRegion(layout: OfficeLayout, col: number, row: number): number[] {
+  if (!isFloorTile(layout, col, row)) return [];
+  const { cols, tiles } = layout;
+  const labels = layout.areaTiles;
+  const labelOf = (i: number) => labels?.[i] ?? null;
+  const start = row * cols + col;
+  const label = labelOf(start);
+  const floor = (i: number) => tiles[i] !== TileType.VOID && tiles[i] !== TileType.WALL;
+  if (label) return tiles.flatMap((_, i) => (labelOf(i) === label && floor(i) ? [i] : []));
+  const seen = new Set<number>([start]);
+  const stack = [start];
+  while (stack.length) {
+    const i = stack.pop()!;
+    const c = i % cols;
+    const r = (i - c) / cols;
+    for (const [nc, nr] of [
+      [c - 1, r],
+      [c + 1, r],
+      [c, r - 1],
+      [c, r + 1],
+    ]) {
+      if (nc < 0 || nc >= cols || nr < 0 || nr >= layout.rows) continue;
+      const n = nr * cols + nc;
+      if (!seen.has(n) && floor(n) && !labelOf(n)) {
+        seen.add(n);
+        stack.push(n);
+      }
+    }
+  }
+  return [...seen].sort((a, b) => a - b);
+}
+
+/** Paint every tile in `indices` (floor tool fill) in one new layout; unchanged when nothing differs. */
+export function paintTiles(
+  layout: OfficeLayout,
+  indices: number[],
+  tileType: TileTypeVal,
+  color: ColorValue,
+): OfficeLayout {
+  let out = layout;
+  const tiles = [...layout.tiles];
+  const tileColors = [...(layout.tileColors ?? new Array(tiles.length).fill(null))];
+  for (const i of indices) {
+    const c = tileColors[i];
+    if (
+      tiles[i] === tileType &&
+      c &&
+      c.h === color.h &&
+      c.s === color.s &&
+      c.b === color.b &&
+      c.c === color.c &&
+      !!c.colorize === !!color.colorize
+    )
+      continue;
+    tiles[i] = tileType;
+    tileColors[i] = { ...color };
+    out = { ...layout, tiles, tileColors };
+  }
+  return out;
+}
+
 /** Place furniture. Returns new layout (immutable). */
 export function placeFurniture(layout: OfficeLayout, item: PlacedFurniture): OfficeLayout {
   if (!canPlaceFurniture(layout, item.type, item.col, item.row)) return layout;

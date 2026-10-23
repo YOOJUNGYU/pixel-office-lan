@@ -949,6 +949,8 @@ export interface EditorRenderState {
    * group previews (and is accepted or refused) as one.
    */
   ghosts: GhostSprite[];
+  /** Tile indices the floor tool would fill (hover preview), tinted like a valid ghost. */
+  fillTiles: number[];
   ghostValid: boolean;
   selectedCol: number;
   selectedRow: number;
@@ -1088,6 +1090,16 @@ export function renderFrame(
   if (editor) {
     if (editor.showGrid) {
       renderGridOverlay(ctx, offsetX, offsetY, zoom, cols, rows, tileMap);
+    }
+    if (editor.fillTiles.length) {
+      const px = TILE_SIZE * zoom;
+      ctx.save();
+      ctx.globalAlpha = GHOST_PREVIEW_TINT_ALPHA;
+      ctx.fillStyle = GHOST_VALID_TINT;
+      for (const i of editor.fillTiles) {
+        ctx.fillRect(offsetX + (i % cols) * px, offsetY + Math.floor(i / cols) * px, px, px);
+      }
+      ctx.restore();
     }
     for (const ghost of editor.ghosts) {
       renderGhostPreview(

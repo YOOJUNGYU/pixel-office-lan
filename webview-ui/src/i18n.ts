@@ -288,7 +288,7 @@ const ko = {
   'tour.layoutButton.body': '사무실 배치를 직접 꾸밀 수 있습니다. 편집기를 열어 볼게요.',
   'tour.floor.title': '바닥',
   'tour.floor.body':
-    '바닥 무늬를 고르고 색을 정해 타일 위를 칠합니다. [복사] 로 이미 칠해진 바닥을 집어 올 수도 있습니다.',
+    '바닥 무늬를 고르고 색을 정한 뒤, 바닥 도구로 방을 클릭하면 방 전체가 한 번에 칠해집니다. 복도는 이어진 바닥만 칠해집니다. [복사] 로 이미 칠해진 바닥을 집어 올 수도 있습니다.',
   'tour.walls.title': '벽',
   'tour.walls.body': '벽 모양과 색을 고르고, 칠해서 세우거나 다시 클릭해 없앱니다.',
   'tour.furniture.title': '가구',
@@ -595,7 +595,7 @@ const en: Record<Key, string> = {
   'tour.layoutButton.body': 'Arrange the office yourself. Let’s open the editor.',
   'tour.floor.title': 'Floor',
   'tour.floor.body':
-    'Pick a floor pattern and a color, then paint tiles. [Copy] picks up an already painted floor.',
+    'Pick a floor pattern and a color, then click a room with the floor tool: the whole room is painted at once (in the corridor, the connected floor). [Copy] picks up an already painted floor.',
   'tour.walls.title': 'Walls',
   'tour.walls.body':
     'Pick a wall style and color; paint to build walls, click again to remove them.',
