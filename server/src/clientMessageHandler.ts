@@ -165,6 +165,10 @@ export function handleClientMessage(
       if (ctx.lan) handleOfficeChange(msg, send, ctx.lan, ctx.onOfficesChanged);
       break;
 
+    case 'sendChat':
+      ctx.lan?.sendChat(msg.text, msg.col, msg.row);
+      break;
+
     case 'getOfficeCode': {
       const code = ctx.lan?.officeCode(msg.tag);
       if (code) send({ type: 'officeCode', tag: msg.tag as string, code });

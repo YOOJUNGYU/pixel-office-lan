@@ -1,7 +1,26 @@
 // Merges this PC's and peers' agents into one office; single-instance probe.
-import type { AgentView, OfficeAgent, PeerInfo, PeerPacket } from '../../../core/src/lan.js';
-import { nicknameKey, PUBLIC_VIEW } from '../../../core/src/lan.js';
-import type { OfficeErrorReason, OfficePersonMessage } from '../../../core/src/messages.js';
+import { randomBytes } from 'crypto';
+
+import type {
+  AgentView,
+  OfficeAgent,
+  PeerChat,
+  PeerInfo,
+  PeerPacket,
+} from '../../../core/src/lan.js';
+import {
+  CHAT_ID_LENGTH,
+  CHAT_MIN_INTERVAL_MS,
+  CHAT_SHOW_MS,
+  nicknameKey,
+  parseChat,
+  PUBLIC_VIEW,
+} from '../../../core/src/lan.js';
+import type {
+  ChatMessage,
+  OfficeErrorReason,
+  OfficePersonMessage,
+} from '../../../core/src/messages.js';
 import { MAX_OFFICES, PING_APP, PING_TIMEOUT_MS } from '../constants.js';
 import { inviteText, newInviteCode, parseInviteCode, teamKey } from './crypto.js';
 import type { TeamChannel } from './peerNet.js';
@@ -26,6 +45,14 @@ export function buildOffice(
 ): OfficeAgent[] {
   return [...toAgents(self, local), ...peers.flatMap((p) => toAgents(p.peer, p.views))];
 }
+
+const toChatMessage = (c: PeerChat, left: number): ChatMessage => ({
+  id: c.id,
+  text: c.text,
+  col: c.col,
+  row: c.row,
+  left: Math.max(0, Math.round(left)),
+});
 
 /** True when a Pixel Office already answers on this port. */
 export async function checkExisting(port: number): Promise<boolean> {
@@ -57,6 +84,10 @@ export class LanService {
   private channels: { src: TeamOffice[]; list: TeamChannel[] } | null = null;
   /** This PC's OS account name: fixed, read at start, never from a client. */
   readonly account = osAccount();
+  /** This PC's last chat and the office view it was said in (only that channel carries it). */
+  private said: { chat: PeerChat; view: string } | null = null;
+  /** view → sender → the chat id shown and when it was first received (dedupe + expiry). */
+  private heard = new Map<string, Map<string, { chat: PeerChat; first: number }>>();
 
   constructor(
     public profile: Profile,
@@ -79,8 +110,9 @@ export class LanService {
     };
   }
 
-  /** What PeerNet sends (encrypted). Never throws: a failing scan sends no views. */
-  packet(): PeerPacket {
+  /** What PeerNet sends (encrypted) on `channel` (PUBLIC_VIEW or a team tag). Never
+   *  throws: a failing scan sends no views. The chat goes only to the view it was said in. */
+  packet(channel: string = PUBLIC_VIEW, now = Date.now()): PeerPacket {
     let views: AgentView[] = [];
     try {
       const hide = this.profile.hideDetails;
@@ -90,7 +122,50 @@ export class LanService {
       console.error('[Pixel Office] Building peer packet failed:', err);
       views = [];
     }
-    return fitPacket({ v: 1, peer: this.self(), views });
+    const chat = this.ownChat(channel, now);
+    return fitPacket({ v: 1, peer: this.self(), views, ...(chat && { chat }) });
+  }
+
+  /** Say `text` at map spot (col, row) in the active view. null = refused (empty,
+   *  bad spot, or less than CHAT_MIN_INTERVAL_MS after the last one). */
+  sendChat(text: unknown, col: unknown, row: unknown, now = Date.now()): PeerChat | null {
+    if (this.said && now - this.said.chat.ts < CHAT_MIN_INTERVAL_MS) return null;
+    const id = randomBytes(CHAT_ID_LENGTH)
+      .toString('base64')
+      .replace(/[^0-9a-z]/gi, '')
+      .padEnd(CHAT_ID_LENGTH, '0')
+      .slice(0, CHAT_ID_LENGTH);
+    const chat = parseChat({ id, text, ts: now, col, row });
+    if (!chat) return null;
+    this.said = { chat, view: this.profile.activeView };
+    this.net.sendNow();
+    return chat;
+  }
+
+  private ownChat(view: string, now: number): PeerChat | undefined {
+    const s = this.said;
+    return s && s.view === view && now - s.chat.ts < CHAT_SHOW_MS ? s.chat : undefined;
+  }
+
+  /** Received chats of one view: each (sender, id) shown once for CHAT_SHOW_MS from
+   *  first receipt; a new id within CHAT_MIN_INTERVAL_MS of the last is ignored. */
+  private heardChats(view: string, peers: PeerPacket[], now: number): Map<string, ChatMessage> {
+    const prev = this.heard.get(view) ?? new Map<string, { chat: PeerChat; first: number }>();
+    const next = new Map<string, { chat: PeerChat; first: number }>();
+    const out = new Map<string, ChatMessage>();
+    for (const { peer, chat } of peers) {
+      if (!chat) continue;
+      const old = prev.get(peer.id);
+      const e =
+        old && (old.chat.id === chat.id || now - old.first < CHAT_MIN_INTERVAL_MS)
+          ? old
+          : { chat, first: now };
+      next.set(peer.id, e);
+      const left = CHAT_SHOW_MS - (now - e.first);
+      if (left > 0) out.set(peer.id, toChatMessage(e.chat, left));
+    }
+    this.heard.set(view, next);
+    return out;
   }
 
   /** Joined team offices with their keys, for PeerNet (derived once per offices change). */
@@ -116,9 +191,13 @@ export class LanService {
   }
 
   /** Everyone in one office (this PC first, then live peers, agents or not); same gate as office(). */
-  people(view: string): OfficePersonMessage[] {
+  people(view: string, now = Date.now()): OfficePersonMessage[] {
     if (!this.isOpen(view)) return [];
-    return [this.self(), ...this.net.peers(view).map((p) => p.peer)].map((p, i) => ({
+    const peers = this.net.peers(view);
+    const chats = this.heardChats(view, peers, now);
+    const own = this.ownChat(view, now);
+    if (own) chats.set(this.profile.peerId, toChatMessage(own, CHAT_SHOW_MS - (now - own.ts)));
+    return [this.self(), ...peers.map((p) => p.peer)].map((p, i) => ({
       peerId: p.id,
       account: p.account,
       nickname: p.nickname,
@@ -127,6 +206,7 @@ export class LanService {
       hueShift: p.hueShift,
       ...(p.pet && { pet: p.pet }),
       self: i === 0,
+      ...(chats.has(p.id) && { chat: chats.get(p.id) }),
     }));
   }
 

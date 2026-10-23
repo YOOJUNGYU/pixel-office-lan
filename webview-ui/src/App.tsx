@@ -27,6 +27,7 @@ import { useEditorKeyboard } from './hooks/useEditorKeyboard.js';
 import { useExtensionMessages } from './hooks/useExtensionMessages.js';
 import { useIsMobile } from './hooks/useIsMobile.js';
 import { t, useLang } from './i18n.js';
+import { ChatLayer } from './lan/ChatLayer.js';
 import { InstallPrompt } from './lan/InstallPrompt.js';
 import { LanOverlay } from './lan/LanOverlay.js';
 import { NicknameNotice } from './lan/NicknameNotice.js';
@@ -109,6 +110,7 @@ function App() {
     officeReadOnly,
     restarting,
     lan,
+    chats,
     people,
     profileError,
     clearProfileError,
@@ -273,7 +275,7 @@ function App() {
       pan: { x: 0, y: 0 },
     };
     const caps = new Set<Capability>();
-    if (!officeReadOnly && !isMobile) caps.add('edit');
+    if (!officeReadOnly && !isMobile) caps.add('edit').add('chat');
     if (offices) caps.add('switcher').add('offices');
     if (profile?.canEdit) caps.add('profile');
     setIsSettingsOpen(false);
@@ -531,6 +533,22 @@ function App() {
           zoom={editor.zoom}
           panRef={editor.panRef}
           tagsHidden={tagsHidden && scene?.tags !== true}
+        />
+
+        <ChatLayer
+          officeState={officeState}
+          chats={chats}
+          containerRef={containerRef}
+          zoom={editor.zoom}
+          panRef={editor.panRef}
+          canType={!editor.isEditMode && !touring && !officeReadOnly && !isMobile}
+          onSend={(text, col, row) => {
+            const me = people.find((p) => p.self);
+            const said = me ? chats.say(me, text, col, row, Date.now()) : null;
+            if (said === null) return false;
+            transport.send({ type: 'sendChat', text: said, col, row });
+            return true;
+          }}
         />
 
         <ZoomControls

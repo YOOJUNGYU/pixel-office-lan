@@ -164,10 +164,24 @@ export interface PeerInfo {
   /** Pet character instead of the `palette` human; absent = human. Unknown ids are dropped. */
   pet?: PetId;
 }
+/** A chat line pinned to a map spot, sent in every presence packet for CHAT_SHOW_MS. */
+export interface PeerChat {
+  /** Random CHAT_ID_LENGTH chars; receivers show each (sender, id) once. */
+  id: string;
+  /** Sanitised (cleanChatText), 1..CHAT_MAX_CHARS code points. */
+  text: string;
+  /** Sender's send time (ms epoch); receivers time the bubble from first receipt. */
+  ts: number;
+  /** World tile coordinates of the spot (floats, 0..MAX_LAYOUT_COLS-1 / ROWS-1). */
+  col: number;
+  row: number;
+}
 export interface PeerPacket {
   v: 1;
   peer: PeerInfo;
   views: AgentView[];
+  /** Absent = not chatting. Older peers ignore it. */
+  chat?: PeerChat;
 }
 /** key=`${peer.id}:${id}` */
 export interface OfficeAgent extends AgentView {
@@ -209,6 +223,51 @@ export function cleanAccount(x: unknown): string | null {
 
 /** A received nickname made displayable: control/bidi/format chars removed, trimmed. */
 export const cleanNickname = (s: string): string => s.replace(/\p{C}/gu, '').trim();
+
+// ── Chat ──
+export const CHAT_MAX_CHARS = 100;
+/** A bubble is shown (and the sender keeps sending it) this long. */
+export const CHAT_SHOW_MS = 10_000;
+/** One message per sender per this interval (sender, server and receivers). */
+export const CHAT_MIN_INTERVAL_MS = 2_000;
+export const CHAT_ID_LENGTH = 8;
+const CHAT_ID = /^[0-9a-z]{8}$/i;
+/** Raw input looked at before sanitising (bounds the work on hostile input). */
+const CHAT_RAW_MAX = 4 * CHAT_MAX_CHARS;
+
+/** Chat text made displayable: line breaks/tabs → space, other control/bidi/format
+ *  chars removed, whitespace collapsed, trimmed, ≤ CHAT_MAX_CHARS code points; '' → null. */
+export function cleanChatText(x: unknown): string | null {
+  if (typeof x !== 'string') return null;
+  const s = takeCodePoints(
+    x
+      .slice(0, CHAT_RAW_MAX)
+      .replace(/\p{Cc}/gu, ' ')
+      .replace(/\p{C}/gu, '')
+      .replace(/\s+/g, ' ')
+      .trim(),
+    CHAT_MAX_CHARS,
+  ).trim();
+  return s === '' ? null : s;
+}
+
+/** A finite number clamped into 0..max (the shared layout grid), else null. */
+export function chatCoord(x: unknown, max: number): number | null {
+  return typeof x === 'number' && Number.isFinite(x) ? Math.min(Math.max(x, 0), max) : null;
+}
+
+/** Untrusted chat → a fresh PeerChat, else null. */
+export function parseChat(raw: unknown): PeerChat | null {
+  if (!isObj(raw)) return null;
+  const text = cleanChatText(raw.text);
+  const col = chatCoord(raw.col, MAX_LAYOUT_COLS - 1);
+  const row = chatCoord(raw.row, MAX_LAYOUT_ROWS - 1);
+  const { id, ts } = raw;
+  if (typeof id !== 'string' || !CHAT_ID.test(id) || text === null) return null;
+  if (typeof ts !== 'number' || !Number.isSafeInteger(ts) || ts < 0) return null;
+  if (col === null || row === null) return null;
+  return { id, text, ts, col, row };
+}
 
 /** The office everyone on the LAN shares; any other view is a team office tag. */
 export const PUBLIC_VIEW = 'public';
@@ -294,7 +353,8 @@ export function parsePeerPacket(text: string): PeerPacket | null {
     if (typeof since === 'number' && Number.isSafeInteger(since) && since >= 0) {
       peer.nickSince = since;
     }
-    return { v: 1, peer, views };
+    const chat = parseChat(raw.chat);
+    return { v: 1, peer, views, ...(chat && { chat }) };
   } catch {
     return null;
   }

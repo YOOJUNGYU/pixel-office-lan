@@ -356,6 +356,21 @@ describe('PeerNet team offices', () => {
     expect(b.net.teamName(tag)).toBe('team');
   });
 
+  it('a chat goes only on the channel getPacket(channel) puts it on', async () => {
+    const [a, b] = await mkNodes(['A', 'B']);
+    const [s1, s2] = [newInviteCode().secret, newInviteCode().secret];
+    a.offices = [channel(s1), channel(s2)];
+    b.offices = [channel(Buffer.from(s1)), channel(Buffer.from(s2))];
+    const [t1, t2] = a.offices.map((o) => o.tag);
+    const chat = { id: 'abcd1234', text: 'hi', ts: 1, col: 1, row: 2 };
+    (a.net as unknown as { opts: { getPacket: (c: string) => PeerPacket } }).opts.getPacket = (
+      c,
+    ) => ({ ...pkt('A'), ...(c === t1 && { chat }) });
+    await pump([a, b], () => b.net.peers(t1).length > 0 && b.net.peers(t2).length > 0);
+    expect(b.net.peers(t1)[0].chat).toEqual(chat);
+    expect(b.net.peers(t2)[0]).not.toHaveProperty('chat');
+  });
+
   it('joining stops hello at once; leaving sends hello again right away', async () => {
     const raw = await rawSocket();
     const helloFromA = (g: string) => {

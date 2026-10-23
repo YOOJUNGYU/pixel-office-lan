@@ -34,23 +34,7 @@ import { getTheme } from '../theme.js';
 import { type LanAgents, tagBadge, tagLines } from './lanAgents.js';
 import { stackTags, type TagBox } from './tagStack.js';
 import { tagVisible } from './tagVisibility.js';
-
-/** Text widths for tag stacking, measured once per string (cleared when web fonts finish loading). */
-const textWidths = new Map<string, number>();
-let measureCtx: CanvasRenderingContext2D | null = null;
-document.fonts?.addEventListener('loadingdone', () => textWidths.clear());
-function textWidth(text: string, font: string): number {
-  const key = `${font}|${text}`;
-  let w = textWidths.get(key);
-  if (w === undefined) {
-    measureCtx ??= document.createElement('canvas').getContext('2d');
-    if (!measureCtx) return 0;
-    measureCtx.font = font;
-    w = measureCtx.measureText(text).width;
-    textWidths.set(key, w);
-  }
-  return w;
-}
+import { textWidth } from './textWidth.js';
 
 /** The permission bubble sprite, blitted into a DOM canvas above the tags. */
 /** `scale` = fractional-zoom stretch on top of the integer-zoom sprite (see renderScale). */
