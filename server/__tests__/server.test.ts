@@ -17,6 +17,15 @@ describe('PixelAgentsServer', () => {
     expect(await res.json()).toMatchObject({ status: 'ok', pid: process.pid });
   });
 
+  it('reports a "server is off" page polling /api/health?waiting (cli.ts skips --open)', async () => {
+    let waiting = 0;
+    const { port } = await server.start({ logger: false, onWaitingPage: () => waiting++ });
+    await fetch(`http://127.0.0.1:${port.toString()}/api/health`);
+    expect(waiting).toBe(0);
+    expect((await fetch(`http://127.0.0.1:${port.toString()}/api/health?waiting=1`)).ok).toBe(true);
+    expect(waiting).toBe(1);
+  });
+
   it('stops listening on stop()', async () => {
     const { port } = await server.start({ logger: false });
     await server.stop();

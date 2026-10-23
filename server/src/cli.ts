@@ -24,6 +24,7 @@ import {
   MAX_PORT,
   MIN_PORT,
   NO_PEERS_ENV,
+  OPEN_WAIT_MS,
   QUIT_DELAY_MS,
   SNAPSHOT_INTERVAL_MS,
   UDP_PORT_ENV,
@@ -278,6 +279,7 @@ export async function main(boot = true): Promise<void> {
     console.log('[Pixel Office] Assets reloaded (external directory change)');
   };
 
+  let pageWaiting = false;
   try {
     const { port } = await server.start({
       host: args.host,
@@ -291,6 +293,9 @@ export async function main(boot = true): Promise<void> {
         setTimeout(() => void shutdown(), QUIT_DELAY_MS);
       },
       onQuitApp: quitApp,
+      onWaitingPage: () => {
+        pageWaiting = true;
+      },
       updater,
       autostart: { get: () => getAutostart(), set: (on) => setAutostart(on) },
     });
@@ -303,7 +308,14 @@ export async function main(boot = true): Promise<void> {
     const displayHost =
       args.host === '0.0.0.0' || args.host === '::' || args.host === '' ? 'localhost' : args.host;
     console.log(`\n  Pixel Office running at http://${displayHost}:${port}\n`);
-    if (reopen === 'open' || (reopen === null && args.open)) openOffice(localUrl);
+    if (reopen === 'open') openOffice(localUrl);
+    else if (reopen === null && args.open) {
+      // Started from the page's [시작] (pixeloffice://start → the Mac app runs --open): that page
+      // polls /api/health?waiting and reloads into the office, so don't open a second window.
+      setTimeout(() => {
+        if (!pageWaiting) openOffice(localUrl);
+      }, OPEN_WAIT_MS);
+    }
     // Only the instance that owns the server gets here (a second launch exited above).
     const tray = startTray({ onOpen: () => openOffice(localUrl), onQuit: quitApp });
     // OS notifications (join/leave, my agents): decided here, so no window needs to be open.

@@ -131,6 +131,17 @@ export const NICKNAME_NOTICE_STORAGE_KEY = 'pixel-office.nicknameNotice';
 export const INSTALL_DISMISSED_STORAGE_KEY = 'pixel-office.installDismissed';
 /** [Later] hides the install popup for 7 days. */
 export const INSTALL_SNOOZE_MS = 7 * 24 * 60 * 60 * 1000;
+// ── Server-off panel (lan/ServerPanel.tsx) ──────────────────
+/** The installer registers this scheme to start the server; the URL itself is ignored. */
+export const START_SERVER_URL = 'pixeloffice://start';
+/** localStorage key: this viewer pressed [시작] before (the browser may remember "always allow"). */
+export const SERVER_STARTED_BEFORE_KEY = 'pixel-office.startedBefore';
+/** First load: no connection for this long → the panel (brief reconnects never show it). */
+export const SERVER_PANEL_GRACE_MS = 3_000;
+/** While the panel shows: poll /api/health this often; up → reload into the office. */
+export const SERVER_PANEL_POLL_MS = 1_000;
+/** After [시작]: no server within this long → the "start it from the Start menu" hint. */
+export const SERVER_START_TIMEOUT_MS = 20_000;
 /** MIME type for the exported layout Blob. */
 export const LAYOUT_EXPORT_MIME = 'application/json';
 export const DEFAULT_FLOOR_COLOR: ColorValue = { h: 35, s: 30, b: 15, c: 0 };

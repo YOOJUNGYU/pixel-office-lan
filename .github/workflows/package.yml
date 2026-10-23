@@ -141,6 +141,37 @@ jobs:
         run: |
           & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DAppVersion=$env:VERSION" scripts/package/windows.iss
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Silent install → pixeloffice URL scheme → running office → silent uninstall leaves nothing
+        shell: pwsh
+        run: |
+          $app = Join-Path $env:ProgramFiles 'PixelOffice'
+          $p = Start-Process -PassThru -Wait "release/PixelOffice-$env:VERSION-Windows.exe" '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /LOG=install.log'
+          if ($p.ExitCode -ne 0) { Get-Content install.log; throw "install exit $($p.ExitCode)" }
+          # URL scheme: fixed command, never the URL (%1) — launch.vbs passes its arguments to cli.js.
+          $key = 'Registry::HKEY_CLASSES_ROOT\pixeloffice'
+          if ($null -eq (Get-ItemProperty $key).'URL Protocol') { throw 'pixeloffice: no URL Protocol value' }
+          $cmd = (Get-ItemProperty "$key\shell\open\command").'(default)'
+          "pixeloffice command: $cmd"
+          if ($cmd -ne "`"$env:windir\system32\wscript.exe`" `"$app\launch.vbs`"" -or $cmd -match '%') { throw 'wrong pixeloffice command' }
+          # The silent install started the office (launch.vbs): wait for it.
+          $up = $false
+          for ($i = 0; $i -lt 30 -and -not $up; $i++) {
+            Start-Sleep -Seconds 1
+            try { $up = (Invoke-WebRequest -UseBasicParsing http://127.0.0.1:47801/api/ping).StatusCode -eq 200 } catch {}
+          }
+          if (-not $up) { throw 'office did not start after the silent install' }
+          Get-Process | Where-Object { $_.Path -like "$app\*" } | Format-Table Id, Path
+          & "$app\unins000.exe" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART
+          # unins000.exe hands over to a temp copy and returns early: wait for the folder to go.
+          for ($i = 0; $i -lt 60 -and (Test-Path $app); $i++) { Start-Sleep -Seconds 1 }
+          if (Test-Path $app) { Get-ChildItem -Recurse $app | Select-Object FullName; throw "$app is still there" }
+          $left = Get-Process | Where-Object { $_.Path -like "$app\*" }
+          if ($left) { $left | Format-Table Id, Path; throw 'processes from the install folder still running' }
+          if (Test-Path $key) { throw 'pixeloffice URL scheme key left behind' }
+          if (Test-Path (Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Startup\Pixel Office.lnk')) { throw 'Startup shortcut left behind' }
+          # Silent uninstall never asks, so user data stays.
+          if (-not (Test-Path (Join-Path $env:USERPROFILE '.pixel-office'))) { throw 'silent uninstall deleted ~/.pixel-office' }
+          'uninstall: clean'
       - uses: actions/upload-artifact@v7
         with:
           name: PixelOffice-${{ env.VERSION }}-Windows.exe
@@ -186,6 +217,10 @@ jobs:
         run: |
           RES="build/mac/root/Applications/Pixel Office.app/Contents/Resources"
           plutil -lint "$RES/com.pixeloffice.agent.plist"
+          plutil -lint "$RES/../Info.plist"
+          SCHEME=$(plutil -extract CFBundleURLTypes.0.CFBundleURLSchemes.0 raw "$RES/../Info.plist")
+          echo "URL scheme: $SCHEME"
+          test "$SCHEME" = pixeloffice
           test -f "$RES/LICENSE.txt"
           "$RES/node" "$RES/app/cli.js" --port 47899 &
           sleep 5
