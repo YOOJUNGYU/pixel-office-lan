@@ -8,10 +8,17 @@ export interface AdapterSettings {
   soundEnabled: boolean;
   alwaysShowLabels: boolean;
   showAreas: boolean;
+  /** Silent app updates (Settings → 자동 업데이트). */
+  autoUpdate: boolean;
 }
 
 /** All keys in AdapterSettings. Used by FileStateAdapter to map `pixel-agents.foo` → `foo`. */
-export const ADAPTER_SETTING_KEYS = ['soundEnabled', 'alwaysShowLabels', 'showAreas'] as const;
+export const ADAPTER_SETTING_KEYS = [
+  'soundEnabled',
+  'alwaysShowLabels',
+  'showAreas',
+  'autoUpdate',
+] as const;
 
 export type AdapterSettingKey = (typeof ADAPTER_SETTING_KEYS)[number];
 
@@ -24,6 +31,7 @@ const DEFAULT_ADAPTER_SETTINGS: AdapterSettings = {
   soundEnabled: true,
   alwaysShowLabels: false,
   showAreas: false,
+  autoUpdate: true,
 };
 
 function getConfigFilePath(): string {
@@ -44,6 +52,8 @@ function parseAdapterSettings(raw: unknown): AdapterSettings {
         : DEFAULT_ADAPTER_SETTINGS.alwaysShowLabels,
     showAreas:
       typeof obj.showAreas === 'boolean' ? obj.showAreas : DEFAULT_ADAPTER_SETTINGS.showAreas,
+    autoUpdate:
+      typeof obj.autoUpdate === 'boolean' ? obj.autoUpdate : DEFAULT_ADAPTER_SETTINGS.autoUpdate,
   };
 }
 

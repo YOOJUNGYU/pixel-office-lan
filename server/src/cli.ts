@@ -27,7 +27,9 @@ import {
   QUIT_DELAY_MS,
   UDP_PORT_ENV,
   UDP_TARGETS_ENV,
+  UPDATE_RESTART_EXIT_CODE,
 } from './constants.js';
+import { bootUpdated, reportListening, respawnSelf, restartMode } from './lan/appBundle.js';
 import { openOffice } from './lan/appWindow.js';
 import { applyInstallerChoice, getAutostart, setAutostart } from './lan/autostart.js';
 import { checkExisting, LanService } from './lan/office.js';
@@ -35,7 +37,15 @@ import { PeerNet } from './lan/peerNet.js';
 import { KnownPeers, loadProfile } from './lan/profile.js';
 import { discoverRoots, Scanner } from './lan/scanner.js';
 import { startTray, trayCheck } from './lan/tray.js';
-import { APP_VERSION, consumeReopenMarker, Updater } from './lan/updater.js';
+import {
+  APP_VERSION,
+  checkForUpdate,
+  consumeReopenMarker,
+  downloadAndRun,
+  stageAppUpdate,
+  Updater,
+  writeReopenMarker,
+} from './lan/updater.js';
 import { PixelAgentsServer } from './server.js';
 
 // ── Argument parsing ──────────────────────────────────────────
@@ -108,7 +118,11 @@ Options:
 
 // ── Main ──────────────────────────────────────────────────────
 
-async function main(): Promise<void> {
+/**
+ * `boot` = this is the installed cli.js: first hand over to a newer silently
+ * updated version in ~/.pixel-office/app (bootUpdated), which runs main(false).
+ */
+export async function main(boot = true): Promise<void> {
   let args: CliArgs;
   try {
     args = parseArgs(process.argv.slice(2));
@@ -128,6 +142,8 @@ async function main(): Promise<void> {
     console.log(`[Pixel Office] tray helper: ${ok ? 'ready' : 'FAILED'}`);
     process.exit(ok ? 0 : 1);
   }
+
+  if (boot && bootUpdated(APP_VERSION)) return;
 
   // One office per PC: a second launch just (re)opens the browser.
   // Trailing '/': also the PWA manifest id, from which the installed app's id is derived.
@@ -186,11 +202,25 @@ async function main(): Promise<void> {
     );
   }
 
-  const updater = new Updater(APP_VERSION);
-
   let shuttingDown = false;
+  /** Quit and come back as the silently updated version (appBundle.restartMode). */
+  const restartIntoUpdate = (): boolean => {
+    const mode = restartMode();
+    if (mode === 'none') return false;
+    void shutdown(false, mode);
+    return true;
+  };
+  const updater = new Updater(APP_VERSION, {
+    check: (c) => checkForUpdate(c),
+    install: downloadAndRun,
+    markReopen: writeReopenMarker,
+    stage: (v, app) => stageAppUpdate(v, app),
+    restart: restartIntoUpdate,
+    autoUpdate: () => readConfig().standalone.autoUpdate,
+  });
+
   /** `quit` = the user quit the app (tray, Settings): open pages stop reconnecting. */
-  const shutdown = async (quit = false): Promise<void> => {
+  const shutdown = async (quit = false, restart?: 'launchd' | 'respawn'): Promise<void> => {
     if (shuttingDown) return;
     shuttingDown = true;
     console.log('\nShutting down...');
@@ -199,6 +229,10 @@ async function main(): Promise<void> {
     pins.flush();
     updater.stop();
     await server.stop(quit);
+    // An update restart: our ports are free now. launchd respawns a non-zero exit;
+    // elsewhere the installed cli.js is started again (it boots the new version).
+    if (restart === 'respawn') respawnSelf();
+    if (restart === 'launchd') process.exit(UPDATE_RESTART_EXIT_CODE);
     // Exit 0 = clean: the macOS LaunchAgent (KeepAlive SuccessfulExit=false) does not respawn.
     process.exit(0);
   };
@@ -257,6 +291,7 @@ async function main(): Promise<void> {
       updater,
       autostart: { get: () => getAutostart(), set: (on) => setAutostart(on) },
     });
+    reportListening();
     updater.start();
     // After an update: the marker (not --open) decides, so a window that was open
     // (it reloads itself into the new version) never gets a second one.

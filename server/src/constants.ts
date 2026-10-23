@@ -68,8 +68,9 @@ export const SNAPSHOT_INTERVAL_MS = 1_000;
 export const QUIT_DELAY_MS = 100;
 
 // ── Updates (GitHub Releases) ──────────────────────────────
-/** The only automatic update check, this long after the server listens (none after that). */
+/** First automatic update check, this long after the server listens; then every UPDATE_RECHECK_MS. */
 export const UPDATE_FIRST_CHECK_MS = 300;
+export const UPDATE_RECHECK_MS = 6 * 60 * 60_000;
 export const UPDATE_API_TIMEOUT_MS = 15_000;
 export const UPDATE_DOWNLOAD_TIMEOUT_MS = 10 * 60_000;
 /** After an installer launch, further installUpdate requests are ignored this long (UAC cancel can retry after). */
@@ -88,6 +89,27 @@ export const UDP_PORT_ENV = 'PIXEL_OFFICE_UDP_PORT';
 export const UDP_TARGETS_ENV = 'PIXEL_OFFICE_UDP_TARGETS';
 /** Opt in to prereleases (rc testing): `PIXEL_OFFICE_ALLOW_PRERELEASE=1`. */
 export const ALLOW_PRERELEASE_ENV = 'PIXEL_OFFICE_ALLOW_PRERELEASE';
+
+// ── Silent app updates (~/.pixel-office/app/<version>/ = a release's dist/) ──
+/** Tests only: releases API URL on 127.0.0.1/localhost; downloads then come from that origin. */
+export const UPDATE_API_ENV = 'PIXEL_OFFICE_UPDATE_API';
+/** Dev/tests: restart into a staged update on Linux too (default there: next start). */
+export const UPDATE_RESPAWN_ENV = 'PIXEL_OFFICE_UPDATE_RESPAWN';
+export const APP_DIR_NAME = 'app';
+/** In APP_DIR_NAME: `bad-<version>` = failed to start once, never booted again. */
+export const APP_BAD_PREFIX = 'bad-';
+/** Inside each bundle: {version, node} (node = the exact runtime it was built for). */
+export const APP_MANIFEST_NAME = 'app.json';
+/** Newest versions kept in APP_DIR_NAME (the running one is never removed). */
+export const APP_KEEP_VERSIONS = 2;
+export const APP_BUNDLE_MAX_BYTES = 100 * 1024 * 1024;
+export const APP_BUNDLE_MAX_UNPACKED_BYTES = 400 * 1024 * 1024;
+/** An updated bundle that is not listening this long after boot is marked bad. */
+export const APP_BOOT_TIMEOUT_MS = 60_000;
+/** Exit code of a restart into an update / a failed boot: non-zero so launchd's KeepAlive respawns us. */
+export const UPDATE_RESTART_EXIT_CODE = 75;
+/** launchd sets XPC_SERVICE_NAME to the job label in the jobs it starts. */
+export const MAC_AGENT_LABEL = 'com.pixeloffice.agent';
 
 // ── Start at login (lan/autostart.ts) ──────────────────────
 /** Installed Windows layout: `<install dir>\launch.vbs` next to node.exe. */

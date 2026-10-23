@@ -33,6 +33,9 @@ interface SettingsModalProps {
   onResetToDefaultLayout?: () => void;
   /** Start at login on this PC; hidden when null or unsupported (dev run, Linux). */
   autostart: AutostartState | null;
+  /** Silent app updates (Settings → 자동 업데이트). */
+  autoUpdate: boolean;
+  onToggleAutoUpdate: () => void;
   /** Team offices (this PC's browser only); the 오피스 section is hidden when null. */
   offices: Omit<OfficesState, 'type'> | null;
   officeReply: OfficeReply | null;
@@ -53,6 +56,8 @@ export function SettingsModal({
   onImportLayout,
   onResetToDefaultLayout,
   autostart,
+  autoUpdate,
+  onToggleAutoUpdate,
   offices,
   officeReply,
   onOfficeReplyHandled,
@@ -192,6 +197,11 @@ export function SettingsModal({
         />
       )}
       <div data-tour="settings-update">
+        <Checkbox
+          label={t('settings.autoUpdate')}
+          checked={autoUpdate}
+          onChange={onToggleAutoUpdate}
+        />
         <MenuItem
           onClick={() => {
             transport.send({ type: 'checkUpdate' });

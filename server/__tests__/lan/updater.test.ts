@@ -306,22 +306,6 @@ describe('Updater', () => {
     await u.install();
     expect(sent.at(-1)).toEqual({ type: 'updateStatus', state: 'error' });
   });
-
-  it('checks once right after start and never again on its own', async () => {
-    vi.useFakeTimers();
-    try {
-      const check = vi.fn(async () => null);
-      const u = new Updater('0.1.0', { check, install: async () => {} });
-      u.start();
-      await vi.advanceTimersByTimeAsync(1_000);
-      expect(check).toHaveBeenCalledTimes(1);
-      await vi.advanceTimersByTimeAsync(24 * 60 * 60_000);
-      expect(check).toHaveBeenCalledTimes(1);
-      u.stop();
-    } finally {
-      vi.useRealTimers();
-    }
-  });
 });
 
 describe('reopen marker (window after an update)', () => {

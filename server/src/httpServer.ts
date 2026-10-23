@@ -144,6 +144,7 @@ export async function createHttpServer(options: HttpServerOptions): Promise<Http
     status: 'ok',
     uptime: Math.floor((Date.now() - startTime) / 1000),
     pid: process.pid,
+    version: APP_VERSION,
   }));
 
   // Single-instance probe (cli.checkExisting probes 127.0.0.1).

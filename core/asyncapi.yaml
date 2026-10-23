@@ -115,6 +115,7 @@ components:
         - $ref: '#/components/schemas/SaveProfile'
         - $ref: '#/components/schemas/InstallUpdate'
         - $ref: '#/components/schemas/CheckUpdate'
+        - $ref: '#/components/schemas/SetAutoUpdate'
         - $ref: '#/components/schemas/SetAutostart'
         - $ref: '#/components/schemas/QuitApp'
         - $ref: '#/components/schemas/CreateOffice'
@@ -329,6 +330,7 @@ components:
         - alwaysShowLabels
         - externalAssetDirectories
         - showAreas
+        - autoUpdate
       properties:
         type:
           const: settingsLoaded
@@ -342,6 +344,9 @@ components:
             type: string
         showAreas:
           type: boolean
+        autoUpdate:
+          type: boolean
+          description: Silent app updates on (Settings → 자동 업데이트; default true).
 
     ExternalAssetDirectoriesUpdated:
       description: External asset directory list changed (after add/remove).
@@ -533,7 +538,8 @@ components:
     UpdateStatus:
       description: >-
         Progress of installUpdate / result of checkUpdate (loopback browsers
-        only). `installing` = the installer was launched.
+        only). A silent app update sends nothing: the server restarts and the
+        page reloads into the new version. `installing` = the installer was launched.
       type: object
       additionalProperties: false
       required: [type, state]
@@ -966,6 +972,19 @@ components:
       properties:
         type:
           const: checkUpdate
+
+    SetAutoUpdate:
+      description: >-
+        Turn silent app updates on or off (loopback browser only; config.json,
+        re-sent in settingsLoaded). Off = the banner + installer only.
+      type: object
+      additionalProperties: false
+      required: [type, enabled]
+      properties:
+        type:
+          const: setAutoUpdate
+        enabled:
+          type: boolean
 
     SetAutostart:
       description: >-

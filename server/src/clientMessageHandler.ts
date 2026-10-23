@@ -71,6 +71,7 @@ export interface ClientMessageContext {
 const KEY_SOUND_ENABLED = 'pixel-agents.soundEnabled';
 const KEY_ALWAYS_SHOW_LABELS = 'pixel-agents.alwaysShowLabels';
 const KEY_SHOW_AREAS = 'pixel-agents.showAreas';
+const KEY_AUTO_UPDATE = 'pixel-agents.autoUpdate';
 
 /**
  * Handle an incoming ClientMessage from a WebSocket client. The server is the
@@ -117,6 +118,10 @@ export function handleClientMessage(
 
     case 'setShowAreas':
       adapter.setSetting(KEY_SHOW_AREAS, msg.enabled as boolean);
+      break;
+
+    case 'setAutoUpdate':
+      if (typeof msg.enabled === 'boolean') adapter.setSetting(KEY_AUTO_UPDATE, msg.enabled);
       break;
 
     case 'addExternalAssetDirectory': {
@@ -381,6 +386,7 @@ function settingsSnapshot(ctx: ClientMessageContext) {
     alwaysShowLabels: adapter.getSetting(KEY_ALWAYS_SHOW_LABELS, false),
     externalAssetDirectories: externalAssetDirectoriesFor(ctx),
     showAreas: adapter.getSetting(KEY_SHOW_AREAS, false),
+    autoUpdate: adapter.getSetting(KEY_AUTO_UPDATE, true),
   } as const;
 }
 
@@ -402,6 +408,7 @@ const KNOWN_CLIENT_TYPES: ReadonlySet<string> = new Set<ClientMessage['type']>([
   'saveProfile',
   'installUpdate',
   'checkUpdate',
+  'setAutoUpdate',
   'setAutostart',
   'quitApp',
   'createOffice',

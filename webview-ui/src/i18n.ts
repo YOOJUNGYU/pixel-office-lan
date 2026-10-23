@@ -138,6 +138,10 @@ const ko = {
   'update.retry': '다시 시도',
   'update.upToDate': '최신 버전입니다.',
 
+  // Silent app updates
+  'update.updated': 'v{v} 로 업데이트됨',
+  'settings.autoUpdate': '자동 업데이트',
+
   'install.title': 'Pixel Office 를 앱으로 설치하세요',
   'install.body': 'Windows 에서는 바로가기가 탭이 아닌 앱 창으로 엽니다.',
   'install.install': '설치',
@@ -459,6 +463,10 @@ const en: Record<Key, string> = {
   'update.error': 'The update failed.',
   'update.retry': 'Retry',
   'update.upToDate': 'You are up to date.',
+
+  // Silent app updates
+  'update.updated': 'Updated to v{v}',
+  'settings.autoUpdate': 'Automatic updates',
 
   'install.title': 'Install Pixel Office as an app',
   'install.body': 'On Windows, shortcuts then open it in its own app window instead of a tab.',

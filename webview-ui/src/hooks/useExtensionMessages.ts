@@ -103,6 +103,9 @@ interface ExtensionMessageState {
   setUpdateStatus: (s: UpdateStatus | null) => void;
   /** Start at login on this PC (this PC's browser only); null until reported. */
   autostart: AutostartState | null;
+  /** Settings → 자동 업데이트 (silent app updates; settingsLoaded). */
+  autoUpdate: boolean;
+  setAutoUpdate: (v: boolean) => void;
   /** Team offices + active view (this PC's browser only); null for read-only viewers. */
   offices: Omit<OfficesState, 'type'> | null;
   /** Join/leave notices of the public office, oldest first (each hides after PRESENCE_TOAST_MS). */
@@ -142,6 +145,7 @@ export function useExtensionMessages(
   const [update, setUpdate] = useState<UpdateAvailable | null>(null);
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
   const [autostart, setAutostart] = useState<AutostartState | null>(null);
+  const [autoUpdate, setAutoUpdate] = useState(true);
   const [offices, setOffices] = useState<Omit<OfficesState, 'type'> | null>(null);
   const [presenceToasts, setPresenceToasts] = useState<PresenceToast[]>([]);
   const presenceRef = useRef<PresenceWatcher | null>(null);
@@ -289,6 +293,7 @@ export function useExtensionMessages(
         if (typeof msg.showAreas === 'boolean') {
           setShowAreas(msg.showAreas as boolean);
         }
+        if (typeof msg.autoUpdate === 'boolean') setAutoUpdate(msg.autoUpdate as boolean);
         if (Array.isArray(msg.externalAssetDirectories)) {
           setExternalAssetDirectories(msg.externalAssetDirectories as string[]);
         }
@@ -347,6 +352,8 @@ export function useExtensionMessages(
     updateStatus,
     setUpdateStatus,
     autostart,
+    autoUpdate,
+    setAutoUpdate,
     offices,
     officeReply,
     clearOfficeReply,
