@@ -5,8 +5,15 @@ import * as path from 'path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as zlib from 'zlib';
 
-import { UPDATE_FIRST_CHECK_MS, UPDATE_RECHECK_MS } from '../../src/constants.js';
 import {
+  APP_RENAME_TRIES,
+  UPDATE_FIRST_CHECK_MS,
+  UPDATE_RECHECK_MS,
+  UPDATE_STAGE_BACKOFF_MS,
+} from '../../src/constants.js';
+import {
+  addStrike,
+  bootUpdated,
   extractTgz,
   isBad,
   markBad,
@@ -21,6 +28,7 @@ import {
   checkForUpdate,
   pickAppAsset,
   pickAsset,
+  renameWithRetry,
   stageAppUpdate,
   Updater,
 } from '../../src/lan/updater.js';
@@ -89,6 +97,60 @@ describe('pickVersion / prune / bad', () => {
     pruneVersions(root, '1.0.4');
     expect(fs.readdirSync(root)).toEqual([]);
   });
+});
+
+describe('strikes / bootUpdated', () => {
+  it('prereleases are booted only with the opt-in', () => {
+    const root = tmp();
+    bundleDir(root, '1.1.0-rc1');
+    expect(pickVersion(root, '1.0.0', NODE)).toBeNull();
+    expect(pickVersion(root, '1.0.0', NODE, true)).toBe('1.1.0-rc1');
+  });
+
+  it('the second strike in a row marks a version bad; an unwritable root records nothing', () => {
+    const root = tmp();
+    expect(addStrike(root, '1.0.2')).toBe(1);
+    expect(isBad(root, '1.0.2')).toBe(false);
+    expect(addStrike(root, '1.0.2')).toBe(2);
+    expect(isBad(root, '1.0.2')).toBe(true);
+    expect(addStrike(path.join(root, 'missing', 'dir'), '1.0.2')).toBeNull();
+  });
+
+  it('a throw while loading: installed now, strike 1; again → bad', () => {
+    const root = tmp();
+    bundleDir(root, '1.0.2');
+    fs.writeFileSync(path.join(root, '1.0.2', 'cli.js'), "throw new Error('boom');");
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    try {
+      expect(bootUpdated('1.0.1', root)).toBe(false);
+      expect(isBad(root, '1.0.2')).toBe(false);
+      expect(bootUpdated('1.0.1', root)).toBe(false);
+      expect(isBad(root, '1.0.2')).toBe(true);
+      expect(pickVersion(root, '1.0.1', NODE)).toBeNull();
+      expect(err).toHaveBeenCalled();
+    } finally {
+      vi.restoreAllMocks();
+    }
+  });
+
+  it.skipIf(process.platform === 'win32' || process.getuid?.() === 0)(
+    'a read-only app dir: no update is booted (a failure could not be recorded)',
+    () => {
+      const root = tmp();
+      bundleDir(root, '1.0.2');
+      fs.writeFileSync(path.join(root, '1.0.2', 'cli.js'), 'globalThis.loadedRO = true;');
+      fs.chmodSync(root, 0o555);
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      try {
+        expect(bootUpdated('1.0.1', root)).toBe(false);
+        expect((globalThis as { loadedRO?: boolean }).loadedRO).toBeUndefined();
+      } finally {
+        fs.chmodSync(root, 0o755);
+        vi.restoreAllMocks();
+      }
+    },
+  );
 });
 
 describe('readTar / extractTgz', () => {
@@ -292,6 +354,44 @@ describe('Updater silent path', () => {
     const { u, sent } = make({ stageFails: true });
     await u.check();
     expect(sent[0]?.type).toBe('updateAvailable');
+  });
+
+  it('a manual check while staging is handled (no banner)', async () => {
+    let release!: () => void;
+    const { u, stage, sent } = make();
+    stage.mockImplementationOnce(() => new Promise<void>((r) => (release = r)));
+    const first = u.check();
+    await u.check(true);
+    expect(sent).toEqual([]);
+    release();
+    await first;
+    expect(stage).toHaveBeenCalledTimes(1);
+  });
+
+  it('a failed stage is not retried for 24 h (banner meanwhile)', async () => {
+    vi.useFakeTimers();
+    const { u, stage, sent } = make({ stageFails: true });
+    await u.check();
+    await u.check();
+    expect(stage).toHaveBeenCalledTimes(1);
+    expect(sent.map((m) => m.type)).toEqual(['updateAvailable', 'updateAvailable']);
+    vi.setSystemTime(Date.now() + UPDATE_STAGE_BACKOFF_MS + 1);
+    await u.check();
+    expect(stage).toHaveBeenCalledTimes(2);
+  });
+
+  it('renameWithRetry retries a held rename, then gives up', async () => {
+    let n = 0;
+    const flaky = () => {
+      if (++n < 3) throw new Error('EBUSY');
+    };
+    await renameWithRetry('a', 'b', flaky, 0);
+    expect(n).toBe(3);
+    const always = vi.fn(() => {
+      throw new Error('EPERM');
+    });
+    await expect(renameWithRetry('a', 'b', always, 0)).rejects.toThrow('EPERM');
+    expect(always).toHaveBeenCalledTimes(APP_RENAME_TRIES);
   });
 
   it('no restart possible (Linux): staged once, not downloaded again', async () => {

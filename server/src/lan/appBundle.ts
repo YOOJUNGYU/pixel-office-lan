@@ -9,12 +9,16 @@ import * as path from 'path';
 import * as zlib from 'zlib';
 
 import {
+  ALLOW_PRERELEASE_ENV,
   APP_BAD_PREFIX,
   APP_BOOT_TIMEOUT_MS,
   APP_BUNDLE_MAX_UNPACKED_BYTES,
   APP_DIR_NAME,
+  APP_HEALTHY_MS,
   APP_KEEP_VERSIONS,
   APP_MANIFEST_NAME,
+  APP_MAX_STRIKES,
+  APP_STRIKES_PREFIX,
   LAYOUT_FILE_DIR,
   MAC_AGENT_LABEL,
   UPDATE_RESPAWN_ENV,
@@ -82,11 +86,16 @@ function versionDirs(root: string): string[] {
 }
 
 /** The version to boot: newest valid, not bad, newer than the installed one; else null. */
-export function pickVersion(root: string, installed: string, nodeVersion: string): string | null {
+export function pickVersion(
+  root: string,
+  installed: string,
+  nodeVersion: string,
+  allowPrerelease = false,
+): string | null {
   return (
     versionDirs(root).find(
       (v) =>
-        isNewer(v, installed, true) &&
+        isNewer(v, installed, allowPrerelease) &&
         !isBad(root, v) &&
         isValidBundle(path.join(root, v), v, nodeVersion),
     ) ?? null
@@ -204,13 +213,46 @@ export function reportListening(): void {
 }
 
 /**
- * Called first by the installed cli.js: run the newest staged version in this
- * process instead (its main), true = it took over. A throw while loading it
- * falls back here at once; a non-zero exit or no "listening" within
- * APP_BOOT_TIMEOUT_MS marks it bad and restarts into the installed version.
+ * One strike against `version` (a failure the bundle itself caused); the
+ * APP_MAX_STRIKES-th marks it bad. Returns the new count, or null when it could
+ * not be recorded (then a restart could loop on the same version).
  */
-export function bootUpdated(installed: string, root = appRoot()): boolean {
-  const v = pickVersion(root, installed, process.version);
+export function addStrike(root: string, version: string): number | null {
+  const file = path.join(root, APP_STRIKES_PREFIX + version);
+  let n = 1;
+  try {
+    n = (Number(fs.readFileSync(file, 'utf-8')) || 0) + 1;
+  } catch {
+    /* none yet */
+  }
+  try {
+    fs.writeFileSync(file, String(n));
+    if (n >= APP_MAX_STRIKES) {
+      fs.writeFileSync(path.join(root, APP_BAD_PREFIX + version), new Date().toISOString());
+    }
+    return n;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Called first by the installed cli.js: run the newest staged version in this
+ * process instead (its main), true = it took over. Strikes (APP_MAX_STRIKES in a
+ * row → bad, never booted again) only for what the bundle itself causes: a throw
+ * while loading (→ the installed main continues here), an uncaught exception
+ * before it has run APP_HEALTHY_MS after listening, or no listen within
+ * APP_BOOT_TIMEOUT_MS — those restart (respawn / launchd). A clean or explicit
+ * exit (already running, port busy, EACCES bind…) is the environment: no strike.
+ * A version that runs APP_HEALTHY_MS has its strikes cleared. When the strike
+ * file can't be written, no update is booted at all (a failure could loop).
+ */
+export function bootUpdated(
+  installed: string,
+  root = appRoot(),
+  allowPrerelease = process.env[ALLOW_PRERELEASE_ENV] === '1',
+): boolean {
+  const v = pickVersion(root, installed, process.version, allowPrerelease);
   if (!v) {
     try {
       pruneVersions(root, installed);
@@ -219,25 +261,44 @@ export function bootUpdated(installed: string, root = appRoot()): boolean {
     }
     return false;
   }
+  const strikesFile = path.join(root, APP_STRIKES_PREFIX + v);
+  try {
+    fs.appendFileSync(strikesFile, ''); // writable? (creates an empty = 0 strikes)
+  } catch (err) {
+    console.error(`[Pixel Office] ${root} 에 쓸 수 없어 설치된 버전으로 시작합니다:`, err);
+    return false;
+  }
   console.log(`[Pixel Office] 업데이트된 버전 v${v} 로 시작합니다 (설치본 v${installed})`);
   const g = globalThis as BootHook;
-  let up = false;
-  const timer = setTimeout(() => {
-    console.error(`[Pixel Office] v${v} 가 시간 안에 시작하지 않았습니다`);
-    process.exit(UPDATE_RESTART_EXIT_CODE);
-  }, APP_BOOT_TIMEOUT_MS);
-  const onExit = (code: number): void => {
-    if (up || code === 0) return; // 0 = already running / port busy: not the bundle's fault
-    markBad(root, v);
+  let healthy = false;
+  /** A strike recorded in this process: restart on exit (respawn; launchd does it itself). */
+  let struck = false;
+  const strike = (why: string): boolean => {
+    const n = addStrike(root, v);
     console.error(
-      `[Pixel Office] v${v} 시작 실패 (exit ${code.toString()}): 이전 버전으로 돌아갑니다`,
+      `[Pixel Office] v${v} 실패 (${why}) — ${n === null ? '기록 못 함' : `${n.toString()}/${APP_MAX_STRIKES.toString()}`}`,
     );
-    if (restartMode() === 'respawn') respawnSelf(); // launchd respawns a non-zero exit itself
+    struck = n !== null;
+    return struck;
+  };
+  const timer = setTimeout(() => {
+    // Not recorded → exit 0: launchd must not respawn into the same hang forever.
+    process.exit(strike('시간 안에 시작하지 않음') ? UPDATE_RESTART_EXIT_CODE : 0);
+  }, APP_BOOT_TIMEOUT_MS);
+  const onCrash = (err: unknown): void => {
+    if (!healthy) strike(`오류: ${err instanceof Error ? err.message : String(err)}`);
+  };
+  const onExit = (code: number): void => {
+    if (struck && code !== 0 && restartMode() === 'respawn') respawnSelf();
   };
   g.pixelOfficeListening = () => {
-    up = true;
     clearTimeout(timer);
+    setTimeout(() => {
+      healthy = true;
+      fs.rmSync(strikesFile, { force: true });
+    }, APP_HEALTHY_MS).unref();
   };
+  process.on('uncaughtExceptionMonitor', onCrash);
   process.on('exit', onExit);
   try {
     const mod = require(path.join(root, v, 'cli.js')) as { main?: unknown };
@@ -245,14 +306,16 @@ export function bootUpdated(installed: string, root = appRoot()): boolean {
     // false = no bootstrap of its own (it is the booted version)
     void (mod.main as (boot: boolean) => Promise<void>)(false).catch((err: unknown) => {
       console.error(err);
+      onCrash(err);
       process.exit(1);
     });
     return true;
   } catch (err) {
     clearTimeout(timer);
+    process.off('uncaughtExceptionMonitor', onCrash);
     process.off('exit', onExit);
     delete g.pixelOfficeListening;
-    markBad(root, v);
+    addStrike(root, v);
     console.error(`[Pixel Office] v${v} 를 불러오지 못해 설치된 버전으로 시작합니다:`, err);
     return false;
   }

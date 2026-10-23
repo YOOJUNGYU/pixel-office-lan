@@ -52,7 +52,11 @@ async function until<T>(f: () => Promise<T | null | false>, what: string): Promi
 }
 
 let nextPort = 47950;
-function startCli(home: string): { port: number; out: () => string } {
+function startCli(home: string): {
+  port: number;
+  out: () => string;
+  exited: () => number | null;
+} {
   const port = nextPort++;
   let out = '';
   const child = spawn(process.execPath, [CLI, '--port', port.toString()], {
@@ -72,7 +76,7 @@ function startCli(home: string): { port: number; out: () => string } {
   pids.push(child.pid!);
   child.stdout.on('data', (d: Buffer) => (out += d.toString()));
   child.stderr.on('data', (d: Buffer) => (out += d.toString()));
-  return { port, out: () => out };
+  return { port, out: () => out, exited: () => child.exitCode };
 }
 
 const appDir = (home: string) => path.join(home, '.pixel-office', 'app');
@@ -173,23 +177,61 @@ describe('silent app update (bundled CLI)', { timeout: 90_000 }, () => {
     fs.writeFileSync(path.join(dir, 'cli.js'), code);
   }
 
-  it('a bundle that throws while loading is marked bad; the installed one starts', async () => {
+  const strikes = (home: string) => {
+    try {
+      return fs.readFileSync(path.join(appDir(home), 'strikes-1.0.98'), 'utf-8');
+    } catch {
+      return null;
+    }
+  };
+  const bad = (home: string) => fs.existsSync(path.join(appDir(home), 'bad-1.0.98'));
+
+  it('a throw while loading is one strike (installed starts now); the second marks it bad', async () => {
     release = null;
     const home = fs.mkdtempSync(path.join(work, 'home-'));
     plant(home, '1.0.98', "throw new Error('boom');");
-    const { port } = startCli(home);
-    expect((await until(() => health(port), 'start')).version).toBe(INSTALLED);
-    expect(fs.existsSync(path.join(appDir(home), 'bad-1.0.98'))).toBe(true);
+    const a = startCli(home);
+    expect((await until(() => health(a.port), 'start')).version).toBe(INSTALLED);
+    expect([strikes(home), bad(home)]).toEqual(['1', false]);
+    process.kill((await health(a.port))!.pid, 'SIGKILL');
+    await until(async () => !(await health(a.port)), 'first stopped');
+    const b = startCli(home);
+    expect((await until(() => health(b.port), 'start 2')).version).toBe(INSTALLED);
+    expect(bad(home)).toBe(true);
   });
 
-  it('a bundle that exits before listening is marked bad and restarted out of', async () => {
+  it('a crash before listening restarts it; two strikes → bad → the installed version', async () => {
     release = null;
     const home = fs.mkdtempSync(path.join(work, 'home-'));
-    plant(home, '1.0.98', 'exports.main = async () => { process.exit(3); };');
+    plant(home, '1.0.98', "exports.main = async () => { throw new Error('boom'); };");
     const { port } = startCli(home);
     const h = await until(() => health(port), 'respawned installed version');
     pids.push(h.pid);
     expect(h.version).toBe(INSTALLED);
-    expect(fs.existsSync(path.join(appDir(home), 'bad-1.0.98'))).toBe(true);
+    expect(bad(home)).toBe(true);
+  });
+
+  it('a crash AFTER listening (before proving healthy) is rolled back too', async () => {
+    release = null;
+    const home = fs.mkdtempSync(path.join(work, 'home-'));
+    plant(
+      home,
+      '1.0.98',
+      "exports.main = async () => { globalThis.pixelOfficeListening(); setTimeout(() => { throw new Error('late'); }, 200); setInterval(() => {}, 1000); };",
+    );
+    const { port } = startCli(home);
+    const h = await until(() => health(port), 'respawned installed version');
+    pids.push(h.pid);
+    expect(h.version).toBe(INSTALLED);
+    expect(bad(home)).toBe(true);
+  });
+
+  it('an explicit exit (environment: EACCES, …) is no strike', async () => {
+    release = null;
+    const home = fs.mkdtempSync(path.join(work, 'home-'));
+    plant(home, '1.0.98', 'exports.main = async () => { process.exit(1); };');
+    const c = startCli(home);
+    expect(await until(async () => c.exited(), 'exit')).toBe(1);
+    expect([strikes(home), bad(home)]).toEqual(['', false]);
   });
 });

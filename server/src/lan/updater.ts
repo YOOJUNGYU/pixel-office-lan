@@ -8,6 +8,8 @@ import * as path from 'path';
 import {
   ALLOW_PRERELEASE_ENV,
   APP_BUNDLE_MAX_BYTES,
+  APP_RENAME_RETRY_MS,
+  APP_RENAME_TRIES,
   INSTALL_RELAUNCH_GUARD_MS,
   LAYOUT_FILE_DIR,
   REOPEN_MARKER_NAME,
@@ -17,6 +19,7 @@ import {
   UPDATE_DOWNLOAD_TIMEOUT_MS,
   UPDATE_FIRST_CHECK_MS,
   UPDATE_RECHECK_MS,
+  UPDATE_STAGE_BACKOFF_MS,
   UPDATES_DIR_NAME,
 } from '../constants.js';
 import { appRoot, extractTgz, isBad, isNewer, isValidBundle, pruneVersions } from './appBundle.js';
@@ -311,6 +314,24 @@ async function expectedSha256(app: AppAsset, fetchFn: typeof fetch): Promise<str
   return hex;
 }
 
+/** Windows: an AV scan may briefly hold a handle on the fresh files — retry a few times. */
+export async function renameWithRetry(
+  from: string,
+  to: string,
+  rename: (a: string, b: string) => void = fs.renameSync,
+  delayMs = APP_RENAME_RETRY_MS,
+): Promise<void> {
+  for (let i = 1; ; i++) {
+    try {
+      rename(from, to);
+      return;
+    } catch (err) {
+      if (i >= APP_RENAME_TRIES) throw err;
+      await new Promise((r) => setTimeout(r, delayMs));
+    }
+  }
+}
+
 /**
  * Silent update: download the app bundle, check its size and SHA-256, unpack it
  * into `<root>/.<ver>.partial` (paths checked), require its manifest = this version
@@ -340,7 +361,7 @@ export async function stageAppUpdate(
       throw new Error('bundle manifest does not match this version / Node');
     }
     fs.rmSync(dest, { recursive: true, force: true });
-    fs.renameSync(tmp, dest);
+    await renameWithRetry(tmp, dest);
   } catch (err) {
     fs.rmSync(tmp, { recursive: true, force: true });
     throw err;
@@ -407,6 +428,8 @@ export class Updater {
   private timer: NodeJS.Timeout | null = null;
   private recheck: NodeJS.Timeout | null = null;
   private staging = false;
+  /** Version whose stage failed → not retried (silently) until `until`. */
+  private failed: { version: string; until: number } | null = null;
   /** Staged but not restarted into (Linux/dev): not downloaded again. */
   private staged: string | null = null;
 
@@ -502,8 +525,10 @@ export class Updater {
    */
   private async trySilent(info: UpdateInfo): Promise<boolean> {
     const { stage, restart, autoUpdate } = this.deps;
-    if (!info.app || !stage || this.staging || autoUpdate?.() === false) return false;
-    if (this.staged === info.version) return true;
+    if (!info.app || !stage || autoUpdate?.() === false) return false;
+    // Busy or done: handled (a manual check meanwhile must not raise the banner too).
+    if (this.staging || this.staged === info.version) return true;
+    if (this.failed?.version === info.version && Date.now() < this.failed.until) return false;
     this.staging = true;
     try {
       await stage(info.version, info.app);
@@ -513,6 +538,7 @@ export class Updater {
       return true;
     } catch (err) {
       console.error('[Pixel Office] 자동 업데이트 실패:', err);
+      this.failed = { version: info.version, until: Date.now() + UPDATE_STAGE_BACKOFF_MS };
       return false;
     } finally {
       this.staging = false;

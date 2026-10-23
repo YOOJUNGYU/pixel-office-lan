@@ -104,8 +104,19 @@ export const APP_MANIFEST_NAME = 'app.json';
 export const APP_KEEP_VERSIONS = 2;
 export const APP_BUNDLE_MAX_BYTES = 100 * 1024 * 1024;
 export const APP_BUNDLE_MAX_UNPACKED_BYTES = 400 * 1024 * 1024;
-/** An updated bundle that is not listening this long after boot is marked bad. */
-export const APP_BOOT_TIMEOUT_MS = 60_000;
+/** An updated bundle not listening this long after boot gets a strike (generous: AV scans at login). */
+export const APP_BOOT_TIMEOUT_MS = 180_000;
+/** In APP_DIR_NAME: `strikes-<version>` = failures the bundle itself caused since it last proved healthy. */
+export const APP_STRIKES_PREFIX = 'strikes-';
+/** This many strikes in a row → `bad-<version>`. */
+export const APP_MAX_STRIKES = 2;
+/** Running this long after listening without a crash proves a version healthy (strikes cleared). */
+export const APP_HEALTHY_MS = 3 * 60_000;
+/** A failed stage (download, checksum, rename…) of a version is not retried for this long. */
+export const UPDATE_STAGE_BACKOFF_MS = 24 * 60 * 60_000;
+/** Renaming the unpacked bundle into place: tries (Windows AV may hold a handle) and the delay between. */
+export const APP_RENAME_TRIES = 5;
+export const APP_RENAME_RETRY_MS = 500;
 /** Exit code of a restart into an update / a failed boot: non-zero so launchd's KeepAlive respawns us. */
 export const UPDATE_RESTART_EXIT_CODE = 75;
 /** launchd sets XPC_SERVICE_NAME to the job label in the jobs it starts. */
