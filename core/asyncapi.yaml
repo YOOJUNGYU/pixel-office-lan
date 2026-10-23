@@ -121,6 +121,7 @@ components:
         - $ref: '#/components/schemas/LeaveOffice'
         - $ref: '#/components/schemas/SetActiveView'
         - $ref: '#/components/schemas/GetOfficeCode'
+        - $ref: '#/components/schemas/SendChat'
       discriminator: type
 
     # ── Server message variants ────────────────────────────────────
@@ -596,6 +597,30 @@ components:
         self:
           type: boolean
           description: This server's own PC.
+        chat:
+          $ref: '#/components/schemas/ChatMessage'
+
+    ChatMessage:
+      description: >-
+        This PC's active chat line, pinned to a map spot (world tile
+        coordinates, clamped to 0..127). Sanitised by the server; `left` = ms
+        it is still shown (each (sender, id) is shown once, 10 s from first
+        receipt). Never stored.
+      type: object
+      additionalProperties: false
+      required: [id, text, col, row, left]
+      properties:
+        id:
+          type: string
+        text:
+          type: string
+        col:
+          type: number
+        row:
+          type: number
+        left:
+          type: integer
+          minimum: 0
 
     ProfileLoaded:
       description: >-
@@ -1021,3 +1046,22 @@ components:
           const: getOfficeCode
         tag:
           type: string
+
+    SendChat:
+      description: >-
+        Say something at a map spot (loopback browser only): shown above that
+        tile for 10 s to everyone in the active office view. Text is
+        sanitised and capped at 100 code points; one message per 2 s. Not
+        stored anywhere.
+      type: object
+      additionalProperties: false
+      required: [type, text, col, row]
+      properties:
+        type:
+          const: sendChat
+        text:
+          type: string
+        col:
+          type: number
+        row:
+          type: number

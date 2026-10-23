@@ -47,7 +47,8 @@ export type ClientMessage =
   | JoinOffice
   | LeaveOffice
   | SetActiveView
-  | GetOfficeCode;
+  | GetOfficeCode
+  | SendChat;
 
 export interface LayoutLoaded {
   type: 'layoutLoaded';
@@ -217,6 +218,15 @@ export interface OfficePersonMessage {
   hueShift: number;
   pet?: PetId;
   self: boolean;
+  chat?: ChatMessage;
+}
+
+export interface ChatMessage {
+  id: string;
+  text: string;
+  col: number;
+  row: number;
+  left: number;
 }
 
 export interface ProfileLoaded {
@@ -370,4 +380,11 @@ export interface SetActiveView {
 export interface GetOfficeCode {
   type: 'getOfficeCode';
   tag: string;
+}
+
+export interface SendChat {
+  type: 'sendChat';
+  text: string;
+  col: number;
+  row: number;
 }

@@ -360,6 +360,27 @@ export const LAN_TAG_FONT = '13px Pretendard';
 export const LAN_TAG_BADGE_FONT = 'bold 11px Pretendard';
 export const LAN_PERMISSION_Z_INDEX = 41;
 export const LAN_BUBBLE_Z_INDEX = 42;
+// ── Chat bubbles ("/" at the pointer) ───────────────────────
+/** Text column of a chat bubble wraps at this width (CSS px). */
+export const CHAT_TEXT_MAX_PX = 200;
+export const CHAT_FONT = '13px Pretendard';
+export const CHAT_LABEL_FONT = 'bold 11px Pretendard';
+/** Line boxes (CSS px), set explicitly so the height estimate used for stacking holds. */
+export const CHAT_LINE_PX = 17;
+export const CHAT_LABEL_LINE_PX = 13;
+export const CHAT_PAD_X_PX = 8;
+export const CHAT_PAD_Y_PX = 4;
+export const CHAT_BORDER_PX = 2;
+/** Gap between the bubble and the spot it points at (the tail), and between stacked bubbles. */
+export const CHAT_TAIL_PX = 8;
+export const CHAT_STACK_GAP_PX = 4;
+/** The anchor dot on the chosen spot (CSS px). */
+export const CHAT_DOT_PX = 4;
+export const CHAT_INPUT_WIDTH_PX = 240;
+/** Bubbles with the "!" sprites; the input above everything but the top-right stack's modals. */
+export const CHAT_Z_INDEX = 41;
+export const CHAT_INPUT_Z_INDEX = 44;
+
 /** Room name plate (DOM badge) inset from the room's top-left tile corner, CSS px. */
 export const ROOM_PLATE_INSET_PX = 4;
 /** Room plates: above the canvas, below the top-left/top-right chrome (z-10) and the tags. */

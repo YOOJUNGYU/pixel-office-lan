@@ -157,7 +157,7 @@ async function main(): Promise<void> {
     port: udpPort,
     ...(udpTargets?.length && { targets: () => udpTargets }),
     identity: { id: lan.profile.peerId, ...lan.profile.identity },
-    getPacket: () => lan.packet(),
+    getPacket: (channel) => lan.packet(channel),
     manualPeers: () => lan.profile.manualPeers,
     offices: () => lan.teamChannels(),
     pins,

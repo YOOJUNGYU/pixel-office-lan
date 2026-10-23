@@ -47,7 +47,9 @@ export type Capability =
   | 'profile'
   | 'offices'
   /** A subagent or shell is on the map (real, or the demos). */
-  | 'family';
+  | 'family'
+  /** Chat can be sent ("/" + a pointer: desktop, not read-only). */
+  | 'chat';
 
 export interface Step {
   id: StepId;
@@ -71,6 +73,7 @@ export type StepId =
   | 'map'
   | 'switcher'
   | 'people'
+  | 'chat'
   | 'settingsButton'
   | 'language'
   | 'profile'
@@ -112,6 +115,8 @@ export const STEPS: Step[] = [
   },
   { id: 'switcher', targets: [{ dom: 'switcher' }], requires: ['switcher'] },
   { id: 'people', targets: [{ dom: 'people' }], scene: { people: true } },
+  // "/" opens the chat box at the pointer: nothing to point at, a centred explanation.
+  { id: 'chat', targets: [], requires: ['chat'] },
   { id: 'settingsButton', targets: [{ dom: 'settings-button' }] },
   {
     id: 'language',

@@ -186,7 +186,8 @@ export class PeerNet {
     private readonly opts: {
       port: number;
       identity: Identity;
-      getPacket: () => PeerPacket;
+      /** This PC's presence for one channel (PUBLIC_VIEW or a team tag). */
+      getPacket: (channel: string) => PeerPacket;
       manualPeers: () => string[];
       offices: () => TeamChannel[];
       /** TOFU: first public key seen per peer id. */
@@ -230,7 +231,6 @@ export class PeerNet {
     this.prune();
     const { identity } = this.opts;
     const offices = this.opts.offices();
-    const packet = this.opts.getPacket();
     const broadcast = this.opts.targets?.() ?? [
       ...broadcastAddresses(),
       ...this.opts.manualPeers(),
@@ -239,7 +239,7 @@ export class PeerNet {
       for (const o of offices) {
         const inner: Inner = {
           seq: ++this.seq,
-          packet,
+          packet: this.opts.getPacket(o.tag),
           ...(o.name && { office: { name: o.name } }),
         };
         const around = envelope({ v: 2, t: 'team', tag: o.tag });
@@ -253,7 +253,7 @@ export class PeerNet {
     const hello: Wire = { v: 2, t: 'hello', id: identity.id, pk: identity.publicKey };
     for (const t of broadcast) this.send(sock, hello, t);
     // One presence (one seq, deflated once) sealed per peer; sized for the longest peer id.
-    const inner: Inner = { seq: ++this.seq, packet };
+    const inner: Inner = { seq: ++this.seq, packet: this.opts.getPacket(PUBLIC_VIEW) };
     const longest = { v: 2, t: 'pub', from: identity.id, to: 'x'.repeat(WIRE_MAX_ID) };
     const plains = this.hellos.size ? presencePlains(inner, identity.id, envelope(longest)) : [];
     for (const [id, h] of this.hellos) {

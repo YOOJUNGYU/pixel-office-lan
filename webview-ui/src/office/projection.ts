@@ -72,6 +72,9 @@ export function mapOffset(
 export interface OverlayProjection {
   toScreenX(worldX: number): number;
   toScreenY(worldY: number): number;
+  /** The inverse: container CSS px → world px. */
+  toWorldX(screenX: number): number;
+  toWorldY(screenY: number): number;
   /** Container size in world units — what the viewport currently covers.
    *  Used to cap overlay offsets against the visible area. */
   readonly viewportWorldWidth: number;
@@ -101,6 +104,8 @@ export function overlayProjection(
   return {
     toScreenX: (worldX) => (offsetX + worldX * zoom) / dpr,
     toScreenY: (worldY) => (offsetY + worldY * zoom) / dpr,
+    toWorldX: (screenX) => (screenX * dpr - offsetX) / zoom,
+    toWorldY: (screenY) => (screenY * dpr - offsetY) / zoom,
     viewportWorldWidth: canvasW / zoom,
     viewportWorldHeight: canvasH / zoom,
     toWorldLength: (cssPx) => (cssPx * dpr) / zoom,

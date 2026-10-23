@@ -116,7 +116,7 @@ test('areaWorldRect bounds the tiles of a room label', () => {
 });
 
 test('visibleSteps: full tour on a desktop owner, fewer steps on smaller screens', () => {
-  const all = new Set<Capability>(['edit', 'switcher', 'profile', 'offices', 'family']);
+  const all = new Set<Capability>(['edit', 'switcher', 'profile', 'offices', 'family', 'chat']);
   assert.deepEqual(
     visibleSteps(all),
     STEPS.map((s) => s.id),
@@ -135,6 +135,7 @@ test('visibleSteps: full tour on a desktop owner, fewer steps on smaller screens
     'switcher',
     'offices',
     'family',
+    'chat',
   ]) {
     assert.ok(!phone.includes(id as never), id);
   }

@@ -17,6 +17,7 @@ import type {
   UpdateStatus,
 } from '../../../core/src/messages.js';
 import { LAN_READING_TOOLS } from '../constants.js';
+import { ChatBubbles } from '../lan/chat.js';
 import { LanAgents } from '../lan/lanAgents.js';
 import { disambiguate } from '../lan/nicknames.js';
 import { setSoundEnabled } from '../notificationSound.js';
@@ -71,6 +72,8 @@ interface ExtensionMessageState {
   restarting: boolean;
   /** LAN agents ↔ characters (lan.all(), lan.agentFor(id)). */
   lan: LanAgents;
+  /** Chat bubbles of the viewed office (snapshot people + my echo). */
+  chats: ChatBubbles;
   /** Bumped on every applied officeSnapshot so overlays re-render. */
   lanVersion: number;
   /** Everyone in the viewed office (latest officeSnapshot). */
@@ -134,6 +137,9 @@ export function useExtensionMessages(
   const lanRef = useRef<LanAgents | null>(null);
   lanRef.current ??= new LanAgents(getOfficeState());
   const lan = lanRef.current;
+  const chatsRef = useRef<ChatBubbles | null>(null);
+  chatsRef.current ??= new ChatBubbles();
+  const chats = chatsRef.current;
   /** Snapshots can arrive before layoutLoaded: hold the latest until then. */
   const pendingAgentsRef = useRef<OfficeAgent[] | null>(null);
 
@@ -176,6 +182,7 @@ export function useExtensionMessages(
         const snap = disambiguate((msg as OfficeSnapshot).people, msg.agents as OfficeAgent[]);
         const { agents } = snap;
         setPeople(snap.people);
+        chats.apply(snap.people, Date.now());
         setNicknames({ taken: snap.taken, selfLost: snap.selfLost });
         if (layoutReadyRef.current) applyAgents(agents);
         else pendingAgentsRef.current = agents;
@@ -287,6 +294,7 @@ export function useExtensionMessages(
     officeReadOnly,
     restarting,
     lan,
+    chats,
     lanVersion,
     people,
     profile,
