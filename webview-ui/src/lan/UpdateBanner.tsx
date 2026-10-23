@@ -5,6 +5,7 @@ import { Button } from '../components/ui/Button.js';
 import { UPDATE_DISMISSED_STORAGE_KEY } from '../constants.js';
 import { t, useLang } from '../i18n.js';
 import { transport } from '../transport/index.js';
+import { showInstallButton } from './updateBannerModel.js';
 
 interface UpdateBannerProps {
   /** Only ever sent to this PC's (loopback) browser. */
@@ -61,7 +62,7 @@ export function UpdateBanner({ update, status, onClearStatus }: UpdateBannerProp
   return (
     <div className="pointer-events-auto pixel-panel py-6 px-10 flex items-center gap-8 text-sm max-w-full flex-wrap justify-end">
       <span>{text}</span>
-      {update && state !== 'upToDate' && state !== 'downloading' && (
+      {update && showInstallButton(true, state) && (
         <>
           <Button size="sm" variant="accent" onClick={install}>
             {t(state === 'error' ? 'update.retry' : 'update.install')}

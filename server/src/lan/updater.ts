@@ -6,6 +6,7 @@ import * as path from 'path';
 
 import {
   ALLOW_PRERELEASE_ENV,
+  INSTALL_RELAUNCH_GUARD_MS,
   LAYOUT_FILE_DIR,
   REOPEN_MARKER_NAME,
   REOPEN_MARKER_TTL_MS,
@@ -188,6 +189,17 @@ export async function downloadAndRun(
   if (!ASSET_NAME.test(info.assetName)) throw new Error(`bad asset name ${info.assetName}`);
   const { fetchFn = fetch, onProgress, launch = launchInstaller } = opts;
 
+  // Already downloaded (exact size only: a .part or short file never matches): just launch it.
+  const cached = path.join(dir, info.assetName);
+  try {
+    if (info.assetSize > 0 && fs.statSync(cached).size === info.assetSize) {
+      await launch(cached);
+      return;
+    }
+  } catch {
+    /* not cached */
+  }
+
   // Validated above: redirects (to objects.githubusercontent.com) are followed.
   const res = await fetchFn(url, {
     signal: AbortSignal.timeout(UPDATE_DOWNLOAD_TIMEOUT_MS),
@@ -279,6 +291,7 @@ export class Updater {
   private busy = false;
   /** An installer we launched may quit us (POST /api/quit) to install itself. */
   private installerLaunched = false;
+  private launchedAt = 0;
   private timer: NodeJS.Timeout | null = null;
 
   constructor(
@@ -320,6 +333,10 @@ export class Updater {
 
   async install(): Promise<void> {
     if (!this.info || this.busy) return;
+    if (Date.now() - this.launchedAt < INSTALL_RELAUNCH_GUARD_MS) {
+      this.broadcast({ type: 'updateStatus', state: 'installing' });
+      return;
+    }
     this.busy = true;
     this.setStatus({ type: 'updateStatus', state: 'downloading', percent: 0 });
     try {
@@ -331,6 +348,7 @@ export class Updater {
       // page stuck on "installing" (the update banner offers the install again instead).
       this.status = null;
       this.installerLaunched = true;
+      this.launchedAt = Date.now();
       this.broadcast({ type: 'updateStatus', state: 'installing' });
     } catch (err) {
       console.error('[Pixel Office] 업데이트 실패:', err);

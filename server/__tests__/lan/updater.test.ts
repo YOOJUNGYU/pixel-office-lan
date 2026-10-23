@@ -3,6 +3,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { INSTALL_RELAUNCH_GUARD_MS } from '../../src/constants.js';
 import type { UpdateInfo } from '../../src/lan/updater.js';
 import {
   checkForUpdate,
@@ -187,6 +188,26 @@ describe('downloadAndRun', () => {
     await expect(downloadAndRun(info, tmp(), { fetchFn, launch })).rejects.toThrow('ENOENT');
   });
 
+  it('reuses a cached installer of the exact size: no download, same launch', async () => {
+    const dir = tmp();
+    fs.writeFileSync(path.join(dir, info.assetName), '12345');
+    const launch = vi.fn();
+    const fetchFn = vi.fn();
+    await downloadAndRun(info, dir, { fetchFn: fetchFn as unknown as typeof fetch, launch });
+    expect(fetchFn).not.toHaveBeenCalled();
+    expect(launch).toHaveBeenCalledWith(path.join(dir, info.assetName));
+  });
+
+  it('re-downloads when the cached file has the wrong size', async () => {
+    const dir = tmp();
+    fs.writeFileSync(path.join(dir, info.assetName), '123');
+    const launch = vi.fn();
+    const fetchFn = vi.fn(async () => new Response('12345'));
+    await downloadAndRun(info, dir, { fetchFn: fetchFn as unknown as typeof fetch, launch });
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    expect(fs.readFileSync(path.join(dir, info.assetName), 'utf8')).toBe('12345');
+  });
+
   it('rejects a size mismatch or non-200 without launching', async () => {
     const dir = tmp();
     const launch = vi.fn();
@@ -225,6 +246,37 @@ describe('Updater', () => {
     ]);
     // a reload (handshake) after a cancelled UAC prompt is not stuck on "installing"
     expect(u.status).toBeNull();
+  });
+
+  it('ignores installUpdate while busy and during the relaunch guard, then allows it again', async () => {
+    vi.useFakeTimers();
+    try {
+      const sent: Record<string, unknown>[] = [];
+      let release!: () => void;
+      const install = vi.fn(
+        () => new Promise<void>((r) => (release = r)),
+      ) as unknown as typeof downloadAndRun;
+      const u = new Updater('0.1.0', { check: async () => info, install });
+      u.broadcast = (m) => sent.push(m);
+      u.info = info;
+      const first = u.install();
+      await u.install(); // busy
+      expect(install).toHaveBeenCalledTimes(1);
+      release();
+      await first;
+      sent.length = 0;
+      await vi.advanceTimersByTimeAsync(INSTALL_RELAUNCH_GUARD_MS - 1);
+      await u.install(); // guard
+      expect(install).toHaveBeenCalledTimes(1);
+      expect(sent).toEqual([{ type: 'updateStatus', state: 'installing' }]);
+      await vi.advanceTimersByTimeAsync(2);
+      const again = u.install(); // cancelled UAC: pressing again is allowed
+      release();
+      await again;
+      expect(install).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('a manual check with nothing new says up to date; a failed install says error', async () => {

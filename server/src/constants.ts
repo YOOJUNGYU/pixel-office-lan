@@ -68,6 +68,8 @@ export const QUIT_DELAY_MS = 100;
 export const UPDATE_FIRST_CHECK_MS = 300;
 export const UPDATE_API_TIMEOUT_MS = 15_000;
 export const UPDATE_DOWNLOAD_TIMEOUT_MS = 10 * 60_000;
+/** After an installer launch, further installUpdate requests are ignored this long (UAC cancel can retry after). */
+export const INSTALL_RELAUNCH_GUARD_MS = 60_000;
 /** Downloaded installers, under the data directory. */
 export const UPDATES_DIR_NAME = 'updates';
 /** In UPDATES_DIR_NAME: written on [Update], read (and deleted) by the next start — whether to open a window. */
