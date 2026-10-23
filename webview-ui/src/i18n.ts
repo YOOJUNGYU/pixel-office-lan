@@ -101,6 +101,9 @@ const ko = {
   'office.label': '오피스',
   'office.public': '🌐 공개 오피스',
   'office.unnamed': '이름 모를 팀',
+  'office.personal': '🏠 개인용',
+  'office.personalHint':
+    '이 PC 혼자 쓰는 작은 오피스 — 다른 PC 와 주고받지 않아 아무에게도 보이지 않습니다 (팀 오피스는 그대로 남습니다)',
   'office.publicDisabled': '팀 오피스에 있는 동안은 공개 오피스에 보이지 않습니다',
   'office.create': '팀 오피스 만들기',
   'office.namePlaceholder': '팀 이름 (1–20자)',
@@ -270,7 +273,7 @@ const ko = {
     '한 손가락으로 끌어 지도를 옮기고, 두 손가락으로 벌리거나 오므려 확대·축소합니다.\n지금 직접 해 보세요 — 다음으로 넘어가면 원래 화면으로 돌아옵니다.',
   'tour.switcher.title': '오피스 전환',
   'tour.switcher.body':
-    '🌐 공개 오피스에는 같은 망의 모든 PC가 보입니다. 🔒 팀 오피스는 코드를 가진 팀원끼리만 보입니다.\n팀 오피스에 참여한 PC는 공개 오피스에서 빠집니다.',
+    '🌐 공개 오피스에는 같은 망의 모든 PC가 보입니다. 🔒 팀 오피스는 코드를 가진 팀원끼리만 보입니다.\n팀 오피스에 참여한 PC는 공개 오피스에서 빠집니다. 🏠 개인용은 다른 PC 와 연결하지 않고 혼자 쓰는 작은 오피스입니다.',
   'tour.people.title': '접속 중인 사람',
   'tour.people.body':
     '지금 이 오피스에 접속한 사람이 모두 보입니다. 에이전트가 없는 사람도요.\n❗ 는 확인을 기다리는 에이전트가 있다는 뜻입니다. 이름을 누르면 그 사람의 에이전트로 화면이 따라갑니다.',
@@ -416,6 +419,9 @@ const en: Record<Key, string> = {
   'office.label': 'Office',
   'office.public': '🌐 Public office',
   'office.unnamed': 'Unnamed team',
+  'office.personal': '🏠 Personal',
+  'office.personalHint':
+    'A small office for this PC alone — nothing is sent to or taken from other PCs, so no one sees you (your team offices are kept)',
   'office.publicDisabled': "While you're in a team office you are not shown in the public office",
   'office.create': 'Create a team office',
   'office.namePlaceholder': 'Team name (1–20 chars)',
@@ -585,7 +591,7 @@ const en: Record<Key, string> = {
     'Drag with one finger to pan, pinch with two to zoom.\nTry it now — the view goes back when you continue.',
   'tour.switcher.title': 'Office switcher',
   'tour.switcher.body':
-    '🌐 The public office shows every PC on the network. 🔒 A team office is shared only by teammates who have its code.\nA PC in a team office leaves the public office.',
+    '🌐 The public office shows every PC on the network. 🔒 A team office is shared only by teammates who have its code.\nA PC in a team office leaves the public office. 🏠 Personal is a small office just for you, not connected to other PCs.',
   'tour.people.title': "Who's online",
   'tour.people.body':
     "Everyone connected to this office is listed here, even people with no agents.\n❗ means one of their agents is waiting for them. Click a name and the view follows that person's agent.",

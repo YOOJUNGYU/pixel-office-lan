@@ -1,5 +1,5 @@
 // Pure helpers for the office switcher and Settings → 오피스.
-import { PUBLIC_VIEW } from '../../../core/src/lan.js';
+import { PERSONAL_VIEW, PUBLIC_VIEW } from '../../../core/src/lan.js';
 import type { OfficesState } from '../../../core/src/messages.js';
 
 /** Typed/pasted invite code as sent and shown: upper-case, no spaces (the server tolerates the rest). */
@@ -10,12 +10,14 @@ export interface SwitcherItem {
   /** '' for the public office and for a team whose name is not known yet. */
   name: string;
   isPublic: boolean;
+  /** This PC alone, offline (its own smaller office). */
+  isPersonal: boolean;
   active: boolean;
   /** The public office while in any team: you are not visible there. */
   disabled: boolean;
 }
 
-/** Public first, then each joined team, in join order. */
+/** Public first, then each joined team in join order, then personal mode. */
 export function switcherItems(state: Omit<OfficesState, 'type'>): SwitcherItem[] {
   const inTeam = state.offices.length > 0;
   return [
@@ -23,6 +25,7 @@ export function switcherItems(state: Omit<OfficesState, 'type'>): SwitcherItem[]
       view: PUBLIC_VIEW,
       name: '',
       isPublic: true,
+      isPersonal: false,
       active: state.activeView === PUBLIC_VIEW,
       disabled: inTeam,
     },
@@ -30,8 +33,21 @@ export function switcherItems(state: Omit<OfficesState, 'type'>): SwitcherItem[]
       view: o.tag,
       name: o.name,
       isPublic: false,
+      isPersonal: false,
       active: state.activeView === o.tag,
       disabled: false,
     })),
+    {
+      view: PERSONAL_VIEW,
+      name: '',
+      isPublic: false,
+      isPersonal: true,
+      active: state.activeView === PERSONAL_VIEW,
+      disabled: false,
+    },
   ];
 }
+
+/** Personal mode: offline, this PC alone, the smaller office. */
+export const isPersonal = (state: Pick<OfficesState, 'activeView'> | null): boolean =>
+  state?.activeView === PERSONAL_VIEW;

@@ -74,6 +74,8 @@ interface Node {
   t: number;
   nickname: string;
   port: number;
+  /** Personal mode. */
+  offline: boolean;
 }
 async function mkNodes(names: string[], extraTargets: string[] = []): Promise<Node[]> {
   const ports = await Promise.all(names.map(() => freePort()));
@@ -86,6 +88,7 @@ async function mkNodes(names: string[], extraTargets: string[] = []): Promise<No
       t: 1000,
       nickname: name,
       port: ports[i],
+      offline: false,
     } as Partial<Node> as Node;
     node.net = new PeerNet({
       port: ports[i],
@@ -93,6 +96,7 @@ async function mkNodes(names: string[], extraTargets: string[] = []): Promise<No
       getPacket: () => pkt(node.id.id, node.nickname),
       manualPeers: () => [],
       offices: () => node.offices,
+      offline: () => node.offline,
       pins: new Map<string, string>(),
       targets: () => targets,
       now: () => node.t,
@@ -404,6 +408,46 @@ describe('PeerNet team offices', () => {
     expect(raw.got.some(helloFromA)).toBe(true);
     await pump([a, c], () => c.net.peers(PUBLIC_VIEW).length > 0);
     expect(ids(c.net.peers(PUBLIC_VIEW))).toEqual(['A']);
+  });
+});
+
+describe('PeerNet personal mode (offline)', () => {
+  it('sends no datagram at all, answers nothing, sees no one; back online sees again', async () => {
+    const raw = await rawSocket();
+    const [a, b] = await mkNodes(['A', 'B'], [`127.0.0.1:${raw.port}`]);
+    a.offices = [channel(newInviteCode().secret)]; // a kept team membership stays silent too
+    b.offices = a.offices;
+    await pump([a, b], () => b.net.peers(a.offices[0].tag).length > 0);
+    expect(ids(b.net.peers(a.offices[0].tag))).toEqual(['A']);
+
+    a.offline = true;
+    const sock = (a.net as unknown as { sock: dgram.Socket }).sock;
+    const sent = vi.spyOn(sock, 'send');
+    b.offices = []; // B also tries the public office: its hellos must get no reply
+    await pump([a, b], () => false, 10);
+    const x = createIdentity('X');
+    raw.sock.send(
+      JSON.stringify({ v: 2, t: 'hello', id: 'X', pk: x.publicKey }),
+      a.port,
+      '127.0.0.1',
+    );
+    await pump([a, b], () => false, 10);
+    expect(sent).not.toHaveBeenCalled();
+    expect(a.net.peers(PUBLIC_VIEW)).toEqual([]);
+    expect(a.net.peers(a.offices[0].tag)).toEqual([]);
+    b.t += PEER_TTL_MS + 1;
+    expect(b.net.peers(a.offices[0].tag)).toEqual([]);
+    expect(b.net.peers(PUBLIC_VIEW)).toEqual([]);
+
+    a.offline = false;
+    a.offices = [];
+    await pump(
+      [a, b],
+      () => b.net.peers(PUBLIC_VIEW).length > 0 && a.net.peers(PUBLIC_VIEW).length > 0,
+    );
+    expect(sent).toHaveBeenCalled();
+    expect(ids(b.net.peers(PUBLIC_VIEW))).toEqual(['A']);
+    expect(ids(a.net.peers(PUBLIC_VIEW))).toEqual(['B']);
   });
 });
 

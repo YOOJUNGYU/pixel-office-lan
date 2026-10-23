@@ -13,6 +13,7 @@ import {
   CHAT_MIN_INTERVAL_MS,
   nicknameKey,
   parseChat,
+  PERSONAL_VIEW,
   PUBLIC_VIEW,
 } from '../../../core/src/lan.js';
 import type {
@@ -101,6 +102,11 @@ export class LanService {
     private readonly dir?: string,
   ) {}
 
+  /** Personal mode: offline (PeerNet sends and accepts nothing), this PC alone. */
+  get personal(): boolean {
+    return this.profile.activeView === PERSONAL_VIEW;
+  }
+
   self(): PeerInfo {
     const { peerId, nickname, palette, hueShift, pet, nicknameSince } = this.profile;
     return {
@@ -176,13 +182,13 @@ export class LanService {
   /** One office's agents. The public office is empty while this PC is in any team. */
   office(view: string): OfficeAgent[] {
     if (!this.isOpen(view)) return [];
-    return buildOffice(this.self(), this.local.views(), this.net.peers(view));
+    return buildOffice(this.self(), this.local.views(), this.peersIn(view));
   }
 
   /** Everyone in one office (this PC first, then live peers, agents or not); same gate as office(). */
   people(view: string): OfficePersonMessage[] {
     if (!this.isOpen(view)) return [];
-    const rows = [{ peer: this.self(), chat: this.ownChat(view) }, ...this.net.peers(view)];
+    const rows = [{ peer: this.self(), chat: this.ownChat(view) }, ...this.peersIn(view)];
     return rows.map(({ peer: p, chat }, i) => ({
       peerId: p.id,
       account: p.account,
@@ -207,6 +213,11 @@ export class LanService {
     return views.some((v) =>
       this.net.peers(v).some((p) => p.peer.id !== peerId && nicknameKey(p.peer.nickname) === key),
     );
+  }
+
+  /** Live peers of a view; none at all in personal mode (PeerNet is offline too). */
+  private peersIn(view: string): PeerPacket[] {
+    return this.personal ? [] : this.net.peers(view);
   }
 
   /** The public office only while in no team; a team office only once joined. */
@@ -257,18 +268,14 @@ export class LanService {
     const { activeView } = this.profile;
     this.update({
       offices,
-      activeView: offices.some((o) => o.tag === activeView)
-        ? activeView
-        : (offices[0]?.tag ?? PUBLIC_VIEW),
+      activeView: isViewOpen(offices, activeView) ? activeView : (offices[0]?.tag ?? PUBLIC_VIEW),
     });
     return true;
   }
 
-  /** PUBLIC_VIEW only while in no team; otherwise a joined tag. */
+  /** PUBLIC_VIEW only while in no team, a joined tag, or PERSONAL_VIEW (always). */
   setActiveView(view: unknown): boolean {
-    const { offices } = this.profile;
-    const ok = view === PUBLIC_VIEW ? offices.length === 0 : offices.some((o) => o.tag === view);
-    if (!ok) return false;
+    if (!isViewOpen(this.profile.offices, view)) return false;
     if (view !== this.profile.activeView) this.update({ activeView: view as string });
     return true;
   }

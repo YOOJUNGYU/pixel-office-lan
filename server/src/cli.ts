@@ -172,6 +172,7 @@ async function main(): Promise<void> {
     getPacket: (channel) => lan.packet(channel),
     manualPeers: () => lan.profile.manualPeers,
     offices: () => lan.teamChannels(),
+    offline: () => lan.personal,
     pins,
   });
   try {

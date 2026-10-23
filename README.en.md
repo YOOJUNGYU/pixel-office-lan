@@ -97,6 +97,7 @@ Switch the office you are looking at with the office switcher at the top of the 
   - **Leave**: **Leave** in the list. You need the code to come back.
 - ⚠️ **While you are in any team office you leave the public office completely**: you neither send to nor see the public office (so nobody can quietly watch the public office from inside a team). To return to the public office, leave all team offices.
 - If a code leaks, create a new team office and move. The code itself never goes on the network.
+- 🏠 **Personal**: press **Personal** in the switcher at the top to use a small office of your own (34×22, 8 seats per room) that **exchanges nothing** with other PCs (nothing sent, nothing received). No other PC sees you and you see only your own agents; a chat bubble stays on your screen. It has its own layout (`layout-personal.json`), so editing it leaves the shared office as it was. Your team offices are kept: press **Public office** or a team button to go straight back, no code needed. Personal mode survives a restart.
 
 ### Encryption
 
@@ -198,7 +199,7 @@ Details, what to do when other PCs don't show up, and how to uninstall: **[Insta
 | UDP 47800 | State exchange between PCs (encrypted; broadcast + manually added IPs) |
 | TCP 47801 | Browser UI (`http://localhost:47801`, this PC only)                    |
 
-Data is stored only in `~/.pixel-office/` (profile, keys and team codes, layout (`layout.json`, this PC only), remembered PC public keys, downloaded updates). Files holding keys and codes are readable by you only (0600).
+Data is stored only in `~/.pixel-office/` (profile, keys and team codes, layout (`layout.json`, `layout-personal.json` for personal mode, this PC only), remembered PC public keys, downloaded updates). Files holding keys and codes are readable by you only (0600).
 
 ## Known limitations
 

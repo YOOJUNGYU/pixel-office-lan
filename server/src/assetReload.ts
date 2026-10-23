@@ -7,6 +7,7 @@ import {
   loadExternalPetSprites,
   loadFloorTiles,
   loadFurnitureAssets,
+  loadPersonalLayout,
   loadPetSprites,
   loadWallTiles,
   mergeCharacterSprites,
@@ -86,5 +87,6 @@ export async function buildAssetCache(
     carpetTiles: await loadCarpetTiles(distRoot).then((t) => t?.sets ?? null),
     furniture: await loadAllFurniture(distRoot, externalDirs),
     defaultLayout: loadDefaultLayout(distRoot),
+    personalLayout: loadPersonalLayout(distRoot),
   };
 }

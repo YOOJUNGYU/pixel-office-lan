@@ -10,6 +10,8 @@ export const MAX_COLS = MAX_LAYOUT_COLS;
 export const MAX_ROWS = MAX_LAYOUT_ROWS;
 /** The bundled default layout (rooms of an imported layout that lacks them), relative to the base URL. */
 export const DEFAULT_LAYOUT_ASSET = 'assets/default-layout-1.json';
+/** Personal mode's smaller bundled default (scripts/generate-lan-layout.mjs --personal). */
+export const PERSONAL_LAYOUT_ASSET = 'assets/default-layout-personal.json';
 /** Floor chunk cache budget (device px², all chunks; chunks on screen are always kept). */
 export const FLOOR_CACHE_MAX_PIXELS = 4096 * 4096;
 /** Floor chunk side in device px (rounded to whole tiles) and its minimum in tiles. */

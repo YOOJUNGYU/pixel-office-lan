@@ -22,6 +22,10 @@ export const WS_CLOSE_FORBIDDEN = 4003;
 /** Data directory under the user's home (layout.json, config.json). */
 export const LAYOUT_FILE_DIR = '.pixel-office';
 export const LAYOUT_FILE_NAME = 'layout.json';
+/** Personal mode's own layout (editing one office never changes the other). */
+export const PERSONAL_LAYOUT_FILE_NAME = 'layout-personal.json';
+/** Bundled personal default (scripts/generate-lan-layout.mjs --personal). */
+export const PERSONAL_DEFAULT_LAYOUT_FILE = 'default-layout-personal.json';
 export const LAYOUT_REVISION_KEY = 'layoutRevision';
 export const CONFIG_FILE_NAME = 'config.json';
 

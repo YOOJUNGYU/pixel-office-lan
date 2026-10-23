@@ -37,7 +37,7 @@ import type {
 export type { CharacterDirectionSprites } from '../../core/src/assets/types.js';
 export type { PetManifest, PetSpriteFrames } from '../../core/src/assets/types.js';
 
-import { LAYOUT_REVISION_KEY } from './constants.js';
+import { LAYOUT_REVISION_KEY, PERSONAL_DEFAULT_LAYOUT_FILE } from './constants.js';
 
 export type { FurnitureAsset };
 
@@ -246,6 +246,17 @@ export function loadDefaultLayout(assetsRoot: string): Record<string, unknown> |
     console.error(
       `[AssetLoader] Error loading default layout: ${err instanceof Error ? err.message : err}`,
     );
+    return null;
+  }
+}
+
+/** The bundled personal-mode default (assets/default-layout-personal.json), else null. */
+export function loadPersonalLayout(assetsRoot: string): Record<string, unknown> | null {
+  try {
+    const file = path.join(assetsRoot, 'assets', PERSONAL_DEFAULT_LAYOUT_FILE);
+    return JSON.parse(fs.readFileSync(file, 'utf-8')) as Record<string, unknown>;
+  } catch (err) {
+    console.error('[AssetLoader] No personal default layout:', err);
     return null;
   }
 }

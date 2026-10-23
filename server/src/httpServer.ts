@@ -10,6 +10,7 @@ import type {
 } from './clientMessageHandler.js';
 import {
   handleClientMessage,
+  layoutMessage,
   officesMessage,
   profileMessage,
   snapshotMessage,
@@ -178,9 +179,12 @@ export async function createHttpServer(options: HttpServerOptions): Promise<Http
     for (const c of clients) safeSend(c, profileMessage(lan, true));
   };
 
-  const onOfficesChanged = (): void => {
+  const onOfficesChanged = (layoutChanged: boolean): void => {
     if (!lan) return;
+    // Personal mode on/off: its own layout first, so the page refits to it on officesState.
+    const layout = layoutChanged ? layoutMessage(options.assetCache ?? null, lan) : null;
     for (const c of clients) {
+      if (layout) safeSend(c, layout);
       safeSend(c, officesMessage(lan));
       safeSend(c, snapshotMessage(lan)); // the switched office now, not on the next tick
     }

@@ -90,7 +90,7 @@ interface EditorActions extends Omit<FurnitureColorActions, 'pickColorAt'> {
  *  Lives here, with the zoom state it seeds, rather than in the office modules:
  *  it reads `devicePixelRatio`, and a viewport concern in a state module drags
  *  the DOM into every graph that imports it (OfficeState's included). */
-function defaultZoom(): number {
+export function defaultZoom(): number {
   const dpr = window.devicePixelRatio || 1;
   return Math.max(ZOOM_MIN, Math.round(ZOOM_DEFAULT_DPR_FACTOR * dpr));
 }

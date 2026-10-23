@@ -15,6 +15,7 @@ import {
   FIT_TOP_MARGIN_PX,
   LAYOUT_REJECTED_TOAST_MS,
   OFFICE_CANVAS_TEST_ID,
+  PERSONAL_LAYOUT_ASSET,
   TOP_RIGHT_BOTTOM_RESERVE_PX,
   TOP_RIGHT_Z_INDEX,
   TOUR_AUTOSTART_DELAY_MS,
@@ -22,7 +23,7 @@ import {
   ZOOM_MAX,
   ZOOM_MIN,
 } from './constants.js';
-import { useEditorActions } from './hooks/useEditorActions.js';
+import { defaultZoom, useEditorActions } from './hooks/useEditorActions.js';
 import { useEditorKeyboard } from './hooks/useEditorKeyboard.js';
 import { useExtensionMessages } from './hooks/useExtensionMessages.js';
 import { useIsMobile } from './hooks/useIsMobile.js';
@@ -31,6 +32,7 @@ import { ChatLayer } from './lan/ChatLayer.js';
 import { InstallPrompt } from './lan/InstallPrompt.js';
 import { LanOverlay } from './lan/LanOverlay.js';
 import { NicknameNotice } from './lan/NicknameNotice.js';
+import { isPersonal } from './lan/offices.js';
 import { OfficeSwitcher } from './lan/OfficeSwitcher.js';
 import { peopleRows } from './lan/peopleModel.js';
 import { PeoplePanel } from './lan/PeoplePanel.js';
@@ -311,12 +313,15 @@ function App() {
   }, [saveError]);
 
   // First open: a big office (e.g. a 128×128 layout) is zoomed out to fit the
-  // window when the default zoom would not show all of it. Once per session.
-  const fittedRef = useRef(false);
+  // window when the default zoom would not show all of it. Once per session, and
+  // again when personal mode is switched (another office): from the default zoom.
+  const personal = isPersonal(offices);
+  const fittedRef = useRef<boolean | null>(null);
   useEffect(() => {
     const box = containerRef.current?.getBoundingClientRect();
-    if (!layoutReady || fittedRef.current || !box) return;
-    fittedRef.current = true;
+    if (!layoutReady || fittedRef.current === personal || !box) return;
+    const switched = fittedRef.current !== null;
+    fittedRef.current = personal;
     const dpr = window.devicePixelRatio || 1;
     const layout = getOfficeState().getLayout();
     // Fit below the office switcher (top centre) so the room names along the
@@ -329,11 +334,12 @@ function App() {
       ZOOM_MIN,
       ZOOM_MAX,
     );
-    if (fit < zoom) {
+    const start = switched ? defaultZoom() : zoom;
+    if (fit < start || switched) {
       panRef.current = { x: 0, y: top / 2 };
-      handleZoomChange(fit);
+      handleZoomChange(Math.min(fit, start));
     }
-  }, [layoutReady, zoom, handleZoomChange, panRef]);
+  }, [layoutReady, personal, zoom, handleZoomChange, panRef]);
 
   // First run: right after the profile is saved.
   const tourCanAutostart =
@@ -414,7 +420,8 @@ function App() {
   }, []);
 
   const fetchDefaultLayout = async (): Promise<unknown> => {
-    const res = await fetch(`${import.meta.env.BASE_URL}${DEFAULT_LAYOUT_ASSET}`);
+    const asset = isPersonal(offices) ? PERSONAL_LAYOUT_ASSET : DEFAULT_LAYOUT_ASSET;
+    const res = await fetch(`${import.meta.env.BASE_URL}${asset}`);
     if (!res.ok) throw new Error(`default layout ${res.status.toString()}`);
     return (await res.json()) as unknown;
   };

@@ -10,6 +10,7 @@ import {
   isValidManualPeer,
   MAX_ACCOUNT,
   parseChat,
+  PERSONAL_VIEW,
   PUBLIC_VIEW,
   takeCodePoints,
 } from '../../../core/src/lan.js';
@@ -43,7 +44,7 @@ export interface Profile {
   manualPeers: string[];
   identity: { publicKey: string; privateKeyPem: string };
   offices: TeamOffice[];
-  /** PUBLIC_VIEW or a joined office's tag: what this PC's browser shows. */
+  /** PUBLIC_VIEW, a joined office's tag, or PERSONAL_VIEW (offline; team secrets kept). */
   activeView: string;
   /** Saved once from the first-run form (character and color chosen). */
   setUp: boolean;
@@ -115,9 +116,11 @@ function parseOffices(x: unknown): TeamOffice[] {
   return out;
 }
 
-/** The office `view` is open on this PC: public only while in no team, a team once joined. */
+/** The office `view` is open on this PC: public only while in no team, a team once
+ *  joined, personal always. */
 export const isViewOpen = (offices: TeamOffice[], view: unknown): boolean =>
-  view === PUBLIC_VIEW ? offices.length === 0 : offices.some((o) => o.tag === view);
+  view === PERSONAL_VIEW ||
+  (view === PUBLIC_VIEW ? offices.length === 0 : offices.some((o) => o.tag === view));
 
 /** A stored chat, or undefined when malformed or its office is no longer open. */
 function parseSavedChat(raw: unknown, offices: TeamOffice[]): SavedChat | undefined {
@@ -217,9 +220,10 @@ export function loadProfile(dir: string = defaultDir()): Profile {
     ? { publicKey: pk, privateKeyPem: pem }
     : createIdentity(peerId);
   const offices = parseOffices(raw.offices);
-  const activeView = offices.some((o) => o.tag === raw.activeView)
-    ? (raw.activeView as string)
-    : (offices[0]?.tag ?? PUBLIC_VIEW);
+  const activeView =
+    raw.activeView === PERSONAL_VIEW || offices.some((o) => o.tag === raw.activeView)
+      ? (raw.activeView as string)
+      : (offices[0]?.tag ?? PUBLIC_VIEW);
   const profile: Profile = {
     peerId,
     ...editable,

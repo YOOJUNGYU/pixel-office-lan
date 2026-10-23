@@ -10,7 +10,7 @@ import {
   ROOM_LABELS,
   ROOM_ORDER,
 } from '../../core/src/lan.js';
-import { LAYOUT_FILE_DIR, LAYOUT_FILE_NAME } from './constants.js';
+import { LAYOUT_FILE_DIR, LAYOUT_FILE_NAME, PERSONAL_LAYOUT_FILE_NAME } from './constants.js';
 
 const isObj = (x: unknown): x is Record<string, unknown> =>
   typeof x === 'object' && x !== null && !Array.isArray(x);
@@ -47,12 +47,14 @@ export function sanitizeLayout(
   return out;
 }
 
-function getLayoutFilePath(): string {
-  return path.join(os.homedir(), LAYOUT_FILE_DIR, LAYOUT_FILE_NAME);
+/** ~/.pixel-office/layout.json, or layout-personal.json in personal mode. */
+export function getLayoutFilePath(personal = false): string {
+  const name = personal ? PERSONAL_LAYOUT_FILE_NAME : LAYOUT_FILE_NAME;
+  return path.join(os.homedir(), LAYOUT_FILE_DIR, name);
 }
 
-export function readLayoutFromFile(): Record<string, unknown> | null {
-  const filePath = getLayoutFilePath();
+export function readLayoutFromFile(personal = false): Record<string, unknown> | null {
+  const filePath = getLayoutFilePath(personal);
   try {
     if (!fs.existsSync(filePath)) return null;
     const raw = fs.readFileSync(filePath, 'utf-8');
@@ -64,8 +66,8 @@ export function readLayoutFromFile(): Record<string, unknown> | null {
 }
 
 /** Atomic write; false when it failed (logged). */
-export function writeLayoutToFile(layout: Record<string, unknown>): boolean {
-  const filePath = getLayoutFilePath();
+export function writeLayoutToFile(layout: Record<string, unknown>, personal = false): boolean {
+  const filePath = getLayoutFilePath(personal);
   const dir = path.dirname(filePath);
   try {
     if (!fs.existsSync(dir)) {

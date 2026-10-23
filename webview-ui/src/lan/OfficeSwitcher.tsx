@@ -4,7 +4,7 @@ import { t, useLang } from '../i18n.js';
 import { transport } from '../transport/index.js';
 import { switcherItems } from './offices.js';
 
-/** Top-centre office tabs: 🌐 public + 🔒 each team. This PC's browser only. */
+/** Top-centre office tabs: 🌐 public + 🔒 each team + 🏠 personal. This PC's browser only. */
 export function OfficeSwitcher({ state }: { state: Omit<OfficesState, 'type'> }) {
   useLang();
   return (
@@ -22,7 +22,13 @@ export function OfficeSwitcher({ state }: { state: Omit<OfficesState, 'type'> })
           size="sm"
           aria-selected={item.active}
           aria-disabled={item.disabled}
-          title={item.disabled ? t('office.publicDisabled') : undefined}
+          title={
+            item.disabled
+              ? t('office.publicDisabled')
+              : item.isPersonal
+                ? t('office.personalHint')
+                : undefined
+          }
           variant={item.active ? 'active' : item.disabled ? 'disabled' : 'default'}
           className="whitespace-nowrap"
           onClick={() => {
@@ -31,7 +37,11 @@ export function OfficeSwitcher({ state }: { state: Omit<OfficesState, 'type'> })
             }
           }}
         >
-          {item.isPublic ? t('office.public') : `🔒 ${item.name || t('office.unnamed')}`}
+          {item.isPublic
+            ? t('office.public')
+            : item.isPersonal
+              ? t('office.personal')
+              : `🔒 ${item.name || t('office.unnamed')}`}
         </Button>
       ))}
     </div>

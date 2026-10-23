@@ -190,6 +190,8 @@ export class PeerNet {
       getPacket: (channel: string) => PeerPacket;
       manualPeers: () => string[];
       offices: () => TeamChannel[];
+      /** Personal mode: send nothing, drop everything received, see no one. */
+      offline?: () => boolean;
       /** TOFU: first public key seen per peer id. */
       pins: { get(id: string): string | undefined; set(id: string, pk: string): void };
       /** Broadcast targets override ("host:port"), for tests. */
@@ -229,6 +231,7 @@ export class PeerNet {
     const sock = this.sock;
     if (!sock) return;
     this.prune();
+    if (this.isOffline()) return;
     const { identity } = this.opts;
     const offices = this.opts.offices();
     const broadcast = this.opts.targets?.() ?? [
@@ -269,6 +272,7 @@ export class PeerNet {
 
   /** Live packets of one office; the public office is empty while in any team. */
   peers(view: string): PeerPacket[] {
+    if (this.isOffline()) return [];
     if (view === PUBLIC_VIEW ? this.opts.offices().length > 0 : !this.isJoined(view)) return [];
     const t = this.now();
     const out: PeerPacket[] = [];
@@ -280,6 +284,10 @@ export class PeerNet {
   /** The name a member last announced for a team office. */
   teamName(tag: string): string | undefined {
     return this.names.get(tag);
+  }
+
+  private isOffline(): boolean {
+    return this.opts.offline?.() === true;
   }
 
   private isJoined(tag: string): boolean {
@@ -313,6 +321,7 @@ export class PeerNet {
 
   /** Untrusted datagram: anything off is dropped silently, never throws. */
   private receive(text: string, rinfo: { address: string; port: number }): void {
+    if (this.isOffline()) return; // not even a hello reply: invisible
     const w = parseWire(text);
     if (!w) {
       if (text.startsWith('{"v":1,'))
@@ -431,12 +440,15 @@ export class PeerNet {
     return true;
   }
 
-  /** Drops expired peers, and all public-office state while in a team or of left teams. */
+  /** Drops expired peers, all public-office state while in a team or of left teams,
+   *  and everything while offline. */
   private prune(): void {
     const t = this.now();
     const offices = this.opts.offices();
-    const live = new Set(offices.length ? offices.map((o) => o.tag) : [PUBLIC_VIEW]);
-    if (offices.length) this.hellos.clear();
+    const live = new Set(
+      this.isOffline() ? [] : offices.length ? offices.map((o) => o.tag) : [PUBLIC_VIEW],
+    );
+    if (offices.length || this.isOffline()) this.hellos.clear();
     for (const [id, h] of this.hellos) if (t - h.at > PEER_TTL_MS) this.hellos.delete(id);
     for (const [ch, peers] of this.seen) {
       if (!live.has(ch)) this.seen.delete(ch);

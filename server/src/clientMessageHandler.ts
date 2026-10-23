@@ -32,6 +32,8 @@ export interface AssetCache {
   carpetTiles: string[][][][] | null;
   furniture: LoadedAssets | null;
   defaultLayout: Record<string, unknown> | null;
+  /** Bundled personal-mode default (smaller office); absent in tests that don't need it. */
+  personalLayout?: Record<string, unknown> | null;
 }
 
 export interface ClientMessageContext {
@@ -51,8 +53,9 @@ export interface ClientMessageContext {
   lan?: LanService;
   /** After a successful saveProfile: re-send profileLoaded to every privileged client. */
   onProfileSaved?: () => void;
-  /** After an office change: officesState + a fresh snapshot to every client. */
-  onOfficesChanged?: () => void;
+  /** After an office change: officesState + a fresh snapshot to every client, and
+   *  layoutLoaded first when personal mode was switched on or off (its own layout). */
+  onOfficesChanged?: (layoutChanged: boolean) => void;
   /** GitHub Releases update check/install. Absent in tests. */
   updater?: Updater;
   /** Start at login (lan/autostart.ts). Absent in tests that don't exercise it. */
@@ -94,10 +97,13 @@ export function handleClientMessage(
       break;
 
     case 'saveLayout': {
-      const def = ctx.cache?.defaultLayout;
+      // Saved to the layout of the mode this PC is in now (personal has its own file).
+      const personal = ctx.lan?.personal === true;
+      const def = defaultLayoutFor(ctx.cache, personal);
       const layout = sanitizeLayout(msg.layout, roomColorsOf(def), def);
       if (!layout) console.warn('[Pixel Office] Refused an invalid layout save.');
-      send({ type: layout && writeLayoutToFile(layout) ? 'layoutSaved' : 'layoutSaveRejected' });
+      const ok = layout && writeLayoutToFile(layout, personal);
+      send({ type: ok ? 'layoutSaved' : 'layoutSaveRejected' });
       break;
     }
 
@@ -211,9 +217,10 @@ function handleOfficeChange(
   msg: Record<string, unknown>,
   send: WsSend,
   lan: LanService,
-  onChanged?: () => void,
+  onChanged?: (layoutChanged: boolean) => void,
 ): void {
   let ok = false;
+  const wasPersonal = lan.personal;
   try {
     switch (msg.type) {
       case 'createOffice': {
@@ -239,7 +246,7 @@ function handleOfficeChange(
   } catch (err) {
     console.error('[Pixel Office] Failed to save offices:', err);
   }
-  if (ok) onChanged?.();
+  if (ok) onChanged?.(lan.personal !== wasPersonal);
   else send(officesMessage(lan));
 }
 
@@ -288,6 +295,21 @@ export function snapshotMessage(lan: LanService) {
   } as const;
 }
 
+/** The bundled default of a mode: the small personal office, else the shared one. */
+function defaultLayoutFor(cache: AssetCache | null, personal: boolean) {
+  return (personal ? cache?.personalLayout : cache?.defaultLayout) ?? null;
+}
+
+/** layoutLoaded for the mode this PC is in: its saved layout, else the mode's bundled
+ *  default; rooms normalized (a saved file that fails the checks is sent as is). */
+export function layoutMessage(cache: AssetCache | null, lan?: LanService) {
+  const personal = lan?.personal === true;
+  const def = defaultLayoutFor(cache, personal);
+  const raw = readLayoutFromFile(personal) ?? def;
+  const layout = raw && (sanitizeLayout(raw, roomColorsOf(def), def) ?? raw);
+  return { type: 'layoutLoaded', layout } as const;
+}
+
 function handleWebviewReady(send: WsSend, ctx: ClientMessageContext): void {
   const { cache } = ctx;
 
@@ -331,12 +353,8 @@ function handleWebviewReady(send: WsSend, ctx: ClientMessageContext): void {
   if (ctx.lan) send(profileMessage(ctx.lan, ctx.privileged === true));
   if (ctx.lan && ctx.privileged) send(officesMessage(ctx.lan));
 
-  // 3. Layout last: the webview builds the office once it arrives. Rooms are
-  // normalized here too; a saved file that fails the checks is sent as is.
-  const raw = readLayoutFromFile() ?? cache?.defaultLayout ?? null;
-  const def = cache?.defaultLayout;
-  const layout = raw && (sanitizeLayout(raw, roomColorsOf(def), def) ?? raw);
-  send({ type: 'layoutLoaded', layout });
+  // 3. Layout last: the webview builds the office once it arrives.
+  send(layoutMessage(cache, ctx.lan));
 
   // 4. Agents right away rather than on the next 1 s tick.
   if (ctx.lan && ctx.privileged) send(snapshotMessage(ctx.lan));

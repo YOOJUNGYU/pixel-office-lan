@@ -413,7 +413,7 @@ components:
     OfficesState:
       description: >-
         This PC's team offices (names only, never codes), the office its
-        browser shows (`public` or a tag). Loopback browsers only: on webviewReady and after any office
+        browser shows (`public`, a tag, or `personal` = offline personal mode). Loopback browsers only: on webviewReady and after any office
         change.
       type: object
       additionalProperties: false
@@ -1034,8 +1034,11 @@ components:
 
     SetActiveView:
       description: >-
-        Show `public` (only while in no team office) or a joined office's tag
-        (loopback browser only). Answered with officesState.
+        Show `public` (only while in no team office), a joined office's tag, or
+        `personal` (this PC alone, offline: no datagram in or out, team offices
+        kept; its own smaller layout). Loopback browser only; any other value is
+        refused (officesState re-sent). Switching personal on or off sends
+        layoutLoaded (that mode's layout) before officesState.
       type: object
       additionalProperties: false
       required: [type, view]

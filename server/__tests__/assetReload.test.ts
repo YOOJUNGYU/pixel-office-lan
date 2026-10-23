@@ -22,6 +22,7 @@ vi.mock('../src/assetLoader.js', () => ({
   loadWallTiles: vi.fn((dir: string) => Promise.resolve({ sets: [[`wall:${dir}`]] })),
   loadCarpetTiles: vi.fn((dir: string) => Promise.resolve({ sets: [[`carpet:${dir}`]] })),
   loadDefaultLayout: vi.fn((dir: string) => ({ version: 1, marker: dir })),
+  loadPersonalLayout: vi.fn(() => ({ version: 1, marker: 'personal' })),
   mergeLoadedAssets: vi.fn((a, b) => ({
     catalog: [...a.catalog, ...b.catalog],
     sprites: new Map([...a.sprites, ...b.sprites]),
@@ -100,6 +101,7 @@ describe('assetReload helpers', () => {
     expect(cache.floorTiles).toEqual([['floor:dist']]);
     expect(cache.wallTiles).toEqual([['wall:dist']]);
     expect(cache.carpetTiles).toEqual([['carpet:dist']]);
+    expect(cache.personalLayout).toEqual({ version: 1, marker: 'personal' });
     expect(cache.defaultLayout).toEqual({ version: 1, marker: 'dist' });
   });
 
