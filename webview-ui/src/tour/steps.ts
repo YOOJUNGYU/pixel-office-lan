@@ -36,6 +36,8 @@ export interface Scene {
   people?: boolean;
   /** Room legend open even if the viewer collapsed it. */
   legend?: boolean;
+  /** Name tags shown even if the viewer keeps them hidden. */
+  tags?: boolean;
 }
 
 /** Things a step needs on this screen; steps whose needs are unmet are dropped. */
@@ -91,7 +93,7 @@ export const STEPS: Step[] = [
   { id: 'roomServer', targets: [{ room: 'server' }], scene: { walk: 'server' } },
   { id: 'roomLounge', targets: [{ room: 'lounge' }], scene: { walk: 'lounge' } },
   { id: 'roomLegend', targets: [{ dom: 'room-legend' }], scene: { legend: true } },
-  { id: 'tag', targets: [{ agent: 'tag' }] },
+  { id: 'tag', targets: [{ agent: 'tag' }], scene: { tags: true } },
   {
     id: 'bubble',
     targets: [{ agent: 'bubble' }, { dom: 'hover-bubble' }],
@@ -100,6 +102,7 @@ export const STEPS: Step[] = [
   {
     id: 'family',
     targets: [{ agent: 'child' }],
+    scene: { tags: true },
     requires: ['family'],
   },
   {

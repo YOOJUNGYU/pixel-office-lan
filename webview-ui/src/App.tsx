@@ -35,6 +35,7 @@ import { peopleRows } from './lan/peopleModel.js';
 import { PeoplePanel } from './lan/PeoplePanel.js';
 import { ProfileModal } from './lan/ProfileModal.js';
 import { RoomLegend } from './lan/RoomLegend.js';
+import { readTagsHidden, saveTagsHidden } from './lan/tagVisibility.js';
 import { UpdateBanner } from './lan/UpdateBanner.js';
 import { OfficeCanvas } from './office/components/OfficeCanvas.js';
 import { EditorState } from './office/editor/editorState.js';
@@ -194,6 +195,14 @@ function App() {
     panRef,
     effectiveShowAreas,
   ]);
+
+  const [tagsHidden, setTagsHidden] = useState(readTagsHidden);
+  const toggleTags = useCallback(() => {
+    setTagsHidden((h) => {
+      saveTagsHidden(!h);
+      return !h;
+    });
+  }, []);
 
   const [editorTickForKeyboard, setEditorTickForKeyboard] = useState(0);
   useEditorKeyboard(
@@ -506,6 +515,7 @@ function App() {
           containerRef={containerRef}
           zoom={editor.zoom}
           panRef={editor.panRef}
+          tagsHidden={tagsHidden && scene?.tags !== true}
         />
 
         {!isMobile && <ZoomControls zoom={editor.zoom} onZoomChange={editor.handleZoomChange} />}
@@ -515,6 +525,8 @@ function App() {
             areas={officeState.getLayout().areas}
             isMobile={isMobile}
             forceOpen={scene?.legend === true}
+            tagsHidden={tagsHidden}
+            onToggleTags={toggleTags}
           />
         )}
 

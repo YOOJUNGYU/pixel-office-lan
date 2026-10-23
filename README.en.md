@@ -54,7 +54,7 @@ On the other hand, the original's **agent launching, terminal attach and VS Code
 
 ### Agents move between rooms by what they do
 
-When an agent switches activity, its character walks to the matching room. So that agents switching tools every few seconds don't make the screen hectic, a character only moves once the same activity has lasted 3 seconds. Inside a room nobody wanders: characters sit on a free seat (or stand still when there is none). The **Rooms** legend at the top left (under the zoom buttons, folds away) shows which activity goes to which room.
+When an agent switches activity, its character walks to the matching room. So that agents switching tools every few seconds don't make the screen hectic, a character only moves once the same activity has lasted 3 seconds. Inside a room nobody wanders: characters sit on a free seat (or stand still when there is none). The **Rooms** legend at the top left (under the zoom buttons, folds away) shows which activity goes to which room. Character name tags start hidden and appear when you hover a character; the **Show name tags** button below it keeps them on (remembered per browser).
 
 | Room           | Activity                                                   |
 | -------------- | ---------------------------------------------------------- |

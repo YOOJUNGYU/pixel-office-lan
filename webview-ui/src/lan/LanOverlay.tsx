@@ -32,6 +32,7 @@ import { type Character, CharacterState } from '../office/types.js';
 import { getTheme } from '../theme.js';
 import { type LanAgents, tagBadge, tagLines } from './lanAgents.js';
 import { stackTags, type TagBox } from './tagStack.js';
+import { tagVisible } from './tagVisibility.js';
 
 /** Text widths for tag stacking, measured once per string (cleared when web fonts finish loading). */
 const textWidths = new Map<string, number>();
@@ -88,6 +89,8 @@ interface LanOverlayProps {
   containerRef: RefObject<HTMLDivElement | null>;
   zoom: number;
   panRef: MutableRefObject<{ x: number; y: number }>;
+  /** Name tags hidden (except the hovered/selected character's). */
+  tagsHidden: boolean;
 }
 
 /**
@@ -103,7 +106,14 @@ const badgeColors = (kind: OfficeAgent['kind']) => {
   return { background: c.bg, color: c.fg };
 };
 
-export function LanOverlay({ officeState, lan, containerRef, zoom, panRef }: LanOverlayProps) {
+export function LanOverlay({
+  officeState,
+  lan,
+  containerRef,
+  zoom,
+  panRef,
+  tagsHidden,
+}: LanOverlayProps) {
   const [, setTick] = useState(0);
   useEffect(() => {
     let raf = 0;
@@ -132,7 +142,7 @@ export function LanOverlay({ officeState, lan, containerRef, zoom, panRef }: Lan
   const nodes = [];
   const byKey = new Map(lan.all().map((a) => [a.key, a] as const));
   // Project every tag first, then stack the ones that collide (side-by-side characters).
-  const tags: Array<{ a: OfficeAgent; ch: Character; lines: [string, string] }> = [];
+  const tags: Array<{ a: OfficeAgent; ch: Character; lines: [string, string]; show: boolean }> = [];
   const boxes: TagBox[] = [];
   for (const a of lan.all()) {
     const id = lan.idFor(a.key);
@@ -141,7 +151,12 @@ export function LanOverlay({ officeState, lan, containerRef, zoom, panRef }: Lan
     const lines = tagLines(a, a.parentKey !== undefined ? byKey.get(a.parentKey) : undefined);
     const badge = tagBadge(a);
     const typing = ch.state === CharacterState.TYPE;
-    tags.push({ a, ch, lines });
+    tags.push({
+      a,
+      ch,
+      lines,
+      show: tagVisible(tagsHidden, ch.id, officeState.hoveredAgentId, officeState.selectedAgentId),
+    });
     boxes.push({
       x: project.toScreenX(ch.x),
       y: project.toScreenY(ch.y + (typing ? CHARACTER_SITTING_OFFSET_PX : 0)),
@@ -154,40 +169,49 @@ export function LanOverlay({ officeState, lan, containerRef, zoom, panRef }: Lan
       ),
     });
   }
-  const tops = stackTags(boxes, LAN_TAG_HEIGHT_PX, LAN_TAG_STACK_GAP_PX);
+  // Only visible tags take part in stacking.
+  const shown = boxes.map((_, i) => i).filter((i) => tags[i].show);
+  const stacked = stackTags(
+    shown.map((i) => boxes[i]),
+    LAN_TAG_HEIGHT_PX,
+    LAN_TAG_STACK_GAP_PX,
+  );
+  const tops: number[] = [];
+  shown.forEach((i, k) => (tops[i] = stacked[k]));
   for (let i = 0; i < tags.length; i++) {
     const { a, ch, lines } = tags[i];
     const typing = ch.state === CharacterState.TYPE;
     const x = boxes[i].x;
     const lit = a.peer.id === lan.highlightPeer;
-    nodes.push(
-      <div
-        key={a.key}
-        data-agent-key={a.key}
-        className={`absolute -translate-x-1/2 flex flex-col items-center gap-1 whitespace-nowrap text-sm leading-none px-3 py-1 pointer-events-none ${lit ? 'bg-accent text-on-accent outline-2 outline-accent-bright' : 'bg-bg/75 text-text'}`}
-        style={{
-          left: x,
-          top: tops[i],
-          zIndex: lit ? LAN_PERMISSION_Z_INDEX : LAN_TAG_Z_INDEX,
-        }}
-      >
-        <span>{lines[0]}</span>
-        <span className="flex items-center gap-4">
-          <span
-            className="w-6 h-6 shrink-0"
-            style={{ background: LAN_PROVIDER_COLORS[a.provider] }}
-          />
-          {lines[1]}
-          <span
-            data-badge={a.kind}
-            className="shrink-0 px-2 text-2xs font-bold leading-none"
-            style={badgeColors(a.kind)}
-          >
-            {tagBadge(a)}
+    if (tags[i].show)
+      nodes.push(
+        <div
+          key={a.key}
+          data-agent-key={a.key}
+          className={`absolute -translate-x-1/2 flex flex-col items-center gap-1 whitespace-nowrap text-sm leading-none px-3 py-1 pointer-events-none ${lit ? 'bg-accent text-on-accent outline-2 outline-accent-bright' : 'bg-bg/75 text-text'}`}
+          style={{
+            left: x,
+            top: tops[i],
+            zIndex: lit ? LAN_PERMISSION_Z_INDEX : LAN_TAG_Z_INDEX,
+          }}
+        >
+          <span>{lines[0]}</span>
+          <span className="flex items-center gap-4">
+            <span
+              className="w-6 h-6 shrink-0"
+              style={{ background: LAN_PROVIDER_COLORS[a.provider] }}
+            />
+            {lines[1]}
+            <span
+              data-badge={a.kind}
+              className="shrink-0 px-2 text-2xs font-bold leading-none"
+              style={badgeColors(a.kind)}
+            >
+              {tagBadge(a)}
+            </span>
           </span>
-        </span>
-      </div>,
-    );
+        </div>,
+      );
     if (a.permission) {
       nodes.push(
         <div

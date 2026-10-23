@@ -413,6 +413,8 @@ export const VERSION_RELOAD_KEY = 'pixel-office.reloadedFor';
 /** localStorage: '1' = open, '0' = collapsed (per viewer); unset = open on a wide screen. */
 export const ROOM_LEGEND_KEY = 'pixel-office.roomLegend';
 /** Below the zoom buttons (desktop) / the Settings button (mobile), CSS px. */
+/** localStorage: '0' = name tags always shown (per viewer); unset or '1' = hidden (hover shows one). */
+export const TAGS_HIDDEN_KEY = 'pixel-office.tagsHidden';
 export const ROOM_LEGEND_TOP_PX = 100;
 export const ROOM_LEGEND_MOBILE_TOP_PX = 56;
 
