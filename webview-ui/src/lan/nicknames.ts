@@ -14,6 +14,10 @@ interface Named {
 
 export { peerLabel };
 
+/** An avatar's name tag: the nickname alone when set (tie-broken), else the account. */
+export const avatarLabel = (p: { account: string; nickname: string }): string =>
+  p.nickname || p.account;
+
 const suffix = (s: string, peerId: string): string => `${s} · ${peerId.slice(0, SHORT_PEER_ID)}`;
 
 /** Who keeps a clashing nickname: set earliest (unknown = last), then the smaller peerId. */

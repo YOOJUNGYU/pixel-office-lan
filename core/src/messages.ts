@@ -52,6 +52,7 @@ export type ClientMessage =
   | GetOfficeCode
   | SendChat
   | DeleteChat
+  | MoveAvatar
   | SetNotifications;
 
 export interface LayoutLoaded {
@@ -226,14 +227,21 @@ export interface OfficePersonMessage {
   pet?: PetId;
   self: boolean;
   chat?: ChatMessage;
+  avatar?: AvatarMessage;
 }
 
 export interface ChatMessage {
   id: string;
   text: string;
+}
+
+export interface AvatarMessage {
   col: number;
   row: number;
+  dir: AvatarDir;
 }
+
+export type AvatarDir = 'down' | 'up' | 'left' | 'right';
 
 export interface ProfileLoaded {
   type: 'profileLoaded';
@@ -400,12 +408,17 @@ export interface GetOfficeCode {
 export interface SendChat {
   type: 'sendChat';
   text: string;
-  col: number;
-  row: number;
 }
 
 export interface DeleteChat {
   type: 'deleteChat';
+}
+
+export interface MoveAvatar {
+  type: 'moveAvatar';
+  col: number;
+  row: number;
+  dir: AvatarDir;
 }
 
 export interface SetNotifications {

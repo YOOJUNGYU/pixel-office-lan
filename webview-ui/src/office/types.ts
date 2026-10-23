@@ -259,6 +259,12 @@ export interface Character {
   /** Leader (its parent) this child walks beside, hand in hand; never sits. */
   followId?: number;
 
+  // -- Avatars --
+  /** A person's avatar (their peerId), not an agent: never seated, never hit-tested. */
+  avatarOf?: string;
+  /** Facing to take when the current walk ends (remote avatars). */
+  restDir?: Direction;
+
   // -- Agent Teams --
   /** Team name this agent belongs to */
   teamName?: string;

@@ -3,6 +3,7 @@ import { randomBytes } from 'crypto';
 
 import type {
   AgentView,
+  AvatarPos,
   OfficeAgent,
   PeerChat,
   PeerInfo,
@@ -12,6 +13,7 @@ import {
   CHAT_ID_LENGTH,
   CHAT_MIN_INTERVAL_MS,
   nicknameKey,
+  parseAvatar,
   parseChat,
   PERSONAL_VIEW,
   PUBLIC_VIEW,
@@ -21,7 +23,13 @@ import type {
   OfficeErrorReason,
   OfficePersonMessage,
 } from '../../../core/src/messages.js';
-import { MAX_OFFICES, PING_APP, PING_TIMEOUT_MS } from '../constants.js';
+import {
+  AVATAR_SAVE_DELAY_MS,
+  AVATAR_SEND_DELAY_MS,
+  MAX_OFFICES,
+  PING_APP,
+  PING_TIMEOUT_MS,
+} from '../constants.js';
 import { inviteText, newInviteCode, parseInviteCode, teamKey } from './crypto.js';
 import type { TeamChannel } from './peerNet.js';
 import { fitPacket } from './peerNet.js';
@@ -52,14 +60,9 @@ export function buildOffice(
   return [...toAgents(self, local), ...peers.flatMap((p) => toAgents(p.peer, p.views))];
 }
 
-const toChatMessage = (c: PeerChat): ChatMessage => ({
-  id: c.id,
-  text: c.text,
-  col: c.col,
-  row: c.row,
-});
+const toChatMessage = (c: PeerChat): ChatMessage => ({ id: c.id, text: c.text });
 
-const toPeerChat = ({ id, text, ts, col, row }: PeerChat): PeerChat => ({ id, text, ts, col, row });
+const toPeerChat = ({ id, text, ts }: PeerChat): PeerChat => ({ id, text, ts });
 
 /** True when a Pixel Office already answers on this port. */
 export async function checkExisting(port: number): Promise<boolean> {
@@ -93,6 +96,11 @@ export class LanService {
   readonly account = osAccount();
   /** When this PC last sent a chat (rate limit; deleting doesn't reset it). */
   private lastChatAt = -Infinity;
+  /** Pending coalesced presence send / profile write after avatar moves. */
+  private moveSend: NodeJS.Timeout | null = null;
+  private moveSave: NodeJS.Timeout | null = null;
+  /** A peer's avatar moved (PeerNet); the UI server pushes a snapshot. */
+  peerMoved: () => void = () => {};
 
   constructor(
     public profile: Profile,
@@ -133,20 +141,56 @@ export class LanService {
       views = [];
     }
     const chat = this.ownChat(channel);
-    return fitPacket({ v: 1, peer: this.self(), views, ...(chat && { chat }) });
+    const avatar = this.ownAvatar(channel);
+    return fitPacket({
+      v: 1,
+      peer: this.self(),
+      views,
+      ...(chat && { chat }),
+      ...(avatar && { avatar }),
+    });
   }
 
-  /** Pin `text` at map spot (col, row) in the active view, replacing this PC's
-   *  previous bubble (saved in profile.json). null = refused (empty, bad spot, or
-   *  less than CHAT_MIN_INTERVAL_MS after the last one). */
-  sendChat(text: unknown, col: unknown, row: unknown, now = Date.now()): PeerChat | null {
+  /** My avatar in `view`'s layout (personal has its own). */
+  private ownAvatar(view: string): AvatarPos | undefined {
+    const a = this.profile.avatar?.[view === PERSONAL_VIEW ? 'personal' : 'office'];
+    return a && { ...a };
+  }
+
+  /** My avatar moved in the active view's layout (strictly validated). Peers hear
+   *  it within AVATAR_SEND_DELAY_MS (coalesced), the file within AVATAR_SAVE_DELAY_MS. */
+  moveAvatar(raw: unknown): boolean {
+    const pos = parseAvatar(raw, true);
+    if (!pos) return false;
+    const key = this.personal ? 'personal' : 'office';
+    this.profile = { ...this.profile, avatar: { ...this.profile.avatar, [key]: pos } };
+    this.moveSend ??= setTimeout(() => {
+      this.moveSend = null;
+      this.net.sendNow();
+    }, AVATAR_SEND_DELAY_MS).unref();
+    // ponytail: a move in the last AVATAR_SAVE_DELAY_MS before a crash is lost; fine for a position.
+    this.moveSave ??= setTimeout(() => {
+      this.moveSave = null;
+      try {
+        saveProfile(this.profile, this.dir);
+      } catch (err) {
+        console.error('[Pixel Office] Failed to write profile:', err);
+      }
+    }, AVATAR_SAVE_DELAY_MS).unref();
+    return true;
+  }
+
+  /** Say `text` as my avatar in the active view, replacing this PC's previous
+   *  bubble (saved in profile.json). null = refused (empty, or less than
+   *  CHAT_MIN_INTERVAL_MS after the last one). */
+  sendChat(text: unknown, now = Date.now()): PeerChat | null {
     if (now - this.lastChatAt < CHAT_MIN_INTERVAL_MS) return null;
     const id = randomBytes(CHAT_ID_LENGTH)
       .toString('base64')
       .replace(/[^0-9a-z]/gi, '')
       .padEnd(CHAT_ID_LENGTH, '0')
       .slice(0, CHAT_ID_LENGTH);
-    const chat = parseChat({ id, text, ts: now, col, row });
+    const chat = parseChat({ id, text, ts: now });
     if (!chat) return null;
     this.lastChatAt = now;
     this.update({ chat: { ...chat, view: this.profile.activeView } });
@@ -188,8 +232,11 @@ export class LanService {
   /** Everyone in one office (this PC first, then live peers, agents or not); same gate as office(). */
   people(view: string): OfficePersonMessage[] {
     if (!this.isOpen(view)) return [];
-    const rows = [{ peer: this.self(), chat: this.ownChat(view) }, ...this.peersIn(view)];
-    return rows.map(({ peer: p, chat }, i) => ({
+    const rows = [
+      { peer: this.self(), chat: this.ownChat(view), avatar: this.ownAvatar(view) },
+      ...this.peersIn(view),
+    ];
+    return rows.map(({ peer: p, chat, avatar }, i) => ({
       peerId: p.id,
       account: p.account,
       nickname: p.nickname,
@@ -199,6 +246,7 @@ export class LanService {
       ...(p.pet && { pet: p.pet }),
       self: i === 0,
       ...(chat && { chat: toChatMessage(chat) }),
+      ...(avatar && { avatar: { ...avatar } }),
     }));
   }
 

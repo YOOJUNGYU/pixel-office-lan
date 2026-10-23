@@ -200,6 +200,10 @@ export const MAX_WARN_KEYS = 256;
 export const SEQ_MEMORY_MS = 10 * 60_000;
 export const MAX_OFFICES = 10;
 export const MAX_OFFICE_NAME = 20;
+/** Avatar moves: presence to peers (and snapshots of peers' moves to the UI) coalesce to ≤ 5 per second. */
+export const AVATAR_SEND_DELAY_MS = 200;
+/** Avatar moves are written to profile.json at most this often. */
+export const AVATAR_SAVE_DELAY_MS = 2_000;
 
 // ── App window (lan/appWindow.ts) ──────────────────────────
 /** Chromium web app id length: first 16 bytes of the (double) SHA-256, as letters a-p. */

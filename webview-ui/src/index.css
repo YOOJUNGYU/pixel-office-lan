@@ -57,6 +57,11 @@
   /* Non-utility values */
   --vignette: radial-gradient(ellipse at center, transparent 50%, rgba(0, 0, 0, 0.6) 100%);
   --btn-disabled-opacity: 0.35;
+  /* Avatar name tags (people, not agents): others teal, mine gold. */
+  --avatar-tag-bg: rgba(18, 112, 104, 0.92);
+  --avatar-tag-fg: #ffffff;
+  --avatar-tag-self-bg: #f0b429;
+  --avatar-tag-self-fg: #1e1e2e;
 }
 
 /* Light theme (Settings → 테마 / Theme, or the top-left toggle): near-white
@@ -96,6 +101,10 @@
   --tour-dim: rgba(28, 24, 44, 0.5);
 
   --vignette: radial-gradient(ellipse at center, transparent 60%, rgba(40, 44, 70, 0.08) 100%);
+  --avatar-tag-bg: #0f7a70;
+  --avatar-tag-fg: #ffffff;
+  --avatar-tag-self-bg: #ffcf4d;
+  --avatar-tag-self-fg: #2a1d00;
 }
 
 @theme inline {

@@ -178,6 +178,7 @@ export function updateCharacter(
         } else {
           // Not at its seat (yet): IDLE heads there next tick, or stands / types in place.
           ch.state = CharacterState.IDLE;
+          if (ch.restDir !== undefined) ch.dir = ch.restDir;
         }
         ch.frame = 0;
         ch.frameTimer = 0;
@@ -230,6 +231,14 @@ export function updateCharacter(
       break;
     }
   }
+}
+
+/** The tile one step from (col,row) in `dir`. */
+export function stepTile(col: number, row: number, dir: Direction): { col: number; row: number } {
+  if (dir === Direction.UP) return { col, row: row - 1 };
+  if (dir === Direction.DOWN) return { col, row: row + 1 };
+  if (dir === Direction.LEFT) return { col: col - 1, row };
+  return { col: col + 1, row };
 }
 
 /** Get the correct sprite frame for a character's current state and direction */

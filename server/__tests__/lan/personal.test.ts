@@ -151,7 +151,7 @@ describe('personal mode', () => {
 
   it('chat in personal mode stays on this PC (its own view, never on another channel)', () => {
     lan.setActiveView(PERSONAL_VIEW);
-    expect(lan.sendChat('hi', 1, 1)).not.toBeNull();
+    expect(lan.sendChat('hi')).not.toBeNull();
     expect(snapshotMessage(lan).people[0].chat?.text).toBe('hi');
     expect(lan.packet(PUBLIC_VIEW).chat).toBeUndefined();
   });

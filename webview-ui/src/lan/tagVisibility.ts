@@ -16,10 +16,12 @@ export function saveTagsHidden(hidden: boolean): void {
   }
 }
 
-/** Hidden tags still show for the hovered and the selected character. */
+/** The toggle hides agents' tags only (avatar tags always show); a hidden tag
+ *  still shows for the hovered and the selected character. */
 export const tagVisible = (
   hidden: boolean,
   id: number,
   hoveredId: number | null,
   selectedId: number | null,
-): boolean => !hidden || id === hoveredId || id === selectedId;
+  avatar = false,
+): boolean => avatar || !hidden || id === hoveredId || id === selectedId;

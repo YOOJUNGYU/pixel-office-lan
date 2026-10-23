@@ -22,8 +22,6 @@ const chat = (o: Partial<PeerChat> = {}): PeerChat => ({
   id: 'abcd1234',
   text: 'hi',
   ts: 1,
-  col: 3,
-  row: 4.5,
   ...o,
 });
 const pkt = (id: string, c?: PeerChat): PeerPacket => ({
@@ -41,25 +39,22 @@ describe('chat validation', () => {
     expect(cleanChatText(5)).toBeNull();
   });
 
-  it('parseChat: id 8 alnum, safe ts, finite col/row clamped to the 128 grid', () => {
+  it('parseChat: id 8 alnum, safe ts; a pre-avatar col/row is ignored', () => {
     expect(parseChat(chat())).toEqual(chat());
-    expect(parseChat(chat({ col: -5, row: 999 }))).toMatchObject({ col: 0, row: 127 });
+    expect(parseChat({ ...chat(), col: 3, row: 'x' })).toEqual(chat());
     for (const bad of [
       { id: 'short' },
       { id: 'abcd123!' },
       { text: '\u0007' },
       { ts: -1 },
       { ts: 1.5 },
-      { col: Number.NaN },
-      { row: Infinity },
-      { col: '3' },
     ])
       expect(parseChat(chat(bad as Partial<PeerChat>))).toBeNull();
   });
 
   it('parsePeerPacket keeps a valid chat, drops a bad one (the packet still parses)', () => {
     expect(parsePeerPacket(JSON.stringify(pkt('p', chat())))?.chat).toEqual(chat());
-    const bad = parsePeerPacket(JSON.stringify(pkt('p', chat({ col: 'x' as never }))));
+    const bad = parsePeerPacket(JSON.stringify(pkt('p', chat({ ts: 'x' as never }))));
     expect(bad).not.toBeNull();
     expect(bad).not.toHaveProperty('chat');
   });
@@ -93,35 +88,34 @@ describe('LanService chat', () => {
 
   it('sendChat: sanitised, sent at once, no expiry; one per 2 s; a new one replaces the old', () => {
     const { lan, sendNow } = mk();
-    const c = lan.sendChat(' hi‮ ', 2, 3, 1000)!;
-    expect(c).toMatchObject({ text: 'hi', col: 2, row: 3, ts: 1000 });
+    const c = lan.sendChat(' hi‮ ', 1000)!;
+    expect(c).toEqual({ id: c.id, text: 'hi', ts: 1000 });
     expect(c.id).toMatch(/^[0-9a-z]{8}$/i);
     expect(sendNow).toHaveBeenCalledOnce();
     expect(lan.packet(PUBLIC_VIEW).chat).toEqual(c);
-    expect(lan.sendChat('again', 0, 0, 2999)).toBeNull();
-    expect(lan.sendChat('', 0, 0, 20_000)).toBeNull();
-    expect(lan.sendChat('x', Number.NaN, 0, 20_000)).toBeNull();
+    expect(lan.sendChat('again', 2999)).toBeNull();
+    expect(lan.sendChat('', 20_000)).toBeNull();
     expect(lan.packet(PUBLIC_VIEW).chat).toEqual(c); // refused ones change nothing, still there
-    const d = lan.sendChat('moved', 7, 8, 3000)!;
+    const d = lan.sendChat('moved', 3000)!;
     expect(d.id).not.toBe(c.id);
     expect(lan.packet(PUBLIC_VIEW).chat).toEqual(d);
-    expect(lan.people(PUBLIC_VIEW)[0].chat).toEqual({ id: d.id, text: 'moved', col: 7, row: 8 });
+    expect(lan.people(PUBLIC_VIEW)[0].chat).toEqual({ id: d.id, text: 'moved' });
   });
 
   it('deleteChat clears my bubble (persisted); the rate limit is not reset by it', () => {
     const { lan, sendNow } = mk();
-    lan.sendChat('bye', 1, 1, 0);
+    lan.sendChat('bye', 0);
     lan.deleteChat();
     expect(sendNow).toHaveBeenCalledTimes(2);
     expect(lan.packet()).not.toHaveProperty('chat');
     expect(lan.people(PUBLIC_VIEW)[0]).not.toHaveProperty('chat');
     expect(loadProfile(dir)).not.toHaveProperty('chat');
-    expect(lan.sendChat('spam', 1, 1, 1000)).toBeNull();
+    expect(lan.sendChat('spam', 1000)).toBeNull();
   });
 
   it('persisted in profile.json; loaded back; malformed or a gone view is dropped', () => {
     const { lan } = mk();
-    const c = lan.sendChat('stay', 4, 5, 0)!;
+    const c = lan.sendChat('stay', 0)!;
     expect(loadProfile(dir).chat).toEqual({ ...c, view: PUBLIC_VIEW });
     const again = new LanService(loadProfile(dir), { views: () => [] }, dir);
     expect(again.packet().chat).toEqual(c);
@@ -140,7 +134,7 @@ describe('LanService chat', () => {
     lan.createOffice('팀2'); // active view is now the second team
     const other = lan.profile.activeView;
     lan.setActiveView(tag);
-    lan.sendChat('team only', 0, 0, 0);
+    lan.sendChat('team only', 0);
     expect(lan.packet(tag).chat?.text).toBe('team only');
     expect(lan.packet(other)).not.toHaveProperty('chat');
     expect(lan.packet(PUBLIC_VIEW)).not.toHaveProperty('chat');
@@ -153,7 +147,7 @@ describe('LanService chat', () => {
 
   it('a public chat is dropped when joining a team', () => {
     const { lan } = mk();
-    lan.sendChat('hi', 1, 1, 0);
+    lan.sendChat('hi', 0);
     lan.createOffice('팀');
     expect(lan.profile).not.toHaveProperty('chat');
     expect(lan.packet(PUBLIC_VIEW)).not.toHaveProperty('chat');
@@ -163,7 +157,7 @@ describe('LanService chat', () => {
     const peers: Record<string, PeerPacket[]> = { [PUBLIC_VIEW]: [pkt('p', chat())] };
     const { lan } = mk(peers);
     const row = () => lan.people(PUBLIC_VIEW).find((p) => p.peerId === 'p');
-    expect(row()?.chat).toEqual({ id: 'abcd1234', text: 'hi', col: 3, row: 4.5 });
+    expect(row()?.chat).toEqual({ id: 'abcd1234', text: 'hi' });
     peers[PUBLIC_VIEW] = [pkt('p', chat({ id: 'next0001', text: 'new' }))];
     expect(row()?.chat).toMatchObject({ id: 'next0001', text: 'new' });
     peers[PUBLIC_VIEW] = [pkt('p')];
@@ -186,7 +180,7 @@ describe('LanService chat', () => {
     const adapter = new FileStateAdapter();
     const sent: Array<Record<string, unknown>> = [];
     const send = (m: Record<string, unknown>) => sent.push(m);
-    const say = { type: 'sendChat', text: 'hey', col: 1, row: 2 };
+    const say = { type: 'sendChat', text: 'hey' };
     handleClientMessage(say, send, { adapter, cache: null, lan, privileged: false });
     expect(lan.packet()).not.toHaveProperty('chat');
     handleClientMessage(say, send, { adapter, cache: null, lan, privileged: true });

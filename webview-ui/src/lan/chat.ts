@@ -1,26 +1,12 @@
-// Chat bubbles pinned to map spots: one per person, from the office snapshot. Pure.
-import {
-  CHAT_MIN_INTERVAL_MS,
-  chatCoord,
-  cleanChatText,
-  MAX_LAYOUT_COLS,
-  MAX_LAYOUT_ROWS,
-} from '../../../core/src/lan.js';
+// Chat bubbles above each person's avatar: one per person, from the office snapshot. Pure.
+import { CHAT_MIN_INTERVAL_MS, cleanChatText } from '../../../core/src/lan.js';
 import type { OfficePersonMessage } from '../../../core/src/messages.js';
-import type { OverlayProjection } from '../office/projection.js';
-import { TILE_SIZE } from '../office/types.js';
-import { peerLabel } from './nicknames.js';
 
 export interface Bubble {
   peerId: string;
   /** The sender's chat id: a new id = a new bubble. */
   id: string;
   text: string;
-  /** Sender label, `account (nickname)`. */
-  label: string;
-  /** World tile coordinates (floats). */
-  col: number;
-  row: number;
   /** My own bubble (gets the delete button). */
   self: boolean;
 }
@@ -40,10 +26,8 @@ export class ChatBubbles {
       const c = p.chat;
       if (!c) continue;
       const text = cleanChatText(c.text);
-      const col = chatCoord(c.col, MAX_LAYOUT_COLS - 1);
-      const row = chatCoord(c.row, MAX_LAYOUT_ROWS - 1);
-      if (text === null || col === null || row === null || typeof c.id !== 'string') continue;
-      next.push({ peerId: p.peerId, id: c.id, text, label: peerLabel(p), col, row, self: p.self });
+      if (text === null || typeof c.id !== 'string') continue;
+      next.push({ peerId: p.peerId, id: c.id, text, self: p.self });
     }
     this.list = next;
   }
@@ -59,20 +43,11 @@ export class ChatBubbles {
   active(): Bubble[] {
     return this.list;
   }
-}
 
-/** The tile under a container point (CSS px), clamped to the layout grid. */
-export function pointerTile(
-  p: OverlayProjection,
-  x: number,
-  y: number,
-  layout: { cols: number; rows: number },
-): { col: number; row: number } {
-  const clamp = (v: number, max: number) => Math.min(Math.max(v, 0), max);
-  return {
-    col: clamp(p.toWorldX(x) / TILE_SIZE, layout.cols),
-    row: clamp(p.toWorldY(y) / TILE_SIZE, layout.rows),
-  };
+  /** My current bubble, if any. */
+  mine(): Bubble | undefined {
+    return this.list.find((b) => b.self);
+  }
 }
 
 /** Lines `text` wraps into at `max` px: greedy by words, an over-long word broken anywhere
@@ -137,7 +112,7 @@ export function stackBubbles(boxes: readonly BubbleBox[], gap: number): number[]
   return out;
 }
 
-/** Focus is in something that takes typing (then "/" is just a character). */
+/** Focus is in something that takes typing (then arrows/Enter are the field's). */
 export const isTextEntry = (el: { tagName: string; isContentEditable?: boolean } | null): boolean =>
   !!el &&
   (el.tagName === 'INPUT' ||

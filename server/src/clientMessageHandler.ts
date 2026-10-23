@@ -189,9 +189,13 @@ export function handleClientMessage(
     case 'sendChat':
     case 'deleteChat':
       if (!ctx.lan) break;
-      if (msg.type === 'sendChat') ctx.lan.sendChat(msg.text, msg.col, msg.row);
+      if (msg.type === 'sendChat') ctx.lan.sendChat(msg.text);
       else ctx.lan.deleteChat();
       send(snapshotMessage(ctx.lan)); // my bubble changes now, not on the next tick
+      break;
+
+    case 'moveAvatar':
+      ctx.lan?.moveAvatar(msg); // no answer: the page moved it already
       break;
 
     case 'getOfficeCode': {

@@ -28,6 +28,7 @@ import { useEditorKeyboard } from './hooks/useEditorKeyboard.js';
 import { useExtensionMessages } from './hooks/useExtensionMessages.js';
 import { useIsMobile } from './hooks/useIsMobile.js';
 import { t, useLang } from './i18n.js';
+import { useAvatarKeys } from './lan/avatarKeys.js';
 import { ChatLayer } from './lan/ChatLayer.js';
 import { InstallPrompt } from './lan/InstallPrompt.js';
 import { LanOverlay } from './lan/LanOverlay.js';
@@ -355,6 +356,13 @@ function App() {
   }, [tourCanAutostart, startTour]);
 
   const touring = step !== null;
+
+  // My avatar and the chat bar: only in an office this PC is live in (I am in its
+  // snapshot), never while editing, touring or read-only.
+  const avatarControls =
+    !editor.isEditMode && !touring && !officeReadOnly && people.some((p) => p.self);
+  useAvatarKeys(officeState, avatarControls);
+  const canChat = avatarControls && !isMobile;
   const walk = scene?.walk ?? 'lounge';
   useEffect(() => {
     lan.setDemo(
@@ -549,22 +557,16 @@ function App() {
 
         <ChatLayer
           officeState={officeState}
+          lan={lan}
           chats={chats}
           containerRef={containerRef}
           zoom={editor.zoom}
           panRef={editor.panRef}
-          // Only in an office this PC is live in (I am in its snapshot): a chat goes nowhere else.
-          canType={
-            !editor.isEditMode &&
-            !touring &&
-            !officeReadOnly &&
-            !isMobile &&
-            people.some((p) => p.self)
-          }
-          onSend={(text, col, row) => {
+          canType={canChat}
+          onSend={(text) => {
             const said = chats.say(text, Date.now());
             if (said === null) return false;
-            transport.send({ type: 'sendChat', text: said, col, row });
+            transport.send({ type: 'sendChat', text: said });
             return true;
           }}
           onDelete={() => transport.send({ type: 'deleteChat' })}

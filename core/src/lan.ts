@@ -164,7 +164,7 @@ export interface PeerInfo {
   /** Pet character instead of the `palette` human; absent = human. Unknown ids are dropped. */
   pet?: PetId;
 }
-/** This PC's chat bubble pinned to a map spot, in every presence of its channel until replaced or deleted. */
+/** This PC's chat bubble (shown above its avatar), in every presence of its channel until replaced or deleted. */
 export interface PeerChat {
   /** Random CHAT_ID_LENGTH chars; a new id = a new bubble. */
   id: string;
@@ -172,9 +172,15 @@ export interface PeerChat {
   text: string;
   /** Sender's send time (ms epoch). */
   ts: number;
-  /** World tile coordinates of the spot (floats, 0..MAX_LAYOUT_COLS-1 / ROWS-1). */
+}
+/** Which way an avatar faces. */
+export const AVATAR_DIRS = ['down', 'up', 'left', 'right'] as const;
+export type AvatarDir = (typeof AVATAR_DIRS)[number];
+/** A person's avatar: a tile of the sender's own layout (integers, 0..MAX_LAYOUT_COLS-1 / ROWS-1) and facing. */
+export interface AvatarPos {
   col: number;
   row: number;
+  dir: AvatarDir;
 }
 export interface PeerPacket {
   v: 1;
@@ -182,6 +188,8 @@ export interface PeerPacket {
   views: AgentView[];
   /** Absent = not chatting. Older peers ignore it. */
   chat?: PeerChat;
+  /** Where this PC's avatar stands; absent = not placed yet (receivers pick a spot). */
+  avatar?: AvatarPos;
 }
 /** key=`${peer.id}:${id}` */
 export interface OfficeAgent extends AgentView {
@@ -256,22 +264,35 @@ export function cleanChatText(x: unknown): string | null {
   return s === '' ? null : s;
 }
 
-/** A finite number clamped into 0..max (the shared layout grid), else null. */
-export function chatCoord(x: unknown, max: number): number | null {
-  return typeof x === 'number' && Number.isFinite(x) ? Math.min(Math.max(x, 0), max) : null;
-}
-
-/** Untrusted chat → a fresh PeerChat, else null. */
+/** Untrusted chat → a fresh PeerChat, else null. Pre-avatar senders' `col`/`row` are ignored. */
 export function parseChat(raw: unknown): PeerChat | null {
   if (!isObj(raw)) return null;
   const text = cleanChatText(raw.text);
-  const col = chatCoord(raw.col, MAX_LAYOUT_COLS - 1);
-  const row = chatCoord(raw.row, MAX_LAYOUT_ROWS - 1);
   const { id, ts } = raw;
   if (typeof id !== 'string' || !CHAT_ID.test(id) || text === null) return null;
   if (typeof ts !== 'number' || !Number.isSafeInteger(ts) || ts < 0) return null;
-  if (col === null || row === null) return null;
-  return { id, text, ts, col, row };
+  return { id, text, ts };
+}
+
+export const isAvatarDir = (x: unknown): x is AvatarDir =>
+  (AVATAR_DIRS as readonly unknown[]).includes(x);
+
+/**
+ * Untrusted avatar → a fresh AvatarPos, else null. `strict` (this PC's own
+ * `moveAvatar`): integer tiles within the grid limits. Otherwise (peers, saved
+ * file): finite numbers rounded and clamped into the grid limits.
+ */
+export function parseAvatar(raw: unknown, strict = false): AvatarPos | null {
+  if (!isObj(raw) || !isAvatarDir(raw.dir)) return null;
+  const tile = (x: unknown, max: number): number | null =>
+    strict
+      ? int(x, 0, max)
+      : typeof x === 'number' && Number.isFinite(x)
+        ? Math.min(Math.max(Math.round(x), 0), max)
+        : null;
+  const col = tile(raw.col, MAX_LAYOUT_COLS - 1);
+  const row = tile(raw.row, MAX_LAYOUT_ROWS - 1);
+  return col === null || row === null ? null : { col, row, dir: raw.dir };
 }
 
 /** The office everyone on the LAN shares; any other view is a team office tag. */
@@ -361,7 +382,8 @@ export function parsePeerPacket(text: string): PeerPacket | null {
       peer.nickSince = since;
     }
     const chat = parseChat(raw.chat);
-    return { v: 1, peer, views, ...(chat && { chat }) };
+    const avatar = parseAvatar(raw.avatar);
+    return { v: 1, peer, views, ...(chat && { chat }), ...(avatar && { avatar }) };
   } catch {
     return null;
   }

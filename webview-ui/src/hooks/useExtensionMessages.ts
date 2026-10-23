@@ -18,7 +18,7 @@ import type {
 } from '../../../core/src/messages.js';
 import { LAN_READING_TOOLS } from '../constants.js';
 import { ChatBubbles } from '../lan/chat.js';
-import { LanAgents } from '../lan/lanAgents.js';
+import { avatarDirName, LanAgents } from '../lan/lanAgents.js';
 import { disambiguate } from '../lan/nicknames.js';
 import { setSoundEnabled } from '../notificationSound.js';
 import { requestRender } from '../office/engine/gameLoop.js';
@@ -30,7 +30,7 @@ import { setCarpetSprites } from '../office/sprites/carpetTiles.js';
 import { setPetTemplates } from '../office/sprites/petSpriteData.js';
 import { setCharacterTemplates } from '../office/sprites/spriteData.js';
 import { setProviderCapabilities } from '../office/toolUtils.js';
-import type { OfficeLayout } from '../office/types.js';
+import type { Direction, OfficeLayout } from '../office/types.js';
 import { setWallSprites } from '../office/wallTiles.js';
 import { reloadIfNewVersion } from '../pwa.js';
 import { transport } from '../transport/index.js';
@@ -154,7 +154,10 @@ export function useExtensionMessages(
   chatsRef.current ??= new ChatBubbles();
   const chats = chatsRef.current;
   /** Snapshots can arrive before layoutLoaded: hold the latest until then. */
-  const pendingAgentsRef = useRef<OfficeAgent[] | null>(null);
+  const pendingAgentsRef = useRef<{
+    agents: OfficeAgent[];
+    people: OfficePersonMessage[];
+  } | null>(null);
 
   // Track whether initial layout has been loaded (ref to avoid re-render)
   const layoutReadyRef = useRef(false);
@@ -163,8 +166,9 @@ export function useExtensionMessages(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handler = (msg: any) => {
       const os = getOfficeState();
-      const applyAgents = (agents: OfficeAgent[]) => {
+      const applyAgents = (agents: OfficeAgent[], people: OfficePersonMessage[]) => {
         lan.apply(agents);
+        lan.applyPeople(people);
         setLanVersion((v) => v + 1);
       };
 
@@ -185,10 +189,11 @@ export function useExtensionMessages(
           ? migrateLayoutColors(msg.layout as unknown as OfficeLayout)
           : null;
         if (layout) os.rebuildFromLayout(layout);
+        lan.resetSelfAvatar(); // its spot belongs to this layout: take it from the next snapshot
         layoutReadyRef.current = true;
         setLayoutReady(true);
         if (pendingAgentsRef.current) {
-          applyAgents(pendingAgentsRef.current);
+          applyAgents(pendingAgentsRef.current.agents, pendingAgentsRef.current.people);
           pendingAgentsRef.current = null;
         }
       } else if (msg.type === 'officeSnapshot') {
@@ -197,8 +202,8 @@ export function useExtensionMessages(
         setPeople(snap.people);
         chats.apply(snap.people);
         setNicknames({ taken: snap.taken, selfLost: snap.selfLost });
-        if (layoutReadyRef.current) applyAgents(agents);
-        else pendingAgentsRef.current = agents;
+        if (layoutReadyRef.current) applyAgents(agents, snap.people);
+        else pendingAgentsRef.current = { agents, people: snap.people };
       } else if (msg.type === 'profileLoaded') {
         const { profile, canEdit, account, firstRun } = msg as ProfileLoaded;
         setProfile({ profile, canEdit, account, firstRun });
@@ -292,6 +297,11 @@ export function useExtensionMessages(
       }
     };
     setProviderCapabilities({ readingTools: LAN_READING_TOOLS, subagentToolNames: [] });
+    // My avatar's moves (arrow keys, first placement) go to the server, which tells peers.
+    const sendMove = (col: number, row: number, dir: Direction) =>
+      transport.send({ type: 'moveAvatar', col, row, dir: avatarDirName(dir) });
+    getOfficeState().onAvatarMove = sendMove;
+    lan.onSelfPlaced = sendMove;
     const unsubscribe = transport.onMessage((msg) => {
       handler(msg);
       requestRender('message'); // whatever it changed shows on the next frame

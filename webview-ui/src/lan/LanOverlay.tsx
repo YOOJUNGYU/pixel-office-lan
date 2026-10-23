@@ -2,6 +2,7 @@ import { type MutableRefObject, type RefObject, useEffect, useRef, useState } fr
 
 import type { OfficeAgent } from '../../../core/src/lan.js';
 import {
+  AVATAR_TAG_HEIGHT_PX,
   BUBBLE_SITTING_OFFSET_PX,
   BUBBLE_VERTICAL_OFFSET_PX,
   CHARACTER_SITTING_OFFSET_PX,
@@ -74,7 +75,7 @@ interface LanOverlayProps {
   containerRef: RefObject<HTMLDivElement | null>;
   zoom: number;
   panRef: MutableRefObject<{ x: number; y: number }>;
-  /** Name tags hidden (except the hovered/selected character's). */
+  /** Agents' name tags hidden (except the hovered/selected character's); avatar tags always show. */
   tagsHidden: boolean;
 }
 
@@ -147,15 +148,49 @@ export function LanOverlay({
       ),
     });
   }
-  // Only visible tags take part in stacking.
+  // Avatar tags (one per person): always shown, one line, after the agents' so they stack below.
+  const avatarTags: Array<{ peerId: string; label: string; self: boolean; box: TagBox }> = [];
+  for (const av of lan.avatars()) {
+    const ch = officeState.characters.get(av.id);
+    if (!ch || ch.matrixEffect === 'despawn') continue;
+    if (!tagVisible(tagsHidden, av.id, null, null, true)) continue;
+    avatarTags.push({
+      ...av,
+      box: {
+        x: project.toScreenX(ch.x),
+        y: project.toScreenY(ch.y),
+        w: 2 * LAN_TAG_PAD_X_PX + textWidth(av.label, LAN_TAG_FONT),
+      },
+    });
+  }
+  // Only visible tags take part in stacking (the taller agent tag height for all).
   const shown = boxes.map((_, i) => i).filter((i) => tags[i].show);
   const stacked = stackTags(
-    shown.map((i) => boxes[i]),
-    LAN_TAG_HEIGHT_PX,
+    [...shown.map((i) => boxes[i]), ...avatarTags.map((v) => v.box)],
+    Math.max(LAN_TAG_HEIGHT_PX, AVATAR_TAG_HEIGHT_PX),
     LAN_TAG_STACK_GAP_PX,
   );
   const tops: number[] = [];
   shown.forEach((i, k) => (tops[i] = stacked[k]));
+  avatarTags.forEach((v, k) => {
+    const lit = v.peerId === lan.highlightPeer;
+    nodes.push(
+      <div
+        key={`avatar:${v.peerId}`}
+        data-avatar-tag={v.self ? 'self' : 'other'}
+        className={`absolute -translate-x-1/2 whitespace-nowrap text-sm leading-none px-3 py-1 pointer-events-none ${lit ? 'outline-2 outline-accent-bright' : ''}`}
+        style={{
+          left: v.box.x,
+          top: stacked[shown.length + k],
+          background: v.self ? 'var(--avatar-tag-self-bg)' : 'var(--avatar-tag-bg)',
+          color: v.self ? 'var(--avatar-tag-self-fg)' : 'var(--avatar-tag-fg)',
+          zIndex: lit ? LAN_PERMISSION_Z_INDEX : LAN_TAG_Z_INDEX,
+        }}
+      >
+        {v.label}
+      </div>,
+    );
+  });
   for (let i = 0; i < tags.length; i++) {
     const { a, ch, lines } = tags[i];
     const typing = ch.state === CharacterState.TYPE;

@@ -48,7 +48,7 @@ export type Capability =
   | 'offices'
   /** A subagent or shell is on the map (real, or the demos). */
   | 'family'
-  /** Chat can be sent ("/" + a pointer: desktop, not read-only). */
+  /** My avatar and the chat bar (arrow keys + keyboard: desktop, not read-only). */
   | 'chat';
 
 export interface Step {
@@ -119,7 +119,7 @@ export const STEPS: Step[] = [
   },
   { id: 'switcher', targets: [{ dom: 'switcher' }], requires: ['switcher'] },
   { id: 'people', targets: [{ dom: 'people' }], scene: { people: true } },
-  // "/" opens the chat box at the pointer: nothing to point at, a centred explanation.
+  // Arrow keys + the chat bar (hidden during the tour): a centred explanation.
   { id: 'chat', targets: [], requires: ['chat'] },
   { id: 'settingsButton', targets: [{ dom: 'settings-button' }] },
   {

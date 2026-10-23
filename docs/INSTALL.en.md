@@ -66,6 +66,7 @@ Open the office in this PC's browser and an **Install Pixel Office as an app** p
 - Team office traffic is encrypted under a key derived from the invite code. If a code leaks, create a new team office and move.
 - 🏠 **Personal**: press **Personal** in the office buttons at the top for a small office of your own that exchanges nothing with other PCs (no one sees you). Your team offices are kept: press **Public office** or a team button to return, no code needed. Personal mode has its own layout.
 - Watching from another PC's browser without the app (remote viewing) was removed in v0.4.0. Install the app on that PC instead.
+- Mixed with 1.0.0 or older: those PCs do not show people's own characters (walked with the arrow keys) or chat bubbles. Update every PC.
 - Mixed versions after v0.4.x: a PC running many agents now sends its state in several small packets, which v0.4.x PCs do not understand, so such a PC is missing on a v0.4.x PC (a PC with few agents still shows). Update every PC.
 
 ## 5. Other PCs do not show up

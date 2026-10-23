@@ -191,6 +191,7 @@ export async function main(boot = true): Promise<void> {
     manualPeers: () => lan.profile.manualPeers,
     offices: () => lan.teamChannels(),
     offline: () => lan.personal,
+    onAvatar: () => lan.peerMoved(),
     pins,
   });
   try {

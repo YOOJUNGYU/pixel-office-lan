@@ -29,8 +29,8 @@ const ko = {
   'act.tool': '{t} 사용 중',
 
   'bubble.permission': '확인 필요',
-  'tags.hide': '이름표 숨기기',
-  'tags.show': '이름표 보이기',
+  'tags.hide': '에이전트 이름표 숨기기',
+  'tags.show': '에이전트 이름표 보이기',
   'legend.coding': '파일을 직접 고칠 때 (Edit·Write, Codex apply_patch)',
   'legend.library':
     '파일 읽기·코드 검색·웹 검색 (Read·Grep·WebSearch, rg·cat·git log 같은 읽기 명령)',
@@ -49,7 +49,7 @@ const ko = {
   'people.status.attention': '확인을 기다림',
   'people.status.working': '작업 중',
   'people.status.idle': '쉬는 중',
-  'chat.placeholder': '메시지 입력 후 Enter',
+  'chat.placeholder': '채팅 입력… (Enter)',
   'chat.label': '채팅 메시지',
   'chat.delete': '내 말풍선 지우기',
   'nickname.conflict':
@@ -282,9 +282,9 @@ const ko = {
   'tour.people.title': '접속 중인 사람',
   'tour.people.body':
     '지금 이 오피스에 접속한 사람이 모두 보입니다. 에이전트가 없는 사람도요.\n❗ 는 확인을 기다리는 에이전트가 있다는 뜻입니다. 이름을 누르면 그 사람의 에이전트로 화면이 따라갑니다.',
-  'tour.chat.title': '채팅',
+  'tour.chat.title': '내 캐릭터와 채팅',
   'tour.chat.body':
-    '/ 를 누르면 마우스 위치에 채팅 입력창이 열립니다. Enter 로 보내면 그 자리에 말풍선이 붙어서 같은 오피스의 모두가 봅니다. Esc 는 취소입니다.\n말풍선은 한 사람에 하나라 새로 쓰면 이전 것이 바뀌고, 내 말풍선의 × 로 지울 수 있습니다.',
+    '사람마다 캐릭터가 하나 있습니다 (에이전트가 없어도). 방향키(↑↓←→)로 내 캐릭터를 움직이세요.\n아래 가운데 채팅창에 쓰고 Enter 를 누르면 내 캐릭터 위에 말풍선이 떠서 따라다닙니다. 새 말이 이전 말을 바꾸고, ×로 지웁니다. 아무 곳도 선택되지 않았을 때 Enter = 채팅창, Esc = 다시 방향키.',
   'tour.settingsButton.title': '설정',
   'tour.settingsButton.body': '언어, 테마, 프로필, 팀 오피스 같은 설정은 모두 여기에 있습니다.',
   'tour.language.title': '언어 · 테마',
@@ -354,8 +354,8 @@ const en: Record<Key, string> = {
   'act.tool': 'Using {t}',
 
   'bubble.permission': 'Needs attention',
-  'tags.hide': 'Hide name tags',
-  'tags.show': 'Show name tags',
+  'tags.hide': 'Hide agent name tags',
+  'tags.show': 'Show agent name tags',
   'legend.coding': 'Editing files',
   'legend.library': 'Reading, searching code and the web (incl. read-only shell commands)',
   'legend.server': 'Running commands — build, test, install, servers; background shells',
@@ -373,7 +373,7 @@ const en: Record<Key, string> = {
   'people.status.attention': 'Needs attention',
   'people.status.working': 'Working',
   'people.status.idle': 'Idle',
-  'chat.placeholder': 'Type and press Enter',
+  'chat.placeholder': 'Type a message… (Enter)',
   'chat.label': 'Chat message',
   'chat.delete': 'Delete my bubble',
   'nickname.conflict':
@@ -605,9 +605,9 @@ const en: Record<Key, string> = {
   'tour.people.title': "Who's online",
   'tour.people.body':
     "Everyone connected to this office is listed here, even people with no agents.\n❗ means one of their agents is waiting for them. Click a name and the view follows that person's agent.",
-  'tour.chat.title': 'Chat',
+  'tour.chat.title': 'Your character and chat',
   'tour.chat.body':
-    'Press / to open a chat box at the mouse pointer. Enter pins a bubble on that spot for everyone in this office. Esc cancels.\nEveryone has one bubble: a new one replaces the old, and the × on yours deletes it.',
+    'Everyone has one character (agents or not). Move yours with the arrow keys (↑↓←→).\nType in the chat bar at the bottom centre and press Enter: the bubble floats above your character and follows it. A new line replaces the old one; × deletes it. With nothing focused, Enter jumps to the chat bar; Esc gives the arrow keys back.',
   'tour.settingsButton.title': 'Settings',
   'tour.settingsButton.body': 'Language, theme, profile, team offices and more live here.',
   'tour.language.title': 'Language & theme',

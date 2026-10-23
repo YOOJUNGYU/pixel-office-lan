@@ -196,6 +196,8 @@ export class PeerNet {
       pins: { get(id: string): string | undefined; set(id: string, pk: string): void };
       /** Broadcast targets override ("host:port"), for tests. */
       targets?: () => string[];
+      /** A live peer's avatar moved (or appeared), so the UI can show it before the next tick. */
+      onAvatar?: () => void;
       now?: () => number;
     },
   ) {
@@ -436,7 +438,15 @@ export class PeerNet {
     this.lastSeq.set(key, { seq: inner.seq, at });
     let ch = this.seen.get(channel);
     if (!ch) this.seen.set(channel, (ch = new Map()));
+    const before = ch.get(id)?.packet.avatar;
     ch.set(id, { packet: inner.packet, at });
+    const after = inner.packet.avatar;
+    if (
+      after &&
+      (before?.col !== after.col || before.row !== after.row || before.dir !== after.dir)
+    ) {
+      this.opts.onAvatar?.();
+    }
     return true;
   }
 

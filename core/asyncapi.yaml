@@ -125,6 +125,7 @@ components:
         - $ref: '#/components/schemas/GetOfficeCode'
         - $ref: '#/components/schemas/SendChat'
         - $ref: '#/components/schemas/DeleteChat'
+        - $ref: '#/components/schemas/MoveAvatar'
         - $ref: '#/components/schemas/SetNotifications'
       discriminator: type
 
@@ -616,24 +617,42 @@ components:
           description: This server's own PC.
         chat:
           $ref: '#/components/schemas/ChatMessage'
+        avatar:
+          $ref: '#/components/schemas/AvatarMessage'
 
     ChatMessage:
       description: >-
-        This person's chat bubble, pinned to a map spot (world tile
-        coordinates, clamped to 0..127). Sanitised by the server. One per PC;
-        it stays until its sender replaces or deletes it or goes offline.
+        This person's chat bubble, shown above their avatar. Sanitised by the
+        server. One per PC; it stays until its sender replaces or deletes it or
+        goes offline.
       type: object
       additionalProperties: false
-      required: [id, text, col, row]
+      required: [id, text]
       properties:
         id:
           type: string
         text:
           type: string
+
+    AvatarDir:
+      type: string
+      enum: [down, up, left, right]
+
+    AvatarMessage:
+      description: >-
+        Where this person's avatar stands: a tile of the sender's own layout
+        (integers clamped to 0..127) and its facing. Absent = not placed yet
+        (the viewer picks a free lounge tile).
+      type: object
+      additionalProperties: false
+      required: [col, row, dir]
+      properties:
         col:
-          type: number
+          type: integer
         row:
-          type: number
+          type: integer
+        dir:
+          $ref: '#/components/schemas/AvatarDir'
 
     ProfileLoaded:
       description: >-
@@ -1104,22 +1123,36 @@ components:
 
     SendChat:
       description: >-
-        Pin this PC's chat bubble at a map spot (loopback browser only),
-        replacing the previous one: shown above that tile to everyone in the
-        active office view while this PC is live there. Text is sanitised and
-        capped at 100 code points; one message per 2 s. Kept in profile.json.
+        Say something as this PC's avatar (loopback browser only), replacing
+        the previous bubble: shown above the avatar to everyone in the active
+        office view while this PC is live there. Text is sanitised and capped
+        at 100 code points; one message per 2 s. Kept in profile.json.
       type: object
       additionalProperties: false
-      required: [type, text, col, row]
+      required: [type, text]
       properties:
         type:
           const: sendChat
         text:
           type: string
+
+    MoveAvatar:
+      description: >-
+        This PC's avatar moved (loopback browser only): integer tile within
+        0..127 and a facing. Kept in profile.json per layout (office /
+        personal) and sent to peers with the presence (at most 5 per second).
+      type: object
+      additionalProperties: false
+      required: [type, col, row, dir]
+      properties:
+        type:
+          const: moveAvatar
         col:
-          type: number
+          type: integer
         row:
-          type: number
+          type: integer
+        dir:
+          $ref: '#/components/schemas/AvatarDir'
 
     DeleteChat:
       description: >-

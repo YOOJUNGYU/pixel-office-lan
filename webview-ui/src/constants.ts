@@ -366,27 +366,31 @@ export const LAN_TAG_FONT = '13px Pretendard';
 export const LAN_TAG_BADGE_FONT = 'bold 11px Pretendard';
 export const LAN_PERMISSION_Z_INDEX = 41;
 export const LAN_BUBBLE_Z_INDEX = 42;
-// ── Chat bubbles ("/" at the pointer) ───────────────────────
+// ── Avatars (one per person; mine walks with the arrow keys) ─
+/** A remote avatar further than this (tiles) from its new spot jumps there instead of walking. */
+export const AVATAR_TELEPORT_TILES = 20;
+/** Avatar name tag box (CSS px), one line: text-sm leading-none + py-1 ×2; width = PAD ×2 + text. */
+export const AVATAR_TAG_HEIGHT_PX = LAN_TAG_LINE_PX + 2;
+
+// ── Chat bubbles (above the avatar) and the bottom chat bar ───
 /** Text column of a chat bubble wraps at this width (CSS px). */
 export const CHAT_TEXT_MAX_PX = 200;
 export const CHAT_FONT = '13px Pretendard';
-export const CHAT_LABEL_FONT = 'bold 11px Pretendard';
 /** Line boxes (CSS px), set explicitly so the height estimate used for stacking holds. */
 export const CHAT_LINE_PX = 17;
-export const CHAT_LABEL_LINE_PX = 13;
 export const CHAT_PAD_X_PX = 8;
 export const CHAT_PAD_Y_PX = 4;
 export const CHAT_BORDER_PX = 2;
-/** Gap between the bubble and the spot it points at (the tail), and between stacked bubbles. */
+/** Gap between the bubble and the head it points at (the tail), and between stacked bubbles. */
 export const CHAT_TAIL_PX = 8;
 export const CHAT_STACK_GAP_PX = 4;
-/** The anchor dot on the chosen spot (CSS px). */
-export const CHAT_DOT_PX = 4;
-export const CHAT_INPUT_WIDTH_PX = 240;
-/** The × on my own bubble (square, CSS px) and its gap from the label. */
+/** The chat bar at the bottom centre (CSS px): width, gap from the bottom edge. */
+export const CHAT_BAR_WIDTH_PX = 360;
+export const CHAT_BAR_BOTTOM_PX = 10;
+/** The × on my own bubble (square, CSS px) and its gap from the text. */
 export const CHAT_DELETE_PX = 16;
 export const CHAT_DELETE_GAP_PX = 6;
-/** Bubbles with the "!" sprites; the input above everything but the top-right stack's modals. */
+/** Bubbles with the "!" sprites; the bar above everything but the top-right stack's modals. */
 export const CHAT_Z_INDEX = 41;
 export const CHAT_INPUT_Z_INDEX = 44;
 

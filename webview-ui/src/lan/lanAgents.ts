@@ -1,5 +1,6 @@
-import type { OfficeAgent, Room } from '../../../core/src/lan.js';
-import { ROOM_LABELS } from '../../../core/src/lan.js';
+import type { AvatarDir, OfficeAgent, Room } from '../../../core/src/lan.js';
+import { parseAvatar, ROOM_LABELS } from '../../../core/src/lan.js';
+import type { OfficePersonMessage } from '../../../core/src/messages.js';
 import {
   LAN_KIND_BADGES,
   LAN_ROOM_TOOL,
@@ -10,8 +11,39 @@ import {
 import { areaName } from '../i18n.js';
 import { requestRender } from '../office/engine/gameLoop.js';
 import type { OfficeState } from '../office/engine/officeState.js';
+import { Direction } from '../office/types.js';
 import { isDemoKey } from '../tour/demoAgents.js';
-import { peerLabel } from './nicknames.js';
+import { avatarLabel, peerLabel } from './nicknames.js';
+
+const DIRS: Record<AvatarDir, Direction> = {
+  down: Direction.DOWN,
+  up: Direction.UP,
+  left: Direction.LEFT,
+  right: Direction.RIGHT,
+};
+/** Protocol name of a facing. */
+export const avatarDirName = (d: Direction): AvatarDir =>
+  (Object.keys(DIRS) as AvatarDir[]).find((k) => DIRS[k] === d) ?? 'down';
+
+const ARROWS: Readonly<Record<string, Direction>> = {
+  ArrowUp: Direction.UP,
+  ArrowDown: Direction.DOWN,
+  ArrowLeft: Direction.LEFT,
+  ArrowRight: Direction.RIGHT,
+};
+
+/** The facing an arrow key asks for; undefined for any other key. */
+export const arrowDir = (key: string): Direction | undefined =>
+  Object.hasOwn(ARROWS, key) ? ARROWS[key] : undefined;
+
+/** A person's avatar on screen (name tag, chat bubble anchor). */
+export interface AvatarRef {
+  peerId: string;
+  id: number;
+  /** Nickname if set, else the account. */
+  label: string;
+  self: boolean;
+}
 
 const providerName = (a: OfficeAgent): string => (a.provider === 'claude' ? 'Claude' : 'Codex');
 
@@ -106,8 +138,72 @@ export class LanAgents {
     requestRender('highlight');
   }
 
+  /** peerId → avatar character id (one per live person of the viewed office). */
+  private readonly avatarIds = new Map<string, number>();
+  private people: OfficePersonMessage[] = [];
+  /** My avatar was placed where the server had no (usable) spot: save it there. */
+  onSelfPlaced: (col: number, row: number, dir: Direction) => void = () => {};
+
   constructor(os: OfficeState) {
     this.os = os;
+  }
+
+  /**
+   * The snapshot's people → one avatar each (their look, their spot). Mine is
+   * placed once from the server's spot (then the arrow keys own it); others
+   * walk to their latest spot. Peer coords are re-validated (clamped).
+   */
+  applyPeople(people: OfficePersonMessage[]): void {
+    this.people = people;
+    const os = this.os;
+    const seen = new Set<string>();
+    for (const p of people) {
+      seen.add(p.peerId);
+      const look: Look = { palette: p.palette, hueShift: p.hueShift, pet: p.pet };
+      const a = parseAvatar(p.avatar);
+      const at = a && { col: a.col, row: a.row, dir: DIRS[a.dir] };
+      let id = this.avatarIds.get(p.peerId);
+      if (id === undefined) {
+        id = this.nextId++;
+        this.avatarIds.set(p.peerId, id);
+        const t = os.addAvatar(id, p.peerId, look, at);
+        if (p.self) {
+          os.myAvatarId = id;
+          if (!at || t.col !== at.col || t.row !== at.row) {
+            this.onSelfPlaced(t.col, t.row, at?.dir ?? Direction.DOWN);
+          }
+        }
+        continue;
+      }
+      this.restyle(id, look);
+      if (!p.self && at) os.walkAvatarTo(id, at);
+    }
+    for (const [peerId, id] of this.avatarIds) {
+      if (seen.has(peerId)) continue;
+      os.removeAgent(id);
+      this.avatarIds.delete(peerId);
+      if (os.myAvatarId === id) os.myAvatarId = null;
+    }
+    requestRender('snapshot');
+  }
+
+  /** A new layout (mode switch, reset): my avatar is placed again from the next snapshot. */
+  resetSelfAvatar(): void {
+    const id = this.os.myAvatarId;
+    if (id === null) return;
+    for (const [peerId, v] of this.avatarIds) if (v === id) this.avatarIds.delete(peerId);
+    this.os.removeAgent(id);
+    this.os.myAvatarId = null;
+  }
+
+  /** Every live person's avatar (characters still spawning included). */
+  avatars(): AvatarRef[] {
+    const out: AvatarRef[] = [];
+    for (const p of this.people) {
+      const id = this.avatarIds.get(p.peerId);
+      if (id !== undefined) out.push({ peerId: p.peerId, id, label: avatarLabel(p), self: p.self });
+    }
+    return out;
   }
 
   /** A fresh `officeSnapshot`. */

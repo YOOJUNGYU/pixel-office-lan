@@ -3,6 +3,7 @@ import { pickDiversePalette } from '../../../../core/src/paletteUtils.js';
 import {
   AUTO_ON_FACING_DEPTH,
   AUTO_ON_SIDE_DEPTH,
+  AVATAR_TELEPORT_TILES,
   CHARACTER_HIT_HALF_WIDTH,
   CHARACTER_HIT_HEIGHT,
   CHARACTER_SITTING_OFFSET_PX,
@@ -38,7 +39,7 @@ import type {
   TileType as TileTypeVal,
 } from '../types.js';
 import { CharacterState, Direction, TILE_SIZE } from '../types.js';
-import { createCharacter, updateCharacter } from './characters.js';
+import { createCharacter, stepTile, updateCharacter } from './characters.js';
 import { requestRender } from './gameLoop.js';
 import { advanceMatrixEffect, startMatrixEffect } from './matrixEffectState.js';
 import { anchorTile, closestFreeSeat } from './seatPlacement.js';
@@ -749,6 +750,112 @@ export class OfficeState {
     }
   }
 
+  // ── Avatars: one per person (not agents); mine walks with the arrow keys ──
+
+  /** My avatar's character id (LanAgents), or null. */
+  myAvatarId: number | null = null;
+  /** Arrow key held for my avatar: it keeps walking while held. */
+  private avatarHeld: Direction | null = null;
+  /** My avatar started a step to / turned at a tile: the page sends moveAvatar. */
+  onAvatarMove: ((col: number, row: number, dir: Direction) => void) | null = null;
+
+  /**
+   * A person's avatar at `at` (none → a free lounge tile; a tile not walkable
+   * here → the closest free walkable one). Returns where it stands.
+   */
+  addAvatar(
+    id: number,
+    peerId: string,
+    look: { palette: number; hueShift: number; pet?: string },
+    at: { col: number; row: number; dir?: Direction } | null,
+  ): { col: number; row: number } {
+    const ch = createCharacter(id, look.palette, null, null, look.hueShift);
+    ch.pet = look.pet;
+    ch.avatarOf = peerId;
+    ch.isActive = false;
+    ch.state = CharacterState.IDLE;
+    ch.dir = at?.dir ?? Direction.DOWN;
+    const t = this.avatarTile(ch, at);
+    if (t) this.placeAt(ch, t);
+    startMatrixEffect(ch, 'spawn');
+    this.characters.set(id, ch);
+    return { col: ch.tileCol, row: ch.tileRow };
+  }
+
+  private avatarTile(
+    ch: Character,
+    at: { col: number; row: number } | null,
+  ): { col: number; row: number } | null {
+    if (at && isWalkable(at.col, at.row, this.tileMap, this.blockedTiles)) return at;
+    if (at) return this.closestFreeWalkableTile(at.col, at.row, ch);
+    return this.freeTileIn(this.areaWalkable.get(ROOM_LABELS.lounge) ?? this.walkableTiles, ch);
+  }
+
+  /** Put an avatar straight onto `at` (standing, facing `dir`). */
+  placeAvatar(id: number, at: { col: number; row: number; dir: Direction }): void {
+    const ch = this.characters.get(id);
+    const t = ch && this.avatarTile(ch, at);
+    if (!ch || !t) return;
+    this.placeAt(ch, t);
+    ch.state = CharacterState.IDLE;
+    ch.dir = at.dir;
+  }
+
+  /** A remote avatar's latest spot: walk there along walkable tiles; teleport
+   *  when there is no path or it is more than AVATAR_TELEPORT_TILES away. */
+  walkAvatarTo(id: number, at: { col: number; row: number; dir: Direction }): void {
+    const ch = this.characters.get(id);
+    if (!ch) return;
+    ch.restDir = at.dir;
+    const t = this.avatarTile(ch, at);
+    if (!t) return;
+    const end = ch.path[ch.path.length - 1] ?? { col: ch.tileCol, row: ch.tileRow };
+    if (end.col === t.col && end.row === t.row) {
+      if (ch.path.length === 0) ch.dir = at.dir;
+      return;
+    }
+    const far = Math.abs(ch.tileCol - t.col) + Math.abs(ch.tileRow - t.row) > AVATAR_TELEPORT_TILES;
+    if (!far && !ch.matrixEffect) this.walkTo(ch, t);
+    if (far || ch.matrixEffect || ch.path.length === 0) {
+      this.placeAvatar(id, { ...t, dir: at.dir });
+    } else if (ch.state !== CharacterState.WALK) {
+      ch.state = CharacterState.WALK;
+      ch.frame = 0;
+      ch.frameTimer = 0;
+    }
+  }
+
+  /** Arrow key down: my avatar steps at once when standing and keeps walking while held. */
+  pressAvatar(dir: Direction): void {
+    this.avatarHeld = dir;
+    const ch = this.myAvatarId !== null ? this.characters.get(this.myAvatarId) : undefined;
+    if (ch && ch.path.length === 0 && !ch.matrixEffect) this.stepAvatar(ch, dir);
+  }
+
+  /** Arrow key up (`dir`), or every key (none: window blur, focus moved). */
+  releaseAvatar(dir?: Direction): void {
+    if (dir === undefined || this.avatarHeld === dir) this.avatarHeld = null;
+  }
+
+  /** One tile in `dir` when walkable (other characters never block), else just turn. */
+  private stepAvatar(ch: Character, dir: Direction): void {
+    const next = stepTile(ch.tileCol, ch.tileRow, dir);
+    if (isWalkable(next.col, next.row, this.tileMap, this.blockedTiles)) {
+      ch.path = [next];
+      ch.moveProgress = 0;
+      ch.dir = dir;
+      if (ch.state !== CharacterState.WALK) {
+        ch.state = CharacterState.WALK;
+        ch.frame = 0;
+        ch.frameTimer = 0;
+      }
+      this.onAvatarMove?.(next.col, next.row, dir);
+    } else if (ch.dir !== dir) {
+      ch.dir = dir;
+      this.onAvatarMove?.(ch.tileCol, ch.tileRow, dir);
+    }
+  }
+
   private releaseSeat(ch: Character): void {
     if (!ch.seatId) return;
     const seat = this.seats.get(ch.seatId);
@@ -1150,6 +1257,12 @@ export class OfficeState {
    */
   nextFrameIn(nowSec: number): number {
     if (this.greeter?.matrixEffect) return 0;
+    if (
+      this.avatarHeld !== null &&
+      this.myAvatarId !== null &&
+      this.characters.has(this.myAvatarId)
+    )
+      return 0; // keeps walking while the key is held
     let next = Infinity;
     for (const ch of this.characters.values()) {
       if (ch.matrixEffect || ch.state === CharacterState.WALK || ch.path.length > 0) return 0;
@@ -1227,6 +1340,11 @@ export class OfficeState {
         }
       }
     }
+    // My avatar: the next step as soon as the last one arrived, while the key is held.
+    const me = this.myAvatarId !== null ? this.characters.get(this.myAvatarId) : undefined;
+    if (me && this.avatarHeld !== null && me.path.length === 0 && !me.matrixEffect) {
+      this.stepAvatar(me, this.avatarHeld);
+    }
     // Remove characters that finished despawn
     for (const id of toDelete) {
       this.characters.delete(id);
@@ -1264,8 +1382,8 @@ export class OfficeState {
   getCharacterAt(worldX: number, worldY: number): number | null {
     const chars = Array.from(this.characters.values()).sort((a, b) => b.y - a.y);
     for (const ch of chars) {
-      // Skip characters that are despawning
-      if (ch.matrixEffect === 'despawn') continue;
+      // Skip characters that are despawning, and avatars (people, not agents)
+      if (ch.matrixEffect === 'despawn' || ch.avatarOf !== undefined) continue;
       // Sprites are anchored bottom-center; apply the sitting offset to match
       // the visual position. Pets are wider sideways and a bit shorter.
       const sittingOffset = ch.state === CharacterState.TYPE ? CHARACTER_SITTING_OFFSET_PX : 0;

@@ -16,6 +16,7 @@ import {
   snapshotMessage,
 } from './clientMessageHandler.js';
 import {
+  AVATAR_SEND_DELAY_MS,
   LOOPBACK_ADDRESSES,
   LOOPBACK_HOSTNAMES,
   PING_APP,
@@ -173,7 +174,18 @@ export async function createHttpServer(options: HttpServerOptions): Promise<Http
         }
       }
     }, SNAPSHOT_INTERVAL_MS);
-    app.addHook('onClose', async () => clearInterval(timer));
+    // A peer's avatar moved: one extra snapshot, coalesced to ≤ 5 per second.
+    let push: NodeJS.Timeout | null = null;
+    lan.peerMoved = () => {
+      push ??= setTimeout(() => {
+        push = null;
+        for (const c of clients) safeSend(c, snapshotMessage(lan));
+      }, AVATAR_SEND_DELAY_MS);
+    };
+    app.addHook('onClose', async () => {
+      clearInterval(timer);
+      if (push) clearTimeout(push);
+    });
   }
   const onProfileSaved = (): void => {
     if (!lan) return;

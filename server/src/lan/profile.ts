@@ -3,12 +3,13 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
-import type { PeerChat, PetId } from '../../../core/src/lan.js';
+import type { AvatarPos, PeerChat, PetId } from '../../../core/src/lan.js';
 import {
   cleanAccount,
   isPetId,
   isValidManualPeer,
   MAX_ACCOUNT,
+  parseAvatar,
   parseChat,
   PERSONAL_VIEW,
   PUBLIC_VIEW,
@@ -52,9 +53,25 @@ export interface Profile {
   nicknameSince: number;
   /** This PC's chat bubble and the office view it was said in; absent = none. */
   chat?: SavedChat;
+  /** Where my avatar stands, per layout: `office` (layout.json: public and team
+   *  offices) and `personal` (layout-personal.json). Absent = the page picks a spot. */
+  avatar?: SavedAvatars;
 }
 
 export type SavedChat = PeerChat & { view: string };
+export type AvatarLayout = 'office' | 'personal';
+export type SavedAvatars = Partial<Record<AvatarLayout, AvatarPos>>;
+
+/** Stored avatar spots; malformed ones dropped. */
+function parseSavedAvatars(raw: unknown): SavedAvatars | undefined {
+  if (!isObj(raw)) return undefined;
+  const out: SavedAvatars = {};
+  for (const k of ['office', 'personal'] as const) {
+    const a = parseAvatar(raw[k], true);
+    if (a) out[k] = a;
+  }
+  return out.office || out.personal ? out : undefined;
+}
 
 /** What saveProfile may change; identity/offices/views change only via their own messages. */
 export type EditableProfile = Pick<
@@ -236,6 +253,8 @@ export function loadProfile(dir: string = defaultDir()): Profile {
   };
   const chat = parseSavedChat(raw.chat, offices);
   if (chat) profile.chat = chat;
+  const avatar = parseSavedAvatars(raw.avatar);
+  if (avatar) profile.avatar = avatar;
   if (JSON.stringify(profile) !== JSON.stringify(raw)) {
     try {
       saveProfile(profile, dir);

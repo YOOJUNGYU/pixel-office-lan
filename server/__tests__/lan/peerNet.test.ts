@@ -366,13 +366,32 @@ describe('PeerNet team offices', () => {
     a.offices = [channel(s1), channel(s2)];
     b.offices = [channel(Buffer.from(s1)), channel(Buffer.from(s2))];
     const [t1, t2] = a.offices.map((o) => o.tag);
-    const chat = { id: 'abcd1234', text: 'hi', ts: 1, col: 1, row: 2 };
+    const chat = { id: 'abcd1234', text: 'hi', ts: 1 };
     (a.net as unknown as { opts: { getPacket: (c: string) => PeerPacket } }).opts.getPacket = (
       c,
     ) => ({ ...pkt('A'), ...(c === t1 && { chat }) });
     await pump([a, b], () => b.net.peers(t1).length > 0 && b.net.peers(t2).length > 0);
     expect(b.net.peers(t1)[0].chat).toEqual(chat);
     expect(b.net.peers(t2)[0]).not.toHaveProperty('chat');
+  });
+
+  it('onAvatar fires when a peer avatar appears or moves, not on a repeat', async () => {
+    const [a, b] = await mkNodes(['A', 'B']);
+    const moved = vi.fn();
+    const bo = (b.net as unknown as { opts: { onAvatar?: () => void } }).opts;
+    bo.onAvatar = moved;
+    let avatar = { col: 1, row: 2, dir: 'up' };
+    (a.net as unknown as { opts: { getPacket: () => PeerPacket } }).opts.getPacket = () =>
+      ({ ...pkt('A'), avatar }) as PeerPacket;
+    await pump([a, b], () => b.net.peers(PUBLIC_VIEW).length > 0);
+    await pump([a], () => moved.mock.calls.length > 0);
+    const n = moved.mock.calls.length;
+    expect(n).toBe(1);
+    await pump([a], () => false, 5);
+    expect(moved.mock.calls.length).toBe(n);
+    avatar = { col: 2, row: 2, dir: 'right' };
+    await pump([a], () => moved.mock.calls.length > n);
+    expect(b.net.peers(PUBLIC_VIEW)[0].avatar).toEqual(avatar);
   });
 
   it('joining stops hello at once; leaving sends hello again right away', async () => {
