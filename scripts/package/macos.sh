@@ -91,8 +91,15 @@ launchctl asuser "$USER_ID" sudo -u "$USER_NAME" "$LSREGISTER" -f "/Applications
 AGENTS="$HOME_DIR/Library/LaunchAgents"
 PLIST="$AGENTS/com.pixeloffice.agent.plist"
 
-# Stop an older copy (started by the agent or by the app) before starting the new one.
-curl -s -m 3 -X POST http://127.0.0.1:47801/api/quit >/dev/null 2>&1 && sleep 2
+# Stop an older copy (started by the agent or by the app) before starting the new one, and wait
+# until it stopped answering: a new one that still finds it exits as "already running".
+if curl -s -m 3 -X POST http://127.0.0.1:47801/api/quit >/dev/null 2>&1; then
+  i=0
+  while [ $i -lt 20 ] && curl -s -m 1 http://127.0.0.1:47801/api/ping >/dev/null 2>&1; do
+    sleep 0.5
+    i=$((i + 1))
+  done
+fi
 launchctl bootout "gui/$USER_ID/com.pixeloffice.agent" 2>/dev/null || true
 
 # Start at login was turned off in Settings (the app writes this marker): keep it off, but start

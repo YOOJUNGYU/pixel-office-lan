@@ -236,6 +236,43 @@ jobs:
         run: |
           RES="build/mac/root/Applications/Pixel Office.app/Contents/Resources"
           "$RES/node" "$RES/app/cli.js" --tray-check
+      - name: Install pkg → login agent + office up → reinstall over it → guide's uninstall leaves nothing
+        run: |
+          PKG="release/PixelOffice-$VERSION-Mac.pkg"
+          APP="/Applications/Pixel Office.app"
+          AGENT="gui/$(id -u)/com.pixeloffice.agent"
+          PLIST="$HOME/Library/LaunchAgents/com.pixeloffice.agent.plist"
+          LOG="$HOME/Library/Logs/PixelOffice.log"
+          echo "console user: $(stat -f %Su /dev/console), runner: $(id -un)"
+          wait_up() {
+            for _ in $(seq 30); do curl -sf http://127.0.0.1:47801/api/ping && return 0; sleep 1; done
+            cat "$LOG" 2>/dev/null; return 1
+          }
+          sudo installer -pkg "$PKG" -target /
+          test -f "$PLIST"
+          launchctl print "$AGENT" >/dev/null
+          wait_up || { echo '::error::office did not start after install'; exit 1; }
+          pkgutil --pkg-info com.pixeloffice.pkg
+          # Update over a running office: postinstall quits it, waits until it is gone, starts the new one.
+          sudo installer -pkg "$PKG" -target /
+          wait_up || { echo '::error::office did not come back after reinstall'; exit 1; }
+          # Uninstall = the exact commands from the user guide (section 6, Mac).
+          awk '/^## 6\./{s=1} s&&/```bash/{b=1;next} b&&/```/{exit} b' docs/설치-안내.md | sed 's/^  //' > "$RUNNER_TEMP/uninstall.sh"
+          cat "$RUNNER_TEMP/uninstall.sh"
+          grep -q 'pkgutil --forget' "$RUNNER_TEMP/uninstall.sh"
+          bash "$RUNNER_TEMP/uninstall.sh"
+          sleep 2
+          fail=
+          [ -e "$APP" ] && { echo "::error::$APP still there"; fail=1; }
+          [ -e "$PLIST" ] && { echo '::error::LaunchAgent plist left behind'; fail=1; }
+          [ -e "$LOG" ] && { echo '::error::log left behind'; fail=1; }
+          launchctl print "$AGENT" >/dev/null 2>&1 && { echo '::error::agent still loaded'; fail=1; }
+          curl -s -m 2 http://127.0.0.1:47801/api/ping && { echo '::error::office still answering'; fail=1; }
+          pgrep -fl "$APP" && { echo '::error::processes from the app still running'; fail=1; }
+          pkgutil --pkg-info com.pixeloffice.pkg >/dev/null 2>&1 && { echo '::error::pkg receipt left behind'; fail=1; }
+          # The guide keeps user data.
+          [ -d "$HOME/.pixel-office" ] || { echo '::error::uninstall deleted ~/.pixel-office'; fail=1; }
+          [ -z "$fail" ] && echo 'uninstall: clean'
       - uses: actions/upload-artifact@v7
         with:
           name: PixelOffice-${{ env.VERSION }}-Mac.pkg

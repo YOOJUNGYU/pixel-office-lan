@@ -94,7 +94,12 @@ Other people's offices are **read-only**: nobody can run or change anything on y
   launchctl bootout gui/$(id -u)/com.pixeloffice.agent
   rm -f ~/Library/LaunchAgents/com.pixeloffice.agent.plist
   rm -f ~/.pixel-office/autostart-off   # the "start at login: off" record (if left, a reinstall keeps it off)
+  /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -u "/Applications/Pixel Office.app"   # unregister the pixeloffice: link
   sudo rm -rf "/Applications/Pixel Office.app"
+  sudo pkgutil --forget com.pixeloffice.pkg   # the install receipt
+  rm -f ~/Library/Logs/PixelOffice.log
   ```
+
+  If another account on this Mac turned start at login on in Settings, log in as that account and run the `launchctl bootout …` and `rm -f ~/Library/LaunchAgents/…` lines there too.
 
 Your settings and layout in `~/.pixel-office/` are kept (on Windows too: if you turned start at login off in Settings, that `autostart-off` record stays; ticking the checkbox in a new interactive install turns it back on); delete that folder to remove them too.
