@@ -239,3 +239,14 @@ jobs:
           } > notes.md
           gh release create "$TAG" release/* --repo "$GITHUB_REPOSITORY" --title "Pixel Office $TAG" \
             --notes-file notes.md --generate-notes "${PRE[@]}"
+      - name: Delete older releases (only the latest one stays)
+        if: ${{ !contains(github.ref_name, '-') }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release list --repo "$GITHUB_REPOSITORY" --limit 200 --json tagName -q '.[].tagName' |
+            while read -r old; do
+              [[ "$old" == "$TAG" ]] && continue
+              gh release delete "$old" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag
+            done
