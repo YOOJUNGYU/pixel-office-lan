@@ -12,6 +12,7 @@ export function panelVisible(
   graceOver: boolean,
 ): boolean {
   if (state === 'disconnected') return true;
+  if (state === 'replaced') return false; // ReplacedPanel instead (polling would reload it back)
   return !everConnected && state !== 'connected' && graceOver;
 }
 

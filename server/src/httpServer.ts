@@ -3,6 +3,7 @@ import fastifyWebsocket from '@fastify/websocket';
 import type { FastifyInstance } from 'fastify';
 import Fastify from 'fastify';
 
+import { WS_CLOSE_REPLACED } from '../../core/src/constants.js';
 import type {
   AssetCache,
   ClientMessageContext,
@@ -234,6 +235,9 @@ export async function createHttpServer(options: HttpServerOptions): Promise<Http
       socket.close(WS_CLOSE_FORBIDDEN, 'forbidden');
       return;
     }
+    // One UI at a time (browser tab or PWA): the newest window wins, older ones stop.
+    for (const c of clients) c.close(WS_CLOSE_REPLACED, 'replaced');
+    clients.clear();
     clients.add(socket);
     socket.on('close', () => clients.delete(socket));
     // Every connection learns the server version at once, a reconnect too (no new

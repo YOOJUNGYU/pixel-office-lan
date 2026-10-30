@@ -13,7 +13,7 @@ import assert from 'node:assert/strict';
 
 import { beforeAll, describe, test } from 'vitest';
 
-import { rotateFurniture } from '../src/office/editor/editorActions.js';
+import { eraseTile, rotateFurniture } from '../src/office/editor/editorActions.js';
 import type { LoadedAssetData } from '../src/office/layout/furnitureCatalog.js';
 import { buildDynamicCatalog } from '../src/office/layout/furnitureCatalog.js';
 import type { OfficeLayout, PlacedFurniture } from '../src/office/types.js';
@@ -126,5 +126,26 @@ describe('rotateFurniture validates the whole desk group', () => {
       { uid: 'pc', type: 'PC_FRONT_OFF', col: 4, row: 10 },
     ]);
     assert.equal(rotateFurniture(layout, 'desk', 'cw'), layout);
+  });
+});
+
+describe('eraseTile never changes tiles', () => {
+  test('removes the furniture and the carpet, keeps the floor', () => {
+    const layout = floorLayout(6, 6, [{ uid: 'desk', type: 'DESK_FRONT', col: 1, row: 1 }]);
+    layout.carpetTiles = new Array(36).fill(null);
+    layout.carpetTiles[2 * 6 + 2] = { variant: 0, order: 1 };
+    const erased = eraseTile(layout, 2, 2);
+    assert.deepEqual(erased.furniture, []);
+    assert.equal(erased.carpetTiles?.[2 * 6 + 2], null);
+    assert.deepEqual(erased.tiles, layout.tiles);
+  });
+
+  test('a wall stays a wall; a wall item on it is removed', () => {
+    const layout = floorLayout(6, 6, [{ uid: 'clock', type: 'COFFEE', col: 0, row: 0 }]);
+    layout.tiles[0] = TileType.WALL;
+    const erased = eraseTile(layout, 0, 0);
+    assert.equal(erased.tiles[0], TileType.WALL);
+    assert.deepEqual(erased.furniture, []);
+    assert.equal(eraseTile(erased, 0, 0), erased);
   });
 });

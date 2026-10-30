@@ -220,9 +220,19 @@ for (const [type, x] of V.wallDeco.coding) put(type, CODING.x + x, TOP_WALL - 1)
 // The shelves sit as in the top rooms (the lower tile on the wall, the upper one over the
 // corridor's last row), leaving the doors to the corridor open.
 const libraryDoors = thirds(LIBRARY.x, LIBRARY.w);
-for (let x = LIBRARY.x; x + 1 < LIBRARY.x + LIBRARY.w; x += 2) {
-  if (libraryDoors.some((d) => x + 1 >= d && x <= d + 1)) continue;
-  put('DOUBLE_BOOKSHELF', x, LIBRARY.y - 2);
+const shelfRow = LIBRARY.y - 2;
+if (PERSONAL) {
+  for (let x = LIBRARY.x; x + 1 < LIBRARY.x + LIBRARY.w; x += 2) {
+    if (libraryDoors.some((d) => x + 1 >= d && x <= d + 1)) continue;
+    put('DOUBLE_BOOKSHELF', x, shelfRow);
+  }
+} else {
+  // Left wall: 4 shelves from the corner; middle wall: a clock alone in its centre;
+  // right wall: 4 shelves into the corner (one tile free by the door).
+  const [d1, d2] = libraryDoors;
+  for (let k = 0; k < 4; k++) put('DOUBLE_BOOKSHELF', LIBRARY.x + 2 * k, shelfRow);
+  put('CLOCK', Math.floor((d1 + 2 + d2 - 1) / 2), shelfRow);
+  for (let k = 4; k >= 1; k--) put('DOUBLE_BOOKSHELF', LIBRARY.x + LIBRARY.w - 2 * k, shelfRow);
 }
 const readingTable = (c, y) => {
   put('SMALL_TABLE_FRONT', c, y);

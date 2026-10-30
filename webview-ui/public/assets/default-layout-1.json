@@ -1060,2556 +1060,2544 @@
     },
     {
       "uid": "lan-157",
-      "type": "DOUBLE_BOOKSHELF",
-      "col": 13,
+      "type": "CLOCK",
+      "col": 15,
       "row": 28
     },
     {
       "uid": "lan-158",
       "type": "DOUBLE_BOOKSHELF",
-      "col": 15,
+      "col": 22,
       "row": 28
     },
     {
       "uid": "lan-159",
       "type": "DOUBLE_BOOKSHELF",
-      "col": 17,
+      "col": 24,
       "row": 28
     },
     {
       "uid": "lan-160",
       "type": "DOUBLE_BOOKSHELF",
-      "col": 21,
+      "col": 26,
       "row": 28
     },
     {
       "uid": "lan-161",
       "type": "DOUBLE_BOOKSHELF",
-      "col": 23,
+      "col": 28,
       "row": 28
     },
     {
       "uid": "lan-162",
-      "type": "DOUBLE_BOOKSHELF",
-      "col": 25,
-      "row": 28
+      "type": "SMALL_TABLE_FRONT",
+      "col": 4,
+      "row": 32
     },
     {
       "uid": "lan-163",
-      "type": "DOUBLE_BOOKSHELF",
-      "col": 27,
-      "row": 28
+      "type": "CUSHIONED_CHAIR_SIDE",
+      "col": 3,
+      "row": 33
     },
     {
       "uid": "lan-164",
-      "type": "SMALL_TABLE_FRONT",
-      "col": 4,
-      "row": 32
+      "type": "CUSHIONED_CHAIR_SIDE:left",
+      "col": 6,
+      "row": 33
     },
     {
       "uid": "lan-165",
-      "type": "CUSHIONED_CHAIR_SIDE",
-      "col": 3,
-      "row": 33
+      "type": "CUSHIONED_CHAIR_BACK",
+      "col": 4,
+      "row": 34
     },
     {
       "uid": "lan-166",
-      "type": "CUSHIONED_CHAIR_SIDE:left",
-      "col": 6,
-      "row": 33
+      "type": "CUSHIONED_CHAIR_BACK",
+      "col": 5,
+      "row": 34
     },
     {
       "uid": "lan-167",
-      "type": "CUSHIONED_CHAIR_BACK",
-      "col": 4,
-      "row": 34
+      "type": "SMALL_TABLE_FRONT",
+      "col": 11,
+      "row": 32
     },
     {
       "uid": "lan-168",
-      "type": "CUSHIONED_CHAIR_BACK",
-      "col": 5,
-      "row": 34
+      "type": "CUSHIONED_CHAIR_SIDE",
+      "col": 10,
+      "row": 33
     },
     {
       "uid": "lan-169",
-      "type": "SMALL_TABLE_FRONT",
-      "col": 11,
-      "row": 32
+      "type": "CUSHIONED_CHAIR_SIDE:left",
+      "col": 13,
+      "row": 33
     },
     {
       "uid": "lan-170",
-      "type": "CUSHIONED_CHAIR_SIDE",
-      "col": 10,
-      "row": 33
+      "type": "CUSHIONED_CHAIR_BACK",
+      "col": 11,
+      "row": 34
     },
     {
       "uid": "lan-171",
-      "type": "CUSHIONED_CHAIR_SIDE:left",
-      "col": 13,
-      "row": 33
+      "type": "CUSHIONED_CHAIR_BACK",
+      "col": 12,
+      "row": 34
     },
     {
       "uid": "lan-172",
-      "type": "CUSHIONED_CHAIR_BACK",
-      "col": 11,
-      "row": 34
+      "type": "SMALL_TABLE_FRONT",
+      "col": 18,
+      "row": 32
     },
     {
       "uid": "lan-173",
-      "type": "CUSHIONED_CHAIR_BACK",
-      "col": 12,
-      "row": 34
+      "type": "CUSHIONED_CHAIR_SIDE",
+      "col": 17,
+      "row": 33
     },
     {
       "uid": "lan-174",
-      "type": "SMALL_TABLE_FRONT",
-      "col": 18,
-      "row": 32
+      "type": "CUSHIONED_CHAIR_SIDE:left",
+      "col": 20,
+      "row": 33
     },
     {
       "uid": "lan-175",
-      "type": "CUSHIONED_CHAIR_SIDE",
-      "col": 17,
-      "row": 33
-    },
-    {
-      "uid": "lan-176",
-      "type": "CUSHIONED_CHAIR_SIDE:left",
-      "col": 20,
-      "row": 33
-    },
-    {
-      "uid": "lan-177",
       "type": "CUSHIONED_CHAIR_BACK",
       "col": 18,
       "row": 34
     },
     {
-      "uid": "lan-178",
+      "uid": "lan-176",
       "type": "CUSHIONED_CHAIR_BACK",
       "col": 19,
       "row": 34
     },
     {
-      "uid": "lan-179",
+      "uid": "lan-177",
       "type": "SMALL_TABLE_FRONT",
       "col": 25,
       "row": 32
     },
     {
-      "uid": "lan-180",
+      "uid": "lan-178",
       "type": "CUSHIONED_CHAIR_SIDE",
       "col": 24,
       "row": 33
+    },
+    {
+      "uid": "lan-179",
+      "type": "CUSHIONED_CHAIR_SIDE:left",
+      "col": 27,
+      "row": 33
+    },
+    {
+      "uid": "lan-180",
+      "type": "CUSHIONED_CHAIR_BACK",
+      "col": 25,
+      "row": 34
     },
     {
       "uid": "lan-181",
-      "type": "CUSHIONED_CHAIR_SIDE:left",
-      "col": 27,
-      "row": 33
+      "type": "CUSHIONED_CHAIR_BACK",
+      "col": 26,
+      "row": 34
     },
     {
       "uid": "lan-182",
-      "type": "CUSHIONED_CHAIR_BACK",
-      "col": 25,
-      "row": 34
+      "type": "SMALL_TABLE_FRONT",
+      "col": 4,
+      "row": 37
     },
     {
       "uid": "lan-183",
-      "type": "CUSHIONED_CHAIR_BACK",
-      "col": 26,
-      "row": 34
+      "type": "CUSHIONED_CHAIR_SIDE",
+      "col": 3,
+      "row": 38
     },
     {
       "uid": "lan-184",
-      "type": "SMALL_TABLE_FRONT",
-      "col": 4,
-      "row": 37
+      "type": "CUSHIONED_CHAIR_SIDE:left",
+      "col": 6,
+      "row": 38
     },
     {
       "uid": "lan-185",
-      "type": "CUSHIONED_CHAIR_SIDE",
-      "col": 3,
-      "row": 38
+      "type": "CUSHIONED_CHAIR_BACK",
+      "col": 4,
+      "row": 39
     },
     {
       "uid": "lan-186",
-      "type": "CUSHIONED_CHAIR_SIDE:left",
-      "col": 6,
-      "row": 38
+      "type": "CUSHIONED_CHAIR_BACK",
+      "col": 5,
+      "row": 39
     },
     {
       "uid": "lan-187",
-      "type": "CUSHIONED_CHAIR_BACK",
-      "col": 4,
-      "row": 39
+      "type": "SMALL_TABLE_FRONT",
+      "col": 11,
+      "row": 37
     },
     {
       "uid": "lan-188",
-      "type": "CUSHIONED_CHAIR_BACK",
-      "col": 5,
-      "row": 39
+      "type": "CUSHIONED_CHAIR_SIDE",
+      "col": 10,
+      "row": 38
     },
     {
       "uid": "lan-189",
-      "type": "SMALL_TABLE_FRONT",
-      "col": 11,
-      "row": 37
+      "type": "CUSHIONED_CHAIR_SIDE:left",
+      "col": 13,
+      "row": 38
     },
     {
       "uid": "lan-190",
-      "type": "CUSHIONED_CHAIR_SIDE",
-      "col": 10,
-      "row": 38
+      "type": "CUSHIONED_CHAIR_BACK",
+      "col": 11,
+      "row": 39
     },
     {
       "uid": "lan-191",
-      "type": "CUSHIONED_CHAIR_SIDE:left",
-      "col": 13,
-      "row": 38
+      "type": "CUSHIONED_CHAIR_BACK",
+      "col": 12,
+      "row": 39
     },
     {
       "uid": "lan-192",
-      "type": "CUSHIONED_CHAIR_BACK",
-      "col": 11,
-      "row": 39
+      "type": "SMALL_TABLE_FRONT",
+      "col": 18,
+      "row": 37
     },
     {
       "uid": "lan-193",
-      "type": "CUSHIONED_CHAIR_BACK",
-      "col": 12,
-      "row": 39
+      "type": "CUSHIONED_CHAIR_SIDE",
+      "col": 17,
+      "row": 38
     },
     {
       "uid": "lan-194",
-      "type": "SMALL_TABLE_FRONT",
-      "col": 18,
-      "row": 37
+      "type": "CUSHIONED_CHAIR_SIDE:left",
+      "col": 20,
+      "row": 38
     },
     {
       "uid": "lan-195",
-      "type": "CUSHIONED_CHAIR_SIDE",
-      "col": 17,
-      "row": 38
-    },
-    {
-      "uid": "lan-196",
-      "type": "CUSHIONED_CHAIR_SIDE:left",
-      "col": 20,
-      "row": 38
-    },
-    {
-      "uid": "lan-197",
       "type": "CUSHIONED_CHAIR_BACK",
       "col": 18,
       "row": 39
     },
     {
-      "uid": "lan-198",
+      "uid": "lan-196",
       "type": "CUSHIONED_CHAIR_BACK",
       "col": 19,
       "row": 39
     },
     {
-      "uid": "lan-199",
+      "uid": "lan-197",
       "type": "SMALL_TABLE_FRONT",
       "col": 25,
       "row": 37
     },
     {
-      "uid": "lan-200",
+      "uid": "lan-198",
       "type": "CUSHIONED_CHAIR_SIDE",
       "col": 24,
       "row": 38
+    },
+    {
+      "uid": "lan-199",
+      "type": "CUSHIONED_CHAIR_SIDE:left",
+      "col": 27,
+      "row": 38
+    },
+    {
+      "uid": "lan-200",
+      "type": "CUSHIONED_CHAIR_BACK",
+      "col": 25,
+      "row": 39
     },
     {
       "uid": "lan-201",
-      "type": "CUSHIONED_CHAIR_SIDE:left",
-      "col": 27,
-      "row": 38
+      "type": "CUSHIONED_CHAIR_BACK",
+      "col": 26,
+      "row": 39
     },
     {
       "uid": "lan-202",
-      "type": "CUSHIONED_CHAIR_BACK",
-      "col": 25,
-      "row": 39
+      "type": "SMALL_TABLE_FRONT",
+      "col": 4,
+      "row": 43
     },
     {
       "uid": "lan-203",
-      "type": "CUSHIONED_CHAIR_BACK",
-      "col": 26,
-      "row": 39
+      "type": "CUSHIONED_CHAIR_SIDE",
+      "col": 3,
+      "row": 44
     },
     {
       "uid": "lan-204",
-      "type": "SMALL_TABLE_FRONT",
-      "col": 4,
-      "row": 43
+      "type": "CUSHIONED_CHAIR_SIDE:left",
+      "col": 6,
+      "row": 44
     },
     {
       "uid": "lan-205",
-      "type": "CUSHIONED_CHAIR_SIDE",
-      "col": 3,
-      "row": 44
+      "type": "CUSHIONED_CHAIR_BACK",
+      "col": 4,
+      "row": 45
     },
     {
       "uid": "lan-206",
-      "type": "CUSHIONED_CHAIR_SIDE:left",
-      "col": 6,
-      "row": 44
-    },
-    {
-      "uid": "lan-207",
-      "type": "CUSHIONED_CHAIR_BACK",
-      "col": 4,
-      "row": 45
-    },
-    {
-      "uid": "lan-208",
       "type": "CUSHIONED_CHAIR_BACK",
       "col": 5,
       "row": 45
     },
     {
-      "uid": "lan-209",
+      "uid": "lan-207",
       "type": "SMALL_TABLE_FRONT",
       "col": 11,
       "row": 43
     },
     {
-      "uid": "lan-210",
+      "uid": "lan-208",
       "type": "CUSHIONED_CHAIR_SIDE",
       "col": 10,
       "row": 44
     },
     {
-      "uid": "lan-211",
+      "uid": "lan-209",
       "type": "CUSHIONED_CHAIR_SIDE:left",
       "col": 13,
       "row": 44
     },
     {
-      "uid": "lan-212",
+      "uid": "lan-210",
       "type": "CUSHIONED_CHAIR_BACK",
       "col": 11,
       "row": 45
     },
     {
-      "uid": "lan-213",
+      "uid": "lan-211",
       "type": "CUSHIONED_CHAIR_BACK",
       "col": 12,
       "row": 45
     },
     {
-      "uid": "lan-214",
+      "uid": "lan-212",
       "type": "SMALL_TABLE_FRONT",
       "col": 18,
       "row": 43
     },
     {
-      "uid": "lan-215",
+      "uid": "lan-213",
       "type": "CUSHIONED_CHAIR_SIDE",
       "col": 17,
       "row": 44
     },
     {
-      "uid": "lan-216",
+      "uid": "lan-214",
       "type": "CUSHIONED_CHAIR_SIDE:left",
       "col": 20,
       "row": 44
     },
     {
-      "uid": "lan-217",
+      "uid": "lan-215",
       "type": "CUSHIONED_CHAIR_BACK",
       "col": 18,
       "row": 45
     },
     {
-      "uid": "lan-218",
+      "uid": "lan-216",
       "type": "CUSHIONED_CHAIR_BACK",
       "col": 19,
       "row": 45
     },
     {
-      "uid": "lan-219",
+      "uid": "lan-217",
       "type": "SMALL_TABLE_FRONT",
       "col": 25,
       "row": 43
     },
     {
-      "uid": "lan-220",
+      "uid": "lan-218",
       "type": "CUSHIONED_CHAIR_SIDE",
       "col": 24,
       "row": 44
     },
     {
-      "uid": "lan-221",
+      "uid": "lan-219",
       "type": "CUSHIONED_CHAIR_SIDE:left",
       "col": 27,
       "row": 44
     },
     {
-      "uid": "lan-222",
+      "uid": "lan-220",
       "type": "CUSHIONED_CHAIR_BACK",
       "col": 25,
       "row": 45
     },
     {
-      "uid": "lan-223",
+      "uid": "lan-221",
       "type": "CUSHIONED_CHAIR_BACK",
       "col": 26,
       "row": 45
     },
     {
-      "uid": "lan-224",
+      "uid": "lan-222",
       "type": "SMALL_TABLE_FRONT",
       "col": 4,
       "row": 48
     },
     {
-      "uid": "lan-225",
+      "uid": "lan-223",
       "type": "CUSHIONED_CHAIR_SIDE",
       "col": 3,
       "row": 49
     },
     {
-      "uid": "lan-226",
+      "uid": "lan-224",
       "type": "CUSHIONED_CHAIR_SIDE:left",
       "col": 6,
       "row": 49
     },
     {
-      "uid": "lan-227",
+      "uid": "lan-225",
       "type": "CUSHIONED_CHAIR_BACK",
       "col": 4,
       "row": 50
     },
     {
-      "uid": "lan-228",
+      "uid": "lan-226",
       "type": "CUSHIONED_CHAIR_BACK",
       "col": 5,
       "row": 50
     },
     {
-      "uid": "lan-229",
+      "uid": "lan-227",
       "type": "SMALL_TABLE_FRONT",
       "col": 11,
       "row": 48
     },
     {
-      "uid": "lan-230",
+      "uid": "lan-228",
       "type": "CUSHIONED_CHAIR_SIDE",
       "col": 10,
       "row": 49
     },
     {
-      "uid": "lan-231",
+      "uid": "lan-229",
       "type": "CUSHIONED_CHAIR_SIDE:left",
       "col": 13,
       "row": 49
     },
     {
-      "uid": "lan-232",
+      "uid": "lan-230",
       "type": "CUSHIONED_CHAIR_BACK",
       "col": 11,
       "row": 50
     },
     {
-      "uid": "lan-233",
+      "uid": "lan-231",
       "type": "CUSHIONED_CHAIR_BACK",
       "col": 12,
       "row": 50
     },
     {
-      "uid": "lan-234",
+      "uid": "lan-232",
       "type": "SMALL_TABLE_FRONT",
       "col": 18,
       "row": 48
     },
     {
-      "uid": "lan-235",
+      "uid": "lan-233",
       "type": "CUSHIONED_CHAIR_SIDE",
       "col": 17,
       "row": 49
     },
     {
-      "uid": "lan-236",
+      "uid": "lan-234",
       "type": "CUSHIONED_CHAIR_SIDE:left",
       "col": 20,
       "row": 49
     },
     {
-      "uid": "lan-237",
+      "uid": "lan-235",
       "type": "CUSHIONED_CHAIR_BACK",
       "col": 18,
       "row": 50
     },
     {
-      "uid": "lan-238",
+      "uid": "lan-236",
       "type": "CUSHIONED_CHAIR_BACK",
       "col": 19,
       "row": 50
     },
     {
-      "uid": "lan-239",
+      "uid": "lan-237",
       "type": "SMALL_TABLE_FRONT",
       "col": 25,
       "row": 48
     },
     {
-      "uid": "lan-240",
+      "uid": "lan-238",
       "type": "CUSHIONED_CHAIR_SIDE",
       "col": 24,
       "row": 49
     },
     {
-      "uid": "lan-241",
+      "uid": "lan-239",
       "type": "CUSHIONED_CHAIR_SIDE:left",
       "col": 27,
       "row": 49
     },
     {
-      "uid": "lan-242",
+      "uid": "lan-240",
       "type": "CUSHIONED_CHAIR_BACK",
       "col": 25,
       "row": 50
     },
     {
-      "uid": "lan-243",
+      "uid": "lan-241",
       "type": "CUSHIONED_CHAIR_BACK",
       "col": 26,
       "row": 50
     },
     {
-      "uid": "lan-244",
+      "uid": "lan-242",
       "type": "TABLE_FRONT",
       "col": 34,
+      "row": 4
+    },
+    {
+      "uid": "lan-243",
+      "type": "PC_SIDE",
+      "col": 34,
+      "row": 4
+    },
+    {
+      "uid": "lan-244",
+      "type": "PC_SIDE:left",
+      "col": 36,
       "row": 4
     },
     {
       "uid": "lan-245",
-      "type": "PC_SIDE",
-      "col": 34,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 33,
       "row": 4
     },
     {
       "uid": "lan-246",
-      "type": "PC_SIDE:left",
-      "col": 36,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 37,
       "row": 4
     },
     {
       "uid": "lan-247",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 33,
-      "row": 4
+      "type": "PC_SIDE",
+      "col": 34,
+      "row": 6
     },
     {
       "uid": "lan-248",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 37,
-      "row": 4
+      "type": "PC_SIDE:left",
+      "col": 36,
+      "row": 6
     },
     {
       "uid": "lan-249",
-      "type": "PC_SIDE",
-      "col": 34,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 33,
       "row": 6
     },
     {
       "uid": "lan-250",
-      "type": "PC_SIDE:left",
-      "col": 36,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 37,
       "row": 6
     },
     {
       "uid": "lan-251",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 33,
-      "row": 6
+      "type": "TABLE_FRONT",
+      "col": 40,
+      "row": 4
     },
     {
       "uid": "lan-252",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 37,
-      "row": 6
+      "type": "PC_SIDE",
+      "col": 40,
+      "row": 4
     },
     {
       "uid": "lan-253",
-      "type": "TABLE_FRONT",
-      "col": 40,
+      "type": "PC_SIDE:left",
+      "col": 42,
       "row": 4
     },
     {
       "uid": "lan-254",
-      "type": "PC_SIDE",
-      "col": 40,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 39,
       "row": 4
     },
     {
       "uid": "lan-255",
-      "type": "PC_SIDE:left",
-      "col": 42,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 43,
       "row": 4
     },
     {
       "uid": "lan-256",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 39,
-      "row": 4
+      "type": "PC_SIDE",
+      "col": 40,
+      "row": 6
     },
     {
       "uid": "lan-257",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 43,
-      "row": 4
+      "type": "PC_SIDE:left",
+      "col": 42,
+      "row": 6
     },
     {
       "uid": "lan-258",
-      "type": "PC_SIDE",
-      "col": 40,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 39,
       "row": 6
     },
     {
       "uid": "lan-259",
-      "type": "PC_SIDE:left",
-      "col": 42,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 43,
       "row": 6
     },
     {
       "uid": "lan-260",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 39,
-      "row": 6
+      "type": "TABLE_FRONT",
+      "col": 46,
+      "row": 4
     },
     {
       "uid": "lan-261",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 43,
-      "row": 6
+      "type": "PC_SIDE",
+      "col": 46,
+      "row": 4
     },
     {
       "uid": "lan-262",
-      "type": "TABLE_FRONT",
-      "col": 46,
+      "type": "PC_SIDE:left",
+      "col": 48,
       "row": 4
     },
     {
       "uid": "lan-263",
-      "type": "PC_SIDE",
-      "col": 46,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 45,
       "row": 4
     },
     {
       "uid": "lan-264",
-      "type": "PC_SIDE:left",
-      "col": 48,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 49,
       "row": 4
     },
     {
       "uid": "lan-265",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 45,
-      "row": 4
+      "type": "PC_SIDE",
+      "col": 46,
+      "row": 6
     },
     {
       "uid": "lan-266",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 49,
-      "row": 4
+      "type": "PC_SIDE:left",
+      "col": 48,
+      "row": 6
     },
     {
       "uid": "lan-267",
-      "type": "PC_SIDE",
-      "col": 46,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 45,
       "row": 6
     },
     {
       "uid": "lan-268",
-      "type": "PC_SIDE:left",
-      "col": 48,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 49,
       "row": 6
     },
     {
       "uid": "lan-269",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 45,
-      "row": 6
+      "type": "TABLE_FRONT",
+      "col": 52,
+      "row": 4
     },
     {
       "uid": "lan-270",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 49,
-      "row": 6
+      "type": "PC_SIDE",
+      "col": 52,
+      "row": 4
     },
     {
       "uid": "lan-271",
-      "type": "TABLE_FRONT",
-      "col": 52,
+      "type": "PC_SIDE:left",
+      "col": 54,
       "row": 4
     },
     {
       "uid": "lan-272",
-      "type": "PC_SIDE",
-      "col": 52,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 51,
       "row": 4
     },
     {
       "uid": "lan-273",
-      "type": "PC_SIDE:left",
-      "col": 54,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 55,
       "row": 4
     },
     {
       "uid": "lan-274",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 51,
-      "row": 4
+      "type": "PC_SIDE",
+      "col": 52,
+      "row": 6
     },
     {
       "uid": "lan-275",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 55,
-      "row": 4
+      "type": "PC_SIDE:left",
+      "col": 54,
+      "row": 6
     },
     {
       "uid": "lan-276",
-      "type": "PC_SIDE",
-      "col": 52,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 51,
       "row": 6
     },
     {
       "uid": "lan-277",
-      "type": "PC_SIDE:left",
-      "col": 54,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 55,
       "row": 6
     },
     {
       "uid": "lan-278",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 51,
-      "row": 6
+      "type": "TABLE_FRONT",
+      "col": 58,
+      "row": 4
     },
     {
       "uid": "lan-279",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 55,
-      "row": 6
+      "type": "PC_SIDE",
+      "col": 58,
+      "row": 4
     },
     {
       "uid": "lan-280",
-      "type": "TABLE_FRONT",
-      "col": 58,
+      "type": "PC_SIDE:left",
+      "col": 60,
       "row": 4
     },
     {
       "uid": "lan-281",
-      "type": "PC_SIDE",
-      "col": 58,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 57,
       "row": 4
     },
     {
       "uid": "lan-282",
-      "type": "PC_SIDE:left",
-      "col": 60,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 61,
       "row": 4
     },
     {
       "uid": "lan-283",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 57,
-      "row": 4
+      "type": "PC_SIDE",
+      "col": 58,
+      "row": 6
     },
     {
       "uid": "lan-284",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 61,
-      "row": 4
+      "type": "PC_SIDE:left",
+      "col": 60,
+      "row": 6
     },
     {
       "uid": "lan-285",
-      "type": "PC_SIDE",
-      "col": 58,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 57,
       "row": 6
     },
     {
       "uid": "lan-286",
-      "type": "PC_SIDE:left",
-      "col": 60,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 61,
       "row": 6
     },
     {
       "uid": "lan-287",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 57,
-      "row": 6
+      "type": "TABLE_FRONT",
+      "col": 64,
+      "row": 4
     },
     {
       "uid": "lan-288",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 61,
-      "row": 6
+      "type": "PC_SIDE",
+      "col": 64,
+      "row": 4
     },
     {
       "uid": "lan-289",
-      "type": "TABLE_FRONT",
-      "col": 64,
+      "type": "PC_SIDE:left",
+      "col": 66,
       "row": 4
     },
     {
       "uid": "lan-290",
-      "type": "PC_SIDE",
-      "col": 64,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 63,
       "row": 4
     },
     {
       "uid": "lan-291",
-      "type": "PC_SIDE:left",
-      "col": 66,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 67,
       "row": 4
     },
     {
       "uid": "lan-292",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 63,
-      "row": 4
+      "type": "PC_SIDE",
+      "col": 64,
+      "row": 6
     },
     {
       "uid": "lan-293",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 67,
-      "row": 4
+      "type": "PC_SIDE:left",
+      "col": 66,
+      "row": 6
     },
     {
       "uid": "lan-294",
-      "type": "PC_SIDE",
-      "col": 64,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 63,
       "row": 6
     },
     {
       "uid": "lan-295",
-      "type": "PC_SIDE:left",
-      "col": 66,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 67,
       "row": 6
     },
     {
       "uid": "lan-296",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 63,
-      "row": 6
+      "type": "TABLE_FRONT",
+      "col": 70,
+      "row": 4
     },
     {
       "uid": "lan-297",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 67,
-      "row": 6
+      "type": "PC_SIDE",
+      "col": 70,
+      "row": 4
     },
     {
       "uid": "lan-298",
-      "type": "TABLE_FRONT",
-      "col": 70,
+      "type": "PC_SIDE:left",
+      "col": 72,
       "row": 4
     },
     {
       "uid": "lan-299",
-      "type": "PC_SIDE",
-      "col": 70,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 69,
       "row": 4
     },
     {
       "uid": "lan-300",
-      "type": "PC_SIDE:left",
-      "col": 72,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 73,
       "row": 4
     },
     {
       "uid": "lan-301",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 69,
-      "row": 4
+      "type": "PC_SIDE",
+      "col": 70,
+      "row": 6
     },
     {
       "uid": "lan-302",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 73,
-      "row": 4
+      "type": "PC_SIDE:left",
+      "col": 72,
+      "row": 6
     },
     {
       "uid": "lan-303",
-      "type": "PC_SIDE",
-      "col": 70,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 69,
       "row": 6
     },
     {
       "uid": "lan-304",
-      "type": "PC_SIDE:left",
-      "col": 72,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 73,
       "row": 6
     },
     {
       "uid": "lan-305",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 69,
-      "row": 6
+      "type": "TABLE_FRONT",
+      "col": 76,
+      "row": 4
     },
     {
       "uid": "lan-306",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 73,
-      "row": 6
+      "type": "PC_SIDE",
+      "col": 76,
+      "row": 4
     },
     {
       "uid": "lan-307",
-      "type": "TABLE_FRONT",
-      "col": 76,
+      "type": "PC_SIDE:left",
+      "col": 78,
       "row": 4
     },
     {
       "uid": "lan-308",
-      "type": "PC_SIDE",
-      "col": 76,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 75,
       "row": 4
     },
     {
       "uid": "lan-309",
-      "type": "PC_SIDE:left",
-      "col": 78,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 79,
       "row": 4
     },
     {
       "uid": "lan-310",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 75,
-      "row": 4
+      "type": "PC_SIDE",
+      "col": 76,
+      "row": 6
     },
     {
       "uid": "lan-311",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 79,
-      "row": 4
+      "type": "PC_SIDE:left",
+      "col": 78,
+      "row": 6
     },
     {
       "uid": "lan-312",
-      "type": "PC_SIDE",
-      "col": 76,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 75,
       "row": 6
     },
     {
       "uid": "lan-313",
-      "type": "PC_SIDE:left",
-      "col": 78,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 79,
       "row": 6
     },
     {
       "uid": "lan-314",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 75,
-      "row": 6
+      "type": "TABLE_FRONT",
+      "col": 34,
+      "row": 9
     },
     {
       "uid": "lan-315",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 79,
-      "row": 6
+      "type": "PC_SIDE",
+      "col": 34,
+      "row": 9
     },
     {
       "uid": "lan-316",
-      "type": "TABLE_FRONT",
-      "col": 34,
+      "type": "PC_SIDE:left",
+      "col": 36,
       "row": 9
     },
     {
       "uid": "lan-317",
-      "type": "PC_SIDE",
-      "col": 34,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 33,
       "row": 9
     },
     {
       "uid": "lan-318",
-      "type": "PC_SIDE:left",
-      "col": 36,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 37,
       "row": 9
     },
     {
       "uid": "lan-319",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 33,
-      "row": 9
+      "type": "PC_SIDE",
+      "col": 34,
+      "row": 11
     },
     {
       "uid": "lan-320",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 37,
-      "row": 9
+      "type": "PC_SIDE:left",
+      "col": 36,
+      "row": 11
     },
     {
       "uid": "lan-321",
-      "type": "PC_SIDE",
-      "col": 34,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 33,
       "row": 11
     },
     {
       "uid": "lan-322",
-      "type": "PC_SIDE:left",
-      "col": 36,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 37,
       "row": 11
     },
     {
       "uid": "lan-323",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 33,
-      "row": 11
+      "type": "TABLE_FRONT",
+      "col": 40,
+      "row": 9
     },
     {
       "uid": "lan-324",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 37,
-      "row": 11
+      "type": "PC_SIDE",
+      "col": 40,
+      "row": 9
     },
     {
       "uid": "lan-325",
-      "type": "TABLE_FRONT",
-      "col": 40,
+      "type": "PC_SIDE:left",
+      "col": 42,
       "row": 9
     },
     {
       "uid": "lan-326",
-      "type": "PC_SIDE",
-      "col": 40,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 39,
       "row": 9
     },
     {
       "uid": "lan-327",
-      "type": "PC_SIDE:left",
-      "col": 42,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 43,
       "row": 9
     },
     {
       "uid": "lan-328",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 39,
-      "row": 9
+      "type": "PC_SIDE",
+      "col": 40,
+      "row": 11
     },
     {
       "uid": "lan-329",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 43,
-      "row": 9
+      "type": "PC_SIDE:left",
+      "col": 42,
+      "row": 11
     },
     {
       "uid": "lan-330",
-      "type": "PC_SIDE",
-      "col": 40,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 39,
       "row": 11
     },
     {
       "uid": "lan-331",
-      "type": "PC_SIDE:left",
-      "col": 42,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 43,
       "row": 11
     },
     {
       "uid": "lan-332",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 39,
-      "row": 11
+      "type": "TABLE_FRONT",
+      "col": 46,
+      "row": 9
     },
     {
       "uid": "lan-333",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 43,
-      "row": 11
+      "type": "PC_SIDE",
+      "col": 46,
+      "row": 9
     },
     {
       "uid": "lan-334",
-      "type": "TABLE_FRONT",
-      "col": 46,
+      "type": "PC_SIDE:left",
+      "col": 48,
       "row": 9
     },
     {
       "uid": "lan-335",
-      "type": "PC_SIDE",
-      "col": 46,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 45,
       "row": 9
     },
     {
       "uid": "lan-336",
-      "type": "PC_SIDE:left",
-      "col": 48,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 49,
       "row": 9
     },
     {
       "uid": "lan-337",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 45,
-      "row": 9
+      "type": "PC_SIDE",
+      "col": 46,
+      "row": 11
     },
     {
       "uid": "lan-338",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 49,
-      "row": 9
+      "type": "PC_SIDE:left",
+      "col": 48,
+      "row": 11
     },
     {
       "uid": "lan-339",
-      "type": "PC_SIDE",
-      "col": 46,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 45,
       "row": 11
     },
     {
       "uid": "lan-340",
-      "type": "PC_SIDE:left",
-      "col": 48,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 49,
       "row": 11
     },
     {
       "uid": "lan-341",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 45,
-      "row": 11
+      "type": "TABLE_FRONT",
+      "col": 52,
+      "row": 9
     },
     {
       "uid": "lan-342",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 49,
-      "row": 11
+      "type": "PC_SIDE",
+      "col": 52,
+      "row": 9
     },
     {
       "uid": "lan-343",
-      "type": "TABLE_FRONT",
-      "col": 52,
+      "type": "PC_SIDE:left",
+      "col": 54,
       "row": 9
     },
     {
       "uid": "lan-344",
-      "type": "PC_SIDE",
-      "col": 52,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 51,
       "row": 9
     },
     {
       "uid": "lan-345",
-      "type": "PC_SIDE:left",
-      "col": 54,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 55,
       "row": 9
     },
     {
       "uid": "lan-346",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 51,
-      "row": 9
+      "type": "PC_SIDE",
+      "col": 52,
+      "row": 11
     },
     {
       "uid": "lan-347",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 55,
-      "row": 9
+      "type": "PC_SIDE:left",
+      "col": 54,
+      "row": 11
     },
     {
       "uid": "lan-348",
-      "type": "PC_SIDE",
-      "col": 52,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 51,
       "row": 11
     },
     {
       "uid": "lan-349",
-      "type": "PC_SIDE:left",
-      "col": 54,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 55,
       "row": 11
     },
     {
       "uid": "lan-350",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 51,
-      "row": 11
+      "type": "TABLE_FRONT",
+      "col": 58,
+      "row": 9
     },
     {
       "uid": "lan-351",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 55,
-      "row": 11
+      "type": "PC_SIDE",
+      "col": 58,
+      "row": 9
     },
     {
       "uid": "lan-352",
-      "type": "TABLE_FRONT",
-      "col": 58,
+      "type": "PC_SIDE:left",
+      "col": 60,
       "row": 9
     },
     {
       "uid": "lan-353",
-      "type": "PC_SIDE",
-      "col": 58,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 57,
       "row": 9
     },
     {
       "uid": "lan-354",
-      "type": "PC_SIDE:left",
-      "col": 60,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 61,
       "row": 9
     },
     {
       "uid": "lan-355",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 57,
-      "row": 9
+      "type": "PC_SIDE",
+      "col": 58,
+      "row": 11
     },
     {
       "uid": "lan-356",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 61,
-      "row": 9
+      "type": "PC_SIDE:left",
+      "col": 60,
+      "row": 11
     },
     {
       "uid": "lan-357",
-      "type": "PC_SIDE",
-      "col": 58,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 57,
       "row": 11
     },
     {
       "uid": "lan-358",
-      "type": "PC_SIDE:left",
-      "col": 60,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 61,
       "row": 11
     },
     {
       "uid": "lan-359",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 57,
-      "row": 11
+      "type": "TABLE_FRONT",
+      "col": 64,
+      "row": 9
     },
     {
       "uid": "lan-360",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 61,
-      "row": 11
+      "type": "PC_SIDE",
+      "col": 64,
+      "row": 9
     },
     {
       "uid": "lan-361",
-      "type": "TABLE_FRONT",
-      "col": 64,
+      "type": "PC_SIDE:left",
+      "col": 66,
       "row": 9
     },
     {
       "uid": "lan-362",
-      "type": "PC_SIDE",
-      "col": 64,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 63,
       "row": 9
     },
     {
       "uid": "lan-363",
-      "type": "PC_SIDE:left",
-      "col": 66,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 67,
       "row": 9
     },
     {
       "uid": "lan-364",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 63,
-      "row": 9
+      "type": "PC_SIDE",
+      "col": 64,
+      "row": 11
     },
     {
       "uid": "lan-365",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 67,
-      "row": 9
+      "type": "PC_SIDE:left",
+      "col": 66,
+      "row": 11
     },
     {
       "uid": "lan-366",
-      "type": "PC_SIDE",
-      "col": 64,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 63,
       "row": 11
     },
     {
       "uid": "lan-367",
-      "type": "PC_SIDE:left",
-      "col": 66,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 67,
       "row": 11
     },
     {
       "uid": "lan-368",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 63,
-      "row": 11
+      "type": "TABLE_FRONT",
+      "col": 70,
+      "row": 9
     },
     {
       "uid": "lan-369",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 67,
-      "row": 11
+      "type": "PC_SIDE",
+      "col": 70,
+      "row": 9
     },
     {
       "uid": "lan-370",
-      "type": "TABLE_FRONT",
-      "col": 70,
+      "type": "PC_SIDE:left",
+      "col": 72,
       "row": 9
     },
     {
       "uid": "lan-371",
-      "type": "PC_SIDE",
-      "col": 70,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 69,
       "row": 9
     },
     {
       "uid": "lan-372",
-      "type": "PC_SIDE:left",
-      "col": 72,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 73,
       "row": 9
     },
     {
       "uid": "lan-373",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 69,
-      "row": 9
+      "type": "PC_SIDE",
+      "col": 70,
+      "row": 11
     },
     {
       "uid": "lan-374",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 73,
-      "row": 9
+      "type": "PC_SIDE:left",
+      "col": 72,
+      "row": 11
     },
     {
       "uid": "lan-375",
-      "type": "PC_SIDE",
-      "col": 70,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 69,
       "row": 11
     },
     {
       "uid": "lan-376",
-      "type": "PC_SIDE:left",
-      "col": 72,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 73,
       "row": 11
     },
     {
       "uid": "lan-377",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 69,
-      "row": 11
+      "type": "TABLE_FRONT",
+      "col": 76,
+      "row": 9
     },
     {
       "uid": "lan-378",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 73,
-      "row": 11
+      "type": "PC_SIDE",
+      "col": 76,
+      "row": 9
     },
     {
       "uid": "lan-379",
-      "type": "TABLE_FRONT",
-      "col": 76,
+      "type": "PC_SIDE:left",
+      "col": 78,
       "row": 9
     },
     {
       "uid": "lan-380",
-      "type": "PC_SIDE",
-      "col": 76,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 75,
       "row": 9
     },
     {
       "uid": "lan-381",
-      "type": "PC_SIDE:left",
-      "col": 78,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 79,
       "row": 9
     },
     {
       "uid": "lan-382",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 75,
-      "row": 9
+      "type": "PC_SIDE",
+      "col": 76,
+      "row": 11
     },
     {
       "uid": "lan-383",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 79,
-      "row": 9
+      "type": "PC_SIDE:left",
+      "col": 78,
+      "row": 11
     },
     {
       "uid": "lan-384",
-      "type": "PC_SIDE",
-      "col": 76,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 75,
       "row": 11
     },
     {
       "uid": "lan-385",
-      "type": "PC_SIDE:left",
-      "col": 78,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 79,
       "row": 11
     },
     {
       "uid": "lan-386",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 75,
-      "row": 11
+      "type": "TABLE_FRONT",
+      "col": 34,
+      "row": 14
     },
     {
       "uid": "lan-387",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 79,
-      "row": 11
+      "type": "PC_SIDE",
+      "col": 34,
+      "row": 14
     },
     {
       "uid": "lan-388",
-      "type": "TABLE_FRONT",
-      "col": 34,
+      "type": "PC_SIDE:left",
+      "col": 36,
       "row": 14
     },
     {
       "uid": "lan-389",
-      "type": "PC_SIDE",
-      "col": 34,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 33,
       "row": 14
     },
     {
       "uid": "lan-390",
-      "type": "PC_SIDE:left",
-      "col": 36,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 37,
       "row": 14
     },
     {
       "uid": "lan-391",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 33,
-      "row": 14
+      "type": "PC_SIDE",
+      "col": 34,
+      "row": 16
     },
     {
       "uid": "lan-392",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 37,
-      "row": 14
+      "type": "PC_SIDE:left",
+      "col": 36,
+      "row": 16
     },
     {
       "uid": "lan-393",
-      "type": "PC_SIDE",
-      "col": 34,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 33,
       "row": 16
     },
     {
       "uid": "lan-394",
-      "type": "PC_SIDE:left",
-      "col": 36,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 37,
       "row": 16
     },
     {
       "uid": "lan-395",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 33,
-      "row": 16
+      "type": "TABLE_FRONT",
+      "col": 40,
+      "row": 14
     },
     {
       "uid": "lan-396",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 37,
-      "row": 16
+      "type": "PC_SIDE",
+      "col": 40,
+      "row": 14
     },
     {
       "uid": "lan-397",
-      "type": "TABLE_FRONT",
-      "col": 40,
+      "type": "PC_SIDE:left",
+      "col": 42,
       "row": 14
     },
     {
       "uid": "lan-398",
-      "type": "PC_SIDE",
-      "col": 40,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 39,
       "row": 14
     },
     {
       "uid": "lan-399",
-      "type": "PC_SIDE:left",
-      "col": 42,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 43,
       "row": 14
     },
     {
       "uid": "lan-400",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 39,
-      "row": 14
+      "type": "PC_SIDE",
+      "col": 40,
+      "row": 16
     },
     {
       "uid": "lan-401",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 43,
-      "row": 14
+      "type": "PC_SIDE:left",
+      "col": 42,
+      "row": 16
     },
     {
       "uid": "lan-402",
-      "type": "PC_SIDE",
-      "col": 40,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 39,
       "row": 16
     },
     {
       "uid": "lan-403",
-      "type": "PC_SIDE:left",
-      "col": 42,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 43,
       "row": 16
     },
     {
       "uid": "lan-404",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 39,
-      "row": 16
+      "type": "TABLE_FRONT",
+      "col": 46,
+      "row": 14
     },
     {
       "uid": "lan-405",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 43,
-      "row": 16
+      "type": "PC_SIDE",
+      "col": 46,
+      "row": 14
     },
     {
       "uid": "lan-406",
-      "type": "TABLE_FRONT",
-      "col": 46,
+      "type": "PC_SIDE:left",
+      "col": 48,
       "row": 14
     },
     {
       "uid": "lan-407",
-      "type": "PC_SIDE",
-      "col": 46,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 45,
       "row": 14
     },
     {
       "uid": "lan-408",
-      "type": "PC_SIDE:left",
-      "col": 48,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 49,
       "row": 14
     },
     {
       "uid": "lan-409",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 45,
-      "row": 14
+      "type": "PC_SIDE",
+      "col": 46,
+      "row": 16
     },
     {
       "uid": "lan-410",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 49,
-      "row": 14
+      "type": "PC_SIDE:left",
+      "col": 48,
+      "row": 16
     },
     {
       "uid": "lan-411",
-      "type": "PC_SIDE",
-      "col": 46,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 45,
       "row": 16
     },
     {
       "uid": "lan-412",
-      "type": "PC_SIDE:left",
-      "col": 48,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 49,
       "row": 16
     },
     {
       "uid": "lan-413",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 45,
-      "row": 16
+      "type": "TABLE_FRONT",
+      "col": 52,
+      "row": 14
     },
     {
       "uid": "lan-414",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 49,
-      "row": 16
+      "type": "PC_SIDE",
+      "col": 52,
+      "row": 14
     },
     {
       "uid": "lan-415",
-      "type": "TABLE_FRONT",
-      "col": 52,
+      "type": "PC_SIDE:left",
+      "col": 54,
       "row": 14
     },
     {
       "uid": "lan-416",
-      "type": "PC_SIDE",
-      "col": 52,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 51,
       "row": 14
     },
     {
       "uid": "lan-417",
-      "type": "PC_SIDE:left",
-      "col": 54,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 55,
       "row": 14
     },
     {
       "uid": "lan-418",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 51,
-      "row": 14
+      "type": "PC_SIDE",
+      "col": 52,
+      "row": 16
     },
     {
       "uid": "lan-419",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 55,
-      "row": 14
+      "type": "PC_SIDE:left",
+      "col": 54,
+      "row": 16
     },
     {
       "uid": "lan-420",
-      "type": "PC_SIDE",
-      "col": 52,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 51,
       "row": 16
     },
     {
       "uid": "lan-421",
-      "type": "PC_SIDE:left",
-      "col": 54,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 55,
       "row": 16
     },
     {
       "uid": "lan-422",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 51,
-      "row": 16
+      "type": "TABLE_FRONT",
+      "col": 58,
+      "row": 14
     },
     {
       "uid": "lan-423",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 55,
-      "row": 16
+      "type": "PC_SIDE",
+      "col": 58,
+      "row": 14
     },
     {
       "uid": "lan-424",
-      "type": "TABLE_FRONT",
-      "col": 58,
+      "type": "PC_SIDE:left",
+      "col": 60,
       "row": 14
     },
     {
       "uid": "lan-425",
-      "type": "PC_SIDE",
-      "col": 58,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 57,
       "row": 14
     },
     {
       "uid": "lan-426",
-      "type": "PC_SIDE:left",
-      "col": 60,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 61,
       "row": 14
     },
     {
       "uid": "lan-427",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 57,
-      "row": 14
+      "type": "PC_SIDE",
+      "col": 58,
+      "row": 16
     },
     {
       "uid": "lan-428",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 61,
-      "row": 14
+      "type": "PC_SIDE:left",
+      "col": 60,
+      "row": 16
     },
     {
       "uid": "lan-429",
-      "type": "PC_SIDE",
-      "col": 58,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 57,
       "row": 16
     },
     {
       "uid": "lan-430",
-      "type": "PC_SIDE:left",
-      "col": 60,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 61,
       "row": 16
     },
     {
       "uid": "lan-431",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 57,
-      "row": 16
+      "type": "TABLE_FRONT",
+      "col": 64,
+      "row": 14
     },
     {
       "uid": "lan-432",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 61,
-      "row": 16
+      "type": "PC_SIDE",
+      "col": 64,
+      "row": 14
     },
     {
       "uid": "lan-433",
-      "type": "TABLE_FRONT",
-      "col": 64,
+      "type": "PC_SIDE:left",
+      "col": 66,
       "row": 14
     },
     {
       "uid": "lan-434",
-      "type": "PC_SIDE",
-      "col": 64,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 63,
       "row": 14
     },
     {
       "uid": "lan-435",
-      "type": "PC_SIDE:left",
-      "col": 66,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 67,
       "row": 14
     },
     {
       "uid": "lan-436",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 63,
-      "row": 14
+      "type": "PC_SIDE",
+      "col": 64,
+      "row": 16
     },
     {
       "uid": "lan-437",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 67,
-      "row": 14
+      "type": "PC_SIDE:left",
+      "col": 66,
+      "row": 16
     },
     {
       "uid": "lan-438",
-      "type": "PC_SIDE",
-      "col": 64,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 63,
       "row": 16
     },
     {
       "uid": "lan-439",
-      "type": "PC_SIDE:left",
-      "col": 66,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 67,
       "row": 16
     },
     {
       "uid": "lan-440",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 63,
-      "row": 16
+      "type": "TABLE_FRONT",
+      "col": 70,
+      "row": 14
     },
     {
       "uid": "lan-441",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 67,
-      "row": 16
+      "type": "PC_SIDE",
+      "col": 70,
+      "row": 14
     },
     {
       "uid": "lan-442",
-      "type": "TABLE_FRONT",
-      "col": 70,
+      "type": "PC_SIDE:left",
+      "col": 72,
       "row": 14
     },
     {
       "uid": "lan-443",
-      "type": "PC_SIDE",
-      "col": 70,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 69,
       "row": 14
     },
     {
       "uid": "lan-444",
-      "type": "PC_SIDE:left",
-      "col": 72,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 73,
       "row": 14
     },
     {
       "uid": "lan-445",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 69,
-      "row": 14
+      "type": "PC_SIDE",
+      "col": 70,
+      "row": 16
     },
     {
       "uid": "lan-446",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 73,
-      "row": 14
+      "type": "PC_SIDE:left",
+      "col": 72,
+      "row": 16
     },
     {
       "uid": "lan-447",
-      "type": "PC_SIDE",
-      "col": 70,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 69,
       "row": 16
     },
     {
       "uid": "lan-448",
-      "type": "PC_SIDE:left",
-      "col": 72,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 73,
       "row": 16
     },
     {
       "uid": "lan-449",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 69,
-      "row": 16
+      "type": "TABLE_FRONT",
+      "col": 76,
+      "row": 14
     },
     {
       "uid": "lan-450",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 73,
-      "row": 16
+      "type": "PC_SIDE",
+      "col": 76,
+      "row": 14
     },
     {
       "uid": "lan-451",
-      "type": "TABLE_FRONT",
-      "col": 76,
+      "type": "PC_SIDE:left",
+      "col": 78,
       "row": 14
     },
     {
       "uid": "lan-452",
-      "type": "PC_SIDE",
-      "col": 76,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 75,
       "row": 14
     },
     {
       "uid": "lan-453",
-      "type": "PC_SIDE:left",
-      "col": 78,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 79,
       "row": 14
     },
     {
       "uid": "lan-454",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 75,
-      "row": 14
+      "type": "PC_SIDE",
+      "col": 76,
+      "row": 16
     },
     {
       "uid": "lan-455",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 79,
-      "row": 14
+      "type": "PC_SIDE:left",
+      "col": 78,
+      "row": 16
     },
     {
       "uid": "lan-456",
-      "type": "PC_SIDE",
-      "col": 76,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 75,
       "row": 16
     },
     {
       "uid": "lan-457",
-      "type": "PC_SIDE:left",
-      "col": 78,
+      "type": "WOODEN_CHAIR_SIDE:left",
+      "col": 79,
       "row": 16
     },
     {
       "uid": "lan-458",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 75,
-      "row": 16
+      "type": "TABLE_FRONT",
+      "col": 34,
+      "row": 19
     },
     {
       "uid": "lan-459",
-      "type": "WOODEN_CHAIR_SIDE:left",
-      "col": 79,
-      "row": 16
+      "type": "PC_SIDE",
+      "col": 34,
+      "row": 19
     },
     {
       "uid": "lan-460",
-      "type": "TABLE_FRONT",
-      "col": 34,
+      "type": "PC_SIDE:left",
+      "col": 36,
       "row": 19
     },
     {
       "uid": "lan-461",
-      "type": "PC_SIDE",
-      "col": 34,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 33,
       "row": 19
     },
     {
       "uid": "lan-462",
-      "type": "PC_SIDE:left",
-      "col": 36,
-      "row": 19
-    },
-    {
-      "uid": "lan-463",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 33,
-      "row": 19
-    },
-    {
-      "uid": "lan-464",
       "type": "WOODEN_CHAIR_SIDE:left",
       "col": 37,
       "row": 19
     },
     {
-      "uid": "lan-465",
+      "uid": "lan-463",
       "type": "PC_SIDE",
       "col": 34,
       "row": 21
     },
     {
-      "uid": "lan-466",
+      "uid": "lan-464",
       "type": "PC_SIDE:left",
       "col": 36,
       "row": 21
     },
     {
-      "uid": "lan-467",
+      "uid": "lan-465",
       "type": "WOODEN_CHAIR_SIDE",
       "col": 33,
       "row": 21
     },
     {
-      "uid": "lan-468",
+      "uid": "lan-466",
       "type": "WOODEN_CHAIR_SIDE:left",
       "col": 37,
       "row": 21
     },
     {
-      "uid": "lan-469",
+      "uid": "lan-467",
       "type": "TABLE_FRONT",
       "col": 40,
+      "row": 19
+    },
+    {
+      "uid": "lan-468",
+      "type": "PC_SIDE",
+      "col": 40,
+      "row": 19
+    },
+    {
+      "uid": "lan-469",
+      "type": "PC_SIDE:left",
+      "col": 42,
       "row": 19
     },
     {
       "uid": "lan-470",
-      "type": "PC_SIDE",
-      "col": 40,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 39,
       "row": 19
     },
     {
       "uid": "lan-471",
-      "type": "PC_SIDE:left",
-      "col": 42,
-      "row": 19
-    },
-    {
-      "uid": "lan-472",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 39,
-      "row": 19
-    },
-    {
-      "uid": "lan-473",
       "type": "WOODEN_CHAIR_SIDE:left",
       "col": 43,
       "row": 19
     },
     {
-      "uid": "lan-474",
+      "uid": "lan-472",
       "type": "PC_SIDE",
       "col": 40,
       "row": 21
     },
     {
-      "uid": "lan-475",
+      "uid": "lan-473",
       "type": "PC_SIDE:left",
       "col": 42,
       "row": 21
     },
     {
-      "uid": "lan-476",
+      "uid": "lan-474",
       "type": "WOODEN_CHAIR_SIDE",
       "col": 39,
       "row": 21
     },
     {
-      "uid": "lan-477",
+      "uid": "lan-475",
       "type": "WOODEN_CHAIR_SIDE:left",
       "col": 43,
       "row": 21
     },
     {
-      "uid": "lan-478",
+      "uid": "lan-476",
       "type": "TABLE_FRONT",
       "col": 46,
+      "row": 19
+    },
+    {
+      "uid": "lan-477",
+      "type": "PC_SIDE",
+      "col": 46,
+      "row": 19
+    },
+    {
+      "uid": "lan-478",
+      "type": "PC_SIDE:left",
+      "col": 48,
       "row": 19
     },
     {
       "uid": "lan-479",
-      "type": "PC_SIDE",
-      "col": 46,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 45,
       "row": 19
     },
     {
       "uid": "lan-480",
-      "type": "PC_SIDE:left",
-      "col": 48,
-      "row": 19
-    },
-    {
-      "uid": "lan-481",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 45,
-      "row": 19
-    },
-    {
-      "uid": "lan-482",
       "type": "WOODEN_CHAIR_SIDE:left",
       "col": 49,
       "row": 19
     },
     {
-      "uid": "lan-483",
+      "uid": "lan-481",
       "type": "PC_SIDE",
       "col": 46,
       "row": 21
     },
     {
-      "uid": "lan-484",
+      "uid": "lan-482",
       "type": "PC_SIDE:left",
       "col": 48,
       "row": 21
     },
     {
-      "uid": "lan-485",
+      "uid": "lan-483",
       "type": "WOODEN_CHAIR_SIDE",
       "col": 45,
       "row": 21
     },
     {
-      "uid": "lan-486",
+      "uid": "lan-484",
       "type": "WOODEN_CHAIR_SIDE:left",
       "col": 49,
       "row": 21
     },
     {
-      "uid": "lan-487",
+      "uid": "lan-485",
       "type": "TABLE_FRONT",
       "col": 52,
+      "row": 19
+    },
+    {
+      "uid": "lan-486",
+      "type": "PC_SIDE",
+      "col": 52,
+      "row": 19
+    },
+    {
+      "uid": "lan-487",
+      "type": "PC_SIDE:left",
+      "col": 54,
       "row": 19
     },
     {
       "uid": "lan-488",
-      "type": "PC_SIDE",
-      "col": 52,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 51,
       "row": 19
     },
     {
       "uid": "lan-489",
-      "type": "PC_SIDE:left",
-      "col": 54,
-      "row": 19
-    },
-    {
-      "uid": "lan-490",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 51,
-      "row": 19
-    },
-    {
-      "uid": "lan-491",
       "type": "WOODEN_CHAIR_SIDE:left",
       "col": 55,
       "row": 19
     },
     {
-      "uid": "lan-492",
+      "uid": "lan-490",
       "type": "PC_SIDE",
       "col": 52,
       "row": 21
     },
     {
-      "uid": "lan-493",
+      "uid": "lan-491",
       "type": "PC_SIDE:left",
       "col": 54,
       "row": 21
     },
     {
-      "uid": "lan-494",
+      "uid": "lan-492",
       "type": "WOODEN_CHAIR_SIDE",
       "col": 51,
       "row": 21
     },
     {
-      "uid": "lan-495",
+      "uid": "lan-493",
       "type": "WOODEN_CHAIR_SIDE:left",
       "col": 55,
       "row": 21
     },
     {
-      "uid": "lan-496",
+      "uid": "lan-494",
       "type": "TABLE_FRONT",
       "col": 58,
+      "row": 19
+    },
+    {
+      "uid": "lan-495",
+      "type": "PC_SIDE",
+      "col": 58,
+      "row": 19
+    },
+    {
+      "uid": "lan-496",
+      "type": "PC_SIDE:left",
+      "col": 60,
       "row": 19
     },
     {
       "uid": "lan-497",
-      "type": "PC_SIDE",
-      "col": 58,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 57,
       "row": 19
     },
     {
       "uid": "lan-498",
-      "type": "PC_SIDE:left",
-      "col": 60,
-      "row": 19
-    },
-    {
-      "uid": "lan-499",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 57,
-      "row": 19
-    },
-    {
-      "uid": "lan-500",
       "type": "WOODEN_CHAIR_SIDE:left",
       "col": 61,
       "row": 19
     },
     {
-      "uid": "lan-501",
+      "uid": "lan-499",
       "type": "PC_SIDE",
       "col": 58,
       "row": 21
     },
     {
-      "uid": "lan-502",
+      "uid": "lan-500",
       "type": "PC_SIDE:left",
       "col": 60,
       "row": 21
     },
     {
-      "uid": "lan-503",
+      "uid": "lan-501",
       "type": "WOODEN_CHAIR_SIDE",
       "col": 57,
       "row": 21
     },
     {
-      "uid": "lan-504",
+      "uid": "lan-502",
       "type": "WOODEN_CHAIR_SIDE:left",
       "col": 61,
       "row": 21
     },
     {
-      "uid": "lan-505",
+      "uid": "lan-503",
       "type": "TABLE_FRONT",
       "col": 64,
+      "row": 19
+    },
+    {
+      "uid": "lan-504",
+      "type": "PC_SIDE",
+      "col": 64,
+      "row": 19
+    },
+    {
+      "uid": "lan-505",
+      "type": "PC_SIDE:left",
+      "col": 66,
       "row": 19
     },
     {
       "uid": "lan-506",
-      "type": "PC_SIDE",
-      "col": 64,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 63,
       "row": 19
     },
     {
       "uid": "lan-507",
-      "type": "PC_SIDE:left",
-      "col": 66,
-      "row": 19
-    },
-    {
-      "uid": "lan-508",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 63,
-      "row": 19
-    },
-    {
-      "uid": "lan-509",
       "type": "WOODEN_CHAIR_SIDE:left",
       "col": 67,
       "row": 19
     },
     {
-      "uid": "lan-510",
+      "uid": "lan-508",
       "type": "PC_SIDE",
       "col": 64,
       "row": 21
     },
     {
-      "uid": "lan-511",
+      "uid": "lan-509",
       "type": "PC_SIDE:left",
       "col": 66,
       "row": 21
     },
     {
-      "uid": "lan-512",
+      "uid": "lan-510",
       "type": "WOODEN_CHAIR_SIDE",
       "col": 63,
       "row": 21
     },
     {
-      "uid": "lan-513",
+      "uid": "lan-511",
       "type": "WOODEN_CHAIR_SIDE:left",
       "col": 67,
       "row": 21
     },
     {
-      "uid": "lan-514",
+      "uid": "lan-512",
       "type": "TABLE_FRONT",
       "col": 70,
+      "row": 19
+    },
+    {
+      "uid": "lan-513",
+      "type": "PC_SIDE",
+      "col": 70,
+      "row": 19
+    },
+    {
+      "uid": "lan-514",
+      "type": "PC_SIDE:left",
+      "col": 72,
       "row": 19
     },
     {
       "uid": "lan-515",
-      "type": "PC_SIDE",
-      "col": 70,
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 69,
       "row": 19
     },
     {
       "uid": "lan-516",
-      "type": "PC_SIDE:left",
-      "col": 72,
-      "row": 19
-    },
-    {
-      "uid": "lan-517",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 69,
-      "row": 19
-    },
-    {
-      "uid": "lan-518",
       "type": "WOODEN_CHAIR_SIDE:left",
       "col": 73,
       "row": 19
     },
     {
-      "uid": "lan-519",
+      "uid": "lan-517",
       "type": "PC_SIDE",
       "col": 70,
       "row": 21
     },
     {
-      "uid": "lan-520",
+      "uid": "lan-518",
       "type": "PC_SIDE:left",
       "col": 72,
       "row": 21
     },
     {
-      "uid": "lan-521",
+      "uid": "lan-519",
       "type": "WOODEN_CHAIR_SIDE",
       "col": 69,
       "row": 21
     },
     {
-      "uid": "lan-522",
+      "uid": "lan-520",
       "type": "WOODEN_CHAIR_SIDE:left",
       "col": 73,
       "row": 21
     },
     {
-      "uid": "lan-523",
+      "uid": "lan-521",
       "type": "TABLE_FRONT",
       "col": 76,
       "row": 19
     },
     {
-      "uid": "lan-524",
+      "uid": "lan-522",
       "type": "PC_SIDE",
       "col": 76,
+      "row": 19
+    },
+    {
+      "uid": "lan-523",
+      "type": "PC_SIDE:left",
+      "col": 78,
+      "row": 19
+    },
+    {
+      "uid": "lan-524",
+      "type": "WOODEN_CHAIR_SIDE",
+      "col": 75,
       "row": 19
     },
     {
       "uid": "lan-525",
-      "type": "PC_SIDE:left",
-      "col": 78,
-      "row": 19
-    },
-    {
-      "uid": "lan-526",
-      "type": "WOODEN_CHAIR_SIDE",
-      "col": 75,
-      "row": 19
-    },
-    {
-      "uid": "lan-527",
       "type": "WOODEN_CHAIR_SIDE:left",
       "col": 79,
       "row": 19
     },
     {
-      "uid": "lan-528",
+      "uid": "lan-526",
       "type": "PC_SIDE",
       "col": 76,
       "row": 21
     },
     {
-      "uid": "lan-529",
+      "uid": "lan-527",
       "type": "PC_SIDE:left",
       "col": 78,
       "row": 21
     },
     {
-      "uid": "lan-530",
+      "uid": "lan-528",
       "type": "WOODEN_CHAIR_SIDE",
       "col": 75,
       "row": 21
     },
     {
-      "uid": "lan-531",
+      "uid": "lan-529",
       "type": "WOODEN_CHAIR_SIDE:left",
       "col": 79,
       "row": 21
     },
     {
-      "uid": "lan-532",
+      "uid": "lan-530",
       "type": "LARGE_PAINTING",
       "col": 35,
       "row": 0
     },
     {
-      "uid": "lan-533",
+      "uid": "lan-531",
       "type": "CLOCK",
       "col": 56,
       "row": 0
     },
     {
-      "uid": "lan-534",
+      "uid": "lan-532",
       "type": "SMALL_PAINTING",
       "col": 76,
       "row": 0
     },
     {
-      "uid": "lan-535",
+      "uid": "lan-533",
       "type": "COFFEE_TABLE",
       "col": 42,
       "row": 36
     },
     {
-      "uid": "lan-536",
+      "uid": "lan-534",
       "type": "COFFEE",
       "col": 42,
       "row": 37
     },
     {
-      "uid": "lan-537",
+      "uid": "lan-535",
       "type": "SOFA_FRONT",
       "col": 42,
       "row": 35
     },
     {
-      "uid": "lan-538",
+      "uid": "lan-536",
       "type": "SOFA_BACK",
       "col": 42,
       "row": 38
     },
     {
-      "uid": "lan-539",
+      "uid": "lan-537",
       "type": "SOFA_SIDE",
       "col": 41,
       "row": 36
     },
     {
-      "uid": "lan-540",
+      "uid": "lan-538",
       "type": "SOFA_SIDE:left",
       "col": 44,
       "row": 36
     },
     {
-      "uid": "lan-541",
+      "uid": "lan-539",
       "type": "COFFEE_TABLE",
       "col": 51,
       "row": 36
     },
     {
-      "uid": "lan-542",
+      "uid": "lan-540",
       "type": "COFFEE",
       "col": 52,
       "row": 37
     },
     {
-      "uid": "lan-543",
+      "uid": "lan-541",
       "type": "SOFA_FRONT",
       "col": 51,
       "row": 35
     },
     {
-      "uid": "lan-544",
+      "uid": "lan-542",
       "type": "SOFA_BACK",
       "col": 51,
       "row": 38
     },
     {
-      "uid": "lan-545",
+      "uid": "lan-543",
       "type": "SOFA_SIDE",
       "col": 50,
       "row": 36
     },
     {
-      "uid": "lan-546",
+      "uid": "lan-544",
       "type": "SOFA_SIDE:left",
       "col": 53,
       "row": 36
     },
     {
-      "uid": "lan-547",
+      "uid": "lan-545",
       "type": "COFFEE_TABLE",
       "col": 60,
       "row": 36
     },
     {
-      "uid": "lan-548",
+      "uid": "lan-546",
       "type": "COFFEE",
       "col": 60,
       "row": 37
     },
     {
-      "uid": "lan-549",
+      "uid": "lan-547",
       "type": "SOFA_FRONT",
       "col": 60,
       "row": 35
     },
     {
-      "uid": "lan-550",
+      "uid": "lan-548",
       "type": "SOFA_BACK",
       "col": 60,
       "row": 38
     },
     {
-      "uid": "lan-551",
+      "uid": "lan-549",
       "type": "SOFA_SIDE",
       "col": 59,
       "row": 36
     },
     {
-      "uid": "lan-552",
+      "uid": "lan-550",
       "type": "SOFA_SIDE:left",
       "col": 62,
       "row": 36
     },
     {
-      "uid": "lan-553",
+      "uid": "lan-551",
       "type": "COFFEE_TABLE",
       "col": 69,
       "row": 36
     },
     {
-      "uid": "lan-554",
+      "uid": "lan-552",
       "type": "COFFEE",
       "col": 70,
       "row": 37
     },
     {
-      "uid": "lan-555",
+      "uid": "lan-553",
       "type": "SOFA_FRONT",
       "col": 69,
       "row": 35
     },
     {
-      "uid": "lan-556",
+      "uid": "lan-554",
       "type": "SOFA_BACK",
       "col": 69,
       "row": 38
     },
     {
-      "uid": "lan-557",
+      "uid": "lan-555",
       "type": "SOFA_SIDE",
       "col": 68,
       "row": 36
     },
     {
-      "uid": "lan-558",
+      "uid": "lan-556",
       "type": "SOFA_SIDE:left",
       "col": 71,
       "row": 36
     },
     {
-      "uid": "lan-559",
+      "uid": "lan-557",
       "type": "COFFEE_TABLE",
       "col": 42,
       "row": 45
     },
     {
-      "uid": "lan-560",
+      "uid": "lan-558",
       "type": "COFFEE",
       "col": 42,
       "row": 46
     },
     {
-      "uid": "lan-561",
+      "uid": "lan-559",
       "type": "SOFA_FRONT",
       "col": 42,
       "row": 44
     },
     {
-      "uid": "lan-562",
+      "uid": "lan-560",
       "type": "SOFA_BACK",
       "col": 42,
       "row": 47
     },
     {
-      "uid": "lan-563",
+      "uid": "lan-561",
       "type": "SOFA_SIDE",
       "col": 41,
       "row": 45
     },
     {
-      "uid": "lan-564",
+      "uid": "lan-562",
       "type": "SOFA_SIDE:left",
       "col": 44,
       "row": 45
     },
     {
-      "uid": "lan-565",
+      "uid": "lan-563",
       "type": "COFFEE_TABLE",
       "col": 51,
       "row": 45
     },
     {
-      "uid": "lan-566",
+      "uid": "lan-564",
       "type": "COFFEE",
       "col": 52,
       "row": 46
     },
     {
-      "uid": "lan-567",
+      "uid": "lan-565",
       "type": "SOFA_FRONT",
       "col": 51,
       "row": 44
     },
     {
-      "uid": "lan-568",
+      "uid": "lan-566",
       "type": "SOFA_BACK",
       "col": 51,
       "row": 47
     },
     {
-      "uid": "lan-569",
+      "uid": "lan-567",
       "type": "SOFA_SIDE",
       "col": 50,
       "row": 45
     },
     {
-      "uid": "lan-570",
+      "uid": "lan-568",
       "type": "SOFA_SIDE:left",
       "col": 53,
       "row": 45
     },
     {
-      "uid": "lan-571",
+      "uid": "lan-569",
       "type": "COFFEE_TABLE",
       "col": 60,
       "row": 45
     },
     {
-      "uid": "lan-572",
+      "uid": "lan-570",
       "type": "COFFEE",
       "col": 60,
       "row": 46
     },
     {
-      "uid": "lan-573",
+      "uid": "lan-571",
       "type": "SOFA_FRONT",
       "col": 60,
       "row": 44
     },
     {
-      "uid": "lan-574",
+      "uid": "lan-572",
       "type": "SOFA_BACK",
       "col": 60,
       "row": 47
     },
     {
-      "uid": "lan-575",
+      "uid": "lan-573",
       "type": "SOFA_SIDE",
       "col": 59,
       "row": 45
     },
     {
-      "uid": "lan-576",
+      "uid": "lan-574",
       "type": "SOFA_SIDE:left",
       "col": 62,
       "row": 45
     },
     {
-      "uid": "lan-577",
+      "uid": "lan-575",
       "type": "COFFEE_TABLE",
       "col": 69,
       "row": 45
     },
     {
-      "uid": "lan-578",
+      "uid": "lan-576",
       "type": "COFFEE",
       "col": 70,
       "row": 46
     },
     {
-      "uid": "lan-579",
+      "uid": "lan-577",
       "type": "SOFA_FRONT",
       "col": 69,
       "row": 44
     },
     {
-      "uid": "lan-580",
+      "uid": "lan-578",
       "type": "SOFA_BACK",
       "col": 69,
       "row": 47
     },
     {
-      "uid": "lan-581",
+      "uid": "lan-579",
       "type": "SOFA_SIDE",
       "col": 68,
       "row": 45
     },
     {
-      "uid": "lan-582",
+      "uid": "lan-580",
       "type": "SOFA_SIDE:left",
       "col": 71,
       "row": 45

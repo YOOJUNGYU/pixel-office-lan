@@ -4,6 +4,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import App from './App.tsx';
+import { ReplacedPanel } from './lan/ReplacedPanel.js';
 import { ServerPanel } from './lan/ServerPanel.js';
 import { initPwa } from './pwa.js';
 import { isBrowserRuntime } from './runtime';
@@ -21,6 +22,7 @@ async function main() {
       <App />
       {/* Dev has no server (browserMock): the transport never connects. */}
       {!import.meta.env.DEV && <ServerPanel />}
+      {!import.meta.env.DEV && <ReplacedPanel />}
     </StrictMode>,
   );
 }

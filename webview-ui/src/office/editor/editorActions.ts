@@ -175,16 +175,13 @@ export function removeFurnitureAt(layout: OfficeLayout, col: number, row: number
 }
 
 /**
- * One tile of an erase stroke: clear it to VOID and delete any furniture it
- * passes through. Returns new layout (immutable); unchanged when the tile is
- * out of bounds or already bare VOID.
+ * One tile of an erase stroke: delete any furniture and the carpet on it.
+ * Tiles are never changed — floor stays floor and walls stay walls (walls can
+ * only be recoloured) — so characters can still walk where things were removed.
+ * Returns new layout (immutable); unchanged when nothing is on the tile.
  */
 export function eraseTile(layout: OfficeLayout, col: number, row: number): OfficeLayout {
-  if (col < 0 || col >= layout.cols || row < 0 || row >= layout.rows) return layout;
-  const idx = row * layout.cols + col;
-  const cleared =
-    layout.tiles[idx] === TileType.VOID ? layout : paintTile(layout, col, row, TileType.VOID);
-  return removeFurnitureAt(cleared, col, row);
+  return eraseCarpet(removeFurnitureAt(layout, col, row), col, row);
 }
 
 /** Footprint tiles of a placed item, as `"col,row"` keys (background rows included). */
@@ -598,36 +595,12 @@ export function isFloorTile(layout: OfficeLayout, col: number, row: number): boo
   return tileVal !== TileType.VOID && tileVal !== TileType.WALL;
 }
 
-/**
- * One tile of a wall-tool stroke. The stroke's first tile decides its
- * direction (`adding`): adding paints a wall in `wallColor`; removing turns a
- * wall back into floor of the given pattern and colour and leaves non-walls
- * alone. Returns new layout (immutable).
- */
-export function wallStrokeTile(
-  layout: OfficeLayout,
-  col: number,
-  row: number,
-  adding: boolean,
-  wallColor: ColorValue,
-  floor: { type: TileTypeVal; color: ColorValue },
-): OfficeLayout {
-  if (adding) return paintTile(layout, col, row, TileType.WALL, wallColor);
-  if (layout.tiles[row * layout.cols + col] !== TileType.WALL) return layout;
-  return paintTile(layout, col, row, floor.type, floor.color);
-}
-
 /** Recolour every wall tile. Returns new layout (immutable); unchanged when there are no walls. */
 export function recolorWalls(layout: OfficeLayout, color: ColorValue): OfficeLayout {
   if (!layout.tiles.includes(TileType.WALL)) return layout;
   const existing = layout.tileColors || new Array(layout.tiles.length).fill(null);
   const tileColors = existing.map((c, i) => (layout.tiles[i] === TileType.WALL ? { ...color } : c));
   return { ...layout, tileColors };
-}
-
-/** Whether a wall stroke starting on (col, row) adds walls (it removes them when it starts on one). */
-export function wallStrokeAdds(layout: OfficeLayout, col: number, row: number): boolean {
-  return layout.tiles[row * layout.cols + col] !== TileType.WALL;
 }
 
 /**

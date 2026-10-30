@@ -5,6 +5,7 @@ import * as path from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { WebSocket } from 'ws';
 
+import { WS_CLOSE_REPLACED } from '../../core/src/constants.js';
 import { PUBLIC_VIEW } from '../../core/src/lan.js';
 import { WS_CLOSE_FORBIDDEN } from '../src/constants.js';
 import type { CreatedOffice } from '../src/lan/office.js';
@@ -144,6 +145,19 @@ describe('/ws', () => {
     sockets.length = 0;
     await server.stop();
     fs.rmSync(tmpBase, { recursive: true, force: true });
+  });
+
+  it('one UI at a time: a newer window closes the older one with WS_CLOSE_REPLACED', async () => {
+    const host = `localhost:${port.toString()}`;
+    const first = await connect(port, { Host: host, Origin: `http://${host}` });
+    sockets.push(first.socket);
+    expect(first.accepted).toBe(true);
+    const closed = new Promise<number>((resolve) => first.socket.on('close', resolve));
+    const second = await connect(port, { Host: host, Origin: `http://${host}` });
+    sockets.push(second.socket);
+    expect(second.accepted).toBe(true);
+    expect(await closed).toBe(WS_CLOSE_REPLACED);
+    expect(second.socket.readyState).toBe(WebSocket.OPEN);
   });
 
   it('closes a cross-origin handshake', async () => {
@@ -298,15 +312,10 @@ describe('/ws LAN office', () => {
     expect(fs.readFileSync(profilePath(), 'utf-8')).not.toContain('remoteView');
   });
 
-  it('a refused join tells only the asking socket why; alreadyJoined still switches', async () => {
+  it('a refused join tells the asking socket why; alreadyJoined still switches', async () => {
     const created = lan.createOffice('팀') as CreatedOffice;
     lan.leaveOffice(created.tag);
     const a = await open('localhost');
-    const b = await open('localhost');
-    const bTypes: string[] = [];
-    b.on('message', (d: Buffer) =>
-      bTypes.push((JSON.parse(d.toString()) as { type: string }).type),
-    );
     const err = waitForMessage(a, 'officeError');
     a.send(JSON.stringify({ type: 'joinOffice', code: 'PO2-NOPE' }));
     expect(await err).toEqual({ type: 'officeError', reason: 'invalidCode' });
@@ -324,11 +333,9 @@ describe('/ws LAN office', () => {
     const bad = waitForMessage(a, 'officeError');
     a.send(JSON.stringify({ type: 'createOffice', name: '' }));
     expect(await bad).toEqual({ type: 'officeError', reason: 'nameInvalid' });
-    // Barrier: leaving broadcasts an empty officesState to b after everything sent before it.
-    const left = waitForMessage(b, 'officesState', 2_000, (m) => m.activeView === PUBLIC_VIEW);
+    const left = waitForMessage(a, 'officesState', 2_000, (m) => m.activeView === PUBLIC_VIEW);
     a.send(JSON.stringify({ type: 'leaveOffice', tag: created.tag }));
     expect(await left).not.toBeNull();
-    expect(bTypes).not.toContain('officeError');
   });
 
   it('re-sends officesState once a member announces the team name', async () => {
@@ -341,18 +348,12 @@ describe('/ws LAN office', () => {
     expect(await named).toMatchObject({ offices: [{ tag: created.tag, name: '알림팀' }] });
   });
 
-  it('getOfficeCode answers only the asking loopback socket', async () => {
+  // Only one UI socket exists at a time (WS_CLOSE_REPLACED), so a reply has no one else to reach.
+  it('getOfficeCode answers the asking loopback socket', async () => {
     const created = lan.createOffice('팀') as CreatedOffice;
     const a = await open('localhost');
-    const b = await open('localhost');
-    let bGot = false;
-    b.on('message', (d: Buffer) => {
-      if (d.toString().includes(created.code)) bGot = true;
-    });
     const code = waitForMessage(a, 'officeCode');
     a.send(JSON.stringify({ type: 'getOfficeCode', tag: created.tag }));
     expect(await code).toEqual({ type: 'officeCode', tag: created.tag, code: created.code });
-    await new Promise((r) => setTimeout(r, SETTLE_MS));
-    expect(bGot).toBe(false);
   });
 });

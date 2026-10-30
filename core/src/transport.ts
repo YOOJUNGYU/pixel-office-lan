@@ -3,6 +3,7 @@ import {
   TRANSPORT_STATE_CONNECTING,
   TRANSPORT_STATE_DISCONNECTED,
   TRANSPORT_STATE_RECONNECTING,
+  TRANSPORT_STATE_REPLACED,
 } from './constants.js';
 import type { ClientMessage, ServerMessage } from './messages.js';
 
@@ -11,7 +12,8 @@ export type TransportState =
   | typeof TRANSPORT_STATE_CONNECTING
   | typeof TRANSPORT_STATE_CONNECTED
   | typeof TRANSPORT_STATE_RECONNECTING
-  | typeof TRANSPORT_STATE_DISCONNECTED;
+  | typeof TRANSPORT_STATE_DISCONNECTED
+  | typeof TRANSPORT_STATE_REPLACED;
 
 /**
  * Transport-agnostic message layer between webview and extension/server.

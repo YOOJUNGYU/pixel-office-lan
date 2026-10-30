@@ -22,8 +22,6 @@ import {
   removeFurniture,
   rotateFurniture,
   toggleFurnitureState,
-  wallStrokeAdds,
-  wallStrokeTile,
 } from '../office/editor/editorActions.js';
 import type { EditorState } from '../office/editor/editorState.js';
 import { saveThenExit } from '../office/editor/saveFlow.js';
@@ -486,14 +484,9 @@ export function useEditorActions(
             ),
           );
           return;
-        case EditTool.WALL_PAINT: {
-          const floor = { type: editorState.selectedTileType, color: editorState.floorColor };
-          // The stroke's first tile decides whether it adds or removes walls.
-          editorState.wallDragAdding ??= wallStrokeAdds(layout, col, row);
-          const adding = editorState.wallDragAdding;
-          applyStrokeEdit(wallStrokeTile(layout, col, row, adding, editorState.wallColor, floor));
+        case EditTool.WALL_PAINT:
+          // Walls are fixed: neither built nor removed, only recoloured (the colour slider).
           return;
-        }
         case EditTool.ERASE:
           applyStrokeEdit(eraseTile(layout, col, row));
           return;

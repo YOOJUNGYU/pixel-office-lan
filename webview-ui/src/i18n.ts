@@ -87,6 +87,10 @@ const ko = {
   'conn.connecting': '연결 중…',
   'conn.reconnecting': '다시 연결 중…',
   'conn.quit': 'Pixel Office 를 종료했습니다. 다시 실행한 뒤 새로고침하세요.',
+  'conn.replaced': '다른 창에서 열려 있습니다.',
+  'replaced.title': '다른 창에서 열려 있습니다',
+  'replaced.body': 'Pixel Office 는 한 번에 한 창에서만 열립니다. 이 창은 닫아도 됩니다.',
+  'replaced.here': '여기서 열기',
 
   'toolbar.layout': '레이아웃',
   'toolbar.layoutTitle': '사무실 배치 편집',
@@ -206,7 +210,7 @@ const ko = {
   'editor.floor': '바닥',
   'editor.floorTitle': '바닥 타일 칠하기',
   'editor.walls': '벽',
-  'editor.wallsTitle': '벽 칠하기 (클릭으로 켜고 끄기)',
+  'editor.wallsTitle': '벽 색상 바꾸기 (벽은 고정)',
   'editor.background': '배경',
   'editor.backgroundTitle': '사무실 바깥 배경 바꾸기',
   'editor.background.color': '단색',
@@ -214,7 +218,7 @@ const ko = {
   'editor.background.carpet': '카펫',
   'editor.backgroundHint': '지금은 기본 배경입니다. 종류를 고르세요.',
   'editor.erase': '지우기',
-  'editor.eraseTitle': '타일을 빈 공간으로 지우기',
+  'editor.eraseTitle': '가구·카펫 지우기 (바닥·벽은 남음)',
   'editor.copy': '복사',
   'editor.color': '색상',
   'editor.contrast': '대비',
@@ -325,7 +329,7 @@ const ko = {
   'tour.floor.body':
     '바닥 무늬를 고르고 색을 정한 뒤, 바닥 도구로 방을 클릭하면 방 전체가 한 번에 칠해집니다. 복도는 이어진 바닥만 칠해집니다. [복사] 로 이미 칠해진 바닥을 집어 올 수도 있습니다.',
   'tour.walls.title': '벽',
-  'tour.walls.body': '벽 모양과 색을 고르고, 칠해서 세우거나 다시 클릭해 없앱니다.',
+  'tour.walls.body': '벽은 고정되어 있어 색만 바꿀 수 있습니다.',
   'tour.furniture.title': '가구',
   'tour.furniture.body':
     '목록에서 골라 놓고, 드래그로 옮기고, Alt+드래그로 복사합니다.\nR 은 회전, T 는 켜기/끄기(모니터 등), 색 버튼으로 색을 바꿉니다. 카펫도 여기 있습니다.',
@@ -333,7 +337,7 @@ const ko = {
   'tour.background.body': '사무실 바깥을 단색, 바닥 무늬, 카펫 무늬 중 하나로 채웁니다.',
   'tour.editorMore.title': '지우기 · 실행 취소',
   'tour.editorMore.body':
-    '[지우기] 로 타일을 지울 수 있습니다. Ctrl+Z / Ctrl+Y 로 실행 취소 · 다시 실행.\n배치를 바꿔도 캐릭터는 있던 자리에 그대로 있습니다.',
+    '[지우기] 로 가구·카펫을 지울 수 있습니다 (바닥·벽은 남습니다). Ctrl+Z / Ctrl+Y 로 실행 취소 · 다시 실행.\n배치를 바꿔도 캐릭터는 있던 자리에 그대로 있습니다.',
   'tour.save.title': '저장',
   'tour.save.body':
     '편집은 [저장] 을 누르기 전까지 이 화면에만 있습니다. [저장] = 저장하고 편집 닫기(공개·팀 오피스는 접속한 모두에게 공유, 마지막 저장이 남음 · 🏠 개인용은 이 PC 에만), [취소] = 바꾼 내용을 모두 버리고 닫기(Esc 도 같음), [초기화] = 기본 배치로(저장해야 적용).\n배치를 파일로 남기려면 설정 → [레이아웃 내보내기] / [레이아웃 가져오기].',
@@ -429,6 +433,10 @@ const en: Record<Key, string> = {
   'conn.connecting': 'Connecting…',
   'conn.reconnecting': 'Reconnecting…',
   'conn.quit': 'Pixel Office was quit. Start it again, then reload this page.',
+  'conn.replaced': 'Open in another window.',
+  'replaced.title': 'Open in another window',
+  'replaced.body': 'Pixel Office opens in one window at a time. You can close this one.',
+  'replaced.here': 'Open here',
 
   'toolbar.layout': 'Layout',
   'toolbar.layoutTitle': 'Edit the office layout',
@@ -546,7 +554,7 @@ const en: Record<Key, string> = {
   'editor.floor': 'Floor',
   'editor.floorTitle': 'Paint floor tiles',
   'editor.walls': 'Walls',
-  'editor.wallsTitle': 'Paint walls (click to toggle)',
+  'editor.wallsTitle': 'Change wall color (walls are fixed)',
   'editor.background': 'Background',
   'editor.backgroundTitle': 'Change the background around the office',
   'editor.background.color': 'Color',
@@ -554,7 +562,7 @@ const en: Record<Key, string> = {
   'editor.background.carpet': 'Carpet',
   'editor.backgroundHint': 'Using the default background. Pick a kind.',
   'editor.erase': 'Erase',
-  'editor.eraseTitle': 'Erase tiles to void',
+  'editor.eraseTitle': 'Erase furniture and carpets (floor and walls stay)',
   'editor.copy': 'Copy',
   'editor.color': 'Color',
   'editor.contrast': 'Contrast',
@@ -666,8 +674,7 @@ const en: Record<Key, string> = {
   'tour.floor.body':
     'Pick a floor pattern and a color, then click a room with the floor tool: the whole room is painted at once (in the corridor, the connected floor). [Copy] picks up an already painted floor.',
   'tour.walls.title': 'Walls',
-  'tour.walls.body':
-    'Pick a wall style and color; paint to build walls, click again to remove them.',
+  'tour.walls.body': 'Walls are fixed; only their color can be changed.',
   'tour.furniture.title': 'Furniture',
   'tour.furniture.body':
     'Pick an item and place it, drag to move, Alt+drag to copy.\nR rotates, T toggles (monitors…), the color button recolors. Carpets live here too.',
@@ -676,7 +683,7 @@ const en: Record<Key, string> = {
     'Fill the outside of the office with a solid color, a floor pattern or a carpet.',
   'tour.editorMore.title': 'Erase · Undo',
   'tour.editorMore.body':
-    'Clear tiles with [Erase]. Ctrl+Z / Ctrl+Y undo and redo.\nChanging the layout never moves the characters.',
+    'Clear furniture and carpets with [Erase] (floor and walls stay). Ctrl+Z / Ctrl+Y undo and redo.\nChanging the layout never moves the characters.',
   'tour.save.title': 'Save',
   'tour.save.body':
     'Edits stay on this screen until [Save]. [Save] = save and close (public/team office: shared with everyone there, the last save wins · 🏠 Personal: this PC only); [Cancel] = drop every change and close (Esc too); [Reset] = the default layout (applied on [Save]).\nTo keep a layout as a file: Settings → [Export layout] / [Import layout].',

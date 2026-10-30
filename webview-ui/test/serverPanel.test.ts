@@ -18,6 +18,10 @@ test('first load: only after the grace, and only while never connected', () => {
   assert.equal(panelVisible('connected', true, true), false);
 });
 
+test('a window replaced by a newer one never shows it (its polling would reload it back)', () => {
+  assert.equal(panelVisible('replaced', true, true), false);
+});
+
 test('a page that was connected never shows it for a reconnect (update restart)', () => {
   assert.equal(panelVisible('reconnecting', true, true), false);
 });

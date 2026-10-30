@@ -37,14 +37,11 @@ export class EditorState {
   // Floor color settings (applied to new tiles when painting)
   floorColor: ColorValue = { ...DEFAULT_FLOOR_COLOR };
 
-  // Wall color settings (applied to new wall tiles when painting)
+  // Wall color (the slider recolours every wall)
   wallColor: ColorValue = { ...DEFAULT_WALL_COLOR };
 
   // Selected wall set index (0-based, indexes into loaded wall sets)
   selectedWallSet = 0;
-
-  // Tracks toggle direction during wall drag (true=adding walls, false=removing, null=undecided)
-  wallDragAdding: boolean | null = null;
 
   /**
    * Palette-wide colour for new furniture: set from the Furniture tab's Color
@@ -125,7 +122,6 @@ export class EditorState {
   endStroke(): void {
     this.undoSession = null;
     this.carpetDragErasing = null;
-    this.wallDragAdding = null;
   }
 
   pushUndo(layout: OfficeLayout): void {
@@ -271,7 +267,6 @@ export class EditorState {
     this.ghostRow = -1;
     this.ghostValid = false;
     this.isDragging = false;
-    this.wallDragAdding = null;
     this.undoStack = [];
     this.redoStack = [];
     this.isDirty = false;

@@ -9,6 +9,7 @@ const STATE_LABELS: Partial<Record<TransportState, Key>> = {
   reconnecting: 'conn.reconnecting',
   // Only reached when the app was quit (WS_CLOSE_APP_QUIT): no reconnect follows.
   disconnected: 'conn.quit',
+  replaced: 'conn.replaced',
 };
 
 /**

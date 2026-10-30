@@ -3,7 +3,9 @@ import {
   TRANSPORT_STATE_CONNECTING,
   TRANSPORT_STATE_DISCONNECTED,
   TRANSPORT_STATE_RECONNECTING,
+  TRANSPORT_STATE_REPLACED,
   WS_CLOSE_APP_QUIT,
+  WS_CLOSE_REPLACED,
 } from '../../../core/src/constants.js';
 import type { ClientMessage, ServerMessage } from '../../../core/src/messages.js';
 import { reconnectDelayMs } from './reconnectBackoff.js';
@@ -84,6 +86,12 @@ export class WebSocketTransport implements MessageTransport {
       if (e.code === WS_CLOSE_APP_QUIT) {
         this.disposed = true;
         this.setState(TRANSPORT_STATE_DISCONNECTED);
+        return;
+      }
+      // A newer window took over: stop here (reconnecting would take it back, ping-pong).
+      if (e.code === WS_CLOSE_REPLACED) {
+        this.disposed = true;
+        this.setState(TRANSPORT_STATE_REPLACED);
         return;
       }
       if (!this.disposed) {

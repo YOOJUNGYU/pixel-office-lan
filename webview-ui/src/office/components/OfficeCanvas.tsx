@@ -367,8 +367,7 @@ export function OfficeCanvas({
           if (
             editorState.isDragging &&
             // The floor tool fills on click only (no drag painting).
-            (editorState.activeTool === EditTool.WALL_PAINT ||
-              editorState.activeTool === EditTool.ERASE ||
+            (editorState.activeTool === EditTool.ERASE ||
               editorState.activeTool === EditTool.CARPET_PAINT) &&
             !editorState.dragUid
           ) {
