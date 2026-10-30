@@ -336,8 +336,11 @@ export const LAN_ALERT_GLYPH = ['###', '###', '###', '###', '.#.', '...', '###',
 export const LAN_BUBBLE_MAX_WIDTH_PX = 300;
 /** Hover bubble sits this many world px above a character's feet (sprite height). */
 export const LAN_BUBBLE_HEAD_OFFSET = 32;
-/** Always-on activity line above working agents (name tags shown): truncated at this width (CSS px). */
-export const LAN_ACTIVITY_MAX_WIDTH_PX = 220;
+/** Activity bubble above working agents (tags & bubbles shown): truncated at this width (CSS px). */
+export const LAN_ACTIVITY_MAX_WIDTH_PX = 240;
+/** Its padding inside the pixel-panel border (CSS px); the tail and border match the chat bubbles. */
+export const LAN_ACTIVITY_PAD_X_PX = 6;
+export const LAN_ACTIVITY_PAD_Y_PX = 3;
 export const LAN_TAG_Z_INDEX = 40;
 /** Name tag / activity line box for overlap stacking (CSS px), one line: text-sm leading-none (13) + py-1 ×2. Width = PAD ×2 + badge (px-2 ×2 + gap 4) + text. */
 export const LAN_TAG_LINE_PX = 13;

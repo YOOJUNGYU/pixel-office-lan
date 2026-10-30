@@ -298,12 +298,12 @@ test('roomCounts, plateCount and roomAgents: mains by their own room, children a
     대기실: { main: 1, extra: 0 },
   });
   setLang('ko');
-  assert.equal(plateCount({ main: 5, extra: 3 }), '에이전트 5 · 하위 3');
+  assert.equal(plateCount({ main: 5, extra: 3 }), '에이전트 8', 'mains and children together');
   assert.equal(plateCount({ main: 2, extra: 0 }), '에이전트 2');
   assert.equal(plateCount({ main: 0, extra: 0 }), null, 'empty room: no chip');
   assert.equal(plateCount(undefined), null);
   setLang('en');
-  assert.equal(plateCount({ main: 5, extra: 3 }), 'Agents 5 · Sub 3');
+  assert.equal(plateCount({ main: 5, extra: 3 }), 'Agents 8');
   setLang('ko');
   // Cards: per PC, each main then its children; other rooms left out.
   assert.deepEqual(

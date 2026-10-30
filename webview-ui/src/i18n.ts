@@ -30,10 +30,9 @@ const ko = {
 
   'bubble.permission': '확인 필요',
   'plate.agents': '에이전트 {n}',
-  'plate.sub': '하위 {n}',
   'plate.none': '지금 이 방에 있는 에이전트가 없습니다',
-  'tags.hide': '에이전트 이름표 숨기기',
-  'tags.show': '에이전트 이름표 보이기',
+  'tags.hide': '이름표·말풍선 숨기기',
+  'tags.show': '이름표·말풍선 보이기',
   'legend.coding': '파일을 직접 고칠 때 (Edit·Write, Codex apply_patch)',
   'legend.library':
     '파일 읽기·코드 검색·웹 검색 (Read·Grep·WebSearch, rg·cat·git log 같은 읽기 명령)',
@@ -42,7 +41,7 @@ const ko = {
     '입력·승인 대기, 작업 끝남 — 그 PC의 캐릭터로 합쳐짐 (머리 위 빨간 ! = 확인 필요)',
   'tour.roomLegend.title': '방 안내',
   'tour.roomLegend.body':
-    '방 명패에 마우스를 올리면 어떤 일을 할 때 그 방으로 가는지 보입니다. 캐릭터 이름표는 처음엔 숨겨져 있고 마우스를 올리면 나타납니다. 왼쪽 위 [이름표 보이기] 버튼으로 항상 보이게 할 수 있습니다.',
+    '방 명패에 마우스를 올리면 어떤 일을 할 때 그 방으로 가는지 보입니다. 에이전트의 이름표와 작업 말풍선은 기본으로 보이고, 왼쪽 위 [이름표·말풍선 숨기기] 버튼으로 한꺼번에 숨길 수 있습니다(숨겨도 마우스를 올린 캐릭터는 보임).',
   'app.restarting': '새 버전으로 다시 시작합니다…',
   'server.offTitle': 'Pixel Office 서버가 꺼져 있습니다',
   'server.quitTitle': 'Pixel Office 를 종료했습니다',
@@ -280,7 +279,7 @@ const ko = {
     '할 일을 기다리거나 확인을 기다릴 때는 대기실에서 쉽니다.\n방 이동은 3초 정도 상태가 이어져야 일어나서, 잠깐씩 바뀌는 작업에 캐릭터가 왔다 갔다 하지 않습니다.',
   'tour.tag.title': '이름표',
   'tour.tag.body':
-    '이름표는 한 줄: 맨 앞 MAIN = 메인 에이전트, SUB / SHELL = 서브에이전트와 셸(부모의 번호로 보임), 다음 #번호, 그다음 닉네임(없으면 PC 계정).\n이름표를 켜 두면 머리 위에 Claude(주황) / Codex(초록) 배지와 지금 하는 일이 함께 보입니다.',
+    '이름표는 한 줄: 맨 앞 MAIN = 메인 에이전트, SUB / SHELL = 서브에이전트와 셸(부모의 번호로 보임), 다음 #번호, 그다음 닉네임(없으면 PC 계정).\n머리 위 말풍선에는 Claude(주황) / Codex(초록) 배지와 지금 하는 일이 보입니다.',
   'tour.bubble.title': '말풍선',
   'tour.bubble.body':
     '캐릭터에 마우스를 올리면 어느 방에서 무엇을 하는지, 그리고 이유가 보입니다.\n머리 위 빨간 ! 는 사용자의 확인(권한 승인이나 답변)을 기다린다는 뜻입니다.',
@@ -371,10 +370,9 @@ const en: Record<Key, string> = {
 
   'bubble.permission': 'Needs attention',
   'plate.agents': 'Agents {n}',
-  'plate.sub': 'Sub {n}',
   'plate.none': 'No agents in this room right now',
-  'tags.hide': 'Hide agent name tags',
-  'tags.show': 'Show agent name tags',
+  'tags.hide': 'Hide tags & bubbles',
+  'tags.show': 'Show tags & bubbles',
   'legend.coding': 'Editing files',
   'legend.library': 'Reading, searching code and the web (incl. read-only shell commands)',
   'legend.server': 'Running commands — build, test, install, servers; background shells',
@@ -382,7 +380,7 @@ const en: Record<Key, string> = {
     "Waiting for input/approval or done — merged into the PC's character (red ! = needs you)",
   'tour.roomLegend.title': 'Rooms',
   'tour.roomLegend.body':
-    'Hover a room plate to see which activity sends an agent there. Character name tags start hidden and appear when you hover a character; the button at the top left shows them all the time.',
+    'Hover a room plate to see which activity sends an agent there. Agent name tags and activity bubbles show by default; the button at the top left hides them all at once (a hovered character still shows its own).',
   'app.restarting': 'Restarting into the new version…',
   'server.offTitle': 'The Pixel Office server is off',
   'server.quitTitle': 'Pixel Office was quit',
@@ -619,7 +617,7 @@ const en: Record<Key, string> = {
     'Idle agents, and agents waiting for you, rest in the lounge.\nA move only happens after the new activity lasts about 3 seconds, so characters do not bounce around on quick tasks.',
   'tour.tag.title': 'Name tags',
   'tour.tag.body':
-    "One line: first MAIN = main agent, SUB / SHELL = subagents and shells (with their parent's number), then #number, then the nickname (else the PC account).\nWith name tags shown, a Claude (orange) / Codex (green) badge and the current activity appear above the head.",
+    "One line: first MAIN = main agent, SUB / SHELL = subagents and shells (with their parent's number), then #number, then the nickname (else the PC account).\nThe bubble above the head shows a Claude (orange) / Codex (green) badge and the current activity.",
   'tour.bubble.title': 'Hover bubble',
   'tour.bubble.body':
     'Hover a character to see its room, what it is doing and why.\nA red ! over its head means it is waiting for you (a permission or an answer).',

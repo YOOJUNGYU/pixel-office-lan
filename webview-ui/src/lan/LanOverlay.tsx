@@ -6,7 +6,11 @@ import {
   BUBBLE_SITTING_OFFSET_PX,
   BUBBLE_VERTICAL_OFFSET_PX,
   CHARACTER_SITTING_OFFSET_PX,
+  CHAT_BORDER_PX,
+  CHAT_TAIL_PX,
   LAN_ACTIVITY_MAX_WIDTH_PX,
+  LAN_ACTIVITY_PAD_X_PX,
+  LAN_ACTIVITY_PAD_Y_PX,
   LAN_ALERT_COLOR,
   LAN_BUBBLE_HEAD_OFFSET,
   LAN_BUBBLE_MAX_WIDTH_PX,
@@ -18,6 +22,7 @@ import {
   LAN_TAG_BADGE_FONT,
   LAN_TAG_FONT,
   LAN_TAG_HEIGHT_PX,
+  LAN_TAG_LINE_PX,
   LAN_TAG_PAD_X_PX,
   LAN_TAG_STACK_GAP_PX,
   LAN_TAG_Z_INDEX,
@@ -242,54 +247,70 @@ export function LanOverlay({
     if (a.permission) alert(`${a.key}!`, ch);
   }
 
-  // Name tags shown: every working agent also shows what it is doing (one line, above its head).
+  // Tags & bubbles shown: every working agent also has a speech bubble above its head (provider
+  // badge + what it does), drawn like the chat bubbles: pixel panel, tail down to the head.
   if (!tagsHidden) {
     const lines: Array<{
       key: string;
       a: OfficeAgent;
       text: string;
       x: number;
+      head: number;
       w: number;
+      h: number;
       bottom: number;
     }> = [];
     for (const { a, ch } of tags) {
       if (ch.id === officeState.hoveredAgentId || ch.mergeInto !== undefined) continue;
       const text = actText(a.act, a.target);
       const typing = ch.state === CharacterState.TYPE;
+      const head = project.toScreenY(
+        ch.y +
+          (typing ? CHARACTER_SITTING_OFFSET_PX : 0) +
+          (ch.pet ? PET_HEAD_DROP_PX : 0) -
+          LAN_BUBBLE_HEAD_OFFSET,
+      );
       lines.push({
         key: a.key,
         a,
         text,
         x: project.toScreenX(ch.x),
+        head,
         w: Math.min(
           LAN_ACTIVITY_MAX_WIDTH_PX,
-          2 * LAN_TAG_PAD_X_PX +
+          2 * (LAN_ACTIVITY_PAD_X_PX + CHAT_BORDER_PX) +
             LAN_TAG_BADGE_CHROME_PX +
             textWidth(providerName(a), LAN_TAG_BADGE_FONT) +
             textWidth(text, LAN_TAG_FONT),
         ),
-        bottom: project.toScreenY(
-          ch.y +
-            (typing ? CHARACTER_SITTING_OFFSET_PX : 0) +
-            (ch.pet ? PET_HEAD_DROP_PX : 0) -
-            LAN_BUBBLE_HEAD_OFFSET,
-        ),
+        h: LAN_TAG_LINE_PX + 2 * (LAN_ACTIVITY_PAD_Y_PX + CHAT_BORDER_PX),
+        bottom: head - CHAT_TAIL_PX,
       });
     }
-    const bottoms = stackBubbles(
-      lines.map((l) => ({ ...l, h: AVATAR_TAG_HEIGHT_PX })),
-      LAN_TAG_STACK_GAP_PX,
-    );
+    const bottoms = stackBubbles(lines, LAN_TAG_STACK_GAP_PX);
     lines.forEach((l, k) =>
       nodes.push(
         <div
+          key={`act-tail:${l.key}`}
+          className="absolute bg-border pointer-events-none"
+          style={{
+            left: l.x - CHAT_BORDER_PX / 2,
+            top: bottoms[k],
+            width: CHAT_BORDER_PX,
+            height: Math.max(0, l.head - bottoms[k]),
+            zIndex: LAN_TAG_Z_INDEX,
+          }}
+        />,
+        <div
           key={`act:${l.key}`}
           data-activity={l.key}
-          className="absolute -translate-x-1/2 -translate-y-full flex items-center gap-4 whitespace-nowrap text-sm leading-none px-3 py-1 bg-bg/75 text-text pointer-events-none"
+          className="absolute pixel-panel flex items-center gap-4 whitespace-nowrap text-sm leading-none text-text pointer-events-none"
           style={{
-            left: l.x,
-            top: bottoms[k],
-            maxWidth: LAN_ACTIVITY_MAX_WIDTH_PX,
+            left: l.x - l.w / 2,
+            top: bottoms[k] - l.h,
+            width: l.w,
+            height: l.h,
+            padding: `${LAN_ACTIVITY_PAD_Y_PX}px ${LAN_ACTIVITY_PAD_X_PX}px`,
             zIndex: LAN_TAG_Z_INDEX,
           }}
         >

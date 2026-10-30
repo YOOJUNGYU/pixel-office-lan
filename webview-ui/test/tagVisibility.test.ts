@@ -22,7 +22,7 @@ describe('tags hidden persistence', () => {
       getItem: (k: string) => store.get(k) ?? null,
       setItem: (k: string, v: string) => void store.set(k, v),
     });
-    expect(readTagsHidden()).toBe(true); // default: hidden
+    expect(readTagsHidden()).toBe(false); // default: shown
     saveTagsHidden(false);
     expect(store.get(TAGS_HIDDEN_KEY)).toBe('0');
     expect(readTagsHidden()).toBe(false);
@@ -37,7 +37,7 @@ describe('tags hidden persistence', () => {
         throw new Error('blocked');
       },
     });
-    expect(readTagsHidden()).toBe(true);
+    expect(readTagsHidden()).toBe(false); // storage blocked: shown
     expect(() => saveTagsHidden(true)).not.toThrow();
   });
 });

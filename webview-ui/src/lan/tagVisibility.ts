@@ -2,9 +2,9 @@ import { TAGS_HIDDEN_KEY } from '../constants.js';
 
 export function readTagsHidden(): boolean {
   try {
-    return localStorage.getItem(TAGS_HIDDEN_KEY) !== '0'; // default: hidden
+    return localStorage.getItem(TAGS_HIDDEN_KEY) === '1'; // default: shown
   } catch {
-    return true;
+    return false;
   }
 }
 

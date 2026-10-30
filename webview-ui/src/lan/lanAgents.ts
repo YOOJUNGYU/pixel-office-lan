@@ -95,11 +95,10 @@ export function roomCounts(agents: readonly OfficeAgent[]): Map<string, RoomCoun
   return counts;
 }
 
-/** The count chip beside a room plate ("에이전트 5 · 하위 3"); null when no agent is there. */
+/** The count chip beside a room plate ("에이전트 5": mains and children together); null when empty. */
 export function plateCount(c: RoomCount | undefined): string | null {
-  if (!c || c.main + c.extra === 0) return null;
-  const main = t('plate.agents', { n: String(c.main) });
-  return c.extra > 0 ? `${main} · ${t('plate.sub', { n: String(c.extra) })}` : main;
+  const n = c ? c.main + c.extra : 0;
+  return n > 0 ? t('plate.agents', { n: String(n) }) : null;
 }
 
 /** Agents in a room for its plate's cards: by PC, each main followed by its children. */
