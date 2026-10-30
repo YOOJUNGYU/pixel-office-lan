@@ -145,10 +145,19 @@ rect(1, CORRIDOR_Y, COLS - 2, CORRIDOR_H, (c, r) => floor(c, r, FLOOR.corridor))
 // ── Doors (2-tile gaps, unzoned corridor floor) ──
 const door = (x, y, w, h) => rect(x, y, w, h, (c, r) => floor(c, r, FLOOR.corridor));
 const mid = (r) => r.x + Math.floor(r.w / 2) - 1;
-for (const r of [CODING, SERVER]) door(mid(r), MID_WALL, 2, 1);
-for (const r of [LIBRARY, LOUNGE]) door(mid(r), BOTTOM_WALL, 2, 1);
-door(RIGHT_X - 1, TOP_Y + ROOM_H - 2, 1, 2); // 코딩실 ↔ 서버실
-door(RIGHT_X - 1, BOTTOM_Y + ROOM_H - 2, 1, 2); // 자료실 ↔ 대기실
+/** First tile of the two 2-tile doors at 1/3 and 2/3 of a wall `len` tiles long from `start`
+ *  (moved apart, symmetrically, until a wall tile is left between them). */
+function thirds(start, len) {
+  let [a, b] = [1, 2].map((k) => Math.round((k * len) / 3) - 1);
+  while (b - a < 3) [a, b] = [a - 1, b + 1];
+  return [start + a, start + b];
+}
+for (const x of thirds(CODING.x, CODING.w)) door(x, MID_WALL, 2, 1); // 코딩실 ↔ 복도
+for (const x of thirds(LIBRARY.x, LIBRARY.w)) door(x, BOTTOM_WALL, 2, 1); // 복도 ↔ 자료실
+door(mid(SERVER), MID_WALL, 2, 1);
+door(mid(LOUNGE), BOTTOM_WALL, 2, 1);
+for (const y of thirds(TOP_Y, ROOM_H)) door(RIGHT_X - 1, y, 1, 2); // 코딩실 ↔ 서버실
+for (const y of thirds(BOTTOM_Y, ROOM_H)) door(RIGHT_X - 1, y, 1, 2); // 자료실 ↔ 대기실
 if (V.extraDoors) {
   // The wide right-hand rooms get two more doors each.
   for (const x of [
@@ -200,10 +209,10 @@ for (const [type, x] of V.wallDeco.coding) put(type, CODING.x + x, TOP_WALL - 1)
 
 // ── 자료실: bookshelves on the top wall, reading tables with 4 chairs (group 4×3) ──
 // The shelves sit as in the top rooms (the lower tile on the wall, the upper one over the
-// corridor's last row), leaving the door to the corridor open.
-const libraryDoor = mid(LIBRARY);
+// corridor's last row), leaving the doors to the corridor open.
+const libraryDoors = thirds(LIBRARY.x, LIBRARY.w);
 for (let x = LIBRARY.x; x + 1 < LIBRARY.x + LIBRARY.w; x += 2) {
-  if (x + 1 >= libraryDoor && x <= libraryDoor + 1) continue;
+  if (libraryDoors.some((d) => x + 1 >= d && x <= d + 1)) continue;
   put('DOUBLE_BOOKSHELF', x, LIBRARY.y - 2);
 }
 const readingTable = (c, y) => {
