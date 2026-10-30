@@ -52,7 +52,10 @@ describe('applyClaudeLine', () => {
       ['Bash', { command: 'a'.repeat(100) }, 'server', 'run', 'a'.repeat(80)],
       ['Bash', { command: 'ls', description: '목록' }, 'server', 'run', '목록'],
       ['Agent', { description: '조사' }, 'lounge', 'delegate', '조사'],
-      ['Skill', {}, null, 'tool', 'Skill'],
+      ['Skill', {}, 'library', 'tool', 'Skill'],
+      ['ToolSearch', {}, 'library', 'tool', 'ToolSearch'],
+      ['SomeNewTool', {}, 'library', 'tool', 'SomeNewTool'],
+      ['TodoWrite', {}, 'coding', 'tool', 'TodoWrite'],
     ];
     for (const [name, input, room, act, target] of cases) {
       const s = mk();
@@ -179,6 +182,20 @@ describe('applyClaudeLine', () => {
       2,
     );
     expect(s.reason).toBe('');
+  });
+
+  it('a user prompt -> 자료실, thinking (act tool, no target) until the first tool', () => {
+    const s = mk();
+    const user = (text: string, extra = {}) =>
+      JSON.stringify({ type: 'user', message: { content: text }, ...extra });
+    applyClaudeLine(s, user('<command-name>/login</command-name>'), 0);
+    expect(s.candidate).toBe('lounge'); // a local command: no turn
+    applyClaudeLine(s, user('hook context', { isMeta: true }), 0);
+    expect(s.candidate).toBe('lounge');
+    applyClaudeLine(s, user('버그 고쳐줘'), 0);
+    expect(s).toMatchObject({ candidate: 'library', act: 'tool', target: '' });
+    applyClaudeLine(s, assistant(toolUse('Edit', { file_path: '/a.ts' })), 1);
+    expect(s).toMatchObject({ candidate: 'coding', act: 'edit' });
   });
 
   it('turn_duration -> lounge / idle after 3s', () => {

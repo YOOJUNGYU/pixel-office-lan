@@ -67,7 +67,8 @@ describe('applyCodexLine', () => {
         'cat "a b".ts | head',
       ],
       ['text(await tools.write_stdin({session_id:1,chars:""}))', null, 'idle', 'keep'],
-      ['text(await tools.update_plan({plan:[]}))', null, 'idle', 'keep'],
+      ['text(await tools.update_plan({plan:[]}))', 'coding', 'tool', 'update_plan'],
+      ['text(await tools.github__get_issue({n:1}))', 'library', 'tool', 'github__get_issue'],
     ];
     for (const [input, room, act, target] of cases) {
       const s = mk();
@@ -148,6 +149,12 @@ describe('applyCodexLine', () => {
     expect(s.reason).toBe('끝났습니다');
     applyCodexLine(s, event({ type: 'task_started' }), 1);
     expect(s.reason).toBe('');
+  });
+
+  it('task_started -> 자료실, thinking until the first tool', () => {
+    const s = mk();
+    applyCodexLine(s, event({ type: 'task_started' }), 0);
+    expect(s).toMatchObject({ candidate: 'library', act: 'tool', target: '' });
   });
 
   it('task_complete -> lounge after 3s', () => {

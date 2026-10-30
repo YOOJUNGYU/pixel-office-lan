@@ -1,6 +1,6 @@
 import type { Act, Room } from '../../../core/src/lan.js';
 import type { SessionState } from './session.js';
-import { notePrompt, programName, setActivity, setIdle } from './session.js';
+import { notePrompt, programName, setActivity, setIdle, setThinking } from './session.js';
 
 type Obj = Record<string, unknown>;
 
@@ -46,14 +46,19 @@ function shellActivity(cmd: string): Activity {
   return [room, room === 'library' ? 'read' : 'run', clip(cmd, 80), programName(cmd)];
 }
 
-/** [room, act, target] or null = keep room and activity */
+/**
+ * [room, act, target]; null only for write_stdin (polling the running command keeps showing
+ * it, in 서버실); any other unknown function (MCP tools, …) = looking things up.
+ */
 function describe(fn: string, input: string): Activity | null {
   if (fn === 'apply_patch') return ['coding', 'edit', basename(PATCH_RE.exec(input)?.[1] ?? '')];
   if (fn === 'exec_command') return shellActivity(unescape(CMD_RE.exec(input)?.[2] ?? ''));
   if (fn === 'web__run' || fn === 'web_search') return ['library', 'web', ''];
   if (fn === 'view_image') return ['library', 'image', ''];
   if (fn.startsWith('request_user_input')) return ['lounge', 'ask', ''];
-  return null;
+  if (fn === 'update_plan') return ['coding', 'tool', fn];
+  if (fn === 'write_stdin') return null;
+  return ['library', 'tool', fn];
 }
 
 /** legacy function_call / local_shell_call: command array or cmd string */
@@ -145,8 +150,10 @@ function newTurn(s: SessionState): void {
 
 function onEvent(s: SessionState, p: Obj, now: number): void {
   if (p.type === 'task_complete' || p.type === 'turn_aborted') setIdle(s, now);
-  else if (p.type === 'task_started') newTurn(s);
-  else if (p.type === 'item_completed') {
+  else if (p.type === 'task_started') {
+    newTurn(s);
+    setThinking(s, now); // thinking until the first tool shows up
+  } else if (p.type === 'item_completed') {
     const it = obj(p.item);
     if (it.type === 'AgentMessage') setReason(s, textOf(it.content));
     else if (it.type === 'UserMessage') s.reason = '';

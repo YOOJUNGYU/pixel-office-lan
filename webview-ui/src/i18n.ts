@@ -28,15 +28,17 @@ const ko = {
   'act.ask': '답변 기다리는 중',
   'act.image': '이미지 보는 중',
   'act.tool': '{t} 사용 중',
+  'act.tool.empty': '생각 중',
 
   'bubble.permission': '확인 필요',
   'plate.agents': '에이전트 {n}',
   'plate.none': '지금 이 방에 있는 에이전트가 없습니다',
   'tags.hide': '이름표·말풍선 숨기기',
   'tags.show': '이름표·말풍선 보이기',
-  'legend.coding': '파일을 직접 고칠 때 (Edit·Write, Codex apply_patch)',
+  'legend.coding':
+    '파일을 직접 고칠 때 (Edit·Write, Codex apply_patch), 작업 목록 정리 (TodoWrite·update_plan)',
   'legend.library':
-    '파일 읽기·코드 검색·웹 검색 (Read·Grep·WebSearch, rg·cat·git log 같은 읽기 명령)',
+    '생각 중(도구를 쓰기 전), 파일 읽기·코드 검색·웹 검색 (Read·Grep·WebSearch, rg·cat·git log 같은 읽기 명령), 그 밖의 도구',
   'legend.server': '명령 실행 — 빌드·테스트·설치·서버 (Bash, Codex 셸), 백그라운드 셸',
   'legend.lounge':
     '입력·승인 대기, 작업 끝남 — 그 PC의 캐릭터로 합쳐짐 (머리 위 빨간 ! = 확인 필요)',
@@ -369,14 +371,16 @@ const en: Record<Key, string> = {
   'act.ask': 'Waiting for your answer',
   'act.image': 'Viewing an image',
   'act.tool': 'Using {t}',
+  'act.tool.empty': 'Thinking',
 
   'bubble.permission': 'Needs attention',
   'plate.agents': 'Agents {n}',
   'plate.none': 'No agents in this room right now',
   'tags.hide': 'Hide tags & bubbles',
   'tags.show': 'Show tags & bubbles',
-  'legend.coding': 'Editing files',
-  'legend.library': 'Reading, searching code and the web (incl. read-only shell commands)',
+  'legend.coding': 'Editing files; keeping the task list (TodoWrite, update_plan)',
+  'legend.library':
+    'Thinking (before any tool), reading, searching code and the web (incl. read-only shell commands), other tools',
   'legend.server': 'Running commands — build, test, install, servers; background shells',
   'legend.lounge':
     "Waiting for input/approval or done — merged into the PC's character (red ! = needs you)",

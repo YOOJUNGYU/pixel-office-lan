@@ -117,6 +117,21 @@ export function setActivity(
   s.textOnlyAt = null;
 }
 
+/**
+ * A turn started and no tool runs yet (thinking, writing a reply): 자료실. Sent as the
+ * existing act `tool` with no target (viewers show "생각 중"): ≤ 1.0.7 peers drop a
+ * whole packet on an act they don't know.
+ */
+export function setThinking(s: SessionState, now: number): void {
+  setActivity(s, 'library', 'tool', '', now);
+}
+
+/** A real user prompt (not a command wrapper, environment/AGENTS.md preamble or interrupt). */
+export const isPrompt = (text: string): boolean => {
+  const t = text.trim();
+  return !!t && !/^(<|\[Request interrupted|Caveat:|# AGENTS\.md)/.test(t);
+};
+
 export function setIdle(s: SessionState, now: number): void {
   setCandidate(s, 'lounge', now);
   s.act = 'idle';
@@ -143,10 +158,8 @@ export function tick(s: SessionState, now: number): void {
 
 /** A user prompt kept as the session's fallback title (the first one seen). */
 export function notePrompt(s: SessionState, text: string): void {
-  const t = text.trim();
-  // command wrappers, environment/AGENTS.md preambles, interrupts
-  if (s.local.prompt || !t || /^(<|\[Request interrupted|Caveat:|# AGENTS\.md)/.test(t)) return;
-  s.local.prompt = t.replace(/\s+/g, ' ').slice(0, SESSION_PROMPT_MAX);
+  if (s.local.prompt || !isPrompt(text)) return;
+  s.local.prompt = text.trim().replace(/\s+/g, ' ').slice(0, SESSION_PROMPT_MAX);
 }
 
 /** Project folder name of a cwd (POSIX or Windows path). */

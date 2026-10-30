@@ -1,6 +1,6 @@
 import type { Act, Room } from '../../../core/src/lan.js';
 import type { SessionState } from './session.js';
-import { notePrompt, programName, setActivity, setIdle } from './session.js';
+import { isPrompt, notePrompt, programName, setActivity, setIdle, setThinking } from './session.js';
 
 type Input = Record<string, unknown>;
 interface Block {
@@ -38,8 +38,8 @@ const textOf = (c: unknown): string =>
       ? c.map((b: Block) => (b?.type === 'text' ? str(b.text) : '')).join('\n')
       : '';
 
-/** [room (null = keep), act, target, exempt, brief (default target)] */
-function describe(name: string, i: Input): [Room | null, Act, string, boolean, string?] {
+/** [room, act, target, exempt, brief (default target)] */
+function describe(name: string, i: Input): [Room, Act, string, boolean, string?] {
   switch (name) {
     case 'Edit':
     case 'Write':
@@ -71,10 +71,17 @@ function describe(name: string, i: Input): [Room | null, Act, string, boolean, s
     case 'AskUserQuestion':
     case 'ExitPlanMode':
       return ['lounge', 'ask', '', true];
+    // Keeping the plan / task list: part of the coding work.
+    case 'TodoWrite':
+    case 'TaskCreate':
+    case 'TaskUpdate':
+      return ['coding', 'tool', name, false];
   }
   const mcp = /^mcp__(.+?)__(.+)$/.exec(name);
   if (mcp) return ['library', 'mcp', `${mcp[1]}:${mcp[2]}`, false];
-  return [null, 'tool', name, false];
+  // Everything else (Skill, ToolSearch, LSP, BashOutput, Monitor, EnterPlanMode, new tools):
+  // looking things up — never left in the room of the previous step.
+  return ['library', 'tool', name, false];
 }
 
 function onAssistant(s: SessionState, content: Block[], now: number): void {
@@ -130,6 +137,8 @@ function onUser(s: SessionState, content: unknown, now: number, meta: boolean): 
   s.textOnlyAt = null;
   s.reason = '';
   turnOf(s).tools.clear();
+  // A prompt from the user: thinking until the first tool (or the reply) shows up.
+  if (!meta && isPrompt(text)) setThinking(s, now);
 }
 
 /** Apply one line of a Claude Code session JSONL to the session state. */
