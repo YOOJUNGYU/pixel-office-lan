@@ -69,8 +69,6 @@ interface ExtensionMessageState {
   externalAssetDirectories: string[];
   alwaysShowLabels: boolean;
   // Areas
-  showAreas: boolean;
-  setShowAreas: (v: boolean) => void;
   /** A read-only office (not a loopback browser): every change it sends is
    *  refused, so the UI hides the controls that would send one. */
   officeReadOnly: boolean;
@@ -126,7 +124,6 @@ export function useExtensionMessages(
   >();
   const [externalAssetDirectories, setExternalAssetDirectories] = useState<string[]>([]);
   const [alwaysShowLabels, setAlwaysShowLabels] = useState(false);
-  const [showAreas, setShowAreas] = useState(false);
   const [officeReadOnly, setOfficeReadOnly] = useState(false);
   /** Reloading into the server's new version (after an update). */
   const [restarting, setRestarting] = useState(false);
@@ -271,9 +268,6 @@ export function useExtensionMessages(
         if (typeof msg.alwaysShowLabels === 'boolean') {
           setAlwaysShowLabels(msg.alwaysShowLabels as boolean);
         }
-        if (typeof msg.showAreas === 'boolean') {
-          setShowAreas(msg.showAreas as boolean);
-        }
         if (typeof msg.autoUpdate === 'boolean') setAutoUpdate(msg.autoUpdate as boolean);
         if (typeof msg.notifyPresence === 'boolean' && typeof msg.notifyAgents === 'boolean') {
           setNotify({ presence: msg.notifyPresence, agents: msg.notifyAgents });
@@ -318,8 +312,6 @@ export function useExtensionMessages(
     loadedAssets,
     externalAssetDirectories,
     alwaysShowLabels,
-    showAreas,
-    setShowAreas,
     officeReadOnly,
     restarting,
     lan,

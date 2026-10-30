@@ -11,13 +11,11 @@ import {
   LAN_BUBBLE_HEAD_OFFSET,
   LAN_BUBBLE_MAX_WIDTH_PX,
   LAN_BUBBLE_Z_INDEX,
-  LAN_KIND_BADGES,
-  LAN_MAIN_BADGE_LIGHT,
   LAN_PERMISSION_Z_INDEX,
+  LAN_PROVIDER_BADGE_FG,
   LAN_PROVIDER_COLORS,
   LAN_TAG_BADGE_CHROME_PX,
   LAN_TAG_BADGE_FONT,
-  LAN_TAG_CHROME_PX,
   LAN_TAG_FONT,
   LAN_TAG_HEIGHT_PX,
   LAN_TAG_PAD_X_PX,
@@ -32,9 +30,9 @@ import { overlayProjection, renderScale } from '../office/projection.js';
 import { getCachedSprite } from '../office/sprites/spriteCache.js';
 import { BUBBLE_PERMISSION_SPRITE } from '../office/sprites/spriteData.js';
 import { type Character, CharacterState } from '../office/types.js';
-import { getTheme } from '../theme.js';
+import { badgeColors } from './badgeColors.js';
 import { stackBubbles } from './chat.js';
-import { type AvatarRef, type LanAgents, tagBadge, tagLines } from './lanAgents.js';
+import { type AvatarRef, type LanAgents, providerName, tagBadge, tagText } from './lanAgents.js';
 import { stackTags, type TagBox } from './tagStack.js';
 import { tagVisible } from './tagVisibility.js';
 import { textWidth } from './textWidth.js';
@@ -87,13 +85,6 @@ interface LanOverlayProps {
  * canvas frame (`onFrame`) so the DOM follows walking sprites; tags are keyed so React only
  * moves them. All text is React text nodes.
  */
-/** Badge colors; MAIN has its own pair in the light theme. */
-const badgeColors = (kind: OfficeAgent['kind']) => {
-  const k = LAN_KIND_BADGES[kind];
-  const c = kind === 'main' && getTheme() === 'light' ? LAN_MAIN_BADGE_LIGHT : k;
-  return { background: c.bg, color: c.fg };
-};
-
 export function LanOverlay({
   officeState,
   lan,
@@ -123,31 +114,28 @@ export function LanOverlay({
   const nodes = [];
   const byKey = new Map(lan.all().map((a) => [a.key, a] as const));
   // Project every tag first, then stack the ones that collide (side-by-side characters).
-  const tags: Array<{ a: OfficeAgent; ch: Character; lines: [string, string]; show: boolean }> = [];
+  const tags: Array<{ a: OfficeAgent; ch: Character; text: string; show: boolean }> = [];
   const boxes: TagBox[] = [];
   for (const a of lan.all()) {
     const id = lan.idFor(a.key);
     const ch = id !== undefined ? officeState.characters.get(id) : undefined;
     if (!ch) continue;
-    const lines = tagLines(a, a.parentKey !== undefined ? byKey.get(a.parentKey) : undefined);
-    const badge = tagBadge(a);
+    const text = tagText(a, a.parentKey !== undefined ? byKey.get(a.parentKey) : undefined);
     const typing = ch.state === CharacterState.TYPE;
     tags.push({
       a,
       ch,
-      lines,
+      text,
       show: tagVisible(tagsHidden, ch.id, officeState.hoveredAgentId, officeState.selectedAgentId),
     });
     boxes.push({
       x: project.toScreenX(ch.x),
       y: project.toScreenY(ch.y + (typing ? CHARACTER_SITTING_OFFSET_PX : 0)),
-      w: Math.max(
-        2 * LAN_TAG_PAD_X_PX + textWidth(lines[0], LAN_TAG_FONT),
-        LAN_TAG_CHROME_PX +
-          textWidth(lines[1], LAN_TAG_FONT) +
-          LAN_TAG_BADGE_CHROME_PX +
-          textWidth(badge, LAN_TAG_BADGE_FONT),
-      ),
+      w:
+        2 * LAN_TAG_PAD_X_PX +
+        LAN_TAG_BADGE_CHROME_PX +
+        textWidth(tagBadge(a), LAN_TAG_BADGE_FONT) +
+        textWidth(text, LAN_TAG_FONT),
     });
   }
   // Avatar tags (one per person): always shown, one line, after the agents' so they stack below.
@@ -167,7 +155,7 @@ export function LanOverlay({
       },
     });
   }
-  // Only visible tags take part in stacking (the taller agent tag height for all).
+  // Only visible tags take part in stacking (one line, the same height for both).
   const shown = boxes.map((_, i) => i).filter((i) => tags[i].show);
   const stacked = stackTags(
     [...shown.map((i) => boxes[i]), ...avatarTags.map((v) => v.box)],
@@ -226,7 +214,7 @@ export function LanOverlay({
     );
   });
   for (let i = 0; i < tags.length; i++) {
-    const { a, ch, lines } = tags[i];
+    const { a, ch, text } = tags[i];
     const x = boxes[i].x;
     const lit = a.peer.id === lan.highlightPeer;
     if (tags[i].show)
@@ -234,28 +222,21 @@ export function LanOverlay({
         <div
           key={a.key}
           data-agent-key={a.key}
-          className={`absolute -translate-x-1/2 flex flex-col items-center gap-1 whitespace-nowrap text-sm leading-none px-3 py-1 pointer-events-none ${lit ? 'bg-accent text-on-accent outline-2 outline-accent-bright' : 'bg-bg/75 text-text'}`}
+          className={`absolute -translate-x-1/2 flex items-center gap-4 whitespace-nowrap text-sm leading-none px-3 py-1 pointer-events-none ${lit ? 'bg-accent text-on-accent outline-2 outline-accent-bright' : 'bg-bg/75 text-text'}`}
           style={{
             left: x,
             top: tops[i],
             zIndex: lit ? LAN_PERMISSION_Z_INDEX : LAN_TAG_Z_INDEX,
           }}
         >
-          <span>{lines[0]}</span>
-          <span className="flex items-center gap-4">
-            <span
-              className="w-6 h-6 shrink-0"
-              style={{ background: LAN_PROVIDER_COLORS[a.provider] }}
-            />
-            {lines[1]}
-            <span
-              data-badge={a.kind}
-              className="shrink-0 px-2 text-2xs font-bold leading-none"
-              style={badgeColors(a.kind)}
-            >
-              {tagBadge(a)}
-            </span>
+          <span
+            data-badge={a.kind}
+            className="shrink-0 px-2 text-2xs font-bold leading-none"
+            style={badgeColors(a.kind)}
+          >
+            {tagBadge(a)}
           </span>
+          {text}
         </div>,
       );
     if (a.permission) alert(`${a.key}!`, ch);
@@ -263,18 +244,29 @@ export function LanOverlay({
 
   // Name tags shown: every working agent also shows what it is doing (one line, above its head).
   if (!tagsHidden) {
-    const lines: Array<{ key: string; text: string; x: number; w: number; bottom: number }> = [];
+    const lines: Array<{
+      key: string;
+      a: OfficeAgent;
+      text: string;
+      x: number;
+      w: number;
+      bottom: number;
+    }> = [];
     for (const { a, ch } of tags) {
       if (ch.id === officeState.hoveredAgentId || ch.mergeInto !== undefined) continue;
       const text = actText(a.act, a.target);
       const typing = ch.state === CharacterState.TYPE;
       lines.push({
         key: a.key,
+        a,
         text,
         x: project.toScreenX(ch.x),
         w: Math.min(
           LAN_ACTIVITY_MAX_WIDTH_PX,
-          2 * LAN_TAG_PAD_X_PX + textWidth(text, LAN_TAG_FONT),
+          2 * LAN_TAG_PAD_X_PX +
+            LAN_TAG_BADGE_CHROME_PX +
+            textWidth(providerName(a), LAN_TAG_BADGE_FONT) +
+            textWidth(text, LAN_TAG_FONT),
         ),
         bottom: project.toScreenY(
           ch.y +
@@ -293,7 +285,7 @@ export function LanOverlay({
         <div
           key={`act:${l.key}`}
           data-activity={l.key}
-          className="absolute -translate-x-1/2 -translate-y-full overflow-hidden text-ellipsis whitespace-nowrap text-sm leading-none px-3 py-1 bg-bg/75 text-text pointer-events-none"
+          className="absolute -translate-x-1/2 -translate-y-full flex items-center gap-4 whitespace-nowrap text-sm leading-none px-3 py-1 bg-bg/75 text-text pointer-events-none"
           style={{
             left: l.x,
             top: bottoms[k],
@@ -301,7 +293,14 @@ export function LanOverlay({
             zIndex: LAN_TAG_Z_INDEX,
           }}
         >
-          {l.text}
+          <span
+            data-provider={l.a.provider}
+            className="shrink-0 px-2 text-2xs font-bold leading-none"
+            style={{ background: LAN_PROVIDER_COLORS[l.a.provider], color: LAN_PROVIDER_BADGE_FG }}
+          >
+            {providerName(l.a)}
+          </span>
+          <span className="min-w-0 overflow-hidden text-ellipsis">{l.text}</span>
         </div>,
       ),
     );

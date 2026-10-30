@@ -37,7 +37,6 @@ export type ClientMessage =
   | SetAlwaysShowLabels
   | AddExternalAssetDirectory
   | RemoveExternalAssetDirectory
-  | SetShowAreas
   | SaveProfile
   | InstallUpdate
   | CheckUpdate
@@ -148,7 +147,6 @@ export interface SettingsLoaded {
   type: 'settingsLoaded';
   alwaysShowLabels: boolean;
   externalAssetDirectories: string[];
-  showAreas: boolean;
   autoUpdate: boolean;
   notifyPresence: boolean;
   notifyAgents: boolean;
@@ -347,11 +345,6 @@ export interface AddExternalAssetDirectory {
 export interface RemoveExternalAssetDirectory {
   type: 'removeExternalAssetDirectory';
   path: string;
-}
-
-export interface SetShowAreas {
-  type: 'setShowAreas';
-  enabled: boolean;
 }
 
 export interface SaveProfile {

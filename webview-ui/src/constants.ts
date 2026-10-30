@@ -175,20 +175,6 @@ export const KEY_CARPET_PICK = 'p';
 // ── Areas (the four fixed rooms) ─────────────────────────────
 /** Room overlay colors of the bundled default layout: a layout missing a room gets these. */
 export const ROOM_AREA_COLORS: Readonly<Record<Room, string>> = ROOM_DEFAULT_COLORS;
-/** Translucent overlay alpha for area tile fills. */
-export const AREA_OVERLAY_ALPHA = 0.25;
-/** Base font size (pixel-pre-zoom) for area centroid labels. */
-export const AREA_LABEL_FONT_SIZE_PX = 14;
-/** Minimum on-screen label size to keep labels legible at low zoom. */
-export const AREA_LABEL_MIN_FONT_SIZE_PX = 12;
-/** Alpha of the area label text. */
-export const AREA_LABEL_ALPHA = 1.0;
-/** Fallback label color when an area has no color set (shouldn't happen in practice). */
-export const AREA_LABEL_FALLBACK_COLOR = '#ffffff';
-/** Drop-shadow color behind area labels for legibility on light backgrounds. */
-export const AREA_LABEL_SHADOW_COLOR = '#000000';
-/** Drop-shadow alpha behind area labels. */
-export const AREA_LABEL_SHADOW_ALPHA = 0.6;
 
 // ── VisualColorPicker (HSV wheel + brightness for carpets) ───
 export const VISUAL_COLOR_PICKER_SV_SIZE_PX = 180;
@@ -324,12 +310,13 @@ export const CHARACTER_SKIN_COLORS: ReadonlySet<string> = new Set([
   '#B67352',
   '#8C583F',
 ]);
-/** Provider badge dot in a main agent's name tag. */
+/** Provider badge before the activity line: background (text = LAN_PROVIDER_BADGE_FG). */
 export const LAN_PROVIDER_COLORS: Record<Provider, string> = {
   claude: '#D97757',
   codex: '#10A37F',
 };
-/** Badge after a name tag: SUB / SHELL on children (which show the parent's label), MAIN on main agents. */
+export const LAN_PROVIDER_BADGE_FG = '#ffffff';
+/** Badge at the front of a name tag: SUB / SHELL on children (which show the parent's number), MAIN on main agents. */
 export const LAN_KIND_BADGES: Record<
   'main' | 'subagent' | 'shell',
   { text: string; bg: string; fg: string }
@@ -352,12 +339,11 @@ export const LAN_BUBBLE_HEAD_OFFSET = 32;
 /** Always-on activity line above working agents (name tags shown): truncated at this width (CSS px). */
 export const LAN_ACTIVITY_MAX_WIDTH_PX = 220;
 export const LAN_TAG_Z_INDEX = 40;
-/** Name tag box for overlap stacking (CSS px), two lines: text-sm leading-none (13) ×2 + gap-1 + py-1 ×2. Width = the wider line: line 1 = PAD ×2 + text; line 2 = PAD ×2 + dot 6 + gap 4 + text + badge (gap 4 + px-2 ×2). */
+/** Name tag / activity line box for overlap stacking (CSS px), one line: text-sm leading-none (13) + py-1 ×2. Width = PAD ×2 + badge (px-2 ×2 + gap 4) + text. */
 export const LAN_TAG_LINE_PX = 13;
-export const LAN_TAG_HEIGHT_PX = 2 * LAN_TAG_LINE_PX + 1 + 2;
+export const LAN_TAG_HEIGHT_PX = LAN_TAG_LINE_PX + 2;
 export const LAN_TAG_STACK_GAP_PX = 2;
 export const LAN_TAG_PAD_X_PX = 6;
-export const LAN_TAG_CHROME_PX = LAN_TAG_PAD_X_PX + 10;
 export const LAN_TAG_BADGE_CHROME_PX = 8;
 export const LAN_TAG_FONT = '13px Pretendard';
 export const LAN_TAG_BADGE_FONT = 'bold 11px Pretendard';
@@ -395,8 +381,10 @@ export const CHAT_INPUT_Z_INDEX = 44;
 export const ROOM_PLATE_INSET_PX = 4;
 /** Room plates: above the canvas, below the top-left/top-right chrome (z-10) and the tags. */
 export const ROOM_PLATE_Z_INDEX = 5;
-/** A plate's hover tooltip (what sends an agent to that room): above the tags and chat. */
+/** A plate's hover popup (what sends an agent there + its agents' cards): above the tags and chat. */
 export const ROOM_PLATE_TIP_Z_INDEX = 46;
+/** The popup's width (CSS px); it never reaches past the room's right or bottom edge (then scrolls). */
+export const ROOM_TIP_WIDTH_PX = 300;
 
 // ── Team offices ─────────────────────────────────────────────
 /** Office name length the server accepts (server MAX_OFFICE_NAME). */
@@ -455,6 +443,9 @@ export const PEOPLE_FACE_ROWS = 14;
 /** Pet face crop (rows of the front idle frame; the animal starts at row 15). */
 export const PEOPLE_PET_FACE_TOP = 15;
 export const PEOPLE_FACE_SCALE = 2;
+/** Face crops of a character / pet thumbnail (people panel, room cards). */
+export const PEOPLE_FACE_CROP = { top: PEOPLE_FACE_TOP, rows: PEOPLE_FACE_ROWS };
+export const PEOPLE_PET_FACE_CROP = { top: PEOPLE_PET_FACE_TOP, rows: PEOPLE_FACE_ROWS };
 /** How long the "no agents" hint stays after clicking an agentless row. */
 export const PEOPLE_HINT_MS = 2_000;
 /** Top-right stack (update banner, install popup, people panel): room kept clear below it, CSS px. */

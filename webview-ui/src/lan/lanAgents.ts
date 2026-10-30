@@ -2,7 +2,7 @@ import type { AvatarDir, OfficeAgent, Room } from '../../../core/src/lan.js';
 import { parseAvatar, ROOM_LABELS } from '../../../core/src/lan.js';
 import type { OfficePersonMessage, TagColors } from '../../../core/src/messages.js';
 import { LAN_KIND_BADGES, LAN_ROOM_TOOL } from '../constants.js';
-import { areaName } from '../i18n.js';
+import { t } from '../i18n.js';
 import { requestRender } from '../office/engine/gameLoop.js';
 import type { OfficeState } from '../office/engine/officeState.js';
 import { Direction } from '../office/types.js';
@@ -41,21 +41,22 @@ export interface AvatarRef {
   tagColors?: TagColors;
 }
 
-const providerName = (a: OfficeAgent): string => (a.provider === 'claude' ? 'Claude' : 'Codex');
+/** The provider badge before an agent's activity line (i18n-neutral). */
+export const providerName = (a: OfficeAgent): string =>
+  a.provider === 'claude' ? 'Claude' : 'Codex';
 
 /**
- * The two lines of an agent's name tag (the provider dot before line 2 and the
- * MAIN/SUB/SHELL badge after it are drawn separately): the nickname (else the account) and
- * `Provider #n`. A subagent or shell shows its parent's provider and number
- * (`parent` = the parent's agent; without it, the same PC and provider, no number).
+ * An agent's one-line name tag after its MAIN/SUB/SHELL badge (drawn separately): `#n` and the
+ * nickname (else the account). A subagent or shell shows its parent's number (`parent` = the
+ * parent's agent; without it, no number).
  */
-export function tagLines(a: OfficeAgent, parent?: OfficeAgent): [string, string] {
+export function tagText(a: OfficeAgent, parent?: OfficeAgent): string {
   const main = a.kind === 'main' ? a : parent;
-  if (!main) return [avatarLabel(a.peer), providerName(a)];
-  return [avatarLabel(main.peer), `${providerName(main)} #${main.num}`];
+  const name = avatarLabel((main ?? a).peer);
+  return main ? `#${main.num} ${name}` : name;
 }
 
-/** The badge after a tag (i18n-neutral): MAIN / SUB / SHELL. */
+/** The badge at the front of a tag (i18n-neutral): MAIN / SUB / SHELL. */
 export const tagBadge = (a: OfficeAgent): string => LAN_KIND_BADGES[a.kind].text;
 
 /** A character's look: the palette human, or a pet (`pet` set). */
@@ -94,11 +95,26 @@ export function roomCounts(agents: readonly OfficeAgent[]): Map<string, RoomCoun
   return counts;
 }
 
-/** A room name plate (same format in every language): "코딩실 5", with children "코딩실 5 · +3". */
-export function plateText(label: string, c: RoomCount | undefined): string {
-  const name = areaName(label);
-  if (!c) return name;
-  return c.extra > 0 ? `${name} ${c.main} · +${c.extra}` : `${name} ${c.main}`;
+/** The count chip beside a room plate ("에이전트 5 · 하위 3"); null when no agent is there. */
+export function plateCount(c: RoomCount | undefined): string | null {
+  if (!c || c.main + c.extra === 0) return null;
+  const main = t('plate.agents', { n: String(c.main) });
+  return c.extra > 0 ? `${main} · ${t('plate.sub', { n: String(c.extra) })}` : main;
+}
+
+/** Agents in a room for its plate's cards: by PC, each main followed by its children. */
+export function roomAgents(agents: readonly OfficeAgent[], room: Room): OfficeAgent[] {
+  const here = agents.filter((a) => a.room === room);
+  const order = (a: OfficeAgent) => {
+    const main = a.kind === 'main' ? a : here.find((m) => m.key === a.parentKey);
+    return [a.peer.id, main?.num ?? Infinity, a.kind === 'main' ? 0 : 1, a.key] as const;
+  };
+  return here.sort((x, y) => {
+    const a = order(x);
+    const b = order(y);
+    for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return a[i] < b[i] ? -1 : 1;
+    return 0;
+  });
 }
 
 /**

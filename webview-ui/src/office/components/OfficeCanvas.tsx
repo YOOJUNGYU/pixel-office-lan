@@ -51,8 +51,6 @@ interface OfficeCanvasProps {
   zoom: number;
   onZoomChange: (zoom: number) => void;
   panRef: React.MutableRefObject<{ x: number; y: number }>;
-  /** Whether the area overlay + labels render (Settings → Show Areas). */
-  showAreas: boolean;
   /** Mobile two-step tap: the first tap on a character selects it (camera
    *  follow + status label), and only a second tap on the already-selected
    *  character fires onClick. Desktop keeps single-click
@@ -74,7 +72,6 @@ export function OfficeCanvas({
   zoom,
   onZoomChange,
   panRef,
-  showAreas,
   tapSelectsFirst = false,
 }: OfficeCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -251,9 +248,6 @@ export function OfficeCanvas({
           layout.cols,
           layout.rows,
           layout.carpetTiles,
-          layout.areas,
-          layout.areaTiles,
-          showAreas,
           layout.background,
         );
         offsetRef.current = { x: offsetX, y: offsetY };
@@ -272,7 +266,7 @@ export function OfficeCanvas({
       unsubscribeTheme();
     };
     // No edit tick here: the loop reads the editor state every frame (a restart per edit is waste).
-  }, [officeState, resizeCanvas, isEditMode, editorState, zoom, panRef, showAreas]);
+  }, [officeState, resizeCanvas, isEditMode, editorState, zoom, panRef]);
 
   // Convert CSS mouse coords to world (sprite pixel) coords
   const screenToWorld = useCallback(

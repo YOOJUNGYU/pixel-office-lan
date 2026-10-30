@@ -6,7 +6,6 @@ import { CONFIG_FILE_NAME, LAYOUT_FILE_DIR } from './constants.js';
 
 export interface AdapterSettings {
   alwaysShowLabels: boolean;
-  showAreas: boolean;
   /** Silent app updates (Settings → 자동 업데이트). */
   autoUpdate: boolean;
   /** OS notification on join/leave of the public office (lan/notify.ts). */
@@ -18,7 +17,6 @@ export interface AdapterSettings {
 /** All keys in AdapterSettings. Used by FileStateAdapter to map `pixel-agents.foo` → `foo`. */
 export const ADAPTER_SETTING_KEYS = [
   'alwaysShowLabels',
-  'showAreas',
   'autoUpdate',
   'notifyPresence',
   'notifyAgents',
@@ -33,7 +31,6 @@ export interface PixelAgentsConfig {
 
 const DEFAULT_ADAPTER_SETTINGS: AdapterSettings = {
   alwaysShowLabels: false,
-  showAreas: false,
   autoUpdate: true,
   notifyPresence: true,
   notifyAgents: true,
@@ -51,8 +48,6 @@ function parseAdapterSettings(raw: unknown): AdapterSettings {
       typeof obj.alwaysShowLabels === 'boolean'
         ? obj.alwaysShowLabels
         : DEFAULT_ADAPTER_SETTINGS.alwaysShowLabels,
-    showAreas:
-      typeof obj.showAreas === 'boolean' ? obj.showAreas : DEFAULT_ADAPTER_SETTINGS.showAreas,
     autoUpdate:
       typeof obj.autoUpdate === 'boolean' ? obj.autoUpdate : DEFAULT_ADAPTER_SETTINGS.autoUpdate,
     notifyPresence:

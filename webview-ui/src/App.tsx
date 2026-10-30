@@ -108,8 +108,6 @@ function App() {
     layoutReady,
     loadedAssets,
     profile,
-    showAreas,
-    setShowAreas,
     officeReadOnly,
     restarting,
     lan,
@@ -155,18 +153,7 @@ function App() {
   // Phones and touch tablets: pinch replaces the zoom buttons and Settings floats.
   const isMobile = useIsMobile();
 
-  // Toggle global Show Areas — persisted via setShowAreas message; runs server-
-  // side through configPersistence.
-  const onToggleShowAreas = useCallback(() => {
-    const next = !showAreas;
-    setShowAreas(next);
-    transport.send({ type: 'setShowAreas', enabled: next });
-  }, [showAreas, setShowAreas]);
-
-  const effectiveShowAreas = showAreas;
-
-  // e2e: register the component-scoped editor-action drivers + the effective
-  // show-areas gate on the test-hooks namespace (module-load installTestHooks
+  // e2e: register the component-scoped editor-action drivers on the test-hooks namespace (module-load installTestHooks
   // can't reach these React callbacks). The action drivers bypass canvas
   // pixel→tile geometry — the handlers still own undo/dirty/rebuild; for specs
   // that drive the real canvas gesture instead, getTileCenter projects a tile
@@ -196,7 +183,6 @@ function App() {
         y: projection.toScreenY((row + 0.5) * TILE_SIZE),
       };
     };
-    hooks.getShowAreas = () => effectiveShowAreas;
     hooks.getZoom = () => zoom;
     hooks.setZoom = (z) => handleZoomChange(z);
     // Client-only characters (like the tour's demos) for screenshots of agent scenes.
@@ -209,7 +195,6 @@ function App() {
     handleDrop,
     zoom,
     panRef,
-    effectiveShowAreas,
   ]);
 
   const [tagsHidden, setTagsHidden] = useState(readTagsHidden);
@@ -235,8 +220,6 @@ function App() {
 
   const officeState = getOfficeState();
 
-  // The Show Areas setting is offered when the layout defines its rooms.
-  const areasAvailable = (officeState.getLayout().areas?.length ?? 0) > 0;
   const emptyRooms = officeState.emptyRooms();
 
   // ── Onboarding tour ──
@@ -533,19 +516,17 @@ function App() {
           zoom={editor.zoom}
           onZoomChange={editor.handleZoomChange}
           panRef={editor.panRef}
-          showAreas={effectiveShowAreas}
           tapSelectsFirst={isMobile}
         />
 
-        {!effectiveShowAreas && (
-          <RoomPlates
-            officeState={officeState}
-            containerRef={containerRef}
-            zoom={editor.zoom}
-            panRef={editor.panRef}
-            forceTip={scene?.legend === true}
-          />
-        )}
+        <RoomPlates
+          officeState={officeState}
+          lan={lan}
+          containerRef={containerRef}
+          zoom={editor.zoom}
+          panRef={editor.panRef}
+          forceTip={scene?.legend === true}
+        />
 
         <LanOverlay
           officeState={officeState}
@@ -754,9 +735,6 @@ function App() {
           onClose={() => setIsSettingsOpen(false)}
           readOnly={officeReadOnly}
           onOpenProfile={profile?.canEdit ? () => setIsProfileOpen(true) : null}
-          showAreas={showAreas}
-          onToggleShowAreas={onToggleShowAreas}
-          showAreasAvailable={areasAvailable}
           onExportLayout={handleExportLayout}
           onImportLayout={handleImportLayout}
           onResetToDefaultLayout={officeReadOnly ? undefined : handleResetToDefaultLayout}

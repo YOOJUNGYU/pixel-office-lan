@@ -42,8 +42,6 @@ declare global {
       getAreas?: () => Array<{ label: string; color: string }>;
       /** Sparse list of area-painted tiles with their grid coords. */
       getAreaTiles?: () => Array<{ col: number; row: number; label: string }>;
-      /** Effective show-areas gate (settings toggle OR active area edit). */
-      getShowAreas?: () => boolean;
       /** Count of placed furniture instances — lets a spec assert furniture
        *  placed onto a carpet tile (surface placement) without it being blocked. */
       getFurnitureCount?: () => number;

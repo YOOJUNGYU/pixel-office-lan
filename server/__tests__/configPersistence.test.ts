@@ -25,16 +25,16 @@ describe('configPersistence: areas', () => {
   });
 
   describe('readConfig + writeConfig round-trip for area settings', () => {
-    it('returns defaults (showAreas=false) when no config file exists', () => {
+    it('returns defaults (alwaysShowLabels=false) when no config file exists', () => {
       const cfg = readConfig();
-      expect(cfg.standalone.showAreas).toBe(false);
+      expect(cfg.standalone.alwaysShowLabels).toBe(false);
     });
 
-    it('round-trips showAreas', () => {
+    it('round-trips alwaysShowLabels', () => {
       const cfg = readConfig();
-      cfg.standalone.showAreas = true;
+      cfg.standalone.alwaysShowLabels = true;
       writeConfig(cfg);
-      expect(readConfig().standalone.showAreas).toBe(true);
+      expect(readConfig().standalone.alwaysShowLabels).toBe(true);
     });
 
     it('coerces a hand-edited config.json into defaults and drops the old areaMappings', () => {
@@ -42,10 +42,13 @@ describe('configPersistence: areas', () => {
       fs.mkdirSync(configDir, { recursive: true });
       fs.writeFileSync(
         path.join(configDir, 'config.json'),
-        JSON.stringify({ standalone: { showAreas: 'yes please', areaMappings: 'not-an-object' } }),
+        JSON.stringify({
+          standalone: { alwaysShowLabels: 'yes please', showAreas: true, areaMappings: 'x' },
+        }),
       );
       const cfg = readConfig();
-      expect(cfg.standalone.showAreas).toBe(false);
+      expect(cfg.standalone.alwaysShowLabels).toBe(false);
+      expect('showAreas' in cfg.standalone).toBe(false); // removed setting is dropped
       expect('areaMappings' in cfg.standalone).toBe(false);
     });
 

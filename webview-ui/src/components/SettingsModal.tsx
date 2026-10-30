@@ -19,11 +19,6 @@ interface SettingsModalProps {
   readOnly: boolean;
   /** Opens the profile modal; null when this browser cannot edit the profile. */
   onOpenProfile: (() => void) | null;
-  /** Whether the areas overlay is rendered outside of the Areas edit tool. */
-  showAreas: boolean;
-  onToggleShowAreas: () => void;
-  /** Hide the Show Areas checkbox entirely when areas are unavailable. */
-  showAreasAvailable: boolean;
   /** Browser-native layout export. */
   onExportLayout: () => void;
   /** Browser-native layout import from a chosen file. */
@@ -51,9 +46,6 @@ export function SettingsModal({
   onClose,
   readOnly,
   onOpenProfile,
-  showAreas,
-  onToggleShowAreas,
-  showAreasAvailable,
   onExportLayout,
   onImportLayout,
   onResetToDefaultLayout,
@@ -197,13 +189,6 @@ export function SettingsModal({
             />
           ))}
         </div>
-      )}
-      {showAreasAvailable && (
-        <Checkbox
-          label={t('settings.showAreas')}
-          checked={showAreas}
-          onChange={onToggleShowAreas}
-        />
       )}
       <div data-tour="settings-update">
         <Checkbox

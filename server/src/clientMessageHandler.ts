@@ -69,7 +69,6 @@ export interface ClientMessageContext {
 
 // ── Setting keys ──
 const KEY_ALWAYS_SHOW_LABELS = 'pixel-agents.alwaysShowLabels';
-const KEY_SHOW_AREAS = 'pixel-agents.showAreas';
 const KEY_AUTO_UPDATE = 'pixel-agents.autoUpdate';
 const KEY_NOTIFY_PRESENCE = 'pixel-agents.notifyPresence';
 const KEY_NOTIFY_AGENTS = 'pixel-agents.notifyAgents';
@@ -111,10 +110,6 @@ export function handleClientMessage(
 
     case 'setAlwaysShowLabels':
       adapter.setSetting(KEY_ALWAYS_SHOW_LABELS, msg.enabled);
-      break;
-
-    case 'setShowAreas':
-      adapter.setSetting(KEY_SHOW_AREAS, msg.enabled as boolean);
       break;
 
     case 'setAutoUpdate':
@@ -392,7 +387,6 @@ function settingsSnapshot(ctx: ClientMessageContext) {
     type: 'settingsLoaded',
     alwaysShowLabels: adapter.getSetting(KEY_ALWAYS_SHOW_LABELS, false),
     externalAssetDirectories: externalAssetDirectoriesFor(ctx),
-    showAreas: adapter.getSetting(KEY_SHOW_AREAS, false),
     autoUpdate: adapter.getSetting(KEY_AUTO_UPDATE, true),
     notifyPresence: adapter.getSetting(KEY_NOTIFY_PRESENCE, true),
     notifyAgents: adapter.getSetting(KEY_NOTIFY_AGENTS, true),
@@ -412,7 +406,6 @@ const KNOWN_CLIENT_TYPES: ReadonlySet<string> = new Set<ClientMessage['type']>([
   'setAlwaysShowLabels',
   'addExternalAssetDirectory',
   'removeExternalAssetDirectory',
-  'setShowAreas',
   'setNotifications',
   'saveProfile',
   'installUpdate',
@@ -455,7 +448,6 @@ function refuseReadOnly(
   }
   switch (msg.type) {
     case 'setAlwaysShowLabels':
-    case 'setShowAreas':
     case 'setNotifications':
       send(settingsSnapshot(ctx));
       return;

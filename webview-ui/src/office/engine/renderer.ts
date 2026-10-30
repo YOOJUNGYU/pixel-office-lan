@@ -1,12 +1,5 @@
 import type { ColorValue } from '../../components/ui/types.js';
 import {
-  AREA_LABEL_ALPHA,
-  AREA_LABEL_FALLBACK_COLOR,
-  AREA_LABEL_FONT_SIZE_PX,
-  AREA_LABEL_MIN_FONT_SIZE_PX,
-  AREA_LABEL_SHADOW_ALPHA,
-  AREA_LABEL_SHADOW_COLOR,
-  AREA_OVERLAY_ALPHA,
   BACKGROUND_CARPET_PATCH_TILES,
   BUTTON_ICON_COLOR,
   BUTTON_ICON_SIZE_FACTOR,
@@ -41,7 +34,6 @@ import {
   VOID_TILE_DASH_PATTERN,
   VOID_TILE_OUTLINE_COLORS,
 } from '../../constants.js';
-import { areaName } from '../../i18n.js';
 import { getTheme } from '../../theme.js';
 import type { BackgroundFill } from '../background.js';
 import { resolveBackground } from '../background.js';
@@ -64,7 +56,6 @@ import { getCachedSprite, getOutlineSprite } from '../sprites/spriteCache.js';
 import { getCharacterSprites } from '../sprites/spriteData.js';
 import { themeColor, themeFloorColor, themeSprite } from '../themeColors.js';
 import type {
-  AreaDefinition,
   CarpetTile,
   Character,
   FurnitureInstance,
@@ -188,112 +179,6 @@ export function renderCarpetLayer(
       }
     }
   }
-}
-
-/**
- * Translucent per-tile color wash for Areas. Runs ABOVE carpets/floor and
- * BELOW seat indicators / characters / furniture (Settings → Show Areas).
- *
- * @internal
- */
-export function renderAreaOverlay(
-  ctx: CanvasRenderingContext2D,
-  areaTiles: Array<string | null> | undefined,
-  areas: AreaDefinition[] | undefined,
-  cols: number,
-  rows: number,
-  offsetX: number,
-  offsetY: number,
-  zoom: number,
-): void {
-  if (!areaTiles || areaTiles.length === 0) return;
-  if (!areas || areas.length === 0) return;
-
-  const s = TILE_SIZE * zoom;
-  const colorMap = new Map<string, string>();
-  for (const a of areas) colorMap.set(a.label, a.color);
-
-  ctx.save();
-  ctx.globalAlpha = AREA_OVERLAY_ALPHA;
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      const label = areaTiles[r * cols + c];
-      if (!label) continue;
-      const color = colorMap.get(label);
-      if (!color) continue;
-      ctx.fillStyle = color;
-      ctx.fillRect(offsetX + c * s, offsetY + r * s, s, s);
-    }
-  }
-  ctx.restore();
-}
-
-/**
- * Render the centroid label for each Area, ABOVE characters/bubbles. Centroid
- * = arithmetic mean of all tile centers belonging to a given label. Pixel-art
- * drop shadow (no blur) for legibility on light backgrounds.
- *
- * @internal
- */
-export function renderAreaLabels(
-  ctx: CanvasRenderingContext2D,
-  areaTiles: Array<string | null> | undefined,
-  areas: AreaDefinition[] | undefined,
-  cols: number,
-  rows: number,
-  offsetX: number,
-  offsetY: number,
-  zoom: number,
-): void {
-  if (!areaTiles || areaTiles.length === 0) return;
-  if (!areas || areas.length === 0) return;
-
-  const s = TILE_SIZE * zoom;
-  const colorMap = new Map<string, string>();
-  for (const a of areas) colorMap.set(a.label, a.color);
-
-  // Centroid accumulator: label → { sumX, sumY, count }.
-  const centroids = new Map<string, { sumX: number; sumY: number; count: number }>();
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      const label = areaTiles[r * cols + c];
-      if (!label) continue;
-      const acc = centroids.get(label);
-      if (acc) {
-        acc.sumX += c;
-        acc.sumY += r;
-        acc.count += 1;
-      } else {
-        centroids.set(label, { sumX: c, sumY: r, count: 1 });
-      }
-    }
-  }
-
-  if (centroids.size === 0) return;
-
-  const fontSize = Math.max(AREA_LABEL_FONT_SIZE_PX * zoom, AREA_LABEL_MIN_FONT_SIZE_PX);
-
-  ctx.save();
-  ctx.font = `bold ${fontSize}px Pretendard`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-
-  for (const [label, acc] of centroids) {
-    const cx = offsetX + (acc.sumX / acc.count + 0.5) * s;
-    const cy = offsetY + (acc.sumY / acc.count + 0.5) * s;
-    const name = areaName(label);
-
-    // Pixel-art drop shadow (1px right + down, no blur).
-    ctx.globalAlpha = AREA_LABEL_SHADOW_ALPHA;
-    ctx.fillStyle = AREA_LABEL_SHADOW_COLOR;
-    ctx.fillText(name, cx + 1, cy + 1);
-
-    // Main label — area's own color, falling back to white if missing.
-    ctx.globalAlpha = AREA_LABEL_ALPHA;
-    ctx.fillStyle = colorMap.get(label) ?? AREA_LABEL_FALLBACK_COLOR;
-    ctx.fillText(name, cx, cy);
-  }
-  ctx.restore();
 }
 
 /**
@@ -988,9 +873,6 @@ export function renderFrame(
   layoutCols?: number,
   layoutRows?: number,
   carpetTiles?: Array<CarpetTile | null>,
-  areas?: AreaDefinition[],
-  areaTiles?: Array<string | null>,
-  showAreas?: boolean,
   background?: OfficeBackground,
 ): { offsetX: number; offsetY: number } {
   // Use layout dimensions (fallback to tileMap size)
@@ -1042,11 +924,6 @@ export function renderFrame(
   // Floor + wall base + carpets (below seat indicators / furniture / characters)
   renderFloorLayer(ctx, tileMap, tileColors, carpetTiles, cols, rows, offsetX, offsetY, zoom);
 
-  // Area overlay (translucent color wash) — above carpets, below seat indicators
-  if (showAreas) {
-    renderAreaOverlay(ctx, areaTiles, areas, cols, rows, offsetX, offsetY, zoom);
-  }
-
   // Seat indicators (below furniture/characters, on top of floor)
   if (selection) {
     renderSeatIndicators(
@@ -1079,12 +956,6 @@ export function renderFrame(
     hoveredId,
     wallInstances.length,
   );
-
-  // Area labels (above bubbles + characters, below editor overlays). Outside
-  // Show Areas the room name plates are DOM badges (lan/RoomPlates.tsx).
-  if (showAreas) {
-    renderAreaLabels(ctx, areaTiles, areas, cols, rows, offsetX, offsetY, zoom);
-  }
 
   // Editor overlays
   if (editor) {

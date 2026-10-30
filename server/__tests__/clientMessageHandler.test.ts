@@ -187,9 +187,9 @@ describe('clientMessageHandler', () => {
   });
 
   describe('privileged writes', () => {
-    it('setShowAreas persists via the adapter', () => {
-      send({ type: 'setShowAreas', enabled: true }, ctx(true));
-      expect(readConfig().standalone.showAreas).toBe(true);
+    it('setAlwaysShowLabels persists via the adapter', () => {
+      send({ type: 'setAlwaysShowLabels', enabled: true }, ctx(true));
+      expect(readConfig().standalone.alwaysShowLabels).toBe(true);
     });
 
     it('applies external asset directory changes and reloads assets', () => {
@@ -218,7 +218,7 @@ describe('clientMessageHandler', () => {
         { type: 'setAlwaysShowLabels', enabled: true },
         { type: 'addExternalAssetDirectory', path: '/x' },
         { type: 'removeExternalAssetDirectory', path: '/x' },
-        { type: 'setShowAreas', enabled: true },
+        { type: 'setNotifications', presence: false },
       ]) {
         send(msg, readOnly);
       }
@@ -234,9 +234,9 @@ describe('clientMessageHandler', () => {
 
     it('answers a refused toggle with the real state so the control snaps back', () => {
       const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      send({ type: 'setShowAreas', enabled: true }, ctx(false));
+      send({ type: 'setAlwaysShowLabels', enabled: true }, ctx(false));
       expect(sent).toContainEqual(
-        expect.objectContaining({ type: 'settingsLoaded', showAreas: false }),
+        expect.objectContaining({ type: 'settingsLoaded', alwaysShowLabels: false }),
       );
       warn.mockRestore();
     });
@@ -351,7 +351,7 @@ describe('clientMessageHandler', () => {
     it('refusal replies carry no paths either', () => {
       seedPaths();
       const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      send({ type: 'setShowAreas', enabled: true }, ctx(false));
+      send({ type: 'setAlwaysShowLabels', enabled: true }, ctx(false));
       send({ type: 'addExternalAssetDirectory', path: '/x' }, ctx(false));
       warn.mockRestore();
       expect(pick('settingsLoaded')).toMatchObject({ externalAssetDirectories: [] });

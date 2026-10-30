@@ -15,7 +15,15 @@ import { buildFurnitureCatalog } from '../../core/src/assets/build.ts';
 import { decodeAllFurniture } from '../../core/src/assets/loader.ts';
 import type { OfficeAgent, Room } from '../../core/src/lan.ts';
 import { setLang } from '../src/i18n.js';
-import { LanAgents, plateText, roomCounts, tagBadge, tagLines } from '../src/lan/lanAgents.js';
+import {
+  LanAgents,
+  plateCount,
+  providerName,
+  roomAgents,
+  roomCounts,
+  tagBadge,
+  tagText,
+} from '../src/lan/lanAgents.js';
 import { OfficeState } from '../src/office/engine/officeState.js';
 import { buildDynamicCatalog } from '../src/office/layout/furnitureCatalog.js';
 import type { Character, OfficeLayout } from '../src/office/types.js';
@@ -245,32 +253,26 @@ test('permission toggles the bubble; subagent and shell looks', () => {
   assert.equal(a.bubbleType, null);
 });
 
-test('name tags: two lines (nickname, else account / provider #n) for mains, kind for children (MAIN / SUB / SHELL badge)', () => {
+test('name tags: one line — MAIN / SUB / SHELL badge, #n, nickname (else account); provider goes to the activity line', () => {
   setLang('ko');
-  assert.deepEqual(tagLines(agent('s1', 'coding', { num: 2 })), ['kim', 'Claude #2']);
-  assert.deepEqual(tagLines(agent('s2', 'coding', { provider: 'codex', num: 1 })), [
-    'kim',
-    'Codex #1',
-  ]);
-  // Children: the parent's name, then a SUB / SHELL badge (no i18n).
+  assert.equal(tagText(agent('s1', 'coding', { num: 2 })), '#2 kim');
+  assert.equal(providerName(agent('s2', 'coding', { provider: 'codex', num: 1 })), 'Codex');
+  assert.equal(providerName(agent('s1', 'coding')), 'Claude');
+  // Children: the parent's number and name, then a SUB / SHELL badge (no i18n).
   const parent = agent('s1', 'coding', { num: 3 });
   const sub = child('s1/sub/a', 's1', 'coding');
   const shell = { ...child('s1/sh/1', 's1', 'server'), kind: 'shell' as const };
-  assert.deepEqual(tagLines(sub, parent), ['kim', 'Claude #3']);
-  assert.deepEqual(tagLines(shell, parent), ['kim', 'Claude #3']);
-  assert.deepEqual(tagLines(sub), ['kim', 'Claude'], 'parent not in view: no number');
+  assert.equal(tagText(sub, parent), '#3 kim');
+  assert.equal(tagText(shell, parent), '#3 kim');
+  assert.equal(tagText(sub), 'kim', 'parent not in view: no number');
   assert.equal(tagBadge(sub), 'SUB');
   assert.equal(tagBadge(shell), 'SHELL');
   assert.equal(tagBadge(parent), 'MAIN');
   setLang('en');
   assert.equal(tagBadge(sub), 'SUB');
-  assert.deepEqual(tagLines(sub, parent), ['kim', 'Claude #3']);
   setLang('ko');
   const unnamed = agent('s3', 'coding', { num: 1 });
-  assert.deepEqual(tagLines({ ...unnamed, peer: { ...unnamed.peer, nickname: '' } }), [
-    'yoo',
-    'Claude #1',
-  ]);
+  assert.equal(tagText({ ...unnamed, peer: { ...unnamed.peer, nickname: '' } }), '#1 yoo');
 });
 
 // ── Room plates ─────────────────────────────────────────────────────────
@@ -280,7 +282,7 @@ const shell = (id: string, parent: string, room: Room): OfficeAgent => ({
   kind: 'shell',
 });
 
-test('roomCounts and plateText: mains by their own room, children as +N, zero rooms shown', () => {
+test('roomCounts, plateCount and roomAgents: mains by their own room, children as +N, zero rooms shown', () => {
   const agents = [
     agent('a', 'lounge'),
     agent('b', 'coding'),
@@ -296,12 +298,23 @@ test('roomCounts and plateText: mains by their own room, children as +N, zero ro
     대기실: { main: 1, extra: 0 },
   });
   setLang('ko');
-  assert.equal(plateText('코딩실', { main: 5, extra: 3 }), '코딩실 5 · +3');
-  assert.equal(plateText('자료실', { main: 0, extra: 0 }), '자료실 0');
-  assert.equal(plateText('서버실', undefined), '서버실');
+  assert.equal(plateCount({ main: 5, extra: 3 }), '에이전트 5 · 하위 3');
+  assert.equal(plateCount({ main: 2, extra: 0 }), '에이전트 2');
+  assert.equal(plateCount({ main: 0, extra: 0 }), null, 'empty room: no chip');
+  assert.equal(plateCount(undefined), null);
   setLang('en');
-  assert.equal(plateText('코딩실', { main: 5, extra: 3 }), 'Coding Room 5 · +3');
+  assert.equal(plateCount({ main: 5, extra: 3 }), 'Agents 5 · Sub 3');
   setLang('ko');
+  // Cards: per PC, each main then its children; other rooms left out.
+  assert.deepEqual(
+    roomAgents(agents, 'server').map((a) => a.id),
+    ['h', 's1'],
+  );
+  const two = [child('s9', 'z', 'coding'), agent('z', 'coding', { num: 2 }), agent('y', 'coding')];
+  assert.deepEqual(
+    roomAgents(two, 'coding').map((a) => a.id),
+    ['y', 'z', 's9'],
+  );
 });
 
 test('with its PC avatar present: lounge agents fold into it, "!" on the avatar, a working one steps out and merges back', () => {

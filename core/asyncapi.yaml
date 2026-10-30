@@ -110,7 +110,6 @@ components:
         - $ref: '#/components/schemas/SetAlwaysShowLabels'
         - $ref: '#/components/schemas/AddExternalAssetDirectory'
         - $ref: '#/components/schemas/RemoveExternalAssetDirectory'
-        - $ref: '#/components/schemas/SetShowAreas'
         - $ref: '#/components/schemas/SaveProfile'
         - $ref: '#/components/schemas/InstallUpdate'
         - $ref: '#/components/schemas/CheckUpdate'
@@ -329,7 +328,6 @@ components:
         - type
         - alwaysShowLabels
         - externalAssetDirectories
-        - showAreas
         - autoUpdate
         - notifyPresence
         - notifyAgents
@@ -342,8 +340,6 @@ components:
           type: array
           items:
             type: string
-        showAreas:
-          type: boolean
         autoUpdate:
           type: boolean
           description: Silent app updates on (Settings → 자동 업데이트; default true).
@@ -880,17 +876,6 @@ components:
           const: removeExternalAssetDirectory
         path:
           type: string
-
-    SetShowAreas:
-      description: Toggle the Areas overlay (translucent rendering on top of the office).
-      type: object
-      additionalProperties: false
-      required: [type, enabled]
-      properties:
-        type:
-          const: setShowAreas
-        enabled:
-          type: boolean
 
     SetNotifications:
       description: Turn the OS notifications (sent through the tray helper) on or off; an absent field is unchanged.

@@ -29,6 +29,9 @@ const ko = {
   'act.tool': '{t} 사용 중',
 
   'bubble.permission': '확인 필요',
+  'plate.agents': '에이전트 {n}',
+  'plate.sub': '하위 {n}',
+  'plate.none': '지금 이 방에 있는 에이전트가 없습니다',
   'tags.hide': '에이전트 이름표 숨기기',
   'tags.show': '에이전트 이름표 보이기',
   'legend.coding': '파일을 직접 고칠 때 (Edit·Write, Codex apply_patch)',
@@ -94,7 +97,6 @@ const ko = {
   'settings.autostart': '로그인할 때 자동 실행',
   'settings.notifyPresence': '접속·퇴장 알림 (PC 알림)',
   'settings.notifyAgents': '내 에이전트 알림 (응답 대기·작업 완료)',
-  'settings.showAreas': '방 영역 표시',
   'settings.language': '언어 / Language',
   'settings.theme': '테마 / Theme',
   'theme.dark': '다크',
@@ -278,7 +280,7 @@ const ko = {
     '할 일을 기다리거나 확인을 기다릴 때는 대기실에서 쉽니다.\n방 이동은 3초 정도 상태가 이어져야 일어나서, 잠깐씩 바뀌는 작업에 캐릭터가 왔다 갔다 하지 않습니다.',
   'tour.tag.title': '이름표',
   'tour.tag.body':
-    '윗줄은 닉네임(없으면 PC 계정), 아랫줄은 "Claude/Codex #번호" 입니다. 아랫줄 앞 색 점은 주황 = Claude, 초록 = Codex.\nMAIN = 메인 에이전트, SUB / SHELL = 서브에이전트와 셸(부모의 이름표로 보임).',
+    '이름표는 한 줄: 맨 앞 MAIN = 메인 에이전트, SUB / SHELL = 서브에이전트와 셸(부모의 번호로 보임), 다음 #번호, 그다음 닉네임(없으면 PC 계정).\n이름표를 켜 두면 머리 위에 Claude(주황) / Codex(초록) 배지와 지금 하는 일이 함께 보입니다.',
   'tour.bubble.title': '말풍선',
   'tour.bubble.body':
     '캐릭터에 마우스를 올리면 어느 방에서 무엇을 하는지, 그리고 이유가 보입니다.\n머리 위 빨간 ! 는 사용자의 확인(권한 승인이나 답변)을 기다린다는 뜻입니다.',
@@ -368,6 +370,9 @@ const en: Record<Key, string> = {
   'act.tool': 'Using {t}',
 
   'bubble.permission': 'Needs attention',
+  'plate.agents': 'Agents {n}',
+  'plate.sub': 'Sub {n}',
+  'plate.none': 'No agents in this room right now',
   'tags.hide': 'Hide agent name tags',
   'tags.show': 'Show agent name tags',
   'legend.coding': 'Editing files',
@@ -432,7 +437,6 @@ const en: Record<Key, string> = {
   'settings.autostart': 'Start at login',
   'settings.notifyPresence': 'Join/leave notifications (PC)',
   'settings.notifyAgents': 'My agents: waiting for me / finished (PC)',
-  'settings.showAreas': 'Show room areas',
   'settings.language': '언어 / Language',
   'settings.theme': '테마 / Theme',
   'theme.dark': 'Dark',
@@ -615,7 +619,7 @@ const en: Record<Key, string> = {
     'Idle agents, and agents waiting for you, rest in the lounge.\nA move only happens after the new activity lasts about 3 seconds, so characters do not bounce around on quick tasks.',
   'tour.tag.title': 'Name tags',
   'tour.tag.body':
-    'Top line: the nickname (else the PC account); bottom line: "Claude/Codex #number". The dot before it: orange = Claude, green = Codex.\nMAIN = main agent; SUB / SHELL = subagents and shells (shown with their parent\'s tag).',
+    "One line: first MAIN = main agent, SUB / SHELL = subagents and shells (with their parent's number), then #number, then the nickname (else the PC account).\nWith name tags shown, a Claude (orange) / Codex (green) badge and the current activity appear above the head.",
   'tour.bubble.title': 'Hover bubble',
   'tour.bubble.body':
     'Hover a character to see its room, what it is doing and why.\nA red ! over its head means it is waiting for you (a permission or an answer).',
