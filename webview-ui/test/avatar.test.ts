@@ -95,13 +95,13 @@ describe('my avatar: arrow keys', () => {
     expect(os.nextFrameIn(0)).toBe(Infinity);
   });
 
-  it('never leaves the lounge: a step into another room only turns', () => {
+  it('walks into other rooms too', () => {
     const { os, ch, moves } = mine({ col: 2, row: 0, dir: 'down' });
     os.pressAvatar(Direction.RIGHT);
     os.releaseAvatar();
     settle(os);
-    expect([ch.tileCol, ch.tileRow, ch.dir]).toEqual([2, 0, Direction.RIGHT]);
-    expect(moves).toEqual([[2, 0, 'right']]);
+    expect([ch.tileCol, ch.tileRow, ch.dir]).toEqual([3, 0, Direction.RIGHT]);
+    expect(moves).toEqual([[3, 0, 'right']]);
   });
 
   it('avatars are not hit-testable (clicks pass to agents/floor)', () => {
@@ -144,13 +144,13 @@ describe('avatars from the snapshot', () => {
     expect(ch.state).toBe(CharacterState.WALK);
     settle(os);
     expect([ch.tileCol, ch.tileRow, ch.dir]).toEqual([4, 1, Direction.LEFT]);
-    // Hostile coords: clamped into the grid limits, then onto this layout's lounge.
+    // Hostile coords: clamped into the grid limits, then onto this layout's closest walkable tile.
     lan.applyPeople([person('p', { avatar: { col: 1e9, row: -5, dir: 'up' } as never })]);
     settle(os);
-    expect([ch.tileCol, ch.tileRow]).toEqual([4, 1]);
+    expect([ch.tileCol, ch.tileRow]).toEqual([4, 0]);
     lan.applyPeople([person('p', { avatar: { col: 0, row: 2, dir: 'sideways' } as never })]);
     settle(os);
-    expect([ch.tileCol, ch.tileRow]).toEqual([4, 1]); // a bad dir = no avatar info: stays
+    expect([ch.tileCol, ch.tileRow]).toEqual([4, 0]); // a bad dir = no avatar info: stays
   });
 
   it('my own spot is not pulled back by later snapshots; a gone person loses the avatar', () => {

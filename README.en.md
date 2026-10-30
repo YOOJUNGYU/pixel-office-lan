@@ -40,17 +40,17 @@ PCs not showing up, uninstalling: see the **[install guide](docs/INSTALL.en.md)*
 
 ### Room = activity
 
-Once an activity lasts 3 seconds, the agent walks to its room and sits on a free seat. Hover a room plate for its description; the number counts main agents, `+N` subagents and shells.
+Once an activity lasts 3 seconds, the agent walks to its room and sits on a free seat. Hover a room plate for its description and the agents there; `Agents N` on the plate counts the agents in the room (subagents and shells included), none on the lounge.
 
 | Room           | Activity                                                                                         |
 | -------------- | ------------------------------------------------------------------------------------------------ |
 | 🖥️ Coding Room | Editing files (Claude `Edit`/`Write`, Codex `apply_patch`)                                       |
 | 📚 Library     | Reading files, searching code or the web (incl. Codex read commands like `rg`, `cat`, `git log`) |
 | 🗄️ Server Room | Running commands (`Bash`, Codex shell), background shells                                        |
-| 🛋️ Lounge      | Waiting for input or approval, turn finished                                                     |
+| 🛋️ Lounge      | Waiting for input or approval, turn finished — merged into its PC's person character             |
 
-- **Name tags**: top line the nickname (else the PC account), bottom line `Claude #1` / `Codex #1` + a **MAIN** / **SUB** / **SHELL** badge. Hidden until you hover; **Show agent name tags** at the top left keeps them on. People's own characters always show their tag, in the colours each person picks in their profile (yours with a yellow frame).
-- **Bubble**: hover a character to see which file it edits and why, what it searches or runs. A **red !** overhead = waiting for you.
+- **Name tags**: one line — a **MAIN** / **SUB** / **SHELL** badge, `#number`, the nickname (else the PC account). **Hide tags & bubbles** at the top left hides agents' tags and bubbles together (shown by default). People's own characters always show their tag, in the colours each person picks in their profile (yours with a yellow frame).
+- **Bubble**: every working agent shows a Claude / Codex badge and what it is doing over its head; hover for the full text. A **red !** overhead = waiting for you (over the person's character when the agent has merged into it in the lounge).
 - **Subagents and shells** hold their parent's hand in the same room, and work on their own in another.
 - **Map**: drag to pan, wheel to zoom (or + / − at the top left).
 
@@ -66,7 +66,7 @@ Each tab shows how many people are online there (you included; in personal mode,
 
 ### Your character and chat
 
-- Besides agents, every person has one character. Walk with the **arrow keys** (walls and furniture block); the spot is remembered across restarts.
+- Besides agents, every person has one character. Walk into any room with the **arrow keys** (walls and furniture block) and sit on lounge chairs; the spot is remembered across restarts.
 - Type in the **chat bar** at the bottom centre and press **Enter** → a bubble over your character. One per person: a new one replaces it, **×** deletes it. No history. 100 characters, one per 2 seconds.
 - Shortcuts: with nothing selected, **Space+Enter** = chat bar; **Esc** in the chat bar = back to the arrow keys.
 
@@ -81,7 +81,7 @@ Each tab shows how many people are online there (you included; in personal mode,
 
 - **Profile**: character (6 humans or the pets Claudio · Gitcat), colour, nickname, your character's name tag colours. Your PC account name always comes first and cannot be changed. Nicknames are unique (whoever set it later gets a mark like `· a1b2`).
 - **Language · theme**: 한국어/English and dark/light/system, per viewer. The sun/moon button at the top left switches instantly.
-- **Layout editor**: floors (one click paints a whole room), walls, furniture, the background outside. The four rooms and the office size (106×40) are fixed. Layouts are saved **on this PC only**; share with **Settings → Export / Import layout**.
+- **Layout editor**: floors (one click paints a whole room), walls, furniture, the background outside. The four rooms (top: coding room · server room, bottom: library · lounge) and the office size (77×52) are fixed. A PC that has an older layout gets the new one with **Settings → Reset to the default office**. Layouts are saved **on this PC only**; share with **Settings → Export / Import layout**.
 - **Install as an app (PWA)**: in Edge · Chrome, the popup at the top right → a tab-less app window. Opening the app while the server is off shows **[Start]**.
 - **Automatic updates**: checked at start and every 6 hours, downloaded silently and restarted into; open windows reload into the new version. They cannot be turned off. A version that fails to start is rolled back. Only releases that change Node need the installer (the **Update** button at the top right).
 - **Replay tour**: in Settings.
@@ -91,7 +91,7 @@ Each tab shows how many people are online there (you included; in personal mode,
 - PCs exchange **status only** (read-only). Nobody can reach your terminal, agents or settings, and the UI opens only in this PC's browser.
 - Everything between PCs is **encrypted**: the public office uses a per-pair X25519 key agreement + AES-256-GCM, a team office AES-256-GCM with a key derived from its invite code. Codes never go on the network; a known PC whose key changes is ignored (impersonation).
 - **Always**: file paths, user names, IPs/host names, URL paths, token-like strings and AI reply text never leave the PC; commands are sent as program names only. Your PC account name is the name tag, so it is always shown.
-- **Hide my work** (off by default): others see only which room each of your agents is in, which AI it is its kind (MAIN/SUB/SHELL) and whether it waits (!), not what it is doing.
+- **Hide my work** (off by default): others see only which room each of your agents is in, which AI it is, its kind (MAIN/SUB/SHELL) and whether it waits (!), not what it is doing.
 - Claude Code and Codex settings are never touched; only their transcript files are read.
 
 ## How it works

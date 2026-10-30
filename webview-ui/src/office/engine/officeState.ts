@@ -761,7 +761,7 @@ export class OfficeState {
 
   /**
    * A person's avatar at `at` (none → a free lounge tile; a tile not walkable
-   * here → the closest free walkable one). Returns where it stands.
+   * here → the closest free walkable one, any room). Returns where it stands.
    */
   addAvatar(
     id: number,
@@ -789,16 +789,13 @@ export class OfficeState {
     if (at && (this.avatarMayStand(at.col, at.row) || this.avatarSeat(ch, at.col, at.row))) {
       return at;
     }
-    const lounge = this.areaWalkable.get(ROOM_LABELS.lounge);
-    if (at) return this.closestFreeWalkableTile(at.col, at.row, ch, lounge);
-    return this.freeTileIn(lounge ?? this.walkableTiles, ch);
+    if (at) return this.closestFreeWalkableTile(at.col, at.row, ch);
+    return this.freeTileIn(this.areaWalkable.get(ROOM_LABELS.lounge) ?? this.walkableTiles, ch);
   }
 
-  /** Avatars stay in the lounge (anywhere walkable when the layout has no lounge tiles). */
+  /** Avatars walk anywhere walkable (they sit only on lounge chairs: `avatarSeat`). */
   private avatarMayStand(col: number, row: number): boolean {
-    if (!isWalkable(col, row, this.tileMap, this.blockedTiles)) return false;
-    const lounge = ROOM_LABELS.lounge;
-    return !this.areaWalkable.get(lounge)?.length || this.areaAt(col, row) === lounge;
+    return isWalkable(col, row, this.tileMap, this.blockedTiles);
   }
 
   /** The lounge chair on (col,row) an avatar may sit on: free or already its own; else null. */

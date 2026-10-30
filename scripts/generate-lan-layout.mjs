@@ -3,13 +3,13 @@
 //   node scripts/generate-lan-layout.mjs > webview-ui/public/assets/default-layout-1.json
 //   node scripts/generate-lan-layout.mjs --personal > webview-ui/public/assets/default-layout-personal.json
 //
-//   ┌──────────┬────────────┬────────────┐
-//   │  코딩실   │   자료실    │   서버실    │   doors in the side walls + bottom walls
-//   ├──  ──────┴─────  ─────┴─────  ─────┤
-//   │               corridor              │
-//   ├────  ────────────  ───────────  ───┤
-//   │                대기실               │   people only (avatars): a short strip
-//   └──────────────────────────────────────┘
+//   ┌──────────┬────────────────┐
+//   │  코딩실   │     서버실      │   left column: 코딩실 = 자료실 (same size)
+//   ├───  ─────┴───  ────────  ──┤   right column: 서버실 = 대기실 (same size)
+//   │           corridor          │
+//   ├───  ─────┬───  ────────  ──┤   doors to the corridor + between the two rooms of a row
+//   │  자료실   │     대기실      │
+//   └──────────┴────────────────┘
 
 const WALL = 0;
 const VOID = 255;
@@ -19,22 +19,29 @@ const FLOOR_7 = 7;
 const FLOOR_9 = 9;
 
 // Two variants from one generator:
-//   (default)    106×40 shared office  → default-layout-1.json
-//   --personal   34×22 personal office → default-layout-personal.json
+//   (default)    77×52 shared office   → default-layout-1.json
+//   --personal   27×23 personal office → default-layout-personal.json
 // Each room is a block of repeated furniture units; a variant only sets the counts.
 const PERSONAL = process.argv.includes('--personal');
 
 const V = PERSONAL
   ? {
-      topH: 8,
+      roomH: 8,
       corridorH: 2,
-      loungeH: 7,
-      roomW: [10, 10, 11],
+      roomW: [10, 14],
       coding: { x0: 2, cols: 2, rows: 2, chairs: [0, 2], bin: [9, 0] },
-      library: { x0: 2, step: 4, cols: 2, rows: 1, stacks: [1, 7], stackY: 5, plant: [4, 4] },
+      // Shelf block in the middle, tables on opposite corners.
+      library: {
+        shelves: { x: 3, y: 3, cols: 2, rows: 1 },
+        tables: [
+          [7, 0],
+          [2, 5],
+        ],
+        plants: [[0, 0]],
+      },
       server: { x0: 2, step: 5, cols: 2, rows: 1 },
-      lounge: { x0: 15, step: 14, cols: 1, rows: 1, y0: 2, barY: 1, plants: [1, 8, 24] },
-      extraLoungeDoors: false,
+      lounge: { x0: 3, step: 14, cols: 1, rows: 1, y0: 2, barY: 1, plants: [1, 8] },
+      extraDoors: false,
       wallDeco: {
         coding: [
           ['WHITEBOARD', 1],
@@ -49,31 +56,33 @@ const V = PERSONAL
       },
     }
   : {
-      topH: 22,
+      roomH: 22,
       corridorH: 3,
-      loungeH: 10,
-      roomW: [28, 29, 45],
+      roomW: [29, 45],
       coding: { x0: 4, cols: 5, rows: 5, chairs: [0, 1, 2], bin: [27, 21] },
+      // Shelf block in the middle; tables above, below and on both sides of it.
       library: {
-        x0: 2,
-        step: 6,
-        cols: 5,
-        rows: 3,
-        stacks: [1, 4, 7, 20, 23, 26],
-        stackY: 14,
-        plant: [13, 13],
+        shelves: { x: 9, y: 8, cols: 5, rows: 3 },
+        tables: [
+          ...[1, 4, 15, 18].flatMap((y) => [2, 8, 14, 20, 26].map((c) => [c, y])),
+          ...[8, 11].flatMap((y) => [4, 22].map((c) => [c, y])),
+        ],
+        plants: [
+          [0, 8],
+          [27, 8],
+        ],
       },
       server: { x0: 4, step: 6, cols: 7, rows: 4 },
       lounge: {
         x0: 4,
         step: 14,
-        cols: 7,
-        rows: 1,
+        cols: 3,
+        rows: 2,
         y0: 4,
         barY: 5,
-        plants: [1, 15, 30, 45, 60, 75, 90],
+        plants: [1, 15, 30],
       },
-      extraLoungeDoors: true,
+      extraDoors: true,
       wallDeco: {
         coding: [
           ['WHITEBOARD', 3],
@@ -82,43 +91,32 @@ const V = PERSONAL
         ],
         server: [
           ['LARGE_PAINTING', 4],
-          ['CLOCK', 14],
-          ['SMALL_PAINTING', 24],
+          ['CLOCK', 21],
+          ['SMALL_PAINTING', 38],
         ],
       },
     };
 
 // Grid geometry (cols × rows). Row 0 is void headroom for the 2-tile-tall top wall sprites.
+// Two rows of two rooms around a corridor; every room of a column has the same size.
 const TOP_WALL = 1;
 const TOP_Y = 2; // first interior row of the top rooms
-const TOP_H = V.topH;
-const MID_WALL = TOP_Y + TOP_H;
+const ROOM_H = V.roomH;
+const MID_WALL = TOP_Y + ROOM_H;
 const CORRIDOR_Y = MID_WALL + 1;
 const CORRIDOR_H = V.corridorH;
-const LOUNGE_WALL = CORRIDOR_Y + CORRIDOR_H;
-const LOUNGE_Y = LOUNGE_WALL + 1;
-const LOUNGE_H = V.loungeH;
-const ROWS = LOUNGE_Y + LOUNGE_H + 1;
+const BOTTOM_WALL = CORRIDOR_Y + CORRIDOR_H;
+const BOTTOM_Y = BOTTOM_WALL + 1;
+const ROWS = BOTTOM_Y + ROOM_H + 1;
+const [LEFT_W, RIGHT_W] = V.roomW;
+const RIGHT_X = LEFT_W + 2;
+const COLS = RIGHT_X + RIGHT_W + 1;
 
-const CODING = { label: '코딩실', color: '#48dbfb', x: 1, w: V.roomW[0], y: TOP_Y, h: TOP_H };
-const LIBRARY = {
-  label: '자료실',
-  color: '#1dd1a1',
-  x: CODING.x + CODING.w + 1,
-  w: V.roomW[1],
-  y: TOP_Y,
-  h: TOP_H,
-};
-const SERVER = {
-  label: '서버실',
-  color: '#ff6b6b',
-  x: LIBRARY.x + LIBRARY.w + 1,
-  w: V.roomW[2],
-  y: TOP_Y,
-  h: TOP_H,
-};
-const COLS = SERVER.x + SERVER.w + 1;
-const LOUNGE = { label: '대기실', color: '#feca57', x: 1, w: COLS - 2, y: LOUNGE_Y, h: LOUNGE_H };
+const box = (label, color, x, w, y) => ({ label, color, x, w, y, h: ROOM_H });
+const CODING = box('코딩실', '#48dbfb', 1, LEFT_W, TOP_Y);
+const SERVER = box('서버실', '#ff6b6b', RIGHT_X, RIGHT_W, TOP_Y);
+const LIBRARY = box('자료실', '#1dd1a1', 1, LEFT_W, BOTTOM_Y);
+const LOUNGE = box('대기실', '#feca57', RIGHT_X, RIGHT_W, BOTTOM_Y);
 
 // Floor pattern + colour per zone (ColorValue {h,s,b,c}, same as the editor writes).
 const FLOOR = {
@@ -164,12 +162,20 @@ rect(1, CORRIDOR_Y, COLS - 2, CORRIDOR_H, (c, r) => floor(c, r, FLOOR.corridor))
 
 // ── Doors (2-tile gaps, unzoned corridor floor) ──
 const door = (x, y, w, h) => rect(x, y, w, h, (c, r) => floor(c, r, FLOOR.corridor));
-for (const r of [CODING, LIBRARY, SERVER]) door(r.x + Math.floor(r.w / 2) - 1, MID_WALL, 2, 1);
-door(LIBRARY.x - 1, TOP_Y + TOP_H - 2, 1, 2); // 코딩실 ↔ 자료실
-door(SERVER.x - 1, TOP_Y + TOP_H - 2, 1, 2); // 자료실 ↔ 서버실
-for (const r of [CODING, LIBRARY, SERVER]) door(r.x + Math.floor(r.w / 2) - 1, LOUNGE_WALL, 2, 1);
-if (V.extraLoungeDoors) {
-  for (const x of [Math.floor(COLS / 3), Math.floor((2 * COLS) / 3)]) door(x, LOUNGE_WALL, 2, 1);
+const mid = (r) => r.x + Math.floor(r.w / 2) - 1;
+for (const r of [CODING, SERVER]) door(mid(r), MID_WALL, 2, 1);
+for (const r of [LIBRARY, LOUNGE]) door(mid(r), BOTTOM_WALL, 2, 1);
+door(RIGHT_X - 1, TOP_Y + ROOM_H - 2, 1, 2); // 코딩실 ↔ 서버실
+door(RIGHT_X - 1, BOTTOM_Y + ROOM_H - 2, 1, 2); // 자료실 ↔ 대기실
+if (V.extraDoors) {
+  // The wide right-hand rooms get two more doors each.
+  for (const x of [
+    RIGHT_X + Math.floor(RIGHT_W / 4),
+    RIGHT_X + Math.floor((3 * RIGHT_W) / 4) - 1,
+  ]) {
+    door(x, MID_WALL, 2, 1);
+    door(x, BOTTOM_WALL, 2, 1);
+  }
 }
 
 // ── 코딩실: rows × cols desks, PCs on each desk, chairs facing up under each desk ──
@@ -188,23 +194,24 @@ for (const [type, x] of V.wallDeco.coding) put(type, CODING.x + x, TOP_WALL - 1)
 put('PLANT', CODING.x, CODING.y + CODING.h - 2);
 put('BIN', CODING.x + cd.bin[0], CODING.y + cd.bin[1]);
 
-// ── 자료실: wall of bookshelves, rows × cols reading tables (4 seats each), shelf stacks ──
-for (let x = LIBRARY.x; x + 1 < LIBRARY.x + LIBRARY.w; x += 2) {
-  put('DOUBLE_BOOKSHELF', x, TOP_WALL - 1);
-}
-for (let row = 0; row < lb.rows; row++) {
-  for (let t = 0; t < lb.cols; t++) {
-    const c = LIBRARY.x + lb.x0 + t * lb.step;
-    const y = LIBRARY.y + 1 + row * 4;
-    put('SMALL_TABLE_FRONT', c, y);
-    put('CUSHIONED_CHAIR_SIDE', c - 1, y + 1);
-    put('CUSHIONED_CHAIR_SIDE:left', c + 2, y + 1);
-    put('CUSHIONED_CHAIR_BACK', c, y + 2);
-    put('CUSHIONED_CHAIR_BACK', c + 1, y + 2);
+// ── 자료실: a block of bookshelves in the middle, reading tables (4 seats each) around it
+//    (no wall shelves: its top wall faces the corridor, where they would block the way) ──
+const { shelves } = lb;
+for (let row = 0; row < shelves.rows; row++) {
+  for (let k = 0; k < shelves.cols; k++) {
+    put('DOUBLE_BOOKSHELF', LIBRARY.x + shelves.x + k * 2, LIBRARY.y + shelves.y + row * 2);
   }
 }
-for (const x of lb.stacks) put('DOUBLE_BOOKSHELF', LIBRARY.x + x, LIBRARY.y + lb.stackY);
-put('LARGE_PLANT', LIBRARY.x + lb.plant[0], LIBRARY.y + lb.plant[1]);
+for (const [tc, ty] of lb.tables) {
+  const c = LIBRARY.x + tc;
+  const y = LIBRARY.y + ty;
+  put('SMALL_TABLE_FRONT', c, y);
+  put('CUSHIONED_CHAIR_SIDE', c - 1, y + 1);
+  put('CUSHIONED_CHAIR_SIDE:left', c + 2, y + 1);
+  put('CUSHIONED_CHAIR_BACK', c, y + 2);
+  put('CUSHIONED_CHAIR_BACK', c + 1, y + 2);
+}
+for (const [x, y] of lb.plants) put('LARGE_PLANT', LIBRARY.x + x, LIBRARY.y + y);
 
 // ── 서버실: rows × cols workstation tables, PC on every seat, wooden chairs both sides ──
 for (let row = 0; row < sv.rows; row++) {

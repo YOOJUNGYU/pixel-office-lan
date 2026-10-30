@@ -78,7 +78,7 @@ const ko = {
   'app.rotateHint': '회전 (R)',
   'app.importConfirm': '현재 레이아웃을 바꿀까요? 저장하지 않은 편집은 사라집니다.',
   'app.resetDefaultConfirm':
-    '기본 사무실(106×40)로 바꿀까요? 지금 배치는 사라집니다(먼저 내보내기로 저장해 둘 수 있습니다).',
+    '기본 사무실(77×52)로 바꿀까요? 지금 배치는 사라집니다(먼저 내보내기로 저장해 둘 수 있습니다).',
   'settings.resetDefaultLayout': '기본 사무실로 되돌리기',
   'app.resetEditorConfirm': '기본 레이아웃으로 되돌릴까요? 직접 꾸민 내용이 모두 사라집니다.',
   'app.importInvalid': '올바른 레이아웃 파일이 아닙니다.',
@@ -269,7 +269,7 @@ const ko = {
     '같은 망의 PC들에서 돌고 있는 Claude Code · Codex 에이전트가 이 픽셀 사무실의 캐릭터로 나타납니다.\n지금 보이는 캐릭터 중 일부는 안내용 예시이며, 안내가 끝나면 사라집니다.',
   'tour.roomCoding.title': '코딩실',
   'tour.roomCoding.body':
-    '에이전트는 하는 일에 따라 방을 옮겨 다닙니다. 파일을 고치거나 쓰는 동안은 코딩실 책상에 앉아 있습니다.\n방 왼쪽 위 이름판의 숫자는 그 방의 메인 에이전트 수, +N 은 서브에이전트·셸 수입니다.',
+    '에이전트는 하는 일에 따라 방을 옮겨 다닙니다. 파일을 고치거나 쓰는 동안은 코딩실 책상에 앉아 있습니다.\n방 왼쪽 위 명패의 "에이전트 N" 은 그 방에 있는 에이전트 수(서브에이전트·셸 포함)입니다.',
   'tour.roomLibrary.title': '자료실',
   'tour.roomLibrary.body': '파일을 읽거나 검색하고, 웹을 찾아볼 때는 자료실로 갑니다.',
   'tour.roomLibrary.bodyDemo':
@@ -278,7 +278,7 @@ const ko = {
   'tour.roomServer.body': '명령을 실행하거나 테스트·빌드를 돌릴 때는 서버실에서 일합니다.',
   'tour.roomLounge.title': '대기실',
   'tour.roomLounge.body':
-    '할 일을 기다리거나 확인을 기다릴 때는 대기실에서 쉽니다.\n방 이동은 3초 정도 상태가 이어져야 일어나서, 잠깐씩 바뀌는 작업에 캐릭터가 왔다 갔다 하지 않습니다.',
+    '대기실은 사람 캐릭터의 공간입니다. 할 일이나 확인을 기다리는 에이전트는 대기실로 돌아와 그 PC 의 사람 캐릭터에 합쳐지고, 확인이 필요하면 사람 머리 위에 빨간 ! 가 뜹니다.\n방 이동은 3초 정도 상태가 이어져야 일어나서, 잠깐씩 바뀌는 작업에 캐릭터가 왔다 갔다 하지 않습니다.',
   'tour.tag.title': '이름표',
   'tour.tag.body':
     '이름표는 한 줄: 맨 앞 MAIN = 메인 에이전트, SUB / SHELL = 서브에이전트와 셸(부모의 번호로 보임), 다음 #번호, 그다음 닉네임(없으면 PC 계정).\n머리 위 말풍선에는 Claude(주황) / Codex(초록) 배지와 지금 하는 일이 보입니다.',
@@ -301,7 +301,7 @@ const ko = {
     '지금 이 오피스에 접속한 사람이 모두 보입니다. 에이전트가 없는 사람도요.\n❗ 는 확인을 기다리는 에이전트가 있다는 뜻입니다. 이름을 누르면 그 사람의 에이전트로 화면이 따라갑니다.',
   'tour.chat.title': '내 캐릭터와 채팅',
   'tour.chat.body':
-    '에이전트와 별개로 사람마다 캐릭터가 하나 있습니다. 방향키(↑↓←→)로 내 캐릭터를 움직이세요.\n아래 가운데 채팅창에 쓰고 Enter → 내 캐릭터 위에 말풍선(새로 쓰면 바뀌고 × 로 지움). 아무것도 선택되지 않았을 때 Space+Enter = 채팅창, Esc = 방향키로 복귀.',
+    '에이전트와 별개로 사람마다 캐릭터가 하나 있습니다. 방향키(↑↓←→)로 내 캐릭터를 어느 방이든 움직이세요(대기실 의자에는 앉을 수 있음).\n아래 가운데 채팅창에 쓰고 Enter → 내 캐릭터 위에 말풍선(새로 쓰면 바뀌고 × 로 지움). 아무것도 선택되지 않았을 때 Space+Enter = 채팅창, Esc = 방향키로 복귀.',
   'tour.settingsButton.title': '설정',
   'tour.settingsButton.body': '언어, 테마, 프로필, 팀 오피스 같은 설정은 모두 여기에 있습니다.',
   'tour.language.title': '언어 · 테마',
@@ -309,7 +309,7 @@ const ko = {
     '화면 언어와 다크/라이트 테마는 브라우저마다 따로 고릅니다. 다른 PC의 에이전트 활동도 내가 고른 언어로 보입니다.\n왼쪽 위 해/달 버튼으로 다크와 라이트를 바로 바꿀 수도 있습니다.',
   'tour.profile.title': '내 프로필',
   'tour.profile.body':
-    '캐릭터(사람 6종 또는 펫 Claudio · Gitcat)와 색, 닉네임, 내 캐릭터 이름표 색을 정합니다. 내 캐릭터와 이 PC 의 에이전트가 이 모습으로 나옵니다. 이름은 PC 계정 이름이 먼저이고 바꿀 수 없습니다.\n"상세 내용 숨기기" 를 켜면 다른 사람에게는 파일 이름이나 이유 없이 방과 활동 종류만 보입니다.',
+    '캐릭터(사람 6종 또는 펫 Claudio · Gitcat)와 색, 닉네임, 내 캐릭터 이름표 색을 정합니다. 내 캐릭터와 이 PC 의 에이전트가 이 모습으로 나옵니다. 이름은 PC 계정 이름이 먼저이고 바꿀 수 없습니다.\n"내 작업 내용 숨기기" 를 켜면 다른 사람에게는 내 에이전트의 위치만 보이고 작업 내용은 숨겨집니다.',
   'tour.offices.title': '팀 오피스',
   'tour.offices.body':
     '팀 이름을 정해 만들면 초대 코드(PO2-…)가 나옵니다. 팀원은 그 코드로 참여합니다.\n팀 오피스의 내용은 팀원끼리만 암호화되어 오가고, 언제든 나갈 수 있습니다.',
@@ -419,7 +419,7 @@ const en: Record<Key, string> = {
   'app.rotateHint': 'Rotate (R)',
   'app.importConfirm': 'Replace the current layout? Unsaved edits will be lost.',
   'app.resetDefaultConfirm':
-    'Switch to the default office (106×40)? The current layout will be lost (export it first to keep a copy).',
+    'Switch to the default office (77×52)? The current layout will be lost (export it first to keep a copy).',
   'settings.resetDefaultLayout': 'Reset to the default office',
   'app.resetEditorConfirm': 'Reset to the default layout? All your customizations will be lost.',
   'app.importInvalid': 'This is not a valid layout file.',
@@ -608,7 +608,7 @@ const en: Record<Key, string> = {
     'Claude Code and Codex agents running on the PCs of your network show up as characters in this pixel office.\nSome characters you see now are examples for this tour; they leave when it ends.',
   'tour.roomCoding.title': 'Coding room',
   'tour.roomCoding.body':
-    'Agents move between rooms by what they are doing. While editing or writing files they sit at a desk in the coding room.\nThe plate at the top left of each room counts its main agents; +N counts subagents and shells.',
+    'Agents move between rooms by what they are doing. While editing or writing files they sit at a desk in the coding room.\n"Agents N" on the plate at the top left of each room counts the agents there (subagents and shells included).',
   'tour.roomLibrary.title': 'Library',
   'tour.roomLibrary.body':
     'Reading, searching files or browsing the web takes them to the library.',
@@ -618,7 +618,7 @@ const en: Record<Key, string> = {
   'tour.roomServer.body': 'Running commands, tests or builds happens in the server room.',
   'tour.roomLounge.title': 'Lounge',
   'tour.roomLounge.body':
-    'Idle agents, and agents waiting for you, rest in the lounge.\nA move only happens after the new activity lasts about 3 seconds, so characters do not bounce around on quick tasks.',
+    "The lounge is for people's characters. An idle agent, or one waiting for you, comes back here and merges into its PC's character; a red ! over the person means it needs you.\nA move only happens after the new activity lasts about 3 seconds, so characters do not bounce around on quick tasks.",
   'tour.tag.title': 'Name tags',
   'tour.tag.body':
     "One line: first MAIN = main agent, SUB / SHELL = subagents and shells (with their parent's number), then #number, then the nickname (else the PC account).\nThe bubble above the head shows a Claude (orange) / Codex (green) badge and the current activity.",
@@ -641,7 +641,7 @@ const en: Record<Key, string> = {
     "Everyone connected to this office is listed here, even people with no agents.\n❗ means one of their agents is waiting for them. Click a name and the view follows that person's agent.",
   'tour.chat.title': 'Your character and chat',
   'tour.chat.body':
-    'Besides agents, everyone has one character. Move yours with the arrow keys (↑↓←→).\nType in the chat bar at the bottom centre and press Enter → a bubble over your character (a new one replaces it, × deletes it). With nothing focused, Space+Enter = chat bar; Esc = back to the arrow keys.',
+    'Besides agents, everyone has one character. Walk yours into any room with the arrow keys (↑↓←→); it can sit on lounge chairs.\nType in the chat bar at the bottom centre and press Enter → a bubble over your character (a new one replaces it, × deletes it). With nothing focused, Space+Enter = chat bar; Esc = back to the arrow keys.',
   'tour.settingsButton.title': 'Settings',
   'tour.settingsButton.body': 'Language, theme, profile, team offices and more live here.',
   'tour.language.title': 'Language & theme',
@@ -649,7 +649,7 @@ const en: Record<Key, string> = {
     'Each browser picks its own language and dark/light theme. Activity of agents on other PCs is shown in your language too.\nThe sun/moon button at the top left switches dark and light in one click.',
   'tour.profile.title': 'My profile',
   'tour.profile.body':
-    'Character (six people or the pets Claudio · Gitcat), colour, nickname and your name tag colours — for your own character and this PC\'s agents. Your PC account name always comes first and cannot be changed.\n"Hide details" shows others only the room and the kind of activity — no file names or reasons.',
+    'Character (six people or the pets Claudio · Gitcat), colour, nickname and your name tag colours — for your own character and this PC\'s agents. Your PC account name always comes first and cannot be changed.\n"Hide my work" shows others only where your agents are, not what they are doing.',
   'tour.offices.title': 'Team offices',
   'tour.offices.body':
     'Create a team to get an invite code (PO2-…); teammates join with it.\nA team office is encrypted between its members, and you can leave any time.',
