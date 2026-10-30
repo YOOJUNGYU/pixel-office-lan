@@ -313,7 +313,11 @@ export function ProfileModal({
               checked={hideWork}
               onChange={() => setHideWork((v) => !v)}
             />
-            <div className="text-xs text-text-muted">{t('profile.hideWorkHint')}</div>
+            {/* w-0 min-w-full: the long hint wraps to the modal's width
+                instead of widening it. */}
+            <div className="w-0 min-w-full text-xs text-text-muted">
+              {t('profile.hideWorkHint')}
+            </div>
 
             <details open={peersOpen}>
               <summary className="cursor-pointer select-none">{t('profile.advanced')}</summary>

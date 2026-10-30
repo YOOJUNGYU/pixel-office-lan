@@ -8,7 +8,7 @@
 //   ├──  ──────┴─────  ─────┴─────  ─────┤
 //   │               corridor              │
 //   ├────  ────────────  ───────────  ───┤
-//   │                대기실               │   widest room: overflow agents stand here
+//   │                대기실               │   people only (avatars): a short strip
 //   └──────────────────────────────────────┘
 
 const WALL = 0;
@@ -19,7 +19,7 @@ const FLOOR_7 = 7;
 const FLOOR_9 = 9;
 
 // Two variants from one generator:
-//   (default)    90×60 shared office  → default-layout-1.json
+//   (default)    106×40 shared office  → default-layout-1.json
 //   --personal   34×22 personal office → default-layout-personal.json
 // Each room is a block of repeated furniture units; a variant only sets the counts.
 const PERSONAL = process.argv.includes('--personal');
@@ -51,8 +51,8 @@ const V = PERSONAL
   : {
       topH: 22,
       corridorH: 3,
-      loungeH: 30,
-      roomW: [28, 29, 29],
+      loungeH: 10,
+      roomW: [28, 29, 45],
       coding: { x0: 4, cols: 5, rows: 5, chairs: [0, 1, 2], bin: [27, 21] },
       library: {
         x0: 2,
@@ -63,15 +63,15 @@ const V = PERSONAL
         stackY: 14,
         plant: [13, 13],
       },
-      server: { x0: 4, step: 6, cols: 4, rows: 4 },
+      server: { x0: 4, step: 6, cols: 7, rows: 4 },
       lounge: {
         x0: 4,
         step: 14,
-        cols: 6,
-        rows: 3,
+        cols: 7,
+        rows: 1,
         y0: 4,
         barY: 5,
-        plants: [1, 15, 30, 45, 60, 75],
+        plants: [1, 15, 30, 45, 60, 75, 90],
       },
       extraLoungeDoors: true,
       wallDeco: {

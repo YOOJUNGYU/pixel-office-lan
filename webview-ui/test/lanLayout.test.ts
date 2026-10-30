@@ -31,8 +31,8 @@ const VARIANTS = [
   {
     file: 'default-layout-1.json',
     args: [],
-    size: { minCols: 80, maxCols: 128, minRows: 50, maxRows: 128 },
-    seats: { 코딩실: [60, 999], 자료실: [40, 999], 서버실: [40, 999], 대기실: [80, 999] },
+    size: { minCols: 80, maxCols: 128, minRows: 36, maxRows: 128 },
+    seats: { 코딩실: [60, 999], 자료실: [40, 999], 서버실: [100, 999], 대기실: [40, 999] },
   },
   {
     // A personal office: one person and a handful of agents.

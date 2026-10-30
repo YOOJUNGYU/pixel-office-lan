@@ -81,7 +81,7 @@ Each tab shows how many people are online there (you included; in personal mode,
 
 - **Profile**: character (6 humans or the pets Claudio · Gitcat), colour, nickname, your character's name tag colours. Your PC account name always comes first and cannot be changed. Nicknames are unique (whoever set it later gets a mark like `· a1b2`).
 - **Language · theme**: 한국어/English and dark/light/system, per viewer. The sun/moon button at the top left switches instantly.
-- **Layout editor**: floors (one click paints a whole room), walls, furniture, the background outside. The four rooms and the office size (90×60) are fixed. Layouts are saved **on this PC only**; share with **Settings → Export / Import layout**.
+- **Layout editor**: floors (one click paints a whole room), walls, furniture, the background outside. The four rooms and the office size (106×40) are fixed. Layouts are saved **on this PC only**; share with **Settings → Export / Import layout**.
 - **Install as an app (PWA)**: in Edge · Chrome, the popup at the top right → a tab-less app window. Opening the app while the server is off shows **[Start]**.
 - **Automatic updates**: checked at start and every 6 hours, downloaded silently and restarted into; open windows reload into the new version. They cannot be turned off. A version that fails to start is rolled back. Only releases that change Node need the installer (the **Update** button at the top right).
 - **Replay tour**: in Settings.

@@ -78,7 +78,7 @@ const ko = {
   'app.rotateHint': '회전 (R)',
   'app.importConfirm': '현재 레이아웃을 바꿀까요? 저장하지 않은 편집은 사라집니다.',
   'app.resetDefaultConfirm':
-    '기본 사무실(90×60)로 바꿀까요? 지금 배치는 사라집니다(먼저 내보내기로 저장해 둘 수 있습니다).',
+    '기본 사무실(106×40)로 바꿀까요? 지금 배치는 사라집니다(먼저 내보내기로 저장해 둘 수 있습니다).',
   'settings.resetDefaultLayout': '기본 사무실로 되돌리기',
   'app.resetEditorConfirm': '기본 레이아웃으로 되돌릴까요? 직접 꾸민 내용이 모두 사라집니다.',
   'app.importInvalid': '올바른 레이아웃 파일이 아닙니다.',
@@ -190,8 +190,7 @@ const ko = {
   'profile.tagFg': '글자',
   'profile.tagDefault': '기본값',
   'profile.hideWork': '내 작업 내용 숨기기',
-  'profile.hideWorkHint':
-    '켜면 다른 사람에게는 내 에이전트가 어느 방에 있는지, 어떤 AI인지, MAIN·SUB·SHELL 종류, 응답 대기(!) 여부만 보이고 작업 내용은 보이지 않습니다. 파일 경로·주소·토큰 같은 민감 정보와 AI 답변 내용은 이 옵션과 상관없이 항상 보내지 않습니다',
+  'profile.hideWorkHint': '켜면 다른 사람에게 내 에이전트의 위치만 보이고 작업 내용은 숨겨집니다',
   'profile.manualPeers': '직접 연결할 PC IP',
   'profile.advanced': '고급: 자동으로 안 보일 때',
   'profile.manualPeersHint':
@@ -420,7 +419,7 @@ const en: Record<Key, string> = {
   'app.rotateHint': 'Rotate (R)',
   'app.importConfirm': 'Replace the current layout? Unsaved edits will be lost.',
   'app.resetDefaultConfirm':
-    'Switch to the default office (90×60)? The current layout will be lost (export it first to keep a copy).',
+    'Switch to the default office (106×40)? The current layout will be lost (export it first to keep a copy).',
   'settings.resetDefaultLayout': 'Reset to the default office',
   'app.resetEditorConfirm': 'Reset to the default layout? All your customizations will be lost.',
   'app.importInvalid': 'This is not a valid layout file.',
@@ -530,8 +529,7 @@ const en: Record<Key, string> = {
   'profile.tagFg': 'Text',
   'profile.tagDefault': 'Default',
   'profile.hideWork': 'Hide my work',
-  'profile.hideWorkHint':
-    "When on, others see only which room each of my agents is in, which AI it is its kind (MAIN, SUB, SHELL) and whether it waits for you (!), not what it is doing. Sensitive info such as file paths, addresses and tokens, and the AI's reply text, is never sent either way",
+  'profile.hideWorkHint': 'When on, others see where my agents are, not what they are doing',
   'profile.manualPeers': 'PC IPs to connect directly',
   'profile.advanced': "Advanced: when a PC isn't found automatically",
   'profile.manualPeersHint':

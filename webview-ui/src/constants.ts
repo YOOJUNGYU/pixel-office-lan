@@ -382,8 +382,8 @@ export const CHAT_INPUT_Z_INDEX = 44;
 
 /** Room name plate (DOM badge) inset from the room's top-left tile corner, CSS px. */
 export const ROOM_PLATE_INSET_PX = 4;
-/** Room plates: above the canvas, below the top-left/top-right chrome (z-10) and the tags. */
-export const ROOM_PLATE_Z_INDEX = 5;
+/** Room plates: above every name tag, bubble and chat bubble (LAN_*, CHAT_Z_INDEX), below the chat bar, the top-right stack and modals. */
+export const ROOM_PLATE_Z_INDEX = 43;
 /** A plate's hover popup (what sends an agent there + its agents' cards): above the tags and chat. */
 export const ROOM_PLATE_TIP_Z_INDEX = 46;
 /** The popup's width (CSS px); it never reaches past the room's right or bottom edge (then scrolls). */
@@ -453,8 +453,8 @@ export const PEOPLE_PET_FACE_CROP = { top: PEOPLE_PET_FACE_TOP, rows: PEOPLE_FAC
 export const PEOPLE_HINT_MS = 2_000;
 /** Top-right stack (update banner, install popup, people panel): room kept clear below it, CSS px. */
 export const TOP_RIGHT_BOTTOM_RESERVE_PX = 64;
-/** Top-right stack: above name tags and bubbles (LAN_*_Z_INDEX), below modals (50). */
-export const TOP_RIGHT_Z_INDEX = 43;
+/** Top-right stack: above name tags, bubbles and room plates, below plate popups (46) and modals (50). */
+export const TOP_RIGHT_Z_INDEX = 45;
 
 // ── Theme (per viewer: dark = the original look, light = bright office + UI) ──
 /** localStorage: 'dark' | 'light' | 'system'; unset = dark. */

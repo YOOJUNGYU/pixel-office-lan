@@ -351,7 +351,7 @@ test('with its PC avatar present: lounge agents fold into it, "!" on the avatar,
 
   lan.apply([agent('a', 'lounge')]);
   assert.equal(ch.mergeInto, av.id);
-  step(90); // the default office is 90 tiles wide
+  step(110); // the default office is 106 tiles wide
   assert.equal(os.characters.has(id), false, 'merged back into the avatar');
 });
 
