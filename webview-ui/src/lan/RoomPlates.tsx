@@ -120,7 +120,9 @@ export function RoomPlates({
       for (const [label, b] of roomBoxes(layout.areaTiles, layout.cols)) {
         next.push({
           label,
-          count: plateCount(officeState.roomCounts?.get(label)),
+          // The lounge holds people (one avatar each), not agents: no count.
+          count:
+            label === ROOM_LABELS.lounge ? null : plateCount(officeState.roomCounts?.get(label)),
           left: Math.round(p.toScreenX(b.col * TILE_SIZE)) + ROOM_PLATE_INSET_PX,
           top: Math.round(p.toScreenY(b.row * TILE_SIZE)) + ROOM_PLATE_INSET_PX,
           right: Math.round(p.toScreenX((b.maxCol + 1) * TILE_SIZE)) - ROOM_PLATE_INSET_PX,
