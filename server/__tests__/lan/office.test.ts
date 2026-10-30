@@ -98,7 +98,7 @@ describe('LanService', () => {
     expect(asked).toEqual([true, undefined]);
   });
 
-  it('hideWork shares room, provider and kind only', () => {
+  it('hideWork shares room, provider, kind and waiting only', () => {
     const lan = new LanService(
       { ...profile, hideWork: true },
       { views: () => [view({ permission: true, act: 'edit', target: 'a.ts', reason: 'r' })] },
@@ -108,7 +108,7 @@ describe('LanService', () => {
       act: 'idle',
       target: '',
       reason: '',
-      permission: false,
+      permission: true,
       hidden: true,
     });
     expect(v).toMatchObject({ room: view().room, provider: view().provider, kind: view().kind });

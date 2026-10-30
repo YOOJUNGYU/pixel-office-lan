@@ -124,8 +124,6 @@ function App() {
     updateStatus,
     setUpdateStatus,
     autostart,
-    autoUpdate,
-    setAutoUpdate,
     offices,
     officeReply,
     clearOfficeReply,
@@ -739,11 +737,6 @@ function App() {
           onImportLayout={handleImportLayout}
           onResetToDefaultLayout={officeReadOnly ? undefined : handleResetToDefaultLayout}
           autostart={autostart}
-          autoUpdate={autoUpdate}
-          onToggleAutoUpdate={() => {
-            transport.send({ type: 'setAutoUpdate', enabled: !autoUpdate });
-            setAutoUpdate(!autoUpdate);
-          }}
           notify={notify}
           onNotifyChange={setNotify}
           offices={offices}

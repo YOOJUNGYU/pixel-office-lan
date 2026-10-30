@@ -438,8 +438,6 @@ export class Updater {
       stage?: (version: string, app: AppAsset) => Promise<void>;
       /** Restart into the staged version; false = can't here (applied at next start). */
       restart?: () => boolean;
-      /** Settings → 자동 업데이트 (default on). */
-      autoUpdate?: () => boolean;
     } = {
       check: (c) => checkForUpdate(c),
       install: downloadAndRun,
@@ -519,8 +517,8 @@ export class Updater {
    * Any failure falls back to the banner + installer.
    */
   private async trySilent(info: UpdateInfo): Promise<boolean> {
-    const { stage, restart, autoUpdate } = this.deps;
-    if (!info.app || !stage || autoUpdate?.() === false) return false;
+    const { stage, restart } = this.deps;
+    if (!info.app || !stage) return false;
     // Busy or done: handled (a manual check meanwhile must not raise the banner too).
     if (this.staging || this.staged === info.version) return true;
     if (this.failed?.version === info.version && Date.now() < this.failed.until) return false;

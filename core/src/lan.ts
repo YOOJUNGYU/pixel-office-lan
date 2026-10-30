@@ -150,7 +150,7 @@ export interface AgentView {
   target: string;
   /** <=200 chars, '' if none */
   reason: string;
-  /** The owner hides its work: act/target/reason/permission are blanked, room and kind stay. */
+  /** The owner hides its work: act/target/reason are blanked; room, kind and permission stay. */
   hidden?: true;
 }
 export interface PeerInfo {

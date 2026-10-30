@@ -113,7 +113,6 @@ components:
         - $ref: '#/components/schemas/SaveProfile'
         - $ref: '#/components/schemas/InstallUpdate'
         - $ref: '#/components/schemas/CheckUpdate'
-        - $ref: '#/components/schemas/SetAutoUpdate'
         - $ref: '#/components/schemas/SetAutostart'
         - $ref: '#/components/schemas/QuitApp'
         - $ref: '#/components/schemas/CreateOffice'
@@ -328,7 +327,6 @@ components:
         - type
         - alwaysShowLabels
         - externalAssetDirectories
-        - autoUpdate
         - notifyPresence
         - notifyAgents
       properties:
@@ -340,9 +338,6 @@ components:
           type: array
           items:
             type: string
-        autoUpdate:
-          type: boolean
-          description: Silent app updates on (Settings → 자동 업데이트; default true).
         notifyPresence:
           type: boolean
           description: OS notification on join/leave of the public office (default true).
@@ -1016,19 +1011,6 @@ components:
       properties:
         type:
           const: checkUpdate
-
-    SetAutoUpdate:
-      description: >-
-        Turn silent app updates on or off (loopback browser only; config.json,
-        re-sent in settingsLoaded). Off = the banner + installer only.
-      type: object
-      additionalProperties: false
-      required: [type, enabled]
-      properties:
-        type:
-          const: setAutoUpdate
-        enabled:
-          type: boolean
 
     SetAutostart:
       description: >-

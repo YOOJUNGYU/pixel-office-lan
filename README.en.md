@@ -83,7 +83,7 @@ Each tab shows how many people are online there (you included; in personal mode,
 - **Language · theme**: 한국어/English and dark/light/system, per viewer. The sun/moon button at the top left switches instantly.
 - **Layout editor**: floors (one click paints a whole room), walls, furniture, the background outside. The four rooms and the office size (90×60) are fixed. Layouts are saved **on this PC only**; share with **Settings → Export / Import layout**.
 - **Install as an app (PWA)**: in Edge · Chrome, the popup at the top right → a tab-less app window. Opening the app while the server is off shows **[Start]**.
-- **Automatic updates**: checked at start and every 6 hours, downloaded silently and restarted into; open windows reload into the new version. A version that fails to start is rolled back. Only releases that change Node need the installer (the **Update** button at the top right). Turn off: **Settings → Automatic updates**.
+- **Automatic updates**: checked at start and every 6 hours, downloaded silently and restarted into; open windows reload into the new version. They cannot be turned off. A version that fails to start is rolled back. Only releases that change Node need the installer (the **Update** button at the top right).
 - **Replay tour**: in Settings.
 
 ## Security and privacy
@@ -91,7 +91,7 @@ Each tab shows how many people are online there (you included; in personal mode,
 - PCs exchange **status only** (read-only). Nobody can reach your terminal, agents or settings, and the UI opens only in this PC's browser.
 - Everything between PCs is **encrypted**: the public office uses a per-pair X25519 key agreement + AES-256-GCM, a team office AES-256-GCM with a key derived from its invite code. Codes never go on the network; a known PC whose key changes is ignored (impersonation).
 - **Always**: file paths, user names, IPs/host names, URL paths, token-like strings and AI reply text never leave the PC; commands are sent as program names only. Your PC account name is the name tag, so it is always shown.
-- **Hide my work** (off by default): others see only which room each of your agents is in, which AI it is and its kind (MAIN/SUB/SHELL), not what it is doing.
+- **Hide my work** (off by default): others see only which room each of your agents is in, which AI it is its kind (MAIN/SUB/SHELL) and whether it waits (!), not what it is doing.
 - Claude Code and Codex settings are never touched; only their transcript files are read.
 
 ## How it works

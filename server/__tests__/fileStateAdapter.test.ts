@@ -27,16 +27,14 @@ describe('FileStateAdapter', () => {
 
   it('returns defaults when config file does not exist', () => {
     const adapter = new FileStateAdapter();
-    expect(adapter.getSetting('pixel-agents.autoUpdate', false)).toBe(true);
+    expect(adapter.getSetting('pixel-agents.notifyAgents', false)).toBe(true);
   });
 
   it('round-trips each setting key', () => {
     const adapter = new FileStateAdapter();
-    adapter.setSetting('pixel-agents.autoUpdate', false);
     adapter.setSetting('pixel-agents.alwaysShowLabels', true);
     adapter.setSetting('pixel-agents.notifyAgents', false);
 
-    expect(adapter.getSetting('pixel-agents.autoUpdate', true)).toBe(false);
     expect(adapter.getSetting('pixel-agents.alwaysShowLabels', false)).toBe(true);
     expect(adapter.getSetting('pixel-agents.notifyAgents', true)).toBe(false);
   });
@@ -50,19 +48,19 @@ describe('FileStateAdapter', () => {
 
   it('accepts setting keys with or without the pixel-agents. prefix', () => {
     const adapter = new FileStateAdapter();
-    adapter.setSetting('pixel-agents.autoUpdate', false);
-    expect(adapter.getSetting('autoUpdate', true)).toBe(false);
+    adapter.setSetting('pixel-agents.notifyPresence', false);
+    expect(adapter.getSetting('notifyPresence', true)).toBe(false);
     adapter.setSetting('alwaysShowLabels', true);
     expect(adapter.getSetting('pixel-agents.alwaysShowLabels', false)).toBe(true);
   });
 
   it('persists settings under ~/.pixel-office/config.json with clean field names', () => {
-    new FileStateAdapter().setSetting('pixel-agents.autoUpdate', false);
+    new FileStateAdapter().setSetting('pixel-agents.notifyPresence', false);
     const parsed = JSON.parse(fs.readFileSync(configPath(), 'utf-8')) as Record<
       string,
       Record<string, unknown>
     >;
-    expect(parsed.standalone.autoUpdate).toBe(false);
-    expect(parsed.standalone['pixel-agents.autoUpdate']).toBeUndefined();
+    expect(parsed.standalone.notifyPresence).toBe(false);
+    expect(parsed.standalone['pixel-agents.notifyPresence']).toBeUndefined();
   });
 });

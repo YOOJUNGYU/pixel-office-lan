@@ -40,7 +40,6 @@ export type ClientMessage =
   | SaveProfile
   | InstallUpdate
   | CheckUpdate
-  | SetAutoUpdate
   | SetAutostart
   | QuitApp
   | CreateOffice
@@ -147,7 +146,6 @@ export interface SettingsLoaded {
   type: 'settingsLoaded';
   alwaysShowLabels: boolean;
   externalAssetDirectories: string[];
-  autoUpdate: boolean;
   notifyPresence: boolean;
   notifyAgents: boolean;
 }
@@ -359,11 +357,6 @@ export interface InstallUpdate {
 
 export interface CheckUpdate {
   type: 'checkUpdate';
-}
-
-export interface SetAutoUpdate {
-  type: 'setAutoUpdate';
-  enabled: boolean;
 }
 
 export interface SetAutostart {

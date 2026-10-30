@@ -152,7 +152,6 @@ const ko = {
 
   // Silent app updates
   'update.updated': 'v{v} 로 업데이트됨',
-  'settings.autoUpdate': '자동 업데이트',
 
   'install.title': 'Pixel Office 를 앱으로 설치하세요',
   'install.body': 'Windows 에서는 바로가기가 탭이 아닌 앱 창으로 엽니다.',
@@ -192,7 +191,7 @@ const ko = {
   'profile.tagDefault': '기본값',
   'profile.hideWork': '내 작업 내용 숨기기',
   'profile.hideWorkHint':
-    '켜면 다른 사람에게는 내 에이전트가 어느 방에 있는지, 어떤 AI인지, MAIN·SUB·SHELL 종류만 보이고 작업 내용은 보이지 않습니다. 파일 경로·주소·토큰 같은 민감 정보와 AI 답변 내용은 이 옵션과 상관없이 항상 보내지 않습니다',
+    '켜면 다른 사람에게는 내 에이전트가 어느 방에 있는지, 어떤 AI인지, MAIN·SUB·SHELL 종류, 응답 대기(!) 여부만 보이고 작업 내용은 보이지 않습니다. 파일 경로·주소·토큰 같은 민감 정보와 AI 답변 내용은 이 옵션과 상관없이 항상 보내지 않습니다',
   'profile.manualPeers': '직접 연결할 PC IP',
   'profile.advanced': '고급: 자동으로 안 보일 때',
   'profile.manualPeersHint':
@@ -494,7 +493,6 @@ const en: Record<Key, string> = {
 
   // Silent app updates
   'update.updated': 'Updated to v{v}',
-  'settings.autoUpdate': 'Automatic updates',
 
   'install.title': 'Install Pixel Office as an app',
   'install.body': 'On Windows, shortcuts then open it in its own app window instead of a tab.',
@@ -533,7 +531,7 @@ const en: Record<Key, string> = {
   'profile.tagDefault': 'Default',
   'profile.hideWork': 'Hide my work',
   'profile.hideWorkHint':
-    "When on, others see only which room each of my agents is in, which AI it is and its kind (MAIN, SUB, SHELL), not what it is doing. Sensitive info such as file paths, addresses and tokens, and the AI's reply text, is never sent either way",
+    "When on, others see only which room each of my agents is in, which AI it is its kind (MAIN, SUB, SHELL) and whether it waits for you (!), not what it is doing. Sensitive info such as file paths, addresses and tokens, and the AI's reply text, is never sent either way",
   'profile.manualPeers': 'PC IPs to connect directly',
   'profile.advanced': "Advanced: when a PC isn't found automatically",
   'profile.manualPeersHint':

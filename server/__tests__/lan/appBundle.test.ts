@@ -317,7 +317,7 @@ describe('Updater silent path', () => {
     app,
     ...over,
   });
-  const make = (opts: { auto?: boolean; restart?: boolean; stageFails?: boolean } = {}) => {
+  const make = (opts: { restart?: boolean; stageFails?: boolean } = {}) => {
     const stage = vi.fn(async () => {
       if (opts.stageFails) throw new Error('nope');
     });
@@ -328,7 +328,6 @@ describe('Updater silent path', () => {
       install: vi.fn(),
       stage,
       restart,
-      autoUpdate: () => opts.auto ?? true,
     });
     const sent: Record<string, unknown>[] = [];
     u.broadcast = (m) => sent.push(m);
@@ -341,13 +340,6 @@ describe('Updater silent path', () => {
     expect(stage).toHaveBeenCalledWith('1.0.2', app);
     expect(restart).toHaveBeenCalled();
     expect(sent).toEqual([]);
-  });
-
-  it('toggle off = no silent update, the installer banner as before', async () => {
-    const { u, stage, sent } = make({ auto: false });
-    await u.check();
-    expect(stage).not.toHaveBeenCalled();
-    expect(sent[0]?.type).toBe('updateAvailable');
   });
 
   it('a failed stage falls back to the banner', async () => {
@@ -403,7 +395,7 @@ describe('Updater silent path', () => {
 
   it('checks right after start and then every 6 h', async () => {
     vi.useFakeTimers();
-    const { u, check } = make({ auto: false });
+    const { u, check } = make({ stageFails: true });
     u.start();
     await vi.advanceTimersByTimeAsync(UPDATE_FIRST_CHECK_MS);
     expect(check).toHaveBeenCalledTimes(1);

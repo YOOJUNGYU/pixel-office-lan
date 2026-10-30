@@ -6,8 +6,6 @@ import { CONFIG_FILE_NAME, LAYOUT_FILE_DIR } from './constants.js';
 
 export interface AdapterSettings {
   alwaysShowLabels: boolean;
-  /** Silent app updates (Settings → 자동 업데이트). */
-  autoUpdate: boolean;
   /** OS notification on join/leave of the public office (lan/notify.ts). */
   notifyPresence: boolean;
   /** OS notification when one of this PC's agents waits for an answer or finishes. */
@@ -15,12 +13,7 @@ export interface AdapterSettings {
 }
 
 /** All keys in AdapterSettings. Used by FileStateAdapter to map `pixel-agents.foo` → `foo`. */
-export const ADAPTER_SETTING_KEYS = [
-  'alwaysShowLabels',
-  'autoUpdate',
-  'notifyPresence',
-  'notifyAgents',
-] as const;
+export const ADAPTER_SETTING_KEYS = ['alwaysShowLabels', 'notifyPresence', 'notifyAgents'] as const;
 
 export type AdapterSettingKey = (typeof ADAPTER_SETTING_KEYS)[number];
 
@@ -31,7 +24,6 @@ export interface PixelAgentsConfig {
 
 const DEFAULT_ADAPTER_SETTINGS: AdapterSettings = {
   alwaysShowLabels: false,
-  autoUpdate: true,
   notifyPresence: true,
   notifyAgents: true,
 };
@@ -48,8 +40,6 @@ function parseAdapterSettings(raw: unknown): AdapterSettings {
       typeof obj.alwaysShowLabels === 'boolean'
         ? obj.alwaysShowLabels
         : DEFAULT_ADAPTER_SETTINGS.alwaysShowLabels,
-    autoUpdate:
-      typeof obj.autoUpdate === 'boolean' ? obj.autoUpdate : DEFAULT_ADAPTER_SETTINGS.autoUpdate,
     notifyPresence:
       typeof obj.notifyPresence === 'boolean'
         ? obj.notifyPresence

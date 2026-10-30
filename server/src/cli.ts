@@ -220,7 +220,6 @@ export async function main(boot = true): Promise<void> {
     markReopen: () => writeReopenMarker(),
     stage: (v, app) => stageAppUpdate(v, app),
     restart: restartIntoUpdate,
-    autoUpdate: () => readConfig().standalone.autoUpdate,
   });
 
   /** `quit` = the user quit the app (tray, Settings): open pages stop reconnecting. */

@@ -89,8 +89,8 @@ export function redactView(v: AgentView): AgentView {
   return { ...v, target: redactText(v.target), reason: '' };
 }
 
-/** "Hide my work": only room, provider and kind (and the tree) are shared. `act` must stay a
+/** "Hide my work": only room, provider, kind, the tree and waiting (!) are shared. `act` must stay a
  *  known one (≤ 1.0.8 peers drop a packet with an unknown act): idle, flagged `hidden`. */
 export function hideView(v: AgentView): AgentView {
-  return { ...v, permission: false, act: 'idle', target: '', reason: '', hidden: true };
+  return { ...v, act: 'idle', target: '', reason: '', hidden: true };
 }

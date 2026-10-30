@@ -69,7 +69,6 @@ export interface ClientMessageContext {
 
 // ── Setting keys ──
 const KEY_ALWAYS_SHOW_LABELS = 'pixel-agents.alwaysShowLabels';
-const KEY_AUTO_UPDATE = 'pixel-agents.autoUpdate';
 const KEY_NOTIFY_PRESENCE = 'pixel-agents.notifyPresence';
 const KEY_NOTIFY_AGENTS = 'pixel-agents.notifyAgents';
 
@@ -110,10 +109,6 @@ export function handleClientMessage(
 
     case 'setAlwaysShowLabels':
       adapter.setSetting(KEY_ALWAYS_SHOW_LABELS, msg.enabled);
-      break;
-
-    case 'setAutoUpdate':
-      if (typeof msg.enabled === 'boolean') adapter.setSetting(KEY_AUTO_UPDATE, msg.enabled);
       break;
 
     // OS notifications (lan/notify.ts reads them from config.json when it has news).
@@ -387,7 +382,6 @@ function settingsSnapshot(ctx: ClientMessageContext) {
     type: 'settingsLoaded',
     alwaysShowLabels: adapter.getSetting(KEY_ALWAYS_SHOW_LABELS, false),
     externalAssetDirectories: externalAssetDirectoriesFor(ctx),
-    autoUpdate: adapter.getSetting(KEY_AUTO_UPDATE, true),
     notifyPresence: adapter.getSetting(KEY_NOTIFY_PRESENCE, true),
     notifyAgents: adapter.getSetting(KEY_NOTIFY_AGENTS, true),
   } as const;
@@ -410,7 +404,6 @@ const KNOWN_CLIENT_TYPES: ReadonlySet<string> = new Set<ClientMessage['type']>([
   'saveProfile',
   'installUpdate',
   'checkUpdate',
-  'setAutoUpdate',
   'setAutostart',
   'quitApp',
   'createOffice',
