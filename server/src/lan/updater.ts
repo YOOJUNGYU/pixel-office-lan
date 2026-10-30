@@ -373,42 +373,39 @@ const updatesDir = (): string => path.join(os.homedir(), LAYOUT_FILE_DIR, UPDATE
 
 /**
  * Written when the launched installer quits this server (POST /api/quit after
- * an in-app [Update]): whether a UI window is open at that moment. The new
- * version's first start reads it (consumeReopenMarker): an open window
- * reloads itself into the new version (officeAccess.version), so the start
- * must not open a second one; with none open (closed since the click) it opens
- * the office once. A failed download or a cancelled UAC prompt never quits
- * us, so no marker is left behind.
+ * an in-app [Update]). The new version's first start reads it
+ * (consumeReopenMarker) and opens no window, `--open` or not: an open window
+ * reconnects and reloads itself into the new version (officeAccess.version),
+ * and a closed one was closed on purpose. A failed download or a cancelled UAC
+ * prompt never quits us, so no marker is left behind.
  */
-export function writeReopenMarker(windowOpen: boolean, dir = updatesDir(), now = Date.now()): void {
+export function writeReopenMarker(dir = updatesDir(), now = Date.now()): void {
   try {
     fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(path.join(dir, REOPEN_MARKER_NAME), JSON.stringify({ at: now, windowOpen }));
+    fs.writeFileSync(path.join(dir, REOPEN_MARKER_NAME), JSON.stringify({ at: now }));
   } catch (err) {
     console.warn('[Pixel Office] reopen marker not written:', err);
   }
 }
 
 /**
- * At start: 'open' = open the office once (no window was open at the update),
- * 'stay' = open nothing (the open window reloads itself), null = no fresh
- * marker (a normal start: `--open` decides). The marker is deleted either way.
+ * At start: true = this start follows an in-app update (open no window); false =
+ * no fresh marker (a normal start: `--open` decides). The marker is deleted either way.
  */
-export function consumeReopenMarker(dir = updatesDir(), now = Date.now()): 'open' | 'stay' | null {
+export function consumeReopenMarker(dir = updatesDir(), now = Date.now()): boolean {
   const file = path.join(dir, REOPEN_MARKER_NAME);
   let raw: string;
   try {
     raw = fs.readFileSync(file, 'utf-8');
   } catch {
-    return null;
+    return false;
   }
   fs.rmSync(file, { force: true });
   try {
-    const m = JSON.parse(raw) as { at?: unknown; windowOpen?: unknown };
-    if (typeof m.at !== 'number' || now - m.at > REOPEN_MARKER_TTL_MS || now < m.at) return null;
-    return m.windowOpen === true ? 'stay' : 'open';
+    const m = JSON.parse(raw) as { at?: unknown };
+    return typeof m.at === 'number' && now - m.at <= REOPEN_MARKER_TTL_MS && now >= m.at;
   } catch {
-    return null;
+    return false;
   }
 }
 
@@ -419,8 +416,6 @@ export class Updater {
   status: Record<string, unknown> | null = null;
   /** Set by the HTTP server: send to every privileged socket. */
   broadcast: (msg: Record<string, unknown>) => void = () => {};
-  /** Set by the HTTP server: whether a UI page is connected right now. */
-  uiConnected: () => boolean = () => false;
   private busy = false;
   /** An installer we launched may quit us (POST /api/quit) to install itself. */
   private installerLaunched = false;
@@ -438,7 +433,7 @@ export class Updater {
     private readonly deps: {
       check: (current: string) => Promise<UpdateInfo | null>;
       install: typeof downloadAndRun;
-      markReopen?: (windowOpen: boolean) => void;
+      markReopen?: () => void;
       /** Silent path: download + verify + unpack the app bundle. */
       stage?: (version: string, app: AppAsset) => Promise<void>;
       /** Restart into the staged version; false = can't here (applied at next start). */
@@ -515,7 +510,7 @@ export class Updater {
 
   /** POST /api/quit: an installer we launched is replacing us — leave the reopen marker. */
   onQuit(): void {
-    if (this.installerLaunched) this.deps.markReopen?.(this.uiConnected());
+    if (this.installerLaunched) this.deps.markReopen?.();
   }
 
   /**

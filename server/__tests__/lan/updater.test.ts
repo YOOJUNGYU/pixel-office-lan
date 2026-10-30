@@ -319,35 +319,36 @@ describe('reopen marker (window after an update)', () => {
     for (const d of dirs.splice(0)) fs.rmSync(d, { recursive: true, force: true });
   });
 
-  it('a window was open: the new start opens nothing; none was: it opens once', () => {
+  it('a fresh marker: the start after an update opens no window; consumed once', () => {
     const d = tmp();
-    writeReopenMarker(true, d, 1_000);
-    expect(consumeReopenMarker(d, 2_000)).toBe('stay');
-    expect(consumeReopenMarker(d, 2_000)).toBeNull(); // consumed
-    writeReopenMarker(false, d, 1_000);
-    expect(consumeReopenMarker(d, 2_000)).toBe('open');
+    writeReopenMarker(d, 1_000);
+    expect(consumeReopenMarker(d, 2_000)).toBe(true);
+    expect(consumeReopenMarker(d, 2_000)).toBe(false); // consumed
+    // A 1.0.6 marker (with windowOpen) still counts: open nothing either way.
+    fs.writeFileSync(path.join(d, 'reopen'), JSON.stringify({ at: 1_000, windowOpen: false }));
+    expect(consumeReopenMarker(d, 2_000)).toBe(true);
     expect(fs.readdirSync(d)).toEqual([]);
   });
 
   it('no, stale or broken marker: a normal start (--open decides)', () => {
     const d = tmp();
-    expect(consumeReopenMarker(d, 0)).toBeNull();
-    writeReopenMarker(false, d, 0);
-    expect(consumeReopenMarker(d, 31 * 60_000)).toBeNull();
+    expect(consumeReopenMarker(d, 0)).toBe(false);
+    writeReopenMarker(d, 0);
+    expect(consumeReopenMarker(d, 31 * 60_000)).toBe(false);
     fs.writeFileSync(path.join(d, 'reopen'), '{nope');
-    expect(consumeReopenMarker(d, 0)).toBeNull();
+    expect(consumeReopenMarker(d, 0)).toBe(false);
     expect(fs.readdirSync(d)).toEqual([]);
   });
 
-  it('the marker is written only when a launched installer quits us, with the UI state then', async () => {
-    const marks: boolean[] = [];
+  it('the marker is written only when a launched installer quits us', async () => {
+    let marks = 0;
     let fail = true;
     const u = new Updater('0.1.0', {
       check: async () => null,
       install: async () => {
         if (fail) throw new Error('download failed');
       },
-      markReopen: (open) => marks.push(open),
+      markReopen: () => marks++,
     });
     vi.spyOn(console, 'error').mockImplementation(() => {});
     u.info = {
@@ -360,12 +361,10 @@ describe('reopen marker (window after an update)', () => {
     u.onQuit(); // a manual install's quit: nothing
     await u.install(); // download failed: nothing, and no installer to quit us
     u.onQuit();
-    expect(marks).toEqual([]);
+    expect(marks).toBe(0);
     fail = false;
-    u.uiConnected = () => true;
-    await u.install(); // launched; the tab is closed before the installer quits us
-    u.uiConnected = () => false;
+    await u.install(); // launched: the installer quits us
     u.onQuit();
-    expect(marks).toEqual([false]);
+    expect(marks).toBe(1);
   });
 });

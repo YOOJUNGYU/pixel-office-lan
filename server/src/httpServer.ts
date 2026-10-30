@@ -213,7 +213,6 @@ export async function createHttpServer(options: HttpServerOptions): Promise<Http
     updater.broadcast = (msg) => {
       for (const c of clients) safeSend(c, msg);
     };
-    updater.uiConnected = () => clients.size > 0;
   }
 
   app.get('/ws', { websocket: true }, (socket, request) => {

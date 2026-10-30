@@ -217,7 +217,7 @@ export async function main(boot = true): Promise<void> {
   const updater = new Updater(APP_VERSION, {
     check: (c) => checkForUpdate(c),
     install: downloadAndRun,
-    markReopen: writeReopenMarker,
+    markReopen: () => writeReopenMarker(),
     stage: (v, app) => stageAppUpdate(v, app),
     restart: restartIntoUpdate,
     autoUpdate: () => readConfig().standalone.autoUpdate,
@@ -301,15 +301,14 @@ export async function main(boot = true): Promise<void> {
     });
     reportListening();
     updater.start();
-    // After an update: the marker (not --open) decides, so a window that was open
-    // (it reloads itself into the new version) never gets a second one.
-    const reopen = consumeReopenMarker();
+    // After an in-app update no window is opened: an open one reconnects and reloads
+    // itself into the new version, and a closed one was closed on purpose.
+    const afterUpdate = consumeReopenMarker();
     // A wildcard bind address is a bind target, not an address you can browse to.
     const displayHost =
       args.host === '0.0.0.0' || args.host === '::' || args.host === '' ? 'localhost' : args.host;
     console.log(`\n  Pixel Office running at http://${displayHost}:${port}\n`);
-    if (reopen === 'open') openOffice(localUrl);
-    else if (reopen === null && args.open) {
+    if (!afterUpdate && args.open) {
       // Started from the page's [시작] (pixeloffice://start → the Mac app runs --open): that page
       // polls /api/health?waiting and reloads into the office, so don't open a second window.
       setTimeout(() => {
