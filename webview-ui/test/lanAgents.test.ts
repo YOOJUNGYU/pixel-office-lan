@@ -19,6 +19,7 @@ import { LanAgents, plateText, roomCounts, tagBadge, tagLines } from '../src/lan
 import { OfficeState } from '../src/office/engine/officeState.js';
 import { buildDynamicCatalog } from '../src/office/layout/furnitureCatalog.js';
 import type { Character, OfficeLayout } from '../src/office/types.js';
+import { CharacterState, Direction } from '../src/office/types.js';
 
 const assetsDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public/assets');
 const layout = JSON.parse(
@@ -347,3 +348,99 @@ test('without an avatar (tour demos, older peers) lounge agents still show in th
   const ch = os.characters.get(lan.idFor('p1:a')!)!;
   assert.equal(areaOf(target(os, ch)), '대기실');
 });
+
+test('my avatar sits on a lounge chair it steps onto and stands up with the next step off it', () => {
+  const os = new OfficeState(layout);
+  const lan = new LanAgents(os);
+  const moves: Array<[number, number, Direction]> = [];
+  os.onAvatarMove = (c, r, d) => moves.push([c, r, d]);
+  const steps: Array<[Direction, number, number]> = [
+    [Direction.DOWN, 0, -1],
+    [Direction.UP, 0, 1],
+    [Direction.RIGHT, -1, 0],
+    [Direction.LEFT, 1, 0],
+  ];
+  // A lounge chair with an open lounge floor tile next to it, and the key that steps onto it.
+  let found:
+    | {
+        seat: { seatCol: number; seatRow: number; facingDir: Direction };
+        from: { col: number; row: number };
+        dir: Direction;
+      }
+    | undefined;
+  for (const seat of os.seats.values()) {
+    if (areaOf({ col: seat.seatCol, row: seat.seatRow }) !== '대기실') continue;
+    const lounge = os.areaWalkable.get('대기실')!;
+    for (const [dir, dc, dr] of steps) {
+      const from = { col: seat.seatCol + dc, row: seat.seatRow + dr };
+      if (lounge.some((t) => t.col === from.col && t.row === from.row)) found = { seat, from, dir };
+    }
+    if (found) break;
+  }
+  assert.ok(found, 'the default layout has a lounge chair beside open floor');
+  const { seat, from, dir } = found;
+  lan.applyPeople([
+    {
+      peerId: 'me',
+      account: 'me',
+      nickname: '',
+      palette: 0,
+      hueShift: 0,
+      self: true,
+      avatar: { ...from, dir: 'down' },
+    },
+  ]);
+  const step = (secs: number) => {
+    for (let t = 0; t < secs; t += 0.05) os.update(0.05);
+  };
+  step(2);
+  const me = os.characters.get(os.myAvatarId!)!;
+  assert.deepEqual([me.tileCol, me.tileRow], [from.col, from.row]);
+
+  os.pressAvatar(dir);
+  step(1); // still held: never stands up again by itself
+  os.releaseAvatar();
+  assert.deepEqual([me.tileCol, me.tileRow], [seat.seatCol, seat.seatRow]);
+  assert.equal(me.state, CharacterState.TYPE, 'seated');
+  assert.equal(me.dir, seat.facingDir);
+  assert.deepEqual(moves.at(-1), [seat.seatCol, seat.seatRow, seat.facingDir]);
+  assert.equal(os.nextFrameIn(0), Infinity, 'a seated avatar sleeps');
+
+  const back = steps.find(([d]) => stepBack(d, dir))![0];
+  os.pressAvatar(back);
+  os.releaseAvatar();
+  step(1);
+  assert.deepEqual([me.tileCol, me.tileRow], [from.col, from.row], 'stood up back onto the floor');
+  assert.equal(me.state, CharacterState.IDLE);
+  assert.equal(me.seatId, null);
+
+  // Someone else's spot on that chair: their avatar is shown seated there.
+  lan.applyPeople([
+    { peerId: 'me', account: 'me', nickname: '', palette: 0, hueShift: 0, self: true },
+    {
+      peerId: 'p',
+      account: 'p',
+      nickname: '',
+      palette: 1,
+      hueShift: 0,
+      self: false,
+      avatar: { col: seat.seatCol, row: seat.seatRow, dir: 'down' },
+    },
+  ]);
+  const p = os.characters.get(lan.avatars().find((a) => a.peerId === 'p')!.id)!;
+  assert.deepEqual(
+    [p.tileCol, p.tileRow, p.state],
+    [seat.seatCol, seat.seatRow, CharacterState.TYPE],
+  );
+});
+
+/** `a` is the opposite of `b`. */
+function stepBack(a: Direction, b: Direction): boolean {
+  const opposite: Record<number, Direction> = {
+    [Direction.UP]: Direction.DOWN,
+    [Direction.DOWN]: Direction.UP,
+    [Direction.LEFT]: Direction.RIGHT,
+    [Direction.RIGHT]: Direction.LEFT,
+  };
+  return opposite[b] === a;
+}

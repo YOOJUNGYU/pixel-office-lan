@@ -776,7 +776,7 @@ export class OfficeState {
     ch.state = CharacterState.IDLE;
     ch.dir = at?.dir ?? Direction.DOWN;
     const t = this.avatarTile(ch, at);
-    if (t) this.placeAt(ch, t);
+    if (t) this.settleAvatar(ch, t, ch.dir);
     startMatrixEffect(ch, 'spawn');
     this.characters.set(id, ch);
     return { col: ch.tileCol, row: ch.tileRow };
@@ -786,7 +786,9 @@ export class OfficeState {
     ch: Character,
     at: { col: number; row: number } | null,
   ): { col: number; row: number } | null {
-    if (at && this.avatarMayStand(at.col, at.row)) return at;
+    if (at && (this.avatarMayStand(at.col, at.row) || this.avatarSeat(ch, at.col, at.row))) {
+      return at;
+    }
     const lounge = this.areaWalkable.get(ROOM_LABELS.lounge);
     if (at) return this.closestFreeWalkableTile(at.col, at.row, ch, lounge);
     return this.freeTileIn(lounge ?? this.walkableTiles, ch);
@@ -799,14 +801,41 @@ export class OfficeState {
     return !this.areaWalkable.get(lounge)?.length || this.areaAt(col, row) === lounge;
   }
 
-  /** Put an avatar straight onto `at` (standing, facing `dir`). */
+  /** The lounge chair on (col,row) an avatar may sit on: free or already its own; else null. */
+  private avatarSeat(ch: Character, col: number, row: number): string | null {
+    const uid = this.getSeatAtTile(col, row);
+    const seat = uid ? this.seats.get(uid) : undefined;
+    if (!uid || !seat || (seat.assigned && ch.seatId !== uid)) return null;
+    const lounge = ROOM_LABELS.lounge;
+    return !this.areaWalkable.get(lounge)?.length || this.areaAt(col, row) === lounge ? uid : null;
+  }
+
+  /** Point an avatar at the chair on `t` (claimed), or at none when `t` is floor. */
+  private claimAvatarSeat(ch: Character, t: { col: number; row: number }): void {
+    const uid = this.avatarSeat(ch, t.col, t.row);
+    if (uid === ch.seatId) return;
+    this.releaseSeat(ch);
+    if (!uid) return;
+    this.seats.get(uid)!.assigned = true;
+    ch.seatId = uid;
+  }
+
+  /** Put an avatar straight onto `t`: seated facing the desk on a chair, else standing facing `dir`. */
+  private settleAvatar(ch: Character, t: { col: number; row: number }, dir: Direction): void {
+    this.claimAvatarSeat(ch, t);
+    this.placeAt(ch, t);
+    const seat = ch.seatId ? this.seats.get(ch.seatId) : undefined;
+    ch.state = seat ? CharacterState.TYPE : CharacterState.IDLE;
+    ch.dir = seat ? seat.facingDir : dir;
+    ch.frame = 0;
+  }
+
+  /** Put an avatar straight onto `at` (seated on a lounge chair, else standing facing `dir`). */
   placeAvatar(id: number, at: { col: number; row: number; dir: Direction }): void {
     const ch = this.characters.get(id);
     const t = ch && this.avatarTile(ch, at);
     if (!ch || !t) return;
-    this.placeAt(ch, t);
-    ch.state = CharacterState.IDLE;
-    ch.dir = at.dir;
+    this.settleAvatar(ch, t, at.dir);
   }
 
   /** A remote avatar's latest spot: walk there along walkable tiles; teleport
@@ -823,6 +852,7 @@ export class OfficeState {
       return;
     }
     const far = Math.abs(ch.tileCol - t.col) + Math.abs(ch.tileRow - t.row) > AVATAR_TELEPORT_TILES;
+    this.claimAvatarSeat(ch, t); // a chair: walkTo unblocks it, arriving sits (updateCharacter)
     if (!far && !ch.matrixEffect) this.walkTo(ch, t);
     if (far || ch.matrixEffect || ch.path.length === 0) {
       this.placeAvatar(id, { ...t, dir: at.dir });
@@ -833,7 +863,7 @@ export class OfficeState {
     }
   }
 
-  /** Arrow key down: my avatar steps at once when standing and keeps walking while held. */
+  /** Arrow key down: my avatar steps at once (a seated one stands up) and keeps walking while held. */
   pressAvatar(dir: Direction): void {
     this.avatarHeld = dir;
     const ch = this.myAvatarId !== null ? this.characters.get(this.myAvatarId) : undefined;
@@ -845,10 +875,16 @@ export class OfficeState {
     if (dir === undefined || this.avatarHeld === dir) this.avatarHeld = null;
   }
 
-  /** One tile in `dir` when walkable (other characters never block), else just turn. */
+  /**
+   * One tile in `dir` when walkable (other characters never block) or onto a free lounge chair
+   * (arriving sits, facing its desk); a seated avatar stands up the same way. Blocked: just turn
+   * (seated: stays put).
+   */
   private stepAvatar(ch: Character, dir: Direction): void {
     const next = stepTile(ch.tileCol, ch.tileRow, dir);
-    if (this.avatarMayStand(next.col, next.row)) {
+    const chair = this.avatarSeat(ch, next.col, next.row);
+    if (chair || this.avatarMayStand(next.col, next.row)) {
+      this.claimAvatarSeat(ch, next);
       ch.path = [next];
       ch.moveProgress = 0;
       ch.dir = dir;
@@ -857,7 +893,9 @@ export class OfficeState {
         ch.frame = 0;
         ch.frameTimer = 0;
       }
-      this.onAvatarMove?.(next.col, next.row, dir);
+      this.onAvatarMove?.(next.col, next.row, chair ? this.seats.get(chair)!.facingDir : dir);
+    } else if (ch.seatId) {
+      return; // seated: only a step onto open floor stands up
     } else if (ch.dir !== dir) {
       ch.dir = dir;
       this.onAvatarMove?.(ch.tileCol, ch.tileRow, dir);
@@ -1305,7 +1343,7 @@ export class OfficeState {
     if (
       this.avatarHeld !== null &&
       this.myAvatarId !== null &&
-      this.characters.has(this.myAvatarId)
+      this.characters.get(this.myAvatarId)?.seatId === null
     )
       return 0; // keeps walking while the key is held
     let next = Infinity;
@@ -1401,7 +1439,8 @@ export class OfficeState {
     }
     // My avatar: the next step as soon as the last one arrived, while the key is held.
     const me = this.myAvatarId !== null ? this.characters.get(this.myAvatarId) : undefined;
-    if (me && this.avatarHeld !== null && me.path.length === 0 && !me.matrixEffect) {
+    // Seated (or sitting down): holding the key never stands it up again; a new press does.
+    if (me && this.avatarHeld !== null && me.path.length === 0 && !me.matrixEffect && !me.seatId) {
       this.stepAvatar(me, this.avatarHeld);
     }
     // Remove characters that finished despawn (or merged into their avatar)

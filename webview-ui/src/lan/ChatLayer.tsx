@@ -2,6 +2,7 @@ import { type MutableRefObject, type RefObject, useEffect, useRef, useState } fr
 
 import { CHAT_MAX_CHARS, takeCodePoints } from '../../../core/src/lan.js';
 import {
+  CHARACTER_SITTING_OFFSET_PX,
   CHAT_BAR_BOTTOM_PX,
   CHAT_BAR_WIDTH_PX,
   CHAT_BORDER_PX,
@@ -23,6 +24,7 @@ import { t } from '../i18n.js';
 import { onFrame } from '../office/engine/gameLoop.js';
 import type { OfficeState } from '../office/engine/officeState.js';
 import { overlayProjection } from '../office/projection.js';
+import { CharacterState } from '../office/types.js';
 import { type ChatBubbles, stackBubbles, wrapLines } from './chat.js';
 import type { LanAgents } from './lanAgents.js';
 import { textWidth } from './textWidth.js';
@@ -135,7 +137,12 @@ export function ChatLayer({
     const inner = text + (b.self ? CHAT_DELETE_GAP_PX + CHAT_DELETE_PX : 0);
     const at = {
       x: project.toScreenX(ch.x),
-      y: project.toScreenY(ch.y + (ch.pet ? PET_HEAD_DROP_PX : 0) - LAN_BUBBLE_HEAD_OFFSET),
+      y: project.toScreenY(
+        ch.y +
+          (ch.state === CharacterState.TYPE ? CHARACTER_SITTING_OFFSET_PX : 0) +
+          (ch.pet ? PET_HEAD_DROP_PX : 0) -
+          LAN_BUBBLE_HEAD_OFFSET,
+      ),
     };
     return [
       {

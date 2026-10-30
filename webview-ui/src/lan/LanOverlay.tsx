@@ -160,7 +160,9 @@ export function LanOverlay({
       ...av,
       box: {
         x: project.toScreenX(ch.x),
-        y: project.toScreenY(ch.y),
+        y: project.toScreenY(
+          ch.y + (ch.state === CharacterState.TYPE ? CHARACTER_SITTING_OFFSET_PX : 0),
+        ),
         w: 2 * LAN_TAG_PAD_X_PX + textWidth(av.label, LAN_TAG_FONT),
       },
     });
