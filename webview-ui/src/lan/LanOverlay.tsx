@@ -37,7 +37,14 @@ import { BUBBLE_PERMISSION_SPRITE } from '../office/sprites/spriteData.js';
 import { type Character, CharacterState } from '../office/types.js';
 import { badgeColors } from './badgeColors.js';
 import { stackBubbles } from './chat.js';
-import { type AvatarRef, type LanAgents, providerName, tagBadge, tagText } from './lanAgents.js';
+import {
+  activityText,
+  type AvatarRef,
+  type LanAgents,
+  providerName,
+  tagBadge,
+  tagText,
+} from './lanAgents.js';
 import { stackTags, type TagBox } from './tagStack.js';
 import { tagVisible } from './tagVisibility.js';
 import { textWidth } from './textWidth.js';
@@ -262,7 +269,7 @@ export function LanOverlay({
     }> = [];
     for (const { a, ch } of tags) {
       if (ch.id === officeState.hoveredAgentId || ch.mergeInto !== undefined) continue;
-      const text = actText(a.act, a.target);
+      const text = activityText(a);
       const typing = ch.state === CharacterState.TYPE;
       const head = project.toScreenY(
         ch.y +
@@ -292,19 +299,20 @@ export function LanOverlay({
       nodes.push(
         <div
           key={`act-tail:${l.key}`}
-          className="absolute bg-border pointer-events-none"
+          className="absolute pointer-events-none"
           style={{
             left: l.x - CHAT_BORDER_PX / 2,
             top: bottoms[k],
             width: CHAT_BORDER_PX,
             height: Math.max(0, l.head - bottoms[k]),
+            background: 'var(--agent-bubble-border)',
             zIndex: LAN_TAG_Z_INDEX,
           }}
         />,
         <div
           key={`act:${l.key}`}
           data-activity={l.key}
-          className="absolute pixel-panel flex items-center gap-4 whitespace-nowrap text-sm leading-none text-text pointer-events-none"
+          className="bubble-agent flex items-center gap-4 whitespace-nowrap text-sm leading-none pointer-events-none"
           style={{
             left: l.x - l.w / 2,
             top: bottoms[k] - l.h,

@@ -16,6 +16,7 @@ import { decodeAllFurniture } from '../../core/src/assets/loader.ts';
 import type { OfficeAgent, Room } from '../../core/src/lan.ts';
 import { setLang } from '../src/i18n.js';
 import {
+  activityText,
   LanAgents,
   plateCount,
   providerName,
@@ -457,3 +458,10 @@ function stepBack(a: Direction, b: Direction): boolean {
   };
   return opposite[b] === a;
 }
+
+test('bubble text: a run shows the command alone (서버실 says it already), other acts the full text', () => {
+  setLang('ko');
+  assert.equal(activityText(agent('a', 'server', { act: 'run', target: 'pnpm' })), 'pnpm');
+  assert.equal(activityText(agent('a', 'server', { act: 'run', target: '' })), '명령 실행 중');
+  assert.equal(activityText(agent('a', 'coding', { act: 'edit', target: 'x.ts' })), 'x.ts 수정 중');
+});

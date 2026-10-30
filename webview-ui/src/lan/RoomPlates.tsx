@@ -14,13 +14,14 @@ import {
   ROOM_PLATE_Z_INDEX,
   ROOM_TIP_WIDTH_PX,
 } from '../constants.js';
-import { actText, areaName, t, useLang } from '../i18n.js';
+import { areaName, t, useLang } from '../i18n.js';
 import { onFrame } from '../office/engine/gameLoop.js';
 import type { OfficeState } from '../office/engine/officeState.js';
 import { overlayProjection } from '../office/projection.js';
 import { TILE_SIZE } from '../office/types.js';
 import { badgeColors } from './badgeColors.js';
 import {
+  activityText,
   type LanAgents,
   plateCount,
   providerName,
@@ -252,7 +253,7 @@ function AgentCard({ a, parent }: { a: OfficeAgent; parent?: OfficeAgent }) {
               ! {t('bubble.permission')}
             </span>
           )}
-          <span className="truncate text-text-muted">{actText(a.act, a.target)}</span>
+          <span className="truncate text-text-muted">{activityText(a)}</span>
         </span>
       </span>
     </div>

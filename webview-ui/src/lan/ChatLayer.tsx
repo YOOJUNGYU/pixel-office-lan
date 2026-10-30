@@ -164,19 +164,20 @@ export function ChatLayer({
 
   const nodes = bubbles.map(({ b, at, box }, i) => (
     <div key={`${b.peerId}:${b.id}`} className="pointer-events-none" data-chat-peer={b.peerId}>
-      {/* Tail: from the bubble down to the head, however far stacking moved it up. */}
+      {/* Connector: from the bubble down to the head, however far stacking moved it up. */}
       <div
-        className="absolute bg-border"
+        className="absolute"
         style={{
           left: at.x - CHAT_BORDER_PX / 2,
           top: bottoms[i],
           width: CHAT_BORDER_PX,
           height: Math.max(0, at.y - bottoms[i]),
+          background: 'var(--chat-bubble-border)',
           zIndex: CHAT_Z_INDEX,
         }}
       />
       <div
-        className="absolute pixel-panel flex items-start"
+        className="bubble-chat flex items-start"
         style={{
           left: box.x - box.w / 2,
           top: bottoms[i] - box.h,
@@ -188,7 +189,7 @@ export function ChatLayer({
       >
         <span
           data-chat-text
-          className="flex-1 min-w-0 text-sm text-text"
+          className="flex-1 min-w-0 text-sm"
           style={{ lineHeight: `${CHAT_LINE_PX}px`, overflowWrap: 'anywhere' }}
         >
           {b.text}

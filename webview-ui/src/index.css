@@ -61,6 +61,13 @@
   --avatar-tag-bg: rgba(18, 112, 104, 0.92);
   --avatar-tag-fg: #ffffff;
   --avatar-tag-self-border: #f0b429;
+  /* Speech bubbles: agents' activity (slate, small radius) vs people's chat (white, round). */
+  --agent-bubble-bg: #2c2f4a;
+  --agent-bubble-fg: rgba(255, 255, 255, 0.92);
+  --agent-bubble-border: #8e92c4;
+  --chat-bubble-bg: #ffffff;
+  --chat-bubble-fg: #1e1e2e;
+  --chat-bubble-border: #1e1e2e;
 }
 
 /* Light theme (Settings → 테마 / Theme, or the top-left toggle): near-white
@@ -103,6 +110,12 @@
   --avatar-tag-bg: #0f7a70;
   --avatar-tag-fg: #ffffff;
   --avatar-tag-self-border: #d99a00;
+  --agent-bubble-bg: #34385a;
+  --agent-bubble-fg: #ffffff;
+  --agent-bubble-border: #1e2038;
+  --chat-bubble-bg: #ffffff;
+  --chat-bubble-fg: #181628;
+  --chat-bubble-border: #4a4a6a;
 }
 
 @theme inline {
@@ -177,6 +190,42 @@
   /* Panel with standard pixel-art border + shadow */
   .pixel-panel {
     @apply bg-bg border-2 border-border rounded-none shadow-pixel;
+  }
+
+  /* Speech bubbles (rounded on purpose, unlike the pixel chrome) with a tail at the bottom
+     centre pointing at the head below: an agent's activity, and a person's chat. */
+  .bubble-agent,
+  .bubble-chat {
+    position: absolute;
+    border-width: 2px;
+    border-style: solid;
+  }
+  .bubble-agent::after,
+  .bubble-chat::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: -6px;
+    width: 9px;
+    height: 9px;
+    margin-left: -4.5px;
+    background: inherit;
+    border-right: inherit;
+    border-bottom: inherit;
+    transform: rotate(45deg);
+  }
+  .bubble-agent {
+    background: var(--agent-bubble-bg);
+    color: var(--agent-bubble-fg);
+    border-color: var(--agent-bubble-border);
+    border-radius: 6px;
+  }
+  .bubble-chat {
+    background: var(--chat-bubble-bg);
+    color: var(--chat-bubble-fg);
+    border-color: var(--chat-bubble-border);
+    border-radius: 12px;
+    box-shadow: 2px 2px 0 var(--color-backdrop);
   }
 
   /* Horizontal carousel for editor items */
@@ -287,4 +336,13 @@
   50% {
     opacity: 0.3;
   }
+}
+
+/* Unlayered, so it beats the delete button's text-muted utility on the white chat bubble. */
+.bubble-chat button {
+  color: var(--chat-bubble-fg);
+  opacity: 0.55;
+}
+.bubble-chat button:hover {
+  opacity: 1;
 }

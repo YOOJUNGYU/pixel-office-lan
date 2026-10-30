@@ -2,7 +2,7 @@ import type { AvatarDir, OfficeAgent, Room } from '../../../core/src/lan.js';
 import { parseAvatar, ROOM_LABELS } from '../../../core/src/lan.js';
 import type { OfficePersonMessage, TagColors } from '../../../core/src/messages.js';
 import { LAN_KIND_BADGES, LAN_ROOM_TOOL } from '../constants.js';
-import { t } from '../i18n.js';
+import { actText, t } from '../i18n.js';
 import { requestRender } from '../office/engine/gameLoop.js';
 import type { OfficeState } from '../office/engine/officeState.js';
 import { Direction } from '../office/types.js';
@@ -55,6 +55,13 @@ export function tagText(a: OfficeAgent, parent?: OfficeAgent): string {
   const name = avatarLabel((main ?? a).peer);
   return main ? `#${main.num} ${name}` : name;
 }
+
+/**
+ * What an agent does, for its bubble and room card: the command alone for a run (its room,
+ * 서버실, already says "running a command"), else the full activity text.
+ */
+export const activityText = (a: OfficeAgent): string =>
+  a.act === 'run' && a.target ? a.target : actText(a.act, a.target);
 
 /** The badge at the front of a tag (i18n-neutral): MAIN / SUB / SHELL. */
 export const tagBadge = (a: OfficeAgent): string => LAN_KIND_BADGES[a.kind].text;
