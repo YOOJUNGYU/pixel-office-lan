@@ -78,9 +78,10 @@ const ko = {
   'app.rotateHint': '회전 (R)',
   'app.importConfirm': '현재 레이아웃을 바꿀까요? 저장하지 않은 편집은 사라집니다.',
   'app.resetDefaultConfirm':
-    '기본 사무실(77×52)로 바꿀까요? 지금 배치는 사라집니다(먼저 내보내기로 저장해 둘 수 있습니다).',
+    '기본 사무실로 바꿀까요? 지금 배치는 사라집니다(공개·팀 오피스에서는 접속한 모두에게 적용. 먼저 내보내기로 저장해 둘 수 있습니다).',
   'settings.resetDefaultLayout': '기본 사무실로 되돌리기',
-  'app.resetEditorConfirm': '기본 레이아웃으로 되돌릴까요? 직접 꾸민 내용이 모두 사라집니다.',
+  'app.resetEditorConfirm':
+    '기본 레이아웃으로 초기화할까요? [저장]을 눌러야 적용되고, [실행 취소]나 [취소]로 되돌릴 수 있습니다.',
   'app.importInvalid': '올바른 레이아웃 파일이 아닙니다.',
   'app.layoutSaveRejected': '레이아웃을 저장하지 못했습니다 (올바르지 않은 레이아웃).',
   'app.layoutSaveTimeout': '레이아웃 저장 응답이 없습니다. 서버 연결을 확인해 주세요.',
@@ -169,9 +170,12 @@ const ko = {
   'edit.redo': '다시 실행',
   'edit.redoTitle': '다시 실행 (Ctrl+Y)',
   'edit.save': '저장',
-  'edit.saveTitle': '저장하고 편집 닫기',
-  'edit.reset': '되돌리기',
-  'edit.resetTitle': '기본 레이아웃으로 되돌리기',
+  'edit.saveTitle': '저장하고 편집 닫기 (공개·팀 오피스: 접속한 모두에게 공유)',
+  'edit.reset': '초기화',
+  'edit.resetTitle': '기본 레이아웃으로 초기화 ([저장]해야 적용)',
+  'edit.cancel': '취소',
+  'edit.cancelTitle': '바꾼 내용을 모두 버리고 편집 닫기 (Esc)',
+  'edit.discardConfirm': '저장하지 않은 변경을 모두 버리고 편집을 닫을까요?',
 
   'profile.title': '내 프로필',
   'profile.firstRunTitle': '프로필 만들기',
@@ -335,7 +339,7 @@ const ko = {
     '[지우기] 로 타일을 지울 수 있습니다. Ctrl+Z / Ctrl+Y 로 실행 취소 · 다시 실행.\n배치를 바꿔도 캐릭터는 있던 자리에 그대로 있습니다.',
   'tour.save.title': '저장',
   'tour.save.body':
-    '편집은 바로 이 PC 에만 저장되고, 다른 PC 화면은 바뀌지 않습니다. [저장] 은 편집을 닫고, [되돌리기] 는 확인 후 기본 사무실로 되돌립니다.\n배치를 나누려면 설정 → [레이아웃 내보내기] / [레이아웃 가져오기].',
+    '편집은 [저장] 을 누르기 전까지 이 화면에만 있습니다. [저장] = 저장하고 편집 닫기(공개·팀 오피스는 접속한 모두에게 공유, 마지막 저장이 남음 · 🏠 개인용은 이 PC 에만), [취소] = 바꾼 내용을 모두 버리고 닫기(Esc 도 같음), [초기화] = 기본 배치로(저장해야 적용).\n배치를 파일로 남기려면 설정 → [레이아웃 내보내기] / [레이아웃 가져오기].',
   'tour.install.title': '앱으로 설치',
   'tour.install.body':
     '이 PC의 브라우저에서는 Pixel Office 를 앱으로 설치할 수 있습니다(Edge·Chrome). 설치하면 바로가기가 탭이 아닌 앱 창으로 열립니다.\n안내 창을 닫았다면 주소창의 설치 아이콘을 쓰세요.',
@@ -419,9 +423,10 @@ const en: Record<Key, string> = {
   'app.rotateHint': 'Rotate (R)',
   'app.importConfirm': 'Replace the current layout? Unsaved edits will be lost.',
   'app.resetDefaultConfirm':
-    'Switch to the default office (77×52)? The current layout will be lost (export it first to keep a copy).',
+    'Switch to the default office? The current layout will be lost (in the public and team offices, for everyone there; export it first to keep a copy).',
   'settings.resetDefaultLayout': 'Reset to the default office',
-  'app.resetEditorConfirm': 'Reset to the default layout? All your customizations will be lost.',
+  'app.resetEditorConfirm':
+    'Reset to the default layout? It is applied only on [Save]; [Undo] or [Cancel] bring yours back.',
   'app.importInvalid': 'This is not a valid layout file.',
   'app.layoutSaveRejected': 'The layout was not saved (not a valid layout).',
   'app.layoutSaveTimeout': 'No answer to the layout save. Check the server connection.',
@@ -508,9 +513,12 @@ const en: Record<Key, string> = {
   'edit.redo': 'Redo',
   'edit.redoTitle': 'Redo (Ctrl+Y)',
   'edit.save': 'Save',
-  'edit.saveTitle': 'Save and close the editor',
+  'edit.saveTitle': 'Save and close the editor (public/team office: shared with everyone there)',
   'edit.reset': 'Reset',
-  'edit.resetTitle': 'Reset to the default layout',
+  'edit.resetTitle': 'Reset to the default layout (applied on [Save])',
+  'edit.cancel': 'Cancel',
+  'edit.cancelTitle': 'Drop every change and close the editor (Esc)',
+  'edit.discardConfirm': 'Drop all unsaved changes and close the editor?',
 
   'profile.title': 'My profile',
   'profile.firstRunTitle': 'Create your profile',
@@ -677,7 +685,7 @@ const en: Record<Key, string> = {
     'Clear tiles with [Erase]. Ctrl+Z / Ctrl+Y undo and redo.\nChanging the layout never moves the characters.',
   'tour.save.title': 'Save',
   'tour.save.body':
-    "Edits are saved right away, on this PC only; other PCs' screens do not change. [Save] closes the editor; [Reset] asks, then restores the default office.\nTo share a layout: Settings → [Export layout] / [Import layout].",
+    'Edits stay on this screen until [Save]. [Save] = save and close (public/team office: shared with everyone there, the last save wins · 🏠 Personal: this PC only); [Cancel] = drop every change and close (Esc too); [Reset] = the default layout (applied on [Save]).\nTo keep a layout as a file: Settings → [Export layout] / [Import layout].',
   'tour.install.title': 'Install as an app',
   'tour.install.body':
     'On this PC’s browser you can install Pixel Office as an app (Edge, Chrome). Shortcuts then open it in its own window instead of a tab.\nIf you closed the prompt, use the install icon in the address bar.',

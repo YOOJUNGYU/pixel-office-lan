@@ -4,6 +4,7 @@ import { randomBytes } from 'crypto';
 import type {
   AgentView,
   AvatarPos,
+  LayoutRev,
   OfficeAgent,
   PeerChat,
   PeerInfo,
@@ -42,6 +43,7 @@ import {
   validateOfficeName,
 } from './profile.js';
 import { hideView, redactView } from './redact.js';
+import { SharedLayouts } from './sharedLayout.js';
 
 const toAgents = (peer: PeerInfo, views: AgentView[]): OfficeAgent[] =>
   views.map((v) => ({
@@ -103,6 +105,13 @@ export class LanService {
   private moveSave: NodeJS.Timeout | null = null;
   /** A peer's avatar moved (PeerNet); the UI server pushes a snapshot. */
   peerMoved: () => void = () => {};
+  /** Shared (public + team) office layouts, newest version per channel. */
+  readonly layouts: SharedLayouts;
+  /** A layout fit to store (sanitizeLayout against the bundled default), else null.
+   *  Set by the UI server, which has the default; until then nothing is accepted. */
+  checkLayout: (raw: unknown) => Record<string, unknown> | null = () => null;
+  /** A peer's newer layout of `channel` was stored; the UI server re-sends layoutLoaded. */
+  layoutChanged: (channel: string) => void = () => {};
 
   constructor(
     public profile: Profile,
@@ -110,7 +119,9 @@ export class LanService {
     private readonly local: { views(brief?: boolean): AgentView[] },
     /** profile.json directory; undefined = ~/.pixel-office */
     private readonly dir?: string,
-  ) {}
+  ) {
+    this.layouts = new SharedLayouts(dir);
+  }
 
   /** Personal mode: offline (PeerNet sends and accepts nothing), this PC alone. */
   get personal(): boolean {
@@ -149,7 +160,38 @@ export class LanService {
       views,
       ...(chat && { chat }),
       ...(avatar && { avatar }),
+      layout: this.layouts.rev(channel),
     });
+  }
+
+  /** Save `layout` (already checked) as the newest shared layout of the active view:
+   *  one rev above every version this PC knows of, so it wins on every PC. False in personal mode. */
+  saveSharedLayout(layout: Record<string, unknown>): boolean {
+    const view = this.profile.activeView;
+    if (this.personal || !this.isOpen(view)) return false;
+    const seen = this.net.peers(view).map((p) => p.layout?.rev ?? 0);
+    const rev = Math.max(this.layouts.rev(view).rev, ...seen) + 1;
+    this.layouts.offer(view, rev, this.profile.peerId, layout);
+    this.net.sendNow();
+    return true;
+  }
+
+  /**
+   * A peer's layout (PeerNet: assembled, hash checked). Stored only when it is newer
+   * and passes checkLayout; data only — it is drawn, never executed.
+   */
+  receiveLayout(channel: string, rev: LayoutRev, text: string): void {
+    if (!this.isOpen(channel)) return;
+    let raw: unknown;
+    try {
+      raw = JSON.parse(text);
+    } catch {
+      return;
+    }
+    const layout = this.checkLayout(raw);
+    if (layout && this.layouts.offer(channel, rev.rev, rev.by, layout)) {
+      this.layoutChanged(channel);
+    }
   }
 
   /** My avatar in `view`'s layout (personal has its own). */

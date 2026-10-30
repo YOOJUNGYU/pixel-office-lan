@@ -108,7 +108,6 @@ export const PAN_DRAG_THRESHOLD_PX = 4;
 
 // ── Editor ───────────────────────────────────────────────────
 export const UNDO_STACK_MAX_SIZE = 50;
-export const LAYOUT_SAVE_DEBOUNCE_MS = 500;
 /** After [Save]: how long to wait for layoutSaved / layoutSaveRejected before showing an error. */
 export const LAYOUT_SAVE_ACK_TIMEOUT_MS = 5_000;
 /** data-testid of the office canvas — e2e drives real editor gestures on it. */

@@ -65,6 +65,8 @@ interface FurnitureAsset {
 
 interface ExtensionMessageState {
   layoutReady: boolean;
+  /** The last saved layout of the office on screen ([Cancel] in the editor returns to it). */
+  savedLayoutRef: React.MutableRefObject<OfficeLayout | null>;
   loadedAssets?: { catalog: FurnitureAsset[]; sprites: Record<string, string[][]> };
   externalAssetDirectories: string[];
   alwaysShowLabels: boolean;
@@ -156,6 +158,8 @@ export function useExtensionMessages(
 
   // Track whether initial layout has been loaded (ref to avoid re-render)
   const layoutReadyRef = useRef(false);
+  /** The last saved layout of the office on screen (server's layoutLoaded, or this page's save). */
+  const savedLayoutRef = useRef<OfficeLayout | null>(null);
 
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -174,15 +178,17 @@ export function useExtensionMessages(
       }
 
       if (msg.type === 'layoutLoaded') {
+        // Same grid check as the server (a broken or huge file falls back to the default).
+        const layout = isLayoutGrid(msg.layout)
+          ? migrateLayoutColors(msg.layout as unknown as OfficeLayout)
+          : null;
+        // The editor's [Cancel] goes back to this, even when it arrived mid-edit.
+        if (layout) savedLayoutRef.current = layout;
         // Skip external layout updates while editor has unsaved changes
         if (layoutReadyRef.current && isEditDirty?.()) {
           console.log('[Webview] Skipping external layout update — editor has unsaved changes');
           return;
         }
-        // Same grid check as the server (a broken or huge file falls back to the default).
-        const layout = isLayoutGrid(msg.layout)
-          ? migrateLayoutColors(msg.layout as unknown as OfficeLayout)
-          : null;
         if (layout) os.rebuildFromLayout(layout);
         lan.resetSelfAvatar(); // its spot belongs to this layout: take it from the next snapshot
         layoutReadyRef.current = true;
@@ -328,5 +334,6 @@ export function useExtensionMessages(
     offices,
     officeReply,
     clearOfficeReply,
+    savedLayoutRef,
   };
 }

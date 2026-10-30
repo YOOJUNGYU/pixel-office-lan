@@ -97,12 +97,15 @@ export function handleClientMessage(
       break;
 
     case 'saveLayout': {
-      // Saved to the layout of the mode this PC is in now (personal has its own file).
+      // Personal: this PC's own file. Public/team: the shared layout of the active view,
+      // a new version every PC there adopts (lan/peerNet.ts pushes it).
       const personal = ctx.lan?.personal === true;
       const def = defaultLayoutFor(ctx.cache, personal);
       const layout = sanitizeLayout(msg.layout, roomColorsOf(def), def);
       if (!layout) console.warn('[Pixel Office] Refused an invalid layout save.');
-      const ok = layout && writeLayoutToFile(layout, personal);
+      const ok =
+        layout &&
+        (personal ? writeLayoutToFile(layout, true) : ctx.lan?.saveSharedLayout(layout) === true);
       send({ type: ok ? 'layoutSaved' : 'layoutSaveRejected' });
       break;
     }
@@ -222,7 +225,7 @@ function handleOfficeChange(
   onChanged?: (layoutChanged: boolean) => void,
 ): void {
   let ok = false;
-  const wasPersonal = lan.personal;
+  const wasView = lan.profile.activeView;
   try {
     switch (msg.type) {
       case 'createOffice': {
@@ -248,7 +251,8 @@ function handleOfficeChange(
   } catch (err) {
     console.error('[Pixel Office] Failed to save offices:', err);
   }
-  if (ok) onChanged?.(lan.personal !== wasPersonal);
+  if (ok)
+    onChanged?.(lan.profile.activeView !== wasView); // each office has its own layout
   else send(officesMessage(lan));
 }
 
@@ -303,12 +307,14 @@ function defaultLayoutFor(cache: AssetCache | null, personal: boolean) {
   return (personal ? cache?.personalLayout : cache?.defaultLayout) ?? null;
 }
 
-/** layoutLoaded for the mode this PC is in: its saved layout, else the mode's bundled
- *  default; rooms normalized (a saved file that fails the checks is sent as is). */
+/** layoutLoaded for the view this PC is in: personal → its saved layout; public/team →
+ *  the newest shared layout of that office (the same on every PC there); else the
+ *  mode's bundled default; rooms normalized (a saved file that fails the checks is sent as is). */
 export function layoutMessage(cache: AssetCache | null, lan?: LanService) {
   const personal = lan?.personal === true;
   const def = defaultLayoutFor(cache, personal);
-  const raw = readLayoutFromFile(personal) ?? def;
+  const raw =
+    (personal ? readLayoutFromFile(true) : lan?.layouts.layout(lan.profile.activeView)) ?? def;
   const layout = raw && (sanitizeLayout(raw, roomColorsOf(def), def) ?? raw);
   return { type: 'layoutLoaded', layout } as const;
 }

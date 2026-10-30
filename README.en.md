@@ -81,7 +81,11 @@ Each tab shows how many people are online there (you included; in personal mode,
 
 - **Profile**: character (6 humans or the pets Claudio · Gitcat), colour, nickname, your character's name tag colours. Your PC account name always comes first and cannot be changed. Nicknames are unique (whoever set it later gets a mark like `· a1b2`).
 - **Language · theme**: 한국어/English and dark/light/system, per viewer. The sun/moon button at the top left switches instantly.
-- **Layout editor**: floors (one click paints a whole room), walls, furniture, the background outside. The four rooms (top: coding room · server room, bottom: library · lounge) and the office size (77×52) are fixed. A PC that has an older layout gets the new one with **Settings → Reset to the default office**. Layouts are saved **on this PC only**; share with **Settings → Export / Import layout**.
+- **Layout editor**: floors (one click paints a whole room), walls, furniture, the background outside. The four rooms and the office size are fixed (default office 77×52; top: coding room · server room, bottom: library · lounge).
+  - Edits stay on this screen until **[Save]**. Buttons: **[Reset]** (the default layout, applied on save) · **[Undo]** (Ctrl+Z) · **[Redo]** (Ctrl+Y) · **[Save]** (save, share and close) · **[Cancel]** (drop every change and close; Esc too).
+  - **Public and team offices**: anyone can edit; a save is shared with everyone in that office (public = the LAN, team = members only, encrypted). Concurrent edits: **the last save wins**. PCs on 1.0.13 or older do not get it, and the per-PC layout saved before (`layout.json`) is no longer used (import it to share it).
+  - **🏠 Personal**: saved on this PC only.
+  - Files and reset: **Settings → Export / Import layout / Reset to the default office**.
 - **Install as an app (PWA)**: in Edge · Chrome, the popup at the top right → a tab-less app window. Opening the app while the server is off shows **[Start]**.
 - **Automatic updates**: checked at start and every 6 hours, downloaded silently and restarted into; open windows reload into the new version. They cannot be turned off. A version that fails to start is rolled back. Only releases that change Node need the installer (the **Update** button at the top right).
 - **Replay tour**: in Settings.
@@ -120,7 +124,7 @@ Each tab shows how many people are online there (you included; in personal mode,
 - The public office can't keep out anyone who installs the app. Use a team office to choose who joins.
 - Codex doesn't record approval requests, so ❗ appears for Codex only when it asks you a question.
 - The redaction may miss a password typed directly into a command or search.
-- Mixed versions hide things from older PCs (0.4.x: PCs with very many agents, pets; ≤ 1.0.0: people's characters and chat). Update everyone.
+- Mixed versions hide things from older PCs (0.4.x: PCs with very many agents, pets; ≤ 1.0.0: people's characters and chat; ≤ 1.0.13: the shared layout). Update everyone.
 - Mac notifications may appear as "Script Editor". Linux and WSL have no tray or notifications.
 
 ## Development

@@ -2,14 +2,25 @@ import * as dgram from 'dgram';
 import * as os from 'os';
 import * as zlib from 'zlib';
 
-import type { PeerPacket } from '../../../core/src/lan.js';
-import { MAX_PACKET_BYTES, parsePeerPacket, PUBLIC_VIEW } from '../../../core/src/lan.js';
+import type { LayoutRev, PeerPacket } from '../../../core/src/lan.js';
+import {
+  MAX_PACKET_BYTES,
+  newerLayout,
+  parseLayoutRev,
+  parsePeerPacket,
+  PUBLIC_VIEW,
+} from '../../../core/src/lan.js';
 import {
   GCM_NONCE_BYTES,
   GCM_TAG_BYTES,
   HELLO_REPLY_MS,
+  LAYOUT_ASSEMBLY_MS,
+  LAYOUT_PART_BYTES,
+  LAYOUT_PUSH_MS,
   MAX_DATAGRAM_BYTES,
   MAX_HELLO_PEERS,
+  MAX_LAYOUT_JSON,
+  MAX_LAYOUT_PARTS,
   MAX_OFFICE_NAME,
   MAX_PRESENCE_ASSEMBLIES,
   MAX_PRESENCE_PARTS,
@@ -23,6 +34,7 @@ import {
 } from '../constants.js';
 import type { Identity, Wire } from './crypto.js';
 import { isWireId, open, pairKey, parseWire, pubAad, seal, teamAad } from './crypto.js';
+import { layoutHash } from './sharedLayout.js';
 
 export const PEER_TTL_MS = 5_000;
 export const SEND_INTERVAL_MS = 1_000;
@@ -134,6 +146,54 @@ function parsePart(o: Record<string, unknown>): Part | null {
   return { seq: seq as number, from, part: part as number, parts: parts as number, d: buf };
 }
 
+/** Plaintexts of a shared layout: `{lay: {rev, by, h, part, parts, d}}`, d = a slice of
+ *  the deflated layout JSON. Older peers find no presence in them and drop them. */
+export function layoutPlains(rev: LayoutRev, blob: Buffer): string[] {
+  const parts = Math.ceil(blob.length / LAYOUT_PART_BYTES);
+  if (parts < 1 || parts > MAX_LAYOUT_PARTS) return [];
+  return Array.from({ length: parts }, (_, part) =>
+    JSON.stringify({
+      lay: {
+        ...rev,
+        part,
+        parts,
+        d: blob
+          .subarray(part * LAYOUT_PART_BYTES, (part + 1) * LAYOUT_PART_BYTES)
+          .toString('base64'),
+      },
+    }),
+  );
+}
+
+interface LayoutPart {
+  rev: LayoutRev;
+  part: number;
+  parts: number;
+  d: Buffer;
+}
+
+/** A layout part, else null (anything else: a presence). */
+function parseLayoutPart(text: string): LayoutPart | null {
+  if (!text.startsWith('{"lay":')) return null;
+  try {
+    const o = (JSON.parse(text) as { lay?: Record<string, unknown> }).lay;
+    const rev = parseLayoutRev(o);
+    if (!o || !rev || rev.rev === 0) return null;
+    const { part, parts, d } = o;
+    if (!Number.isInteger(parts) || (parts as number) < 1 || (parts as number) > MAX_LAYOUT_PARTS)
+      return null;
+    if (!Number.isInteger(part) || (part as number) < 0 || (part as number) >= (parts as number))
+      return null;
+    if (typeof d !== 'string') return null;
+    const buf = Buffer.from(d, 'base64');
+    if (buf.length < 1 || buf.length > LAYOUT_PART_BYTES || buf.toString('base64') !== d)
+      return null;
+    return { rev, part: part as number, parts: parts as number, d: buf };
+  } catch {
+    return null;
+  }
+}
+
 /** Decrypted text → validated inner payload, else null. */
 function parseInner(text: string | null): Inner | null {
   if (text === null) return null;
@@ -175,6 +235,13 @@ export class PeerNet {
     string,
     { seq: number; parts: (Buffer | undefined)[]; got: number; at: number }
   >();
+  /** channel → the newer shared layout being assembled (one per channel). */
+  private readonly layoutAssemblies = new Map<
+    string,
+    { rev: LayoutRev; parts: (Buffer | undefined)[]; got: number; at: number }
+  >();
+  /** `pub|${peer}` or a team tag → when this PC last pushed its layout there. */
+  private readonly layoutPushed = new Map<string, number>();
   /** Team names as members announce them (shown when joined without a name). */
   private readonly names = new Map<string, string>();
   private readonly warned = new Set<string>();
@@ -198,6 +265,13 @@ export class PeerNet {
       targets?: () => string[];
       /** A live peer's avatar moved (or appeared), so the UI can show it before the next tick. */
       onAvatar?: () => void;
+      /** Shared layouts: this PC's version and deflated JSON per channel, and a peer's
+       *  newer one, assembled and hash-checked (LanService checks and stores it). */
+      layouts?: {
+        rev(channel: string): LayoutRev;
+        blob(channel: string): Buffer | null;
+        receive(channel: string, rev: LayoutRev, text: string): void;
+      };
       now?: () => number;
     },
   ) {
@@ -252,6 +326,12 @@ export class PeerNet {
           const wire: Wire = { v: 2, t: 'team', tag: o.tag, ...seal(o.key, teamAad(o.tag), plain) };
           for (const t of broadcast) this.send(sock, wire, t);
         }
+        // A member with an older layout (≥ 1.0.14, so it says which): the whole team gets ours.
+        const plains = this.layoutToPush(o.tag, o.tag, [...(this.seen.get(o.tag)?.values() ?? [])]);
+        for (const plain of plains) {
+          const wire: Wire = { v: 2, t: 'team', tag: o.tag, ...seal(o.key, teamAad(o.tag), plain) };
+          for (const t of broadcast) this.send(sock, wire, t);
+        }
       }
       return;
     }
@@ -264,12 +344,36 @@ export class PeerNet {
     for (const [id, h] of this.hellos) {
       h.key ??= pairKey(identity.privateKeyPem, h.pk, identity.id, id);
       if (!h.key) continue;
-      for (const plain of plains) {
+      const peer = this.seen.get(PUBLIC_VIEW)?.get(id);
+      const lay = peer ? this.layoutToPush(PUBLIC_VIEW, `pub|${id}`, [peer]) : [];
+      for (const plain of [...plains, ...lay]) {
         const sealed = seal(h.key, pubAad(identity.id, id), plain);
         const wire: Wire = { v: 2, t: 'pub', from: identity.id, to: id, ...sealed };
         this.send(sock, wire, `${h.address}:${h.port.toString()}`);
       }
     }
+  }
+
+  /** This PC's layout parts for `channel` when one of `peers` (live) has an older version,
+   *  at most once per LAYOUT_PUSH_MS per `target`; else none. */
+  private layoutToPush(
+    channel: string,
+    target: string,
+    peers: { packet: PeerPacket; at: number }[],
+  ): string[] {
+    const layouts = this.opts.layouts;
+    if (!layouts) return [];
+    const mine = layouts.rev(channel);
+    const blob = layouts.blob(channel);
+    const t = this.now();
+    if (mine.rev === 0 || !blob) return [];
+    if (t - (this.layoutPushed.get(target) ?? -Infinity) < LAYOUT_PUSH_MS) return [];
+    const lagging = peers.some(
+      (e) => t - e.at <= PEER_TTL_MS && e.packet.layout && newerLayout(mine, e.packet.layout),
+    );
+    if (!lagging) return [];
+    this.layoutPushed.set(target, t);
+    return layoutPlains(mine, blob);
   }
 
   /** Live packets of one office; the public office is empty while in any team. */
@@ -381,13 +485,17 @@ export class PeerNet {
       if (offline || inTeam || w.to !== me || !h) return;
       h.key ??= pairKey(this.opts.identity.privateKeyPem, h.pk, me, w.from);
       if (!h.key) return;
-      const inner = this.unpack(PUBLIC_VIEW, open(h.key, pubAad(w.from, w.to), w.n, w.c), w.from);
+      const plain = open(h.key, pubAad(w.from, w.to), w.n, w.c);
+      if (this.layoutPart(PUBLIC_VIEW, plain)) return;
+      const inner = this.unpack(PUBLIC_VIEW, plain, w.from);
       if (inner?.packet.peer.id === w.from) this.accept(PUBLIC_VIEW, inner);
       return;
     }
     const office = this.opts.offices().find((o) => o.tag === w.tag);
     if (!office) return;
-    const inner = this.unpack(w.tag, open(office.key, teamAad(w.tag), w.n, w.c));
+    const plain = open(office.key, teamAad(w.tag), w.n, w.c);
+    if (this.layoutPart(w.tag, plain)) return;
+    const inner = this.unpack(w.tag, plain);
     if (!inner || inner.packet.peer.id === me) return;
     if (this.accept(w.tag, inner) && inner.office?.name) this.names.set(w.tag, inner.office.name);
   }
@@ -441,6 +549,40 @@ export class PeerNet {
     }
   }
 
+  /**
+   * A decrypted layout part (true; false = not one). Only a version newer than this
+   * PC's is assembled, one per channel (a newer one replaces it); complete → inflated
+   * (≤ MAX_LAYOUT_JSON), hash-checked, handed to `layouts.receive`.
+   */
+  private layoutPart(channel: string, text: string | null): boolean {
+    const p = text === null ? null : parseLayoutPart(text);
+    if (!p) return false;
+    const layouts = this.opts.layouts;
+    if (!layouts || !newerLayout(p.rev, layouts.rev(channel))) return true;
+    const t = this.now();
+    let a = this.layoutAssemblies.get(channel);
+    if (a && t - a.at > LAYOUT_ASSEMBLY_MS) a = undefined;
+    const same = a && a.rev.rev === p.rev.rev && a.rev.by === p.rev.by && a.rev.h === p.rev.h;
+    if (a && !same && !newerLayout(p.rev, a.rev)) return true;
+    if (!a || !same) {
+      a = { rev: p.rev, parts: new Array<Buffer | undefined>(p.parts), got: 0, at: t };
+      this.layoutAssemblies.set(channel, a);
+    }
+    if (a.parts.length !== p.parts || a.parts[p.part]) return true;
+    a.parts[p.part] = p.d;
+    if (++a.got < p.parts) return true;
+    this.layoutAssemblies.delete(channel);
+    try {
+      const json = zlib
+        .inflateSync(Buffer.concat(a.parts as Buffer[]), { maxOutputLength: MAX_LAYOUT_JSON })
+        .toString('utf8');
+      if (layoutHash(json) === p.rev.h) layouts.receive(channel, p.rev, json);
+    } catch {
+      // corrupt or too big: dropped
+    }
+    return true;
+  }
+
   /** Stores the packet unless its seq is not newer than the sender's last on this channel. */
   private accept(channel: string, inner: Inner): boolean {
     const id = inner.packet.peer.id;
@@ -476,6 +618,10 @@ export class PeerNet {
       else for (const [id, e] of peers) if (t - e.at > PEER_TTL_MS) peers.delete(id);
     }
     for (const tag of this.names.keys()) if (!live.has(tag)) this.names.delete(tag);
+    for (const [ch, a] of this.layoutAssemblies)
+      if (t - a.at > LAYOUT_ASSEMBLY_MS || !live.has(ch)) this.layoutAssemblies.delete(ch);
+    for (const [k, at] of this.layoutPushed)
+      if (t - at > LAYOUT_PUSH_MS) this.layoutPushed.delete(k);
     for (const [k, a] of this.assemblies) {
       if (t - a.at > PRESENCE_ASSEMBLY_MS || !live.has(k.slice(0, k.indexOf('|'))))
         this.assemblies.delete(k);

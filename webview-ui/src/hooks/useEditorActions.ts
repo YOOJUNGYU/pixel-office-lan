@@ -5,7 +5,6 @@ import {
   CARPET_DEFAULT_ACCENT_COLOR,
   CARPET_DEFAULT_COLOR,
   LAYOUT_SAVE_ACK_TIMEOUT_MS,
-  LAYOUT_SAVE_DEBOUNCE_MS,
   ZOOM_DEFAULT_DPR_FACTOR,
   ZOOM_MIN,
 } from '../constants.js';
@@ -49,9 +48,12 @@ interface EditorActions extends Omit<FurnitureColorActions, 'pickColorAt'> {
   isDirty: boolean;
   zoom: number;
   panRef: React.MutableRefObject<{ x: number; y: number }>;
-  saveTimerRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>;
   /** Clear the dirty flag (used after a browser import applies a new saved baseline). */
   markClean: () => void;
+  /** [Cancel]: drop every edit (back to `saved`, the last saved layout), clear undo/redo, leave edit mode. */
+  handleCancel: (saved: OfficeLayout | null) => void;
+  /** [Reset]: the bundled default as one more edit (undoable; saved only by [Save]). */
+  handleResetTo: (layout: OfficeLayout) => void;
   handleToggleEditMode: () => void;
   handleToolChange: (tool: EditToolType) => void;
   handleTileTypeChange: (type: TileTypeVal) => void;
@@ -65,8 +67,9 @@ interface EditorActions extends Omit<FurnitureColorActions, 'pickColorAt'> {
   handleUndo: () => void;
   handleRedo: () => void;
   handleExitEditMode: () => void;
-  /** Save, then leave edit mode on the server's `layoutSaved` (see saveThenExit); `onTimeout` when no answer comes. */
-  handleSave: (onTimeout: () => void) => void;
+  /** Save, then leave edit mode on the server's `layoutSaved` (see saveThenExit); `onTimeout`
+   *  when no answer comes. `onSaved` gets the layout that is now the saved one. */
+  handleSave: (onTimeout: () => void, onSaved: (layout: OfficeLayout) => void) => void;
   handleZoomChange: (zoom: number) => void;
   handleEditorTileAction: (col: number, row: number) => void;
   handleEditorEraseAction: (col: number, row: number) => void;
@@ -108,7 +111,6 @@ export function useEditorActions(
   const [carpetAccentColor, setCarpetAccentColorState] = useState<ColorValue>(
     editorState.carpetAccentColor,
   );
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const panRef = useRef({ x: 0, y: 0 });
 
   // Clear the dirty flag after a browser layout import: the imported layout is the
@@ -119,18 +121,10 @@ export function useEditorActions(
     setIsDirty(false);
   }, [editorState]);
 
-  // Debounced layout save
-  const saveLayout = useCallback((layout: OfficeLayout) => {
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(() => {
-      transport.send({ type: 'saveLayout', layout: layout as unknown as Record<string, unknown> });
-    }, LAYOUT_SAVE_DEBOUNCE_MS);
-  }, []);
-
   const bumpTick = useCallback(() => setEditorTick((n) => n + 1), []);
 
   /**
-   * Apply a layout edit: rebuild state, save, mark dirty — and push undo
+   * Apply a layout edit: rebuild state, mark dirty (local only until [Save]) — and push undo
    * unless the edit continues the undo session the newest entry already
    * covers (a stroke, a slider run; see EditorState.beginEdit). An edit that
    * returns the current layout unchanged is a no-op.
@@ -146,10 +140,9 @@ export function useEditorActions(
       editorState.isDirty = true;
       setIsDirty(true);
       os.rebuildFromLayout(newLayout);
-      saveLayout(newLayout);
       bumpTick();
     },
-    [getOfficeState, editorState, saveLayout, bumpTick],
+    [getOfficeState, editorState, bumpTick],
   );
 
   /** A discrete edit: always its own undo entry. */
@@ -374,11 +367,10 @@ export function useEditorActions(
     // Push current layout to redo stack before restoring
     editorState.pushRedo(os.getLayout());
     os.rebuildFromLayout(prev);
-    saveLayout(prev);
     editorState.isDirty = true;
     setIsDirty(true);
     setEditorTick((n) => n + 1);
-  }, [getOfficeState, editorState, saveLayout]);
+  }, [getOfficeState, editorState]);
 
   const handleRedo = useCallback(() => {
     const next = editorState.popRedo();
@@ -388,11 +380,10 @@ export function useEditorActions(
     // Push current layout to undo stack before restoring
     editorState.pushUndo(os.getLayout());
     os.rebuildFromLayout(next);
-    saveLayout(next);
     editorState.isDirty = true;
     setIsDirty(true);
     setEditorTick((n) => n + 1);
-  }, [getOfficeState, editorState, saveLayout]);
+  }, [getOfficeState, editorState]);
 
   /** Leave edit mode (same cleanup as toggling the Layout button off). No-op when already out. */
   const handleExitEditMode = useCallback(() => {
@@ -405,16 +396,36 @@ export function useEditorActions(
     setIsEditMode(false);
   }, [editorState]);
 
+  /** Start over from a clean history (after [Save] or [Cancel]). */
+  const clearHistory = useCallback(() => {
+    editorState.undoStack = [];
+    editorState.redoStack = [];
+    editorState.endStroke();
+    markClean();
+  }, [editorState, markClean]);
+
+  const handleCancel = useCallback(
+    (saved: OfficeLayout | null) => {
+      const os = getOfficeState();
+      if (saved && editorState.isDirty) os.rebuildFromLayout(saved);
+      clearHistory();
+      handleExitEditMode();
+    },
+    [getOfficeState, editorState, clearHistory, handleExitEditMode],
+  );
+
+  const handleResetTo = useCallback(
+    (layout: OfficeLayout) => commitLayout(layout, null),
+    [commitLayout],
+  );
+
   /**
-   * [Save]: flush the pending save; on the server's `layoutSaved` mark clean
-   * and leave edit mode. A refusal (or no answer) keeps the editor open and dirty.
+   * [Save]: the only thing that saves (and, in the public/team offices, shares) the
+   * layout. On the server's `layoutSaved`: clean history, leave edit mode. A refusal
+   * (or no answer) keeps the editor open and dirty.
    */
   const handleSave = useCallback(
-    (onTimeout: () => void) => {
-      if (saveTimerRef.current) {
-        clearTimeout(saveTimerRef.current);
-        saveTimerRef.current = null;
-      }
+    (onTimeout: () => void, onSaved: (layout: OfficeLayout) => void) => {
       const layout = getOfficeState().getLayout();
       saveThenExit({
         send: () =>
@@ -426,12 +437,13 @@ export function useEditorActions(
         timeoutMs: LAYOUT_SAVE_ACK_TIMEOUT_MS,
         onTimeout,
         onSaved: () => {
-          markClean();
+          onSaved(layout);
+          clearHistory();
           handleExitEditMode();
         },
       });
     },
-    [getOfficeState, markClean, handleExitEditMode],
+    [getOfficeState, clearHistory, handleExitEditMode],
   );
 
   // Notify React that imperative editor selection changed (e.g., from OfficeCanvas mouseUp)
@@ -593,7 +605,6 @@ export function useEditorActions(
     isDirty,
     zoom,
     panRef,
-    saveTimerRef,
     markClean,
     handleToggleEditMode,
     handleToolChange,
@@ -612,6 +623,8 @@ export function useEditorActions(
     handleRedo,
     handleExitEditMode,
     handleSave,
+    handleCancel,
+    handleResetTo,
     handleZoomChange,
     handleEditorTileAction,
     handleEditorEraseAction,

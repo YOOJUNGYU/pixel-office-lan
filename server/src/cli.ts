@@ -193,6 +193,11 @@ export async function main(boot = true): Promise<void> {
     offices: () => lan.teamChannels(),
     offline: () => lan.personal,
     onAvatar: () => lan.peerMoved(),
+    layouts: {
+      rev: (channel) => lan.layouts.rev(channel),
+      blob: (channel) => lan.layouts.blob(channel),
+      receive: (channel, rev, text) => lan.receiveLayout(channel, rev, text),
+    },
     pins,
   });
   try {

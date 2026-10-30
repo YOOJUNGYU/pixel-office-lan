@@ -214,6 +214,37 @@ export interface PeerPacket {
   chat?: PeerChat;
   /** Where this PC's avatar stands; absent = not placed yet (receivers pick a spot). */
   avatar?: AvatarPos;
+  /** Which shared layout of this channel the PC has (≥ 1.0.14; absent = an older PC). */
+  layout?: LayoutRev;
+}
+
+/**
+ * A shared (public/team) office layout version. The newest wins everywhere: higher
+ * `rev`, then the larger `by` (author peer id). rev 0 = the bundled default (by '', h '').
+ * `h` = the first LAYOUT_HASH_HEX hex chars of SHA-256 of the layout JSON a PC sends.
+ */
+export interface LayoutRev {
+  rev: number;
+  by: string;
+  h: string;
+}
+export const LAYOUT_HASH_HEX = 16;
+export const DEFAULT_LAYOUT_REV: LayoutRev = { rev: 0, by: '', h: '' };
+const LAYOUT_HASH = new RegExp(`^[0-9a-f]{${String(LAYOUT_HASH_HEX)}}$`);
+
+/** a is newer than b. */
+export const newerLayout = (a: LayoutRev, b: LayoutRev): boolean =>
+  a.rev !== b.rev ? a.rev > b.rev : a.by > b.by;
+
+/** Untrusted layout version → a fresh LayoutRev, else null. */
+export function parseLayoutRev(raw: unknown): LayoutRev | null {
+  if (!isObj(raw)) return null;
+  const { rev, by, h } = raw;
+  if (!Number.isSafeInteger(rev) || (rev as number) < 0) return null;
+  if (rev === 0) return by === '' && h === '' ? { ...DEFAULT_LAYOUT_REV } : null;
+  if (typeof by !== 'string' || by.length < 1 || by.length > MAX_PEER_ID) return null;
+  if (typeof h !== 'string' || !LAYOUT_HASH.test(h)) return null;
+  return { rev: rev as number, by, h };
 }
 /** key=`${peer.id}:${id}` */
 export interface OfficeAgent extends AgentView {
@@ -410,7 +441,15 @@ export function parsePeerPacket(text: string): PeerPacket | null {
     }
     const chat = parseChat(raw.chat);
     const avatar = parseAvatar(raw.avatar);
-    return { v: 1, peer, views, ...(chat && { chat }), ...(avatar && { avatar }) };
+    const layout = parseLayoutRev(raw.layout);
+    return {
+      v: 1,
+      peer,
+      views,
+      ...(chat && { chat }),
+      ...(avatar && { avatar }),
+      ...(layout && { layout }),
+    };
   } catch {
     return null;
   }

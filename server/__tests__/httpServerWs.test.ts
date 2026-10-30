@@ -153,7 +153,7 @@ describe('/ws', () => {
     expect(result.closeCode).toBe(WS_CLOSE_FORBIDDEN);
   });
 
-  it('a loopback browser is privileged: told it can edit, and its saveLayout lands', async () => {
+  it('a loopback browser is privileged: told it can edit (no LAN service here: a save is refused)', async () => {
     const host = `localhost:${port.toString()}`;
     const { socket, accepted } = await connect(port, { Host: host, Origin: `http://${host}` });
     sockets.push(socket);
@@ -165,9 +165,10 @@ describe('/ws', () => {
     expect(await layoutLoaded).not.toBeNull();
 
     const layout = { version: 1, cols: 1, rows: 1, tiles: [1], furniture: [], marker: 'mine' };
+    const rejected = waitForMessage(socket, 'layoutSaveRejected');
     socket.send(JSON.stringify({ type: 'saveLayout', layout }));
-    await vi.waitFor(() => expect(fs.existsSync(layoutPath())).toBe(true));
-    expect(JSON.parse(fs.readFileSync(layoutPath(), 'utf-8'))).toMatchObject({ marker: 'mine' });
+    expect(await rejected).not.toBeNull();
+    expect(fs.existsSync(layoutPath())).toBe(false);
   });
 
   it('another PC or a non-loopback Host is closed 4003, and its HTTP gets 403', async () => {

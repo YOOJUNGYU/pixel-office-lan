@@ -24,6 +24,8 @@ export const LAYOUT_FILE_DIR = '.pixel-office';
 export const LAYOUT_FILE_NAME = 'layout.json';
 /** Personal mode's own layout (editing one office never changes the other). */
 export const PERSONAL_LAYOUT_FILE_NAME = 'layout-personal.json';
+/** Shared (public + team) office layouts, synced with peers: { channels: { [view]: {rev, by, layout} } }. */
+export const SHARED_LAYOUT_FILE_NAME = 'layout-shared.json';
 /** Bundled personal default (scripts/generate-lan-layout.mjs --personal). */
 export const PERSONAL_DEFAULT_LAYOUT_FILE = 'default-layout-personal.json';
 export const LAYOUT_REVISION_KEY = 'layoutRevision';
@@ -189,6 +191,17 @@ export const PRESENCE_MAX_JSON = 58_000;
 export const PRESENCE_ASSEMBLY_MS = 2_000;
 /** Split presences being assembled at once (one per channel + sender). */
 export const MAX_PRESENCE_ASSEMBLIES = 256;
+// Shared layouts (lan/peerNet.ts): a PC with a newer layout pushes it to lagging peers.
+/** Deflated layout bytes per `pub`/`team` layout part (same budget as a presence part). */
+export const LAYOUT_PART_BYTES = PRESENCE_PART_BYTES;
+/** Parts per layout (~200 KB deflated; a 128×128 office is far less). */
+export const MAX_LAYOUT_PARTS = 512;
+/** Inflated layout JSON cap. */
+export const MAX_LAYOUT_JSON = 8_000_000;
+/** A lagging peer (or a team channel) gets the layout again at most this often. */
+export const LAYOUT_PUSH_MS = 5_000;
+/** An unfinished layout assembly is dropped after this (a later push starts over). */
+export const LAYOUT_ASSEMBLY_MS = 30_000;
 /** TOFU pins: peer id → public key (0600), oldest dropped past MAX_KNOWN_PEERS. */
 export const KNOWN_PEERS_FILE_NAME = 'known-peers.json';
 export const MAX_KNOWN_PEERS = 1_000;

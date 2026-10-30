@@ -8,10 +8,12 @@ import {
   type AssetCache,
   type ClientMessageContext,
   handleClientMessage,
+  layoutMessage,
   reportedRefusals,
 } from '../src/clientMessageHandler.js';
 import { readConfig, writeConfig } from '../src/configPersistence.js';
 import { FileStateAdapter } from '../src/fileStateAdapter.js';
+import type { LanService } from '../src/lan/office.js';
 import { Updater } from '../src/lan/updater.js';
 
 // Hex placeholders are test fixtures, not UI tokens.
@@ -50,6 +52,11 @@ describe('clientMessageHandler', () => {
 
   function ctx(privileged: boolean, cache: AssetCache | null = null): ClientMessageContext {
     return { adapter: new FileStateAdapter(), cache, privileged };
+  }
+  /** In personal mode: the only mode whose layout can be saved. */
+  const PERSONAL = { personal: true } as unknown as LanService;
+  function personalCtx(cache: AssetCache | null = null): ClientMessageContext {
+    return { ...ctx(true, cache), lan: PERSONAL };
   }
   function send(msg: Record<string, unknown>, c: ClientMessageContext): void {
     handleClientMessage(msg, (m) => sent.push(m), c);
@@ -106,12 +113,27 @@ describe('clientMessageHandler', () => {
       expect(sent.map((m) => m.type)).toContain('layoutLoaded');
     });
 
-    it('prefers the saved layout over the bundled default', () => {
-      send({ type: 'saveLayout', layout: { ...GRID, marker: 'saved' } }, ctx(true));
-      send({ type: 'webviewReady' }, ctx(true, FULL_CACHE));
-      expect(sent.at(-1)).toMatchObject({
+    it('personal mode prefers its saved layout over the bundled default', () => {
+      send({ type: 'saveLayout', layout: { ...GRID, marker: 'saved' } }, personalCtx());
+      expect(layoutMessage(FULL_CACHE, PERSONAL)).toMatchObject({
         type: 'layoutLoaded',
         layout: { ...GRID, marker: 'saved' },
+      });
+    });
+
+    it('without the LAN service: the bundled default, saves refused, legacy layout.json ignored', () => {
+      send({ type: 'saveLayout', layout: { ...GRID, marker: 'saved' } }, ctx(true));
+      expect(sent.at(-1)).toEqual({ type: 'layoutSaveRejected' });
+      expect(fs.existsSync(path.join(tempHome, '.pixel-office', 'layout.json'))).toBe(false);
+      fs.mkdirSync(path.join(tempHome, '.pixel-office'), { recursive: true });
+      fs.writeFileSync(
+        path.join(tempHome, '.pixel-office', 'layout.json'),
+        JSON.stringify({ ...GRID, marker: 'old-file' }),
+      );
+      send({ type: 'webviewReady' }, ctx(true, FULL_CACHE));
+      expect(sent.at(-1)).toEqual({
+        type: 'layoutLoaded',
+        layout: { version: 1, marker: 'default' },
       });
     });
   });
@@ -119,7 +141,7 @@ describe('clientMessageHandler', () => {
   describe('saveLayout', () => {
     const saved = () =>
       JSON.parse(
-        fs.readFileSync(path.join(tempHome, '.pixel-office', 'layout.json'), 'utf-8'),
+        fs.readFileSync(path.join(tempHome, '.pixel-office', 'layout-personal.json'), 'utf-8'),
       ) as Record<string, unknown>;
 
     it('keeps exactly the four rooms, drops unknown areas and pets', () => {
@@ -137,7 +159,7 @@ describe('clientMessageHandler', () => {
             pets: [{ id: 'p', petType: 0 }],
           },
         },
-        { ...ctx(true), cache: { ...FULL_CACHE, defaultLayout: DEFAULT_ROOMS } },
+        personalCtx({ ...FULL_CACHE, personalLayout: DEFAULT_ROOMS }),
       );
       warn.mockRestore();
       const layout = saved();
@@ -159,7 +181,7 @@ describe('clientMessageHandler', () => {
         { ...GRID, furniture: 'no' },
         { ...GRID, areas: 'no', areaTiles: { 0: 'x' } },
       ]) {
-        expect(() => send({ type: 'saveLayout', layout }, ctx(true))).not.toThrow();
+        expect(() => send({ type: 'saveLayout', layout }, personalCtx())).not.toThrow();
       }
       warn.mockRestore();
       // Every one but the last (a valid grid with odd areas) was refused.
@@ -179,7 +201,7 @@ describe('clientMessageHandler', () => {
           type: 'saveLayout',
           layout: { ...GRID, cols: 128, rows: 128, tiles: new Array(n).fill(1) },
         },
-        ctx(true),
+        personalCtx(),
       );
       expect(saved().cols).toBe(128);
       expect(sent.at(-1)).toEqual({ type: 'layoutSaved' });

@@ -27,6 +27,7 @@ import type { FileStateAdapter } from './fileStateAdapter.js';
 import type { LanService } from './lan/office.js';
 import type { Updater } from './lan/updater.js';
 import { APP_VERSION } from './lan/updater.js';
+import { roomColorsOf, sanitizeLayout } from './layoutPersistence.js';
 
 /** Options for creating the HTTP + WebSocket server. */
 export interface HttpServerOptions {
@@ -191,6 +192,17 @@ export async function createHttpServer(options: HttpServerOptions): Promise<Http
       clearInterval(timer);
       if (push) clearTimeout(push);
     });
+    // Shared layouts: checked against the bundled default; a peer's newer one of the
+    // office on screen is drawn at once (the editor keeps unsaved edits, useExtensionMessages).
+    lan.checkLayout = (raw) => {
+      const def = options.assetCache?.defaultLayout ?? null;
+      return sanitizeLayout(raw, roomColorsOf(def), def);
+    };
+    lan.layoutChanged = (channel) => {
+      if (channel !== lan.profile.activeView || lan.personal) return;
+      const msg = layoutMessage(options.assetCache ?? null, lan);
+      for (const c of clients) safeSend(c, msg);
+    };
   }
   const onProfileSaved = (): void => {
     if (!lan) return;

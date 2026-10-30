@@ -130,6 +130,33 @@ describe('LanService', () => {
     err.mockRestore();
   });
 
+  it("shared layouts: a save outranks every known version; a peer's is checked, newer only", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pxl-lan-'));
+    const lan = new LanService({ ...profile }, { views: () => [] }, dir);
+    const peerAt = (rev: number) => ({ ...peer, layout: { rev, by: 'p1', h: 'a'.repeat(16) } });
+    lan.net = { peers: () => [peerAt(7)], sendNow: () => {}, teamName: () => undefined };
+    expect(lan.saveSharedLayout({ m: 'mine' })).toBe(true);
+    expect(lan.layouts.rev(PUBLIC_VIEW)).toMatchObject({ rev: 8, by: 'me' });
+
+    const changed = vi.fn();
+    lan.layoutChanged = changed;
+    lan.checkLayout = (raw) =>
+      (raw as { ok?: boolean }).ok ? (raw as Record<string, unknown>) : null;
+    const rev = (n: number, by = 'p1') => ({ rev: n, by, h: 'a'.repeat(16) });
+    lan.receiveLayout(PUBLIC_VIEW, rev(8, 'a'), '{"ok":true}'); // 'a' < 'me': older
+    lan.receiveLayout(PUBLIC_VIEW, rev(9), '{"ok":false}'); // fails the check
+    lan.receiveLayout(PUBLIC_VIEW, rev(9), 'not json');
+    lan.receiveLayout('AAAAAAAAAAA', rev(9), '{"ok":true}'); // not a joined team
+    expect(changed).not.toHaveBeenCalled();
+    lan.receiveLayout(PUBLIC_VIEW, rev(9), '{"ok":true}');
+    expect(changed).toHaveBeenCalledWith(PUBLIC_VIEW);
+    expect(lan.layouts.layout(PUBLIC_VIEW)).toEqual({ ok: true });
+
+    lan.setActiveView('personal');
+    expect(lan.saveSharedLayout({ m: 'x' })).toBe(false);
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
   it('saveProfile persists, keeps peerId and announces right away', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pxl-lan-'));
     const lan = new LanService({ ...profile }, { views: () => [] }, dir);

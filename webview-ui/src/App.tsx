@@ -127,6 +127,7 @@ function App() {
     offices,
     officeReply,
     clearOfficeReply,
+    savedLayoutRef,
   } = useExtensionMessages(getOfficeState, isEditDirty);
 
   // Overlay geometry: the root div is the canvas container's size.
@@ -203,6 +204,12 @@ function App() {
     });
   }, []);
 
+  /** Leave the editor without saving: every edit is dropped (asks first when there are any). */
+  const cancelEditing = useCallback(() => {
+    if (editor.isDirty && !window.confirm(t('edit.discardConfirm'))) return;
+    editor.handleCancel(savedLayoutRef.current);
+  }, [editor, savedLayoutRef]);
+
   const [editorTickForKeyboard, setEditorTickForKeyboard] = useState(0);
   useEditorKeyboard(
     editor.isEditMode,
@@ -213,7 +220,7 @@ function App() {
     editor.handleUndo,
     editor.handleRedo,
     useCallback(() => setEditorTickForKeyboard((n) => n + 1), []),
-    editor.handleToggleEditMode,
+    cancelEditing,
   );
 
   const officeState = getOfficeState();
@@ -439,6 +446,7 @@ function App() {
       type: 'saveLayout',
       layout: migrated as unknown as Record<string, unknown>,
     });
+    savedLayoutRef.current = migrated;
     editor.markClean();
   };
 
@@ -461,12 +469,23 @@ function App() {
     reader.readAsText(file);
   };
 
-  /** Settings and the editor's [Reset] → the bundled default office (an older saved layout stays until this); leaves edit mode. */
-  const handleResetToDefaultLayout = (confirmText = t('app.resetDefaultConfirm')) => {
-    if (!window.confirm(confirmText)) return;
+  /** Settings → the bundled default office, saved (and shared) at once; leaves edit mode. */
+  const handleResetToDefaultLayout = () => {
+    if (!window.confirm(t('app.resetDefaultConfirm'))) return;
     fetchDefaultLayout()
       .then(applyLayout)
       .then(editor.handleExitEditMode)
+      .catch(() => window.alert(t('app.importFailed')));
+  };
+
+  /** The editor's [Reset]: the bundled default as one more (undoable) edit; [Save] keeps it. */
+  const handleEditorReset = () => {
+    if (!window.confirm(t('app.resetEditorConfirm'))) return;
+    fetchDefaultLayout()
+      .then((raw) => {
+        if (!isLayoutGrid(raw)) throw new Error('default layout');
+        editor.handleResetTo(migrateLayoutColors(raw as unknown as OfficeLayout));
+      })
       .catch(() => window.alert(t('app.importFailed')));
   };
 
@@ -661,7 +680,13 @@ function App() {
         {!isMobile && (
           <BottomToolbar
             isEditMode={editor.isEditMode}
-            onToggleEditMode={officeReadOnly ? null : editor.handleToggleEditMode}
+            onToggleEditMode={
+              officeReadOnly
+                ? null
+                : editor.isEditMode
+                  ? cancelEditing
+                  : editor.handleToggleEditMode
+            }
             isSettingsOpen={settingsOpen}
             onToggleSettings={() => setIsSettingsOpen((v) => !v)}
           >
@@ -669,8 +694,14 @@ function App() {
               <EditActionBar
                 editor={editor}
                 editorState={editorState}
-                onSave={() => editor.handleSave(() => setSaveError({ key: 'timeout' }))}
-                onReset={() => handleResetToDefaultLayout(t('app.resetEditorConfirm'))}
+                onSave={() =>
+                  editor.handleSave(
+                    () => setSaveError({ key: 'timeout' }),
+                    (layout) => (savedLayoutRef.current = layout),
+                  )
+                }
+                onReset={handleEditorReset}
+                onCancel={cancelEditing}
               />
             )}
           </BottomToolbar>

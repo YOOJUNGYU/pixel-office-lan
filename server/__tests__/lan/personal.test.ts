@@ -142,11 +142,13 @@ describe('personal mode', () => {
     expect(onOfficesChanged).toHaveBeenLastCalledWith(true);
   });
 
-  it('a team switch that does not touch personal mode does not resend the layout', () => {
+  it('every office switch resends the layout (each office has its own); a no-op switch does not', () => {
     const a = lan.createOffice('a') as CreatedOffice;
     lan.createOffice('b');
     msg({ type: 'setActiveView', view: a.tag });
-    expect(onOfficesChanged).toHaveBeenCalledWith(false);
+    expect(onOfficesChanged).toHaveBeenLastCalledWith(true);
+    msg({ type: 'setActiveView', view: a.tag });
+    expect(onOfficesChanged).toHaveBeenLastCalledWith(false);
   });
 
   it('chat in personal mode stays on this PC (its own view, never on another channel)', () => {
@@ -156,13 +158,16 @@ describe('personal mode', () => {
     expect(lan.packet(PUBLIC_VIEW).chat).toBeUndefined();
   });
 
-  it('each mode has its own layout file, default and reset', () => {
+  it('personal has its own layout file; public and each team their own shared layout', () => {
     expect(getLayoutFilePath(false)).toBe(path.join(home, '.pixel-office', 'layout.json'));
     expect(getLayoutFilePath(true)).toBe(path.join(home, '.pixel-office', 'layout-personal.json'));
 
     msg({ type: 'webviewReady' });
     expect(layoutMarker()).toBe('office-default');
     msg({ type: 'saveLayout', layout: grid('office-saved', 4) });
+    expect(sent.at(-1)).toEqual({ type: 'layoutSaved' });
+    expect(lan.layouts.rev(PUBLIC_VIEW)).toMatchObject({ rev: 1, by: lan.profile.peerId });
+    expect(lan.packet(PUBLIC_VIEW).layout?.rev).toBe(1); // peers learn the version
 
     lan.setActiveView(PERSONAL_VIEW);
     sent = [];
@@ -177,12 +182,18 @@ describe('personal mode', () => {
     const read = (personal: boolean) =>
       (JSON.parse(fs.readFileSync(getLayoutFilePath(personal), 'utf-8')) as { marker: string })
         .marker;
-    expect(read(false)).toBe('office-saved');
+    expect(fs.existsSync(getLayoutFilePath(false))).toBe(false);
     expect(read(true)).toBe('personal-saved');
 
     lan.setActiveView(PUBLIC_VIEW);
     sent = [];
     msg({ type: 'webviewReady' });
     expect(layoutMarker()).toBe('office-saved');
+
+    const team = lan.createOffice('t') as CreatedOffice; // a team starts from the default
+    sent = [];
+    msg({ type: 'webviewReady' });
+    expect(layoutMarker()).toBe('office-default');
+    expect(lan.packet(team.tag).layout?.rev).toBe(0);
   });
 });
