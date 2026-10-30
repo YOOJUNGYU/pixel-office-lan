@@ -20,7 +20,7 @@ export interface SessionState {
   candidateSince: number;
   act: Act;
   target: string;
-  /** target to share when hideDetails is on: a command becomes its program name or description */
+  /** target to share with peers (always): a command becomes its program name or description */
   brief: string;
   reason: string;
   permission: boolean;
@@ -165,7 +165,7 @@ export function notePrompt(s: SessionState, text: string): void {
 /** Project folder name of a cwd (POSIX or Windows path). */
 export const folderOf = (cwd: string): string => cwd.split(/[\\/]/).filter(Boolean).pop() ?? '';
 
-/** brief=true (hideDetails) shares commands as program name / description only. */
+/** brief=true (what peers get) shares commands as program name / description only. */
 export function toViews(s: SessionState, brief = false): AgentView[] {
   const self: AgentView = {
     id: s.id,

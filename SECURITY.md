@@ -22,4 +22,4 @@ Security issues relevant to this project include:
 - Command injection via transcript (JSONL) parsing
 - Arbitrary file read/write beyond intended paths
 - Cross-site scripting (XSS) in the webview
-- Sensitive data exposure (e.g., paths, IPs or tokens leaving the PC while hideDetails is on)
+- Sensitive data exposure (e.g., paths, IPs or tokens leaving the PC; they are always redacted for peers)

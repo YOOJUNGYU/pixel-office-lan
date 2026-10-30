@@ -61,7 +61,7 @@ export function tagText(a: OfficeAgent, parent?: OfficeAgent): string {
  * 서버실, already says "running a command"), else the full activity text.
  */
 export const activityText = (a: OfficeAgent): string =>
-  a.act === 'run' && a.target ? a.target : actText(a.act, a.target);
+  a.hidden ? t('act.hidden') : a.act === 'run' && a.target ? a.target : actText(a.act, a.target);
 
 /** The badge at the front of a tag (i18n-neutral): MAIN / SUB / SHELL. */
 export const tagBadge = (a: OfficeAgent): string => LAN_KIND_BADGES[a.kind].text;

@@ -41,7 +41,7 @@ import {
   saveProfile,
   validateOfficeName,
 } from './profile.js';
-import { redactView } from './redact.js';
+import { hideView, redactView } from './redact.js';
 
 const toAgents = (peer: PeerInfo, views: AgentView[]): OfficeAgent[] =>
   views.map((v) => ({
@@ -106,7 +106,7 @@ export class LanService {
 
   constructor(
     public profile: Profile,
-    /** brief=true: commands as program name / description only (hideDetails) */
+    /** brief=true: commands as program name / description only (always, for peers) */
     private readonly local: { views(brief?: boolean): AgentView[] },
     /** profile.json directory; undefined = ~/.pixel-office */
     private readonly dir?: string,
@@ -136,9 +136,7 @@ export class LanService {
   packet(channel: string = PUBLIC_VIEW): PeerPacket {
     let views: AgentView[] = [];
     try {
-      const hide = this.profile.hideDetails;
-      views = this.local.views(hide);
-      if (hide) views = views.map(redactView);
+      views = this.local.views(true).map(this.profile.hideWork ? hideView : redactView);
     } catch (err) {
       console.error('[Pixel Office] Building peer packet failed:', err);
       views = [];

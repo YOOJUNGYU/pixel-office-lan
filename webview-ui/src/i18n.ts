@@ -29,6 +29,7 @@ const ko = {
   'act.image': '이미지 보는 중',
   'act.tool': '{t} 사용 중',
   'act.tool.empty': '생각 중',
+  'act.hidden': '작업 내용 비공개',
 
   'bubble.permission': '확인 필요',
   'plate.agents': '에이전트 {n}',
@@ -189,9 +190,9 @@ const ko = {
   'profile.tagBg': '배경',
   'profile.tagFg': '글자',
   'profile.tagDefault': '기본값',
-  'profile.hideDetails': '상세 내용 숨기기',
-  'profile.hideDetailsHint':
-    '켜면 파일 경로·주소·토큰 같은 민감 정보와 AI 답변 내용은 다른 사람에게 보내지 않습니다',
+  'profile.hideWork': '내 작업 내용 숨기기',
+  'profile.hideWorkHint':
+    '켜면 다른 사람에게는 내 에이전트가 어느 방에 있는지, 어떤 AI인지, MAIN·SUB·SHELL 종류만 보이고 작업 내용은 보이지 않습니다. 파일 경로·주소·토큰 같은 민감 정보와 AI 답변 내용은 이 옵션과 상관없이 항상 보내지 않습니다',
   'profile.manualPeers': '직접 연결할 PC IP',
   'profile.advanced': '고급: 자동으로 안 보일 때',
   'profile.manualPeersHint':
@@ -372,6 +373,7 @@ const en: Record<Key, string> = {
   'act.image': 'Viewing an image',
   'act.tool': 'Using {t}',
   'act.tool.empty': 'Thinking',
+  'act.hidden': 'Work hidden',
 
   'bubble.permission': 'Needs attention',
   'plate.agents': 'Agents {n}',
@@ -529,9 +531,9 @@ const en: Record<Key, string> = {
   'profile.tagBg': 'Background',
   'profile.tagFg': 'Text',
   'profile.tagDefault': 'Default',
-  'profile.hideDetails': 'Hide details',
-  'profile.hideDetailsHint':
-    "When on, sensitive info such as file paths, addresses and tokens, and the AI's reply text, is never sent to others",
+  'profile.hideWork': 'Hide my work',
+  'profile.hideWorkHint':
+    "When on, others see only which room each of my agents is in, which AI it is and its kind (MAIN, SUB, SHELL), not what it is doing. Sensitive info such as file paths, addresses and tokens, and the AI's reply text, is never sent either way",
   'profile.manualPeers': 'PC IPs to connect directly',
   'profile.advanced': "Advanced: when a PC isn't found automatically",
   'profile.manualPeersHint':

@@ -67,7 +67,7 @@ describe('LanService chat', () => {
     nickname: '',
     palette: 0,
     hueShift: 0,
-    hideDetails: false,
+    hideWork: false,
     manualPeers: [],
     identity: (({ publicKey, privateKeyPem }) => ({ publicKey, privateKeyPem }))(
       createIdentity('me'),

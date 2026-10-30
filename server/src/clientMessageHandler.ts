@@ -274,7 +274,7 @@ function autostartMessage(state: AutostartState) {
 
 /** profileLoaded. Manual peer IPs are LAN-internal: privileged clients only. */
 export function profileMessage(lan: LanService, privileged: boolean) {
-  const { nickname, palette, hueShift, pet, hideDetails, manualPeers } = lan.profile;
+  const { nickname, palette, hueShift, pet, hideWork, manualPeers } = lan.profile;
   return {
     type: 'profileLoaded',
     profile: {
@@ -282,7 +282,7 @@ export function profileMessage(lan: LanService, privileged: boolean) {
       palette,
       hueShift,
       ...(pet && { pet }),
-      hideDetails,
+      hideWork,
       manualPeers: privileged ? manualPeers : [],
     },
     canEdit: privileged,

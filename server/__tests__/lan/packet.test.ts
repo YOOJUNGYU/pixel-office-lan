@@ -25,6 +25,14 @@ const packet = (over: Partial<PeerPacket> = {}): PeerPacket => ({
 const parse = (p: unknown) => parsePeerPacket(JSON.stringify(p));
 
 describe('parsePeerPacket', () => {
+  it('hidden: only true survives', () => {
+    expect(parse(packet({ views: [{ ...view(), hidden: true }] }))?.views[0].hidden).toBe(true);
+    const bad = { ...view(), hidden: 'yes' };
+    expect(
+      parse(packet({ views: [bad as unknown as AgentView] }))?.views[0].hidden,
+    ).toBeUndefined();
+  });
+
   it('account: validated; a 0.3.x packet without one: nickname (or short id) becomes the account, nickname cleared', () => {
     const { account: _, ...old } = packet().peer;
     expect(parse(packet({ peer: old as never }))?.peer).toMatchObject({

@@ -90,7 +90,8 @@ Each tab shows how many people are online there (you included; in personal mode,
 
 - PCs exchange **status only** (read-only). Nobody can reach your terminal, agents or settings, and the UI opens only in this PC's browser.
 - Everything between PCs is **encrypted**: the public office uses a per-pair X25519 key agreement + AES-256-GCM, a team office AES-256-GCM with a key derived from its invite code. Codes never go on the network; a known PC whose key changes is ignored (impersonation).
-- **Hide details** (on by default): file paths, user names, IPs/host names, URL paths, token-like strings and AI reply text never leave the PC; commands are sent as program names only. Your PC account name is the name tag, so it is always shown.
+- **Always**: file paths, user names, IPs/host names, URL paths, token-like strings and AI reply text never leave the PC; commands are sent as program names only. Your PC account name is the name tag, so it is always shown.
+- **Hide my work** (off by default): others see only which room each of your agents is in, which AI it is and its kind (MAIN/SUB/SHELL), not what it is doing.
 - Claude Code and Codex settings are never touched; only their transcript files are read.
 
 ## How it works
@@ -118,7 +119,7 @@ Each tab shows how many people are online there (you included; in personal mode,
 - Broadcasts stay inside one subnet. Across floors or VLANs, add the other PC's IP under **Settings → My profile → Advanced: when a PC isn't found automatically**.
 - The public office can't keep out anyone who installs the app. Use a team office to choose who joins.
 - Codex doesn't record approval requests, so ❗ appears for Codex only when it asks you a question.
-- Hide details may miss a password typed directly into a command or search.
+- The redaction may miss a password typed directly into a command or search.
 - Mixed versions hide things from older PCs (0.4.x: PCs with very many agents, pets; ≤ 1.0.0: people's characters and chat). Update everyone.
 - Mac notifications may appear as "Script Editor". Linux and WSL have no tray or notifications.
 

@@ -105,7 +105,7 @@ export function ProfileModal({
   const [hueShift, setHueShift] = useState(profile.hueShift);
   const [pet, setPet] = useState<PetId | undefined>(profile.pet);
   const [tagColors, setTagColors] = useState<TagColors | undefined>(profile.tagColors);
-  const [hideDetails, setHideDetails] = useState(profile.hideDetails);
+  const [hideWork, setHideWork] = useState(profile.hideWork);
   const [peersText, setPeersText] = useState(profile.manualPeers.join('\n'));
   // Advanced (manual peers) starts collapsed unless some are already set.
   const [peersOpen] = useState(profile.manualPeers.length > 0);
@@ -142,7 +142,7 @@ export function ProfileModal({
       hueShift,
       ...(pet && { pet }),
       ...(tagColors && { tagColors }),
-      hideDetails,
+      hideWork,
       manualPeers,
     });
   };
@@ -304,16 +304,16 @@ export function ProfileModal({
           )}
         </div>
 
-        {/* First run asks only for name, character and colour; hideDetails keeps
+        {/* First run asks only for name, character and colour; hideWork keeps
             its default and the rest lives in Settings → My profile. */}
         {!firstRun && (
           <>
             <Checkbox
-              label={t('profile.hideDetails')}
-              checked={hideDetails}
-              onChange={() => setHideDetails((v) => !v)}
+              label={t('profile.hideWork')}
+              checked={hideWork}
+              onChange={() => setHideWork((v) => !v)}
             />
-            <div className="text-xs text-text-muted">{t('profile.hideDetailsHint')}</div>
+            <div className="text-xs text-text-muted">{t('profile.hideWorkHint')}</div>
 
             <details open={peersOpen}>
               <summary className="cursor-pointer select-none">{t('profile.advanced')}</summary>

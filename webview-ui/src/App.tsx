@@ -783,7 +783,7 @@ const sameProfile = (a: ProfileMessage, b: ProfileMessage): boolean =>
   a.palette === b.palette &&
   a.hueShift === b.hueShift &&
   a.pet === b.pet &&
-  a.hideDetails === b.hideDetails &&
+  a.hideWork === b.hideWork &&
   a.manualPeers.join('\n') === b.manualPeers.join('\n');
 
 export default App;

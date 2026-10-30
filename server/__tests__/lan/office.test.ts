@@ -60,7 +60,7 @@ describe('LanService', () => {
     nickname: '',
     palette: 2,
     hueShift: 30,
-    hideDetails: true,
+    hideWork: false,
     manualPeers: [],
     identity: (({ publicKey, privateKeyPem }) => ({ publicKey, privateKeyPem }))(
       createIdentity('me'),
@@ -71,7 +71,7 @@ describe('LanService', () => {
     nicknameSince: 0,
   };
 
-  it('sends an empty nickname until one is set, and redacts when hideDetails', () => {
+  it('sends an empty nickname until one is set, and always redacts', () => {
     const lan = new LanService({ ...profile }, { views: () => [view()] });
     const p = lan.packet();
     expect(p.peer).toEqual({
@@ -84,7 +84,7 @@ describe('LanService', () => {
     expect(p.views[0].target).toBe('a.ts');
   });
 
-  it('asks for brief (program-name) views only when details are hidden', () => {
+  it('always asks for brief (program-name) views for peers', () => {
     const asked: Array<boolean | undefined> = [];
     const local = {
       views: (brief?: boolean) => {
@@ -95,9 +95,25 @@ describe('LanService', () => {
     const lan = new LanService({ ...profile }, local);
     expect(lan.packet().views[0].target).toBe('ssh');
     expect(lan.office(PUBLIC_VIEW)[0].target).toBe('ssh dev@db01.acme.local');
-    lan.profile = { ...lan.profile, hideDetails: false };
-    expect(lan.packet().views[0].target).toBe('ssh dev@db01.acme.local');
-    expect(asked).toEqual([true, undefined, false]);
+    expect(asked).toEqual([true, undefined]);
+  });
+
+  it('hideWork shares room, provider and kind only', () => {
+    const lan = new LanService(
+      { ...profile, hideWork: true },
+      { views: () => [view({ permission: true, act: 'edit', target: 'a.ts', reason: 'r' })] },
+    );
+    const [v] = lan.packet().views;
+    expect(v).toMatchObject({
+      act: 'idle',
+      target: '',
+      reason: '',
+      permission: false,
+      hidden: true,
+    });
+    expect(v).toMatchObject({ room: view().room, provider: view().provider, kind: view().kind });
+    expect(lan.office(PUBLIC_VIEW)[0]).toMatchObject({ act: 'edit', target: 'a.ts' }); // mine: as-is
+    expect(lan.office(PUBLIC_VIEW)[0].hidden).toBeUndefined();
   });
 
   it('packet() never throws: a failing scan sends no views', () => {

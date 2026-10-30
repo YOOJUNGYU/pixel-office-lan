@@ -178,6 +178,7 @@ export interface OfficeAgentMessage {
   act: AgentAct;
   target: string;
   reason: string;
+  hidden?: boolean;
   peer: PeerInfoMessage;
 }
 
@@ -261,7 +262,7 @@ export interface ProfileMessage {
   hueShift: number;
   pet?: PetId;
   tagColors?: TagColors;
-  hideDetails: boolean;
+  hideWork: boolean;
   manualPeers: string[];
 }
 

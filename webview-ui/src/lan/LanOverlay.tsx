@@ -28,7 +28,7 @@ import {
   LAN_TAG_Z_INDEX,
   PET_HEAD_DROP_PX,
 } from '../constants.js';
-import { actText, t } from '../i18n.js';
+import { t } from '../i18n.js';
 import { onFrame } from '../office/engine/gameLoop.js';
 import type { OfficeState } from '../office/engine/officeState.js';
 import { overlayProjection, renderScale } from '../office/projection.js';
@@ -365,7 +365,7 @@ export function LanOverlay({
           )}
           {t(`room.${hovered.room}`)}
         </span>
-        <span>{actText(hovered.act, hovered.target)}</span>
+        <span>{activityText(hovered)}</span>
         {hovered.reason && <span className="text-text-muted">“{hovered.reason}”</span>}
       </div>,
     );

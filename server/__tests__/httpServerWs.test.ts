@@ -202,7 +202,7 @@ describe('/ws LAN office', () => {
     nickname: '유',
     palette: 1,
     hueShift: 20,
-    hideDetails: true,
+    hideWork: true,
     manualPeers: ['192.168.0.9'],
   };
 
@@ -234,7 +234,7 @@ describe('/ws LAN office', () => {
     const loaded = waitForMessage(socket, 'profileLoaded');
     const snap = waitForMessage(socket, 'officeSnapshot');
     socket.send(JSON.stringify({ type: 'webviewReady' }));
-    expect(await loaded).toMatchObject({ canEdit: true, profile: { hideDetails: true } });
+    expect(await loaded).toMatchObject({ canEdit: true, profile: { hideWork: false } });
     expect(await snap).toMatchObject({
       agents: [{ target: '/home/kim/a.ts', key: expect.stringMatching(/:s1$/) }],
       selfPeerId: expect.any(String),

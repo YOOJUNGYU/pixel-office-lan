@@ -150,6 +150,8 @@ export interface AgentView {
   target: string;
   /** <=200 chars, '' if none */
   reason: string;
+  /** The owner hides its work: act/target/reason/permission are blanked, room and kind stay. */
+  hidden?: true;
 }
 export interface PeerInfo {
   id: string;
@@ -364,6 +366,7 @@ function parseView(raw: unknown): AgentView | null {
     target,
     reason,
   };
+  if (raw.hidden === true) view.hidden = true;
   if (raw.parentId !== undefined) {
     const parentId = str(raw.parentId, MAX_ID);
     if (parentId === null) return null;

@@ -464,4 +464,8 @@ test('bubble text: a run shows the command alone (서버실 says it already), ot
   assert.equal(activityText(agent('a', 'server', { act: 'run', target: 'pnpm' })), 'pnpm');
   assert.equal(activityText(agent('a', 'server', { act: 'run', target: '' })), '명령 실행 중');
   assert.equal(activityText(agent('a', 'coding', { act: 'edit', target: 'x.ts' })), 'x.ts 수정 중');
+  assert.equal(
+    activityText(agent('a', 'coding', { act: 'idle', target: '', hidden: true })),
+    '작업 내용 비공개',
+  );
 });

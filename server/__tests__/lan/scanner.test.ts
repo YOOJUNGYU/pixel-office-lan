@@ -167,14 +167,14 @@ describe('Scanner', () => {
     await scanner.discover();
     expect(scanner.info('cx')?.title).toBe('CODEX thread');
 
-    for (const hideDetails of [false, true]) {
+    for (const hideWork of [false, true]) {
       const lan = new LanService(
         {
           peerId: 'me',
           nickname: '',
           palette: 0,
           hueShift: 0,
-          hideDetails,
+          hideWork,
           manualPeers: [],
           identity: (({ publicKey, privateKeyPem }) => ({ publicKey, privateKeyPem }))(
             createIdentity('me'),

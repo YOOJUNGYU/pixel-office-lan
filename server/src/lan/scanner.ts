@@ -266,7 +266,7 @@ export class Scanner {
     return undefined;
   }
 
-  /** brief=true: commands as program name / description only (hideDetails) */
+  /** brief=true: commands as program name / description only (always, for peers) */
   views(brief = false): AgentView[] {
     const now = this.now();
     return [...this.files.values()]

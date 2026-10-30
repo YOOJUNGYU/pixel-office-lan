@@ -682,7 +682,7 @@ components:
       description: The editable profile (everything but the peer id).
       type: object
       additionalProperties: false
-      required: [nickname, palette, hueShift, hideDetails, manualPeers]
+      required: [nickname, palette, hueShift, hideWork, manualPeers]
       properties:
         nickname:
           type: string
@@ -699,7 +699,7 @@ components:
           $ref: '#/components/schemas/PetId'
         tagColors:
           $ref: '#/components/schemas/TagColors'
-        hideDetails:
+        hideWork:
           type: boolean
         manualPeers:
           type: array
@@ -741,6 +741,9 @@ components:
           description: 'What the act applies to (file, pattern, command…), <=120 chars, empty if none.'
         reason:
           type: string
+        hidden:
+          type: boolean
+          description: The owner hides its work (act idle, no target/reason); room and kind stay.
         peer:
           $ref: '#/components/schemas/PeerInfoMessage'
 

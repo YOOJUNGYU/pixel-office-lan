@@ -44,7 +44,7 @@ export interface Profile {
   pet?: PetId;
   /** Avatar name tag colours; absent = the default tag. */
   tagColors?: TagColors;
-  hideDetails: boolean;
+  hideWork: boolean;
   manualPeers: string[];
   identity: { publicKey: string; privateKeyPem: string };
   offices: TeamOffice[];
@@ -79,7 +79,7 @@ function parseSavedAvatars(raw: unknown): SavedAvatars | undefined {
 /** What saveProfile may change; identity/offices/views change only via their own messages. */
 export type EditableProfile = Pick<
   Profile,
-  'nickname' | 'palette' | 'hueShift' | 'pet' | 'tagColors' | 'hideDetails' | 'manualPeers'
+  'nickname' | 'palette' | 'hueShift' | 'pet' | 'tagColors' | 'hideWork' | 'manualPeers'
 >;
 
 const PROFILE_FILE_NAME = 'profile.json';
@@ -156,7 +156,7 @@ function parseSavedChat(raw: unknown, offices: TeamOffice[]): SavedChat | undefi
 export function validateProfileUpdate(x: unknown): EditableProfile | null {
   if (!isObj(x)) return null;
   const o = x;
-  if (typeof o.nickname !== 'string' || typeof o.hideDetails !== 'boolean') return null;
+  if (typeof o.nickname !== 'string' || typeof o.hideWork !== 'boolean') return null;
   const nickname = o.nickname.trim();
   if (nickname.length > MAX_NICKNAME) return null; // optional: '' = account name only
   if (!isInt(o.palette, 0, 5) || !isInt(o.hueShift, 0, 360)) return null;
@@ -176,7 +176,7 @@ export function validateProfileUpdate(x: unknown): EditableProfile | null {
     hueShift: o.hueShift,
     ...(isPetId(o.pet) && { pet: o.pet }),
     ...(tagColors && { tagColors }),
-    hideDetails: o.hideDetails,
+    hideWork: o.hideWork,
     manualPeers,
   };
 }
@@ -224,11 +224,15 @@ export function loadProfile(dir: string = defaultDir()): Profile {
   const raw = readJsonObject(path.join(dir, PROFILE_FILE_NAME));
   let peerId = isWireId(raw.peerId) ? raw.peerId : randomUUID();
   const nick = typeof raw.nickname === 'string' ? raw.nickname.trim() : '';
-  const editable: EditableProfile = validateProfileUpdate({ ...raw, nickname: nick }) ?? {
+  const editable: EditableProfile = validateProfileUpdate({
+    ...raw,
+    nickname: nick,
+    hideWork: raw.hideWork === true, // pre-1.0.9 files have hideDetails (now always on)
+  }) ?? {
     nickname: '',
     palette: 0,
     hueShift: 0,
-    hideDetails: true,
+    hideWork: false,
     manualPeers: [],
   };
   const pem =
