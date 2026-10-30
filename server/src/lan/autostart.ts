@@ -2,7 +2,8 @@
  * Start at login, per user, toggled from Settings (and by the installer via
  * `cli.js --autostart on|off|default`).
  *
- * - win32: a shortcut in the user's Startup folder → wscript "<install>\launch.vbs".
+ * - win32: a shortcut in the user's Startup folder → "<install>\PixelOffice.exe" (installs up
+ *   to 1.0.3, still running a silently updated app: wscript "<install>\launch.vbs").
  *   A .lnk needs COM, so the tray helper writes it (`PixelOfficeTray.exe
  *   --make-shortcut <lnk> <target> <args> <dir>`, WScript.Shell; no PowerShell);
  *   every path is argv only and comes from process.execPath / %APPDATA%.
@@ -27,6 +28,7 @@ import {
   MAC_LAUNCH_AGENTS_SUBDIR,
   WIN_DEFAULT_SYSTEM_ROOT,
   WIN_LAUNCHER_NAME,
+  WIN_LEGACY_LAUNCHER_NAME,
   WIN_STARTUP_LINK_NAME,
   WIN_STARTUP_SUBDIR,
   WIN_TRAY_EXE_NAME,
@@ -74,7 +76,7 @@ export const realDeps = (): AutostartDeps => ({
 });
 
 type Plan =
-  | { kind: 'win'; link: string; installDir: string; systemRoot: string }
+  | { kind: 'win'; link: string; installDir: string; target: string; args: string }
   | { kind: 'mac'; plist: string; template: string }
   | null;
 
@@ -83,13 +85,15 @@ function plan(d: AutostartDeps): Plan {
     const w = path.win32;
     const installDir = w.dirname(d.execPath);
     const appData = d.env.APPDATA;
-    if (!appData || !d.exists(w.join(installDir, WIN_LAUNCHER_NAME))) return null;
-    return {
-      kind: 'win',
-      link: w.join(appData, ...WIN_STARTUP_SUBDIR, WIN_STARTUP_LINK_NAME),
-      installDir,
-      systemRoot: d.env.SystemRoot ?? WIN_DEFAULT_SYSTEM_ROOT,
-    };
+    if (!appData) return null;
+    const exe = w.join(installDir, WIN_LAUNCHER_NAME);
+    const vbs = w.join(installDir, WIN_LEGACY_LAUNCHER_NAME);
+    const link = w.join(appData, ...WIN_STARTUP_SUBDIR, WIN_STARTUP_LINK_NAME);
+    if (d.exists(exe)) return { kind: 'win', link, installDir, target: exe, args: '' };
+    if (!d.exists(vbs)) return null;
+    const systemRoot = d.env.SystemRoot ?? WIN_DEFAULT_SYSTEM_ROOT;
+    const wscript = w.join(systemRoot, 'System32', 'wscript.exe');
+    return { kind: 'win', link, installDir, target: wscript, args: `"${vbs}"` };
   }
   if (d.platform === 'darwin') {
     const template = path.posix.join(path.posix.dirname(d.execPath), MAC_AGENT_PLIST_NAME);
@@ -126,13 +130,7 @@ export async function setAutostart(
         d.mkdir(w.dirname(p.link));
         await d.run(
           w.join(p.installDir, WIN_TRAY_EXE_NAME),
-          [
-            '--make-shortcut',
-            p.link,
-            w.join(p.systemRoot, 'System32', 'wscript.exe'),
-            `"${w.join(p.installDir, WIN_LAUNCHER_NAME)}"`,
-            p.installDir,
-          ],
+          ['--make-shortcut', p.link, p.target, p.args, p.installDir],
           {},
         );
       } else {

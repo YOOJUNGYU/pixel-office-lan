@@ -125,8 +125,10 @@ export const UPDATE_RESTART_EXIT_CODE = 75;
 export const MAC_AGENT_LABEL = 'com.pixeloffice.agent';
 
 // ── Start at login (lan/autostart.ts) ──────────────────────
-/** Installed Windows layout: `<install dir>\launch.vbs` next to node.exe. */
-export const WIN_LAUNCHER_NAME = 'launch.vbs';
+/** Installed Windows layout: `<install dir>\PixelOffice.exe` (scripts/package/launcher) next to node.exe. */
+export const WIN_LAUNCHER_NAME = 'PixelOffice.exe';
+/** The launcher of installs up to 1.0.3 (wscript + VBS), kept for those still on that installer. */
+export const WIN_LEGACY_LAUNCHER_NAME = 'launch.vbs';
 /** Per-user Startup folder under %APPDATA%, and the shortcut placed there. */
 export const WIN_STARTUP_SUBDIR = ['Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup'];
 export const WIN_STARTUP_LINK_NAME = 'Pixel Office.lnk';

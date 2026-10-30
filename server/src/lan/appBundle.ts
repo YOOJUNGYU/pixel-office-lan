@@ -182,7 +182,7 @@ export function extractTgz(tgz: Buffer, dest: string): void {
 /**
  * How to come back after quitting into an update or out of a failed one:
  * - launchd: our LaunchAgent (KeepAlive SuccessfulExit=false) respawns a non-zero exit;
- * - respawn: start the installed cli.js detached (Windows launch.vbs / Startup shortcut, the Mac app);
+ * - respawn: start the installed cli.js detached (Windows PixelOffice.exe / Startup shortcut, the Mac app);
  * - none: Linux/dev — the next start applies it.
  */
 export function restartMode(

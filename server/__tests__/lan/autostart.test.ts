@@ -36,6 +36,7 @@ function fake(platform: NodeJS.Platform, execPath: string, files: string[], env 
 }
 
 const WIN_EXE = 'C:\\Program Files\\PixelOffice\\node.exe';
+const WIN_LAUNCHER = 'C:\\Program Files\\PixelOffice\\PixelOffice.exe';
 const WIN_VBS = 'C:\\Program Files\\PixelOffice\\launch.vbs';
 const WIN_ENV = { APPDATA: 'C:\\Users\\u\\AppData\\Roaming', SystemRoot: 'C:\\Windows' };
 const WIN_LNK =
@@ -57,7 +58,7 @@ describe('autostart', () => {
   });
 
   it('win32: enable writes the Startup shortcut via the tray exe (argv, no PowerShell), disable removes it', async () => {
-    const f = fake('win32', WIN_EXE, [WIN_VBS], WIN_ENV);
+    const f = fake('win32', WIN_EXE, [WIN_LAUNCHER, WIN_VBS], WIN_ENV);
     expect(getAutostart(f.deps)).toEqual({ enabled: false, supported: true });
     expect(await setAutostart(true, f.deps)).toEqual({ enabled: true, supported: true });
     const run = f.runs[0];
@@ -65,8 +66,8 @@ describe('autostart', () => {
     expect(run.args).toEqual([
       '--make-shortcut',
       WIN_LNK,
-      'C:\\Windows\\System32\\wscript.exe',
-      `"${WIN_VBS}"`,
+      WIN_LAUNCHER,
+      '',
       'C:\\Program Files\\PixelOffice',
     ]);
     expect(run.env).toEqual({});
@@ -74,6 +75,15 @@ describe('autostart', () => {
     expect(await setAutostart(false, f.deps)).toEqual({ enabled: false, supported: true });
     expect(f.fsSet.has(WIN_LNK)).toBe(false);
     expect(f.fsSet.has(MARKER)).toBe(true);
+  });
+
+  it('win32 install up to 1.0.3 (no PixelOffice.exe, silently updated app): wscript + launch.vbs', async () => {
+    const f = fake('win32', WIN_EXE, [WIN_VBS], WIN_ENV);
+    await setAutostart(true, f.deps);
+    expect(f.runs[0].args.slice(2, 4)).toEqual([
+      'C:\\Windows\\System32\\wscript.exe',
+      `"${WIN_VBS}"`,
+    ]);
   });
 
   it('darwin: copies / removes the LaunchAgent plist, never calls launchctl', async () => {

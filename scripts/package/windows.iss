@@ -1,7 +1,8 @@
 ﻿; Pixel Office — Windows installer (Inno Setup 6).
-; Build: iscc /DAppVersion=<ver> /DStage=<dir with node.exe, PixelOfficeTray.exe, launch.vbs, app\> scripts\package\windows.iss
-; PixelOfficeTray.exe (tray, notifications, Startup .lnk) lives here, not in app\: silent updates
-; replace app\ only, so a change to the helper needs an installer release.
+; Build: iscc /DAppVersion=<ver> /DStage=<dir with node.exe, PixelOffice.exe, PixelOfficeTray.exe, app\> scripts\package\windows.iss
+; PixelOffice.exe (launcher, scripts/package/launcher) and PixelOfficeTray.exe (tray, notifications,
+; Startup .lnk) live here, not in app\: silent updates replace app\ only, so a change to either
+; needs an installer release.
 ; Output: release\PixelOffice-<ver>-Windows.exe
 
 #ifndef AppVersion
@@ -54,8 +55,8 @@ Name: "autostart"; Description: "{cm:Autostart}"
 Source: "{#Stage}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{group}\Pixel Office 열기"; Filename: "{sys}\wscript.exe"; Parameters: """{app}\launch.vbs"" --open"; WorkingDir: "{app}"; IconFilename: "{app}\icon.ico"
-Name: "{autodesktop}\Pixel Office"; Filename: "{sys}\wscript.exe"; Parameters: """{app}\launch.vbs"" --open"; WorkingDir: "{app}"; IconFilename: "{app}\icon.ico"; Tasks: desktopicon
+Name: "{group}\Pixel Office 열기"; Filename: "{app}\PixelOffice.exe"; Parameters: "--open"; WorkingDir: "{app}"; IconFilename: "{app}\icon.ico"
+Name: "{autodesktop}\Pixel Office"; Filename: "{app}\PixelOffice.exe"; Parameters: "--open"; WorkingDir: "{app}"; IconFilename: "{app}\icon.ico"; Tasks: desktopicon
 ; Start at login is per user (Startup folder), so the app can toggle it later without admin
 ; rights. It is written by the app itself (cli.js --autostart), run as the ORIGINAL user below:
 ; {userstartup} here would be the elevated account's folder when a standard user typed admin
@@ -64,18 +65,20 @@ Name: "{autodesktop}\Pixel Office"; Filename: "{sys}\wscript.exe"; Parameters: "
 [Registry]
 ; pixeloffice: URL scheme for the page's [시작] button (shown when the server is off, e.g. the
 ; installed PWA opened alone). The browser asks once "Open Pixel Office?". The command is FIXED
-; and never gets the URL (no %1): launch.vbs forwards its arguments to cli.js, so passing the URL
+; and never gets the URL (no %1): PixelOffice.exe forwards its arguments to cli.js, so passing the URL
 ; would let any website add CLI flags. No --open: the page that asked reloads itself.
 ; HKA = HKLM\Software\Classes here (admin install), i.e. every user; removed on uninstall.
 ; server/__tests__/installer.test.ts checks the command.
 Root: HKA; Subkey: "Software\Classes\pixeloffice"; ValueType: string; ValueName: ""; ValueData: "URL:Pixel Office"; Flags: uninsdeletekey
 Root: HKA; Subkey: "Software\Classes\pixeloffice"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""
 Root: HKA; Subkey: "Software\Classes\pixeloffice\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: """{app}\icon.ico"",0"
-Root: HKA; Subkey: "Software\Classes\pixeloffice\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{sys}\wscript.exe"" ""{app}\launch.vbs"""
+Root: HKA; Subkey: "Software\Classes\pixeloffice\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\PixelOffice.exe"""
 
 [InstallDelete]
 ; Older versions started the office for all users from the common Startup folder.
 Type: files; Name: "{commonstartup}\Pixel Office.lnk"
+; Up to 1.0.3 the office was started by launch.vbs (Windows Script Host, flagged by endpoint AV).
+Type: files; Name: "{app}\launch.vbs"
 
 [Run]
 ; Replace (not duplicate) the rule on reinstall/upgrade. Inbound UDP 47800 (peers) only: the UI (HTTP 47801) is this PC only.
@@ -91,8 +94,8 @@ Filename: "{app}\node.exe"; Parameters: """{app}\app\cli.js"" --autostart defaul
 ; Interactive install: the finish page's "open" checkbox. Silent (in-app Update): start the server
 ; only, without --open: a window that was open reloads itself into the new version, and the
 ; app's reopen marker (~\.pixel-office\updates\reopen) opens one only if none was open.
-Filename: "{sys}\wscript.exe"; Parameters: """{app}\launch.vbs"" --open"; Description: "{cm:OpenOffice}"; Flags: postinstall nowait skipifsilent
-Filename: "{sys}\wscript.exe"; Parameters: """{app}\launch.vbs"""; Check: WizardSilent; Flags: postinstall nowait
+Filename: "{app}\PixelOffice.exe"; Parameters: "--open"; Description: "{cm:OpenOffice}"; Flags: postinstall nowait skipifsilent
+Filename: "{app}\PixelOffice.exe"; Check: WizardSilent; Flags: postinstall nowait
 
 [UninstallDelete]
 ; Everything left in the install folder (files written after install) and the folder itself.
@@ -122,7 +125,7 @@ end;
 
 { Start at login lives in each user's own Startup folder, written by the app. The uninstaller runs
   elevated (possibly as another account), so sweep every profile for exactly our shortcut name;
-  a leftover would make wscript complain about the missing launch.vbs at every login. }
+  a leftover would point at a missing launcher at every login. }
 procedure DeleteStartupLinks;
 var
   Root, Link: String;

@@ -82,7 +82,6 @@ jobs:
         shell: pwsh
         run: |
           node scripts/package/fetch-node.mjs win-x64 build/win
-          Copy-Item scripts/package/launch.vbs build/win/
           node scripts/package/png2ico.mjs icon.png build/win/icon.ico
           Copy-Item LICENSE build/win/LICENSE.txt
           Copy-Item -Recurse dist build/win/app
@@ -100,6 +99,27 @@ jobs:
           $out = & build/win/PixelOfficeTray.exe --smoke | Out-String
           $out
           if ($out -notmatch '(?m)^ready') { throw 'PixelOfficeTray.exe --smoke did not print ready' }
+      - name: Build launcher (PixelOffice.exe replaces launch.vbs, which endpoint AV flagged)
+        shell: pwsh
+        run: |
+          $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
+          & $csc /nologo /target:winexe /optimize+ /win32icon:build\win\icon.ico /out:build\win\PixelOffice.exe scripts\package\launcher\PixelOffice.cs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $v = (Get-Item build/win/PixelOffice.exe).VersionInfo
+          if ($v.FileDescription -ne 'Pixel Office') { throw 'PixelOffice.exe FileDescription must be Pixel Office' }
+          # It starts node.exe app\cli.js with the given args (a path with spaces survives) and exits.
+          $p = Start-Process -PassThru -Wait build/win/PixelOffice.exe '--port 47898'
+          if ($p.ExitCode -ne 0) { throw "launcher exit $($p.ExitCode)" }
+          $up = $false
+          for ($i = 0; $i -lt 30 -and -not $up; $i++) {
+            Start-Sleep -Seconds 1
+            try { $up = (Invoke-WebRequest -UseBasicParsing http://127.0.0.1:47898/api/ping).StatusCode -eq 200 } catch {}
+          }
+          if (-not $up) { throw 'PixelOffice.exe did not start the office' }
+          # Stop it without /api/quit (that would leave the updater's reopen marker for the install test).
+          $owner = (Get-NetTCPConnection -LocalPort 47898 -State Listen).OwningProcess | Select-Object -First 1
+          Stop-Process -Id $owner -Force
+          Get-Process PixelOfficeTray -ErrorAction SilentlyContinue | Stop-Process -Force
       - name: Smoke test staged app
         shell: pwsh
         run: |
@@ -127,7 +147,7 @@ jobs:
           if (-not (Test-Path $lnk)) { throw 'autostart on: shortcut missing' }
           $s = (New-Object -ComObject WScript.Shell).CreateShortcut($lnk)
           "$($s.TargetPath) $($s.Arguments)"
-          if ($s.Arguments -notlike '*launch.vbs*') { throw 'autostart on: wrong target' }
+          if ($s.TargetPath -notlike '*\PixelOffice.exe' -or $s.Arguments -ne '') { throw 'autostart on: wrong target' }
           build/win/node.exe build/win/app/cli.js --autostart off
           if (Test-Path $lnk) { throw 'autostart off: shortcut still there' }
       - name: Install Inno Setup
@@ -149,13 +169,14 @@ jobs:
           $p = Start-Process -PassThru "release/PixelOffice-$env:VERSION-Windows.exe" '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /LOG=install.log'
           if (-not $p.WaitForExit(300000)) { throw 'installer did not finish in 5 min' }
           if ($p.ExitCode -ne 0) { Get-Content install.log; throw "install exit $($p.ExitCode)" }
-          # URL scheme: fixed command, never the URL (%1) — launch.vbs passes its arguments to cli.js.
+          # URL scheme: fixed command, never the URL (%1) — PixelOffice.exe passes its arguments to cli.js.
           $key = 'Registry::HKEY_CLASSES_ROOT\pixeloffice'
           if ($null -eq (Get-ItemProperty $key).'URL Protocol') { throw 'pixeloffice: no URL Protocol value' }
           $cmd = (Get-ItemProperty "$key\shell\open\command").'(default)'
           "pixeloffice command: $cmd"
-          if ($cmd -ne "`"$env:windir\system32\wscript.exe`" `"$app\launch.vbs`"" -or $cmd -match '%') { throw 'wrong pixeloffice command' }
-          # The silent install started the office (launch.vbs): wait for it.
+          if ($cmd -ne "`"$app\PixelOffice.exe`"" -or $cmd -match '%') { throw 'wrong pixeloffice command' }
+          if (Test-Path "$app\launch.vbs") { throw 'launch.vbs installed' }
+          # The silent install started the office (PixelOffice.exe): wait for it.
           $up = $false
           for ($i = 0; $i -lt 30 -and -not $up; $i++) {
             Start-Sleep -Seconds 1

@@ -1,6 +1,6 @@
 /**
  * The installers' pixeloffice: URL scheme (the page's [시작] when the server is off) must run a
- * FIXED command: launch.vbs forwards its arguments to cli.js, so a URL (%1) in the command would
+ * FIXED command: PixelOffice.exe forwards its arguments to cli.js, so a URL (%1) in the command would
  * let any website pass CLI flags.
  */
 import { readFileSync } from 'node:fs';
@@ -35,7 +35,7 @@ describe('pixeloffice: URL scheme', () => {
     expect(rows.find((r) => r.Subkey === key)?.Flags).toBe('uninsdeletekey');
     const cmd = rows.filter((r) => r.Subkey === `${key}\\shell\\open\\command`);
     expect(cmd).toHaveLength(1);
-    expect(cmd[0].ValueData).toBe('"{sys}\\wscript.exe" "{app}\\launch.vbs"');
+    expect(cmd[0].ValueData).toBe('"{app}\\PixelOffice.exe"');
     for (const r of rows) expect(r.ValueData ?? '').not.toMatch(/%/);
   });
 
@@ -46,6 +46,25 @@ describe('pixeloffice: URL scheme', () => {
     );
     expect(iss).toContain("'/F /IM PixelOfficeTray.exe'");
     expect(iss).not.toMatch(/\/IM node\.exe/i);
+  });
+
+  it('Windows: no wscript/VBS anywhere; the launcher exe starts only our node.exe', () => {
+    const iss = readFileSync(path.join(PKG, 'windows.iss'), 'utf8');
+    expect(iss).not.toMatch(/wscript/i);
+    expect(iss).toContain('Type: files; Name: "{app}\\launch.vbs"'); // removed on upgrade
+    const cs = readFileSync(path.join(PKG, 'launcher/PixelOffice.cs'), 'utf8');
+    for (const bad of [
+      'Registry',
+      'System.Net',
+      'cmd.exe',
+      'powershell',
+      'UseShellExecute = true',
+    ]) {
+      expect(cs).not.toContain(bad);
+    }
+    expect(cs.match(/Process\.Start\(/g)).toHaveLength(1);
+    expect(cs).toContain('Path.Combine(dir, "node.exe")');
+    expect(cs).toContain('psi.CreateNoWindow = true;');
   });
 
   it('macOS: the app declares the scheme and its launcher takes no URL', () => {
