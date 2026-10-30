@@ -786,9 +786,17 @@ export class OfficeState {
     ch: Character,
     at: { col: number; row: number } | null,
   ): { col: number; row: number } | null {
-    if (at && isWalkable(at.col, at.row, this.tileMap, this.blockedTiles)) return at;
-    if (at) return this.closestFreeWalkableTile(at.col, at.row, ch);
-    return this.freeTileIn(this.areaWalkable.get(ROOM_LABELS.lounge) ?? this.walkableTiles, ch);
+    if (at && this.avatarMayStand(at.col, at.row)) return at;
+    const lounge = this.areaWalkable.get(ROOM_LABELS.lounge);
+    if (at) return this.closestFreeWalkableTile(at.col, at.row, ch, lounge);
+    return this.freeTileIn(lounge ?? this.walkableTiles, ch);
+  }
+
+  /** Avatars stay in the lounge (anywhere walkable when the layout has no lounge tiles). */
+  private avatarMayStand(col: number, row: number): boolean {
+    if (!isWalkable(col, row, this.tileMap, this.blockedTiles)) return false;
+    const lounge = ROOM_LABELS.lounge;
+    return !this.areaWalkable.get(lounge)?.length || this.areaAt(col, row) === lounge;
   }
 
   /** Put an avatar straight onto `at` (standing, facing `dir`). */
@@ -840,7 +848,7 @@ export class OfficeState {
   /** One tile in `dir` when walkable (other characters never block), else just turn. */
   private stepAvatar(ch: Character, dir: Direction): void {
     const next = stepTile(ch.tileCol, ch.tileRow, dir);
-    if (isWalkable(next.col, next.row, this.tileMap, this.blockedTiles)) {
+    if (this.avatarMayStand(next.col, next.row)) {
       ch.path = [next];
       ch.moveProgress = 0;
       ch.dir = dir;
@@ -854,6 +862,43 @@ export class OfficeState {
       ch.dir = dir;
       this.onAvatarMove?.(ch.tileCol, ch.tileRow, dir);
     }
+  }
+
+  /** An agent starts working: it steps out of its PC's avatar (no spawn effect) and walks on. */
+  departFrom(id: number, avatarId: number): void {
+    const ch = this.characters.get(id);
+    const av = this.characters.get(avatarId);
+    if (!ch || !av) return;
+    this.releaseSeat(ch);
+    ch.matrixEffect = null;
+    ch.mergeInto = undefined;
+    this.placeAt(ch, { col: av.tileCol, row: av.tileRow });
+    ch.dir = av.dir;
+  }
+
+  /** An agent went idle: it walks back to its PC's avatar and vanishes there (update()). */
+  mergeAgent(id: number, avatarId: number): void {
+    const ch = this.characters.get(id);
+    if (!ch || ch.mergeInto === avatarId) return;
+    if (ch.matrixEffect) {
+      this.removeAgent(id);
+      return;
+    }
+    this.releaseSeat(ch);
+    ch.homeArea = undefined;
+    ch.followId = undefined;
+    ch.mergeInto = avatarId;
+    ch.followTimer = 0;
+    ch.isActive = false;
+    ch.bubbleType = null;
+    if (ch.moveProgress === 0) ch.path = [];
+    ch.state = ch.path.length > 0 ? CharacterState.WALK : CharacterState.IDLE;
+  }
+
+  /** Back to work before reaching its avatar: the caller sends it to a room again. */
+  cancelMerge(id: number): void {
+    const ch = this.characters.get(id);
+    if (ch) ch.mergeInto = undefined;
   }
 
   private releaseSeat(ch: Character): void {
@@ -1266,6 +1311,7 @@ export class OfficeState {
     let next = Infinity;
     for (const ch of this.characters.values()) {
       if (ch.matrixEffect || ch.state === CharacterState.WALK || ch.path.length > 0) return 0;
+      if (ch.mergeInto !== undefined) return 0; // paths or vanishes next tick
       if (
         ch.state === CharacterState.IDLE &&
         ch.followId === undefined &&
@@ -1318,7 +1364,20 @@ export class OfficeState {
         continue; // skip normal FSM while the effect is (or just was) active
       }
 
-      if (ch.followId !== undefined) {
+      if (ch.mergeInto !== undefined) {
+        const av = this.characters.get(ch.mergeInto);
+        const near =
+          av && Math.max(Math.abs(ch.tileCol - av.tileCol), Math.abs(ch.tileRow - av.tileRow)) <= 1;
+        if (!av || near) {
+          toDelete.push(ch.id);
+          continue;
+        }
+        if (!near) this.followAnchor(ch, av, dt);
+        if (ch.path.length === 0 && ch.followTimer > 0) {
+          toDelete.push(ch.id); // no way back: vanish where it stands
+          continue;
+        }
+      } else if (ch.followId !== undefined) {
         const leader = this.characters.get(ch.followId);
         if (leader) {
           this.followAnchor(ch, lineEnd.get(ch.followId) ?? leader, dt);
@@ -1345,9 +1404,12 @@ export class OfficeState {
     if (me && this.avatarHeld !== null && me.path.length === 0 && !me.matrixEffect) {
       this.stepAvatar(me, this.avatarHeld);
     }
-    // Remove characters that finished despawn
+    // Remove characters that finished despawn (or merged into their avatar)
     for (const id of toDelete) {
       this.characters.delete(id);
+      if (this.selectedAgentId === id) this.selectedAgentId = null;
+      if (this.hoveredAgentId === id) this.hoveredAgentId = null;
+      if (this.cameraFollowId === id) this.cameraFollowId = null;
     }
   }
 

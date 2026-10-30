@@ -349,6 +349,8 @@ export const LAN_ALERT_GLYPH = ['###', '###', '###', '###', '.#.', '...', '###',
 export const LAN_BUBBLE_MAX_WIDTH_PX = 300;
 /** Hover bubble sits this many world px above a character's feet (sprite height). */
 export const LAN_BUBBLE_HEAD_OFFSET = 32;
+/** Always-on activity line above working agents (name tags shown): truncated at this width (CSS px). */
+export const LAN_ACTIVITY_MAX_WIDTH_PX = 220;
 export const LAN_TAG_Z_INDEX = 40;
 /** Name tag box for overlap stacking (CSS px), two lines: text-sm leading-none (13) ×2 + gap-1 + py-1 ×2. Width = the wider line: line 1 = PAD ×2 + text; line 2 = PAD ×2 + dot 6 + gap 4 + text + badge (gap 4 + px-2 ×2). */
 export const LAN_TAG_LINE_PX = 13;

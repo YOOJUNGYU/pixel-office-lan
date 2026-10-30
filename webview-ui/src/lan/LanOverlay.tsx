@@ -6,6 +6,7 @@ import {
   BUBBLE_SITTING_OFFSET_PX,
   BUBBLE_VERTICAL_OFFSET_PX,
   CHARACTER_SITTING_OFFSET_PX,
+  LAN_ACTIVITY_MAX_WIDTH_PX,
   LAN_ALERT_COLOR,
   LAN_BUBBLE_HEAD_OFFSET,
   LAN_BUBBLE_MAX_WIDTH_PX,
@@ -32,6 +33,7 @@ import { getCachedSprite } from '../office/sprites/spriteCache.js';
 import { BUBBLE_PERMISSION_SPRITE } from '../office/sprites/spriteData.js';
 import { type Character, CharacterState } from '../office/types.js';
 import { getTheme } from '../theme.js';
+import { stackBubbles } from './chat.js';
 import { type AvatarRef, type LanAgents, tagBadge, tagLines } from './lanAgents.js';
 import { stackTags, type TagBox } from './tagStack.js';
 import { tagVisible } from './tagVisibility.js';
@@ -172,6 +174,35 @@ export function LanOverlay({
   );
   const tops: number[] = [];
   shown.forEach((i, k) => (tops[i] = stacked[k]));
+  /** The red "!" above a head (a waiting agent, or an avatar holding one). */
+  const alert = (key: string, ch: Character) => {
+    const typing = ch.state === CharacterState.TYPE;
+    nodes.push(
+      <div
+        key={key}
+        className="absolute -translate-x-1/2 pointer-events-none"
+        style={{
+          left: project.toScreenX(ch.x),
+          top:
+            project.toScreenY(
+              ch.y +
+                (typing ? BUBBLE_SITTING_OFFSET_PX : 0) +
+                (ch.pet ? PET_HEAD_DROP_PX : 0) -
+                BUBBLE_VERTICAL_OFFSET_PX,
+            ) -
+            (permissionSprite.height * scale + zoom) / dpr,
+          zIndex: LAN_PERMISSION_Z_INDEX,
+        }}
+      >
+        <PermissionBubble cached={permissionSprite} dpr={dpr} scale={scale} />
+      </div>,
+    );
+  };
+  const waiting = lan.waitingPeers();
+  for (const v of avatarTags) {
+    const ch = officeState.characters.get(v.id);
+    if (ch && waiting.has(v.peerId)) alert(`avatar!:${v.peerId}`, ch);
+  }
   avatarTags.forEach((v, k) => {
     const lit = v.peerId === lan.highlightPeer;
     nodes.push(
@@ -194,7 +225,6 @@ export function LanOverlay({
   });
   for (let i = 0; i < tags.length; i++) {
     const { a, ch, lines } = tags[i];
-    const typing = ch.state === CharacterState.TYPE;
     const x = boxes[i].x;
     const lit = a.peer.id === lan.highlightPeer;
     if (tags[i].show)
@@ -226,28 +256,53 @@ export function LanOverlay({
           </span>
         </div>,
       );
-    if (a.permission) {
+    if (a.permission) alert(`${a.key}!`, ch);
+  }
+
+  // Name tags shown: every working agent also shows what it is doing (one line, above its head).
+  if (!tagsHidden) {
+    const lines: Array<{ key: string; text: string; x: number; w: number; bottom: number }> = [];
+    for (const { a, ch } of tags) {
+      if (ch.id === officeState.hoveredAgentId || ch.mergeInto !== undefined) continue;
+      const text = actText(a.act, a.target);
+      const typing = ch.state === CharacterState.TYPE;
+      lines.push({
+        key: a.key,
+        text,
+        x: project.toScreenX(ch.x),
+        w: Math.min(
+          LAN_ACTIVITY_MAX_WIDTH_PX,
+          2 * LAN_TAG_PAD_X_PX + textWidth(text, LAN_TAG_FONT),
+        ),
+        bottom: project.toScreenY(
+          ch.y +
+            (typing ? CHARACTER_SITTING_OFFSET_PX : 0) +
+            (ch.pet ? PET_HEAD_DROP_PX : 0) -
+            LAN_BUBBLE_HEAD_OFFSET,
+        ),
+      });
+    }
+    const bottoms = stackBubbles(
+      lines.map((l) => ({ ...l, h: AVATAR_TAG_HEIGHT_PX })),
+      LAN_TAG_STACK_GAP_PX,
+    );
+    lines.forEach((l, k) =>
       nodes.push(
         <div
-          key={`${a.key}!`}
-          className="absolute -translate-x-1/2 pointer-events-none"
+          key={`act:${l.key}`}
+          data-activity={l.key}
+          className="absolute -translate-x-1/2 -translate-y-full overflow-hidden text-ellipsis whitespace-nowrap text-sm leading-none px-3 py-1 bg-bg/75 text-text pointer-events-none"
           style={{
-            left: x,
-            top:
-              project.toScreenY(
-                ch.y +
-                  (typing ? BUBBLE_SITTING_OFFSET_PX : 0) +
-                  (ch.pet ? PET_HEAD_DROP_PX : 0) -
-                  BUBBLE_VERTICAL_OFFSET_PX,
-              ) -
-              (permissionSprite.height * scale + zoom) / dpr,
-            zIndex: LAN_PERMISSION_Z_INDEX,
+            left: l.x,
+            top: bottoms[k],
+            maxWidth: LAN_ACTIVITY_MAX_WIDTH_PX,
+            zIndex: LAN_TAG_Z_INDEX,
           }}
         >
-          <PermissionBubble cached={permissionSprite} dpr={dpr} scale={scale} />
+          {l.text}
         </div>,
-      );
-    }
+      ),
+    );
   }
 
   const hoveredId = officeState.hoveredAgentId;

@@ -9,7 +9,7 @@ import { OfficeState } from '../src/office/engine/officeState.js';
 import type { OfficeLayout } from '../src/office/types.js';
 import { CharacterState, Direction, TileType } from '../src/office/types.js';
 
-// 5×3, all floor but a wall at (2,1); the bottom row is the lounge.
+// 5×3, all floor but a wall at (2,1); the lounge but (3,0) and (4,0) (코딩실).
 const W = TileType.WALL;
 const F = TileType.FLOOR_1;
 const layout = (): OfficeLayout =>
@@ -19,20 +19,11 @@ const layout = (): OfficeLayout =>
     rows: 3,
     tiles: [F, F, F, F, F, F, F, W, F, F, F, F, F, F, F],
     furniture: [],
-    areas: [{ label: '대기실', color: ROOM_DEFAULT_COLORS.lounge }],
-    areaTiles: [
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-      ...Array(5).fill('대기실'),
+    areas: [
+      { label: '코딩실', color: ROOM_DEFAULT_COLORS.coding },
+      { label: '대기실', color: ROOM_DEFAULT_COLORS.lounge },
     ],
+    areaTiles: ['대기실', '대기실', '대기실', '코딩실', '코딩실', ...Array(10).fill('대기실')],
   }) as unknown as OfficeLayout;
 
 const person = (peerId: string, o: Partial<OfficePersonMessage> = {}): OfficePersonMessage => ({
@@ -104,6 +95,15 @@ describe('my avatar: arrow keys', () => {
     expect(os.nextFrameIn(0)).toBe(Infinity);
   });
 
+  it('never leaves the lounge: a step into another room only turns', () => {
+    const { os, ch, moves } = mine({ col: 2, row: 0, dir: 'down' });
+    os.pressAvatar(Direction.RIGHT);
+    os.releaseAvatar();
+    settle(os);
+    expect([ch.tileCol, ch.tileRow, ch.dir]).toEqual([2, 0, Direction.RIGHT]);
+    expect(moves).toEqual([[2, 0, 'right']]);
+  });
+
   it('avatars are not hit-testable (clicks pass to agents/floor)', () => {
     const { os, ch } = mine();
     expect(os.getCharacterAt(ch.x, ch.y - 4)).toBeNull();
@@ -128,8 +128,8 @@ describe('avatars from the snapshot', () => {
       person('p', { avatar: { col: 2, row: 1, dir: 'up' } }),
     ]);
     const me = os.characters.get(os.myAvatarId!)!;
-    expect(me.tileRow).toBe(2);
-    expect(placed).toHaveBeenCalledWith(me.tileCol, 2, Direction.DOWN);
+    expect(me.tileCol < 3 || me.tileRow > 0).toBe(true); // in the lounge
+    expect(placed).toHaveBeenCalledWith(me.tileCol, me.tileRow, Direction.DOWN);
     const p = os.characters.get(lan.avatars().find((a) => a.peerId === 'p')!.id)!;
     expect(Math.abs(p.tileCol - 2) + Math.abs(p.tileRow - 1)).toBe(1);
   });
@@ -140,17 +140,17 @@ describe('avatars from the snapshot', () => {
     lan.applyPeople([person('p', { avatar: { col: 0, row: 0, dir: 'down' } })]);
     settle(os);
     const ch = os.characters.get(lan.avatars()[0].id)!;
-    lan.applyPeople([person('p', { avatar: { col: 4, row: 0, dir: 'left' } })]);
+    lan.applyPeople([person('p', { avatar: { col: 4, row: 1, dir: 'left' } })]);
     expect(ch.state).toBe(CharacterState.WALK);
     settle(os);
-    expect([ch.tileCol, ch.tileRow, ch.dir]).toEqual([4, 0, Direction.LEFT]);
-    // Hostile coords: clamped into the grid limits, then onto this layout.
+    expect([ch.tileCol, ch.tileRow, ch.dir]).toEqual([4, 1, Direction.LEFT]);
+    // Hostile coords: clamped into the grid limits, then onto this layout's lounge.
     lan.applyPeople([person('p', { avatar: { col: 1e9, row: -5, dir: 'up' } as never })]);
     settle(os);
-    expect([ch.tileCol, ch.tileRow]).toEqual([4, 0]);
+    expect([ch.tileCol, ch.tileRow]).toEqual([4, 1]);
     lan.applyPeople([person('p', { avatar: { col: 0, row: 2, dir: 'sideways' } as never })]);
     settle(os);
-    expect([ch.tileCol, ch.tileRow]).toEqual([4, 0]); // a bad dir = no avatar info: stays
+    expect([ch.tileCol, ch.tileRow]).toEqual([4, 1]); // a bad dir = no avatar info: stays
   });
 
   it('my own spot is not pulled back by later snapshots; a gone person loses the avatar', () => {

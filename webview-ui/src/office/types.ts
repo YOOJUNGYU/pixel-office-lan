@@ -258,6 +258,8 @@ export interface Character {
   homeArea?: string;
   /** Leader (its parent) this child walks beside, hand in hand; never sits. */
   followId?: number;
+  /** Avatar (character id) this agent walks back into before vanishing (it went idle). */
+  mergeInto?: number;
 
   // -- Avatars --
   /** A person's avatar (their peerId), not an agent: never seated, never hit-tested. */

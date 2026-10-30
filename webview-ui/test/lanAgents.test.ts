@@ -302,3 +302,48 @@ test('roomCounts and plateText: mains by their own room, children as +N, zero ro
   assert.equal(plateText('코딩실', { main: 5, extra: 3 }), 'Coding Room 5 · +3');
   setLang('ko');
 });
+
+test('with its PC avatar present: lounge agents fold into it, "!" on the avatar, a working one steps out and merges back', () => {
+  const os = new OfficeState(layout);
+  const lan = new LanAgents(os);
+  const me = {
+    peerId: 'p1',
+    account: 'yoo',
+    nickname: 'kim',
+    palette: 2,
+    hueShift: 30,
+    self: true,
+  };
+  const step = (secs: number) => {
+    for (let t = 0; t < secs; t += 0.05) os.update(0.05);
+  };
+  lan.applyPeople([me]);
+  step(2);
+  const av = os.characters.get(os.myAvatarId!)!;
+
+  lan.apply([agent('a', 'lounge', { act: 'ask', permission: true })]);
+  const id = lan.idFor('p1:a')!;
+  assert.equal(os.characters.has(id), false, 'a lounge agent has no character');
+  assert.deepEqual([...lan.waitingPeers()], ['p1']);
+
+  lan.apply([agent('a', 'coding', { act: 'edit', target: 'x.ts' })]);
+  const ch = os.characters.get(id)!;
+  assert.equal(ch.matrixEffect, null, 'steps out without the spawn effect');
+  assert.deepEqual([ch.tileCol, ch.tileRow], [av.tileCol, av.tileRow], 'starts on the avatar');
+  assert.equal(areaOf(target(os, ch)), '코딩실');
+  assert.equal(lan.waitingPeers().size, 0);
+  step(20);
+
+  lan.apply([agent('a', 'lounge')]);
+  assert.equal(ch.mergeInto, av.id);
+  step(90); // the default office is 90 tiles wide
+  assert.equal(os.characters.has(id), false, 'merged back into the avatar');
+});
+
+test('without an avatar (tour demos, older peers) lounge agents still show in the lounge', () => {
+  const os = new OfficeState(layout);
+  const lan = new LanAgents(os);
+  lan.apply([agent('a', 'lounge')]);
+  const ch = os.characters.get(lan.idFor('p1:a')!)!;
+  assert.equal(areaOf(target(os, ch)), '대기실');
+});

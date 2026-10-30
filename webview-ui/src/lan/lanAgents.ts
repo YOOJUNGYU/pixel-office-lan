@@ -115,6 +115,8 @@ export class LanAgents {
   private real: OfficeAgent[] = [];
   private demo: OfficeAgent[] = [];
   private nextId = 1;
+  /** A real snapshot was reconciled: agents that start working later step out of their avatar. */
+  private primed = false;
   private readonly os: OfficeState;
   private highlight: string | null = null;
   /** Peer whose name tags are emphasized (people panel hover); null = none. */
@@ -202,6 +204,7 @@ export class LanAgents {
     // A peer can never impersonate a tour demo (their keys are client-only).
     this.real = agents.filter((a) => !isDemoKey(a.key));
     this.reconcile();
+    this.primed = true;
   }
 
   /** Client-only tour demo agents (never sent anywhere); [] removes them. */
@@ -221,6 +224,8 @@ export class LanAgents {
     const prevByKey = new Map<string, OfficeAgent>();
     for (const a of this.agents) prevByKey.set(a.key, a);
     const seen = new Set<string>();
+    /** Keys shown as characters (an agent in the lounge is folded into its PC's avatar). */
+    const shown = new Set<string>();
 
     for (const a of agents) {
       seen.add(a.key);
@@ -228,18 +233,27 @@ export class LanAgents {
       if (id === undefined) {
         id = this.nextId++;
         this.ids.set(a.key, id);
-        const look = looks(a);
-        os.addAgent(id, look.palette, look.hueShift);
-        this.restyle(id, look);
-      } else {
-        this.restyle(id, looks(a));
       }
       this.byId.set(id, a);
-      const prev = prevByKey.get(a.key);
-      if (prev?.permission !== a.permission) {
-        if (a.permission) os.showPermissionBubble(id);
-        else os.clearPermissionBubble(id);
+      const avatarId = this.avatarIds.get(a.peer.id);
+      const ch = os.characters.get(id);
+      if (a.room === 'lounge' && avatarId !== undefined) {
+        if (ch) os.mergeAgent(id, avatarId);
+        continue;
       }
+      shown.add(a.key);
+      const look = looks(a);
+      if (!ch || ch.matrixEffect === 'despawn') {
+        if (ch) os.characters.delete(id); // merged away mid-despawn: start over
+        const depart = this.primed && avatarId !== undefined;
+        os.addAgent(id, look.palette, look.hueShift, undefined, depart);
+        if (depart) os.departFrom(id, avatarId);
+      } else if (ch.mergeInto !== undefined) {
+        os.cancelMerge(id); // homeArea is unset: re-homed below
+      }
+      this.restyle(id, look);
+      if (a.permission) os.showPermissionBubble(id);
+      else os.clearPermissionBubble(id);
     }
 
     for (const [key, id] of this.ids) {
@@ -256,9 +270,10 @@ export class LanAgents {
     for (const a of agents) byKey.set(a.key, a);
     os.roomCounts = roomCounts(agents);
     for (const a of agents) {
+      if (!shown.has(a.key)) continue;
       const id = this.ids.get(a.key)!;
       const parent = a.parentKey !== undefined ? byKey.get(a.parentKey) : undefined;
-      if (parent?.room === a.room) {
+      if (parent?.room === a.room && shown.has(parent.key)) {
         os.setFollowTarget(id, this.ids.get(parent.key)!);
         continue;
       }
@@ -287,6 +302,16 @@ export class LanAgents {
     this.os.setAgentActive(id, tool !== null);
     this.os.setAgentTool(id, tool);
     this.os.moveToArea(id, ROOM_LABELS[room]);
+  }
+
+  /** PCs (peerId) with an agent folded into their avatar that waits for an answer. */
+  waitingPeers(): Set<string> {
+    const out = new Set<string>();
+    for (const a of this.agents) {
+      if (a.room === 'lounge' && (a.permission || a.act === 'ask') && this.avatarIds.has(a.peer.id))
+        out.add(a.peer.id);
+    }
+    return out;
   }
 
   idFor(key: string): number | undefined {

@@ -35,7 +35,8 @@ const ko = {
   'legend.library':
     '파일 읽기·코드 검색·웹 검색 (Read·Grep·WebSearch, rg·cat·git log 같은 읽기 명령)',
   'legend.server': '명령 실행 — 빌드·테스트·설치·서버 (Bash, Codex 셸), 백그라운드 셸',
-  'legend.lounge': '입력·승인 대기, 작업 끝남 (머리 위 빨간 ! = 확인 필요)',
+  'legend.lounge':
+    '입력·승인 대기, 작업 끝남 — 그 PC의 캐릭터로 합쳐짐 (머리 위 빨간 ! = 확인 필요)',
   'tour.roomLegend.title': '방 안내',
   'tour.roomLegend.body':
     '방 명패에 마우스를 올리면 어떤 일을 할 때 그 방으로 가는지 보입니다. 캐릭터 이름표는 처음엔 숨겨져 있고 마우스를 올리면 나타납니다. 왼쪽 위 [이름표 보이기] 버튼으로 항상 보이게 할 수 있습니다.',
@@ -372,7 +373,8 @@ const en: Record<Key, string> = {
   'legend.coding': 'Editing files',
   'legend.library': 'Reading, searching code and the web (incl. read-only shell commands)',
   'legend.server': 'Running commands — build, test, install, servers; background shells',
-  'legend.lounge': 'Waiting for input/approval or done (red ! = needs you)',
+  'legend.lounge':
+    "Waiting for input/approval or done — merged into the PC's character (red ! = needs you)",
   'tour.roomLegend.title': 'Rooms',
   'tour.roomLegend.body':
     'Hover a room plate to see which activity sends an agent there. Character name tags start hidden and appear when you hover a character; the button at the top left shows them all the time.',

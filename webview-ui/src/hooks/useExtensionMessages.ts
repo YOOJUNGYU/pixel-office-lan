@@ -169,8 +169,8 @@ export function useExtensionMessages(
     const handler = (msg: any) => {
       const os = getOfficeState();
       const applyAgents = (agents: OfficeAgent[], people: OfficePersonMessage[]) => {
+        lan.applyPeople(people); // avatars first: agents step out of / merge into them
         lan.apply(agents);
-        lan.applyPeople(people);
         setLanVersion((v) => v + 1);
       };
 
