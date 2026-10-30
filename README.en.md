@@ -81,7 +81,7 @@ Each tab shows how many people are online there (you included; in personal mode,
 
 - **Profile**: character (6 humans or the pets Claudio · Gitcat), colour, nickname, your character's name tag colours. Your PC account name always comes first and cannot be changed. Nicknames are unique (whoever set it later gets a mark like `· a1b2`).
 - **Language · theme**: 한국어/English and dark/light/system, per viewer. The sun/moon button at the top left switches instantly.
-- **Layout editor**: floors (one click paints a whole room), walls, furniture, the background outside. The four rooms and the office size are fixed (default office 77×52; top: coding room · server room, bottom: library · lounge).
+- **Layout editor**: floors (one click paints a whole room), walls, furniture, the background outside. The four rooms and the office size are fixed (default office 83×54; top: coding room · server room, bottom: library · lounge).
   - Edits stay on this screen until **[Save]**. Buttons: **[Reset]** (the default layout, applied on save) · **[Undo]** (Ctrl+Z) · **[Redo]** (Ctrl+Y) · **[Save]** (save, share and close) · **[Cancel]** (drop every change and close; Esc too).
   - **Public and team offices**: anyone can edit; a save is shared with everyone in that office (public = the LAN, team = members only, encrypted). Concurrent edits: **the last save wins**. PCs on 1.0.13 or older do not get it, and the per-PC layout saved before (`layout.json`) is no longer used (import it to share it).
   - **🏠 Personal**: saved on this PC only.
