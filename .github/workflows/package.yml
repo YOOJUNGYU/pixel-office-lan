@@ -108,7 +108,9 @@ jobs:
           $v = (Get-Item build/win/PixelOffice.exe).VersionInfo
           if ($v.FileDescription -ne 'Pixel Office') { throw 'PixelOffice.exe FileDescription must be Pixel Office' }
           # It starts node.exe app\cli.js with the given args (a path with spaces survives) and exits.
-          $p = Start-Process -PassThru -Wait build/win/PixelOffice.exe '--port 47898'
+          # WaitForExit, not -Wait: -Wait also waits for the node.exe it starts (never exits).
+          $p = Start-Process -PassThru build/win/PixelOffice.exe '--port 47898'
+          if (-not $p.WaitForExit(30000)) { throw 'launcher did not exit' }
           if ($p.ExitCode -ne 0) { throw "launcher exit $($p.ExitCode)" }
           $up = $false
           for ($i = 0; $i -lt 30 -and -not $up; $i++) {
