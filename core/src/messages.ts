@@ -177,6 +177,7 @@ export interface OfficeAgentMessage {
   target: string;
   reason: string;
   hidden?: boolean;
+  talk?: boolean;
   peer: PeerInfoMessage;
 }
 

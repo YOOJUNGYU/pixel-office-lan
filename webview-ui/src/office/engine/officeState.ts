@@ -17,6 +17,7 @@ import {
   PET_HIT_HALF_WIDTH_SIDE,
   PET_HIT_HEIGHT,
   PET_IDLE_FRAME_DURATION_SEC,
+  TALK_FRAME_DURATION_SEC,
   TYPE_FRAME_DURATION_SEC,
   WAITING_BUBBLE_DURATION_SEC,
 } from '../../constants.js';
@@ -919,6 +920,7 @@ export class OfficeState {
       this.removeAgent(id);
       return;
     }
+    this.endTalk(id);
     this.releaseSeat(ch);
     ch.homeArea = undefined;
     ch.followId = undefined;
@@ -928,6 +930,49 @@ export class OfficeState {
     ch.bubbleType = null;
     if (ch.moveProgress === 0) ch.path = [];
     ch.state = ch.path.length > 0 ? CharacterState.WALK : CharacterState.IDLE;
+  }
+
+  /**
+   * A parent and its subagent talk: `anchorId` stops where it stands, `walkerId` walks beside
+   * it (hand in hand, like a follower), and both stand still facing each other (update())
+   * and bob in turn (updateCharacter). endTalk() lets the caller re-home them.
+   */
+  setTalk(walkerId: number, anchorId: number): void {
+    const walker = this.characters.get(walkerId);
+    const anchor = this.characters.get(anchorId);
+    if (!walker || !anchor || walker.talkWith === anchorId) return;
+    if (walker.talkWith !== undefined) this.endTalk(walkerId);
+    if (anchor.talkWith !== undefined) this.endTalk(anchorId);
+    for (const ch of [walker, anchor]) {
+      this.releaseSeat(ch);
+      ch.homeArea = undefined;
+      ch.mergeInto = undefined;
+      ch.followId = undefined;
+      ch.isActive = false;
+      ch.currentTool = null;
+      if (ch.moveProgress === 0) ch.path = [];
+      else ch.path = ch.path.slice(0, 1); // finish the step under way, then stop
+      ch.state = ch.path.length > 0 ? CharacterState.WALK : CharacterState.IDLE;
+      ch.frame = 0;
+      ch.frameTimer = 0;
+    }
+    walker.talkWith = anchorId;
+    anchor.talkWith = walkerId;
+    walker.followId = anchorId;
+    walker.followTimer = 0;
+  }
+
+  /** The talk is over (either side's id): both stand free, homeArea unset so the caller re-homes them. */
+  endTalk(id: number): void {
+    const ch = this.characters.get(id);
+    if (!ch || ch.talkWith === undefined) return;
+    const other = this.characters.get(ch.talkWith);
+    for (const c of other?.talkWith === id ? [ch, other] : [ch]) {
+      c.talkWith = undefined;
+      c.followId = undefined;
+      c.homeArea = undefined;
+      c.frame = 0;
+    }
   }
 
   /** Back to work before reaching its avatar: the caller sends it to a room again. */
@@ -1029,7 +1074,8 @@ export class OfficeState {
       Math.abs(ch.tileCol - anchor.tileCol),
       Math.abs(ch.tileRow - anchor.tileRow),
     );
-    if (dist <= 1) {
+    // A talker on its partner's tile (both stepped out of one avatar) still steps aside.
+    if (dist <= 1 && !(dist === 0 && ch.talkWith !== undefined)) {
       ch.followTimer = 0; // beside the anchor: no retry pending (nextFrameIn)
       return;
     }
@@ -1357,6 +1403,9 @@ export class OfficeState {
       if (ch.state === CharacterState.TYPE && ch.isActive) {
         next = Math.min(next, TYPE_FRAME_DURATION_SEC - ch.frameTimer);
       }
+      if (ch.state === CharacterState.IDLE && ch.talkWith !== undefined) {
+        next = Math.min(next, TALK_FRAME_DURATION_SEC - ch.frameTimer);
+      }
       if (ch.pet) {
         next = Math.min(next, PET_IDLE_FRAME_DURATION_SEC - (nowSec % PET_IDLE_FRAME_DURATION_SEC));
       }
@@ -1417,6 +1466,24 @@ export class OfficeState {
         if (leader) {
           this.followAnchor(ch, lineEnd.get(ch.followId) ?? leader, dt);
           lineEnd.set(ch.followId, ch);
+        }
+      }
+
+      if (ch.talkWith !== undefined) {
+        const other = this.characters.get(ch.talkWith);
+        if (!other || other.talkWith !== ch.id) this.endTalk(ch.id);
+        else if (ch.state === CharacterState.IDLE && ch.path.length === 0) {
+          const dc = other.tileCol - ch.tileCol;
+          const dr = other.tileRow - ch.tileRow;
+          if (Math.max(Math.abs(dc), Math.abs(dr)) === 1)
+            ch.dir =
+              Math.abs(dc) >= Math.abs(dr)
+                ? dc > 0
+                  ? Direction.RIGHT
+                  : Direction.LEFT
+                : dr > 0
+                  ? Direction.DOWN
+                  : Direction.UP;
         }
       }
 

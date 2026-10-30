@@ -3,6 +3,7 @@ import {
   PET_IDLE_FRAME_DURATION_SEC,
   PET_IDLE_SEQUENCE,
   PET_WALK_SEQUENCE,
+  TALK_FRAME_DURATION_SEC,
   TYPE_FRAME_DURATION_SEC,
   WALK_FRAME_DURATION_SEC,
   WALK_SPEED_PX_PER_SEC,
@@ -134,6 +135,14 @@ export function updateCharacter(
     }
 
     case CharacterState.IDLE: {
+      // Talking: stands put (OfficeState turns it to its partner), bobbing in turn.
+      if (ch.talkWith !== undefined) {
+        if (ch.frameTimer >= TALK_FRAME_DURATION_SEC) {
+          ch.frameTimer -= TALK_FRAME_DURATION_SEC;
+          ch.frame = (ch.frame + 1) % 2;
+        }
+        break;
+      }
       // No idle animation — static pose
       ch.frame = 0;
       // Followers never sit: OfficeState walks followers to their leader.

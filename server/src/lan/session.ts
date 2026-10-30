@@ -30,6 +30,10 @@ export interface SessionState {
   pendingTool: { name: string; since: number; exempt: boolean } | null;
   textOnlyAt: number | null;
   turnEnded: boolean;
+  /** Subagent: talking with its parent until then (ms epoch); 0 = not talking. */
+  talkUntil: number;
+  /** Claude main: SendMessage sent to this agent id at `at`, not yet matched to a tracked subagent. */
+  talkTo: { to: string; at: number } | null;
   /** shellId -> target (command or its description) and its brief */
   shells: Map<string, { target: string; brief: string }>;
   /** LOCAL ONLY (notifications on this PC): never copied into an AgentView, so never sent. */
@@ -73,6 +77,8 @@ export function newSession(
     pendingTool: null,
     textOnlyAt: null,
     turnEnded: false,
+    talkUntil: 0,
+    talkTo: null,
     shells: new Map(),
     local: { customTitle: '', aiTitle: '', prompt: '', cwd: '' },
   };
@@ -166,7 +172,7 @@ export function notePrompt(s: SessionState, text: string): void {
 export const folderOf = (cwd: string): string => cwd.split(/[\\/]/).filter(Boolean).pop() ?? '';
 
 /** brief=true (what peers get) shares commands as program name / description only. */
-export function toViews(s: SessionState, brief = false): AgentView[] {
+export function toViews(s: SessionState, brief = false, now = 0): AgentView[] {
   const self: AgentView = {
     id: s.id,
     provider: s.provider,
@@ -179,6 +185,7 @@ export function toViews(s: SessionState, brief = false): AgentView[] {
     reason: s.reason,
   };
   if (s.kind === 'subagent') self.parentId = s.parentId;
+  if (s.kind === 'subagent' && now < s.talkUntil) self.talk = true;
   const shells = [...s.shells].map(([shellId, sh]): AgentView => ({
     id: `${s.id}/sh/${shellId}`,
     provider: s.provider,

@@ -26,6 +26,10 @@ export const WALK_FRAME_DURATION_SEC = 0.1;
 export const TYPE_FRAME_DURATION_SEC = 0.3;
 /** A follower that found no free tile beside its parent retries after this long. */
 export const FOLLOW_RETRY_SEC = 1.0;
+/** Two talking agents bob in turn (one speaks, then the other) every this long. */
+export const TALK_FRAME_DURATION_SEC = 0.25;
+/** How far (sprite px) a talking agent bobs up. */
+export const TALK_BOB_PX = 1;
 
 // ── Matrix Effect ────────────────────────────────────────────
 export const MATRIX_EFFECT_DURATION_SEC = 0.3;

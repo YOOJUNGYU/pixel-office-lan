@@ -15,6 +15,8 @@ import {
   POLL_INTERVAL_MS,
   SESSION_TTL_MS,
   TAIL_BYTES,
+  TALK_MS,
+  TALK_PENDING_MS,
 } from '../constants.js';
 import { applyClaudeLine } from './claudeParser.js';
 import { applyCodexLine, codexSessionMeta, parseCodexIndex } from './codexParser.js';
@@ -110,6 +112,8 @@ export class Scanner {
   private timers: NodeJS.Timeout[] = [];
   private discovering = false;
   private polling = false;
+  /** The first discover pass is done: subagents found from then on were just started. */
+  private primed = false;
 
   private roots: Roots = { claude: [], codex: [] };
   /** Claude session ids whose registry pids are all dead (closed): dropped at once, not after the TTL. */
@@ -190,6 +194,7 @@ export class Scanner {
         // vanished / unreadable: retry next cycle
       }
     }
+    this.primed = true;
   }
 
   async poll(): Promise<void> {
@@ -215,12 +220,27 @@ export class Scanner {
       tick(t.s, now);
       if (t.s.kind === 'subagent') {
         if (!t.s.turnEnded) t.endedAt = null;
-        else t.endedAt ??= now;
+        else if (t.endedAt === null) {
+          t.endedAt = now;
+          t.s.talkUntil = now + TALK_MS; // reports back to its parent
+        }
       }
       if (now - t.mtimeMs > ttl(t.s) || this.isClosed(t.s)) {
         this.files.delete(file);
         this.rejected.set(file, t.mtimeMs);
       }
+    }
+    this.matchMessages(now);
+  }
+
+  /** A main session's SendMessage to one of its Claude subagents (`agent-<to>.jsonl`): that child talks. */
+  private matchMessages(now: number): void {
+    const byId = new Map([...this.files.values()].map((t) => [t.s.id, t.s]));
+    for (const { s } of this.files.values()) {
+      if (!s.talkTo) continue;
+      const child = byId.get(`${s.id}/sub/agent-${s.talkTo.to}`);
+      if (child) child.talkUntil = now + TALK_MS;
+      if (child || now - s.talkTo.at > TALK_PENDING_MS) s.talkTo = null;
     }
   }
 
@@ -271,7 +291,7 @@ export class Scanner {
     const now = this.now();
     return [...this.files.values()]
       .filter((t) => t.endedAt === null || now - t.endedAt < CHILD_ENDED_HIDE_MS)
-      .flatMap((t) => toViews(t.s, brief));
+      .flatMap((t) => toViews(t.s, brief, now));
   }
 
   start(): void {
@@ -388,6 +408,8 @@ export class Scanner {
     }
     // already-finished subagent: count from its last write, not from now
     if (s.kind === 'subagent' && s.turnEnded) t.endedAt = st.mtimeMs;
+    // A subagent just handed its task (found whole, after the first scan): it talks with its parent.
+    else if (s.kind === 'subagent' && this.primed && start === 0) s.talkUntil = now + TALK_MS;
     this.files.set(c.file, t);
   }
 

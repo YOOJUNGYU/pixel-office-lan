@@ -260,6 +260,8 @@ export interface Character {
   followId?: number;
   /** Avatar (character id) this agent walks back into before vanishing (it went idle). */
   mergeInto?: number;
+  /** Agent (character id) it stands face to face with, talking (a parent and its subagent). */
+  talkWith?: number;
 
   // -- Avatars --
   /** A person's avatar (their peerId), not an agent: never seated, never hit-tested. */

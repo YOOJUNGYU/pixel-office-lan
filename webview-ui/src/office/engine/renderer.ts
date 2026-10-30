@@ -31,6 +31,7 @@ import {
   SELECTED_OUTLINE_ALPHA,
   SELECTION_DASH_PATTERN,
   SELECTION_HIGHLIGHT_COLOR,
+  TALK_BOB_PX,
   VOID_TILE_DASH_PATTERN,
   VOID_TILE_OUTLINE_COLORS,
 } from '../../constants.js';
@@ -501,9 +502,14 @@ export function renderScene(
     const cached = getCachedSprite(spriteData, zoom);
     // Sitting offset: shift character down when seated so they visually sit in the chair
     const sittingOffset = ch.state === CharacterState.TYPE ? CHARACTER_SITTING_OFFSET_PX : 0;
+    // Talking: the two bob in turn (frame + id parity), like taking turns to speak.
+    const talkBob =
+      ch.talkWith !== undefined && ch.state === CharacterState.IDLE && (ch.frame + ch.id) % 2 === 1
+        ? TALK_BOB_PX
+        : 0;
     // Anchor at bottom-center of character — round to integer device pixels
     const drawX = Math.round(offsetX + ch.x * zoom - cached.width / 2);
-    const drawY = Math.round(offsetY + (ch.y + sittingOffset) * zoom - cached.height);
+    const drawY = Math.round(offsetY + (ch.y + sittingOffset - talkBob) * zoom - cached.height);
 
     // Sort characters by bottom of their tile (not center) so they render
     // in front of same-row furniture (e.g. chairs) but behind furniture

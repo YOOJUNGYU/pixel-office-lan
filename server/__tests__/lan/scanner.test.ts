@@ -112,6 +112,38 @@ describe('Scanner', () => {
     expect(scanner.views()).toHaveLength(0);
   });
 
+  it('a subagent talks with its parent: just started, reporting back, and on a SendMessage', async () => {
+    const talk = (id = 'agent-a1') => scanner.views().find((v) => v.id === `m/sub/${id}`)?.talk;
+    writeFileSync(join(proj, 'm.jsonl'), edit('a.ts'));
+    mkdirSync(join(proj, 'm', 'subagents'), { recursive: true });
+    const old = join(proj, 'm', 'subagents', 'agent-old.jsonl');
+    writeFileSync(old, edit('a.ts'));
+    await scanner.discover(); // first scan: already running before we looked, no talk
+    expect(talk('agent-old')).toBeUndefined();
+
+    const p = join(proj, 'm', 'subagents', 'agent-a1.jsonl');
+    writeFileSync(p, edit('b.ts'));
+    await scanner.discover(); // task just handed over
+    expect(talk()).toBe(true);
+    await advance(5_000);
+    expect(talk()).toBeUndefined();
+
+    appendFileSync(p, JSON.stringify({ type: 'system', subtype: 'turn_duration' }) + '\n');
+    await advance(1_000); // done: reports back
+    expect(talk()).toBe(true);
+    await advance(5_000);
+    expect(talk()).toBeUndefined();
+
+    appendFileSync(
+      join(proj, 'm.jsonl'),
+      assistant([
+        { type: 'tool_use', id: 's', name: 'SendMessage', input: { to: 'a1', message: 'hi' } },
+      ]),
+    );
+    await advance(1_000);
+    expect(talk()).toBe(true);
+  });
+
   it('reuses the smallest free num', async () => {
     writeFileSync(join(proj, 'a.jsonl'), edit('a.ts'));
     await scanner.discover();

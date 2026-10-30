@@ -152,6 +152,9 @@ export interface AgentView {
   reason: string;
   /** The owner hides its work: act/target/reason are blanked; room, kind and permission stay. */
   hidden?: true;
+  /** Children only: talking with its parent right now (handed a task, reporting back, or a
+   *  SendMessage to it); viewers show the two face to face. Older peers ignore it. */
+  talk?: true;
 }
 export interface PeerInfo {
   id: string;
@@ -398,6 +401,7 @@ function parseView(raw: unknown): AgentView | null {
     reason,
   };
   if (raw.hidden === true) view.hidden = true;
+  if (raw.talk === true) view.talk = true;
   if (raw.parentId !== undefined) {
     const parentId = str(raw.parentId, MAX_ID);
     if (parentId === null) return null;

@@ -56,8 +56,19 @@ function agent(id: string, room: Room, extra: Partial<OfficeAgent> = {}): Office
   };
 }
 
-function child(id: string, parent: string, room: Room): OfficeAgent {
-  return agent(id, room, { kind: 'subagent', num: 0, parentId: parent, parentKey: `p1:${parent}` });
+function child(
+  id: string,
+  parent: string,
+  room: Room,
+  extra: Partial<OfficeAgent> = {},
+): OfficeAgent {
+  return agent(id, room, {
+    kind: 'subagent',
+    num: 0,
+    parentId: parent,
+    parentKey: `p1:${parent}`,
+    ...extra,
+  });
 }
 
 /** Where the character is headed: its seat, else the end of its path, else where it stands. */
@@ -353,6 +364,51 @@ test('with its PC avatar present: lounge agents fold into it, "!" on the avatar,
   assert.equal(ch.mergeInto, av.id);
   step(120); // the default office is 83 tiles wide
   assert.equal(os.characters.has(id), false, 'merged back into the avatar');
+});
+
+test('talk: the folded parent steps out to its child, both stand face to face and bob; then they part', () => {
+  const os = new OfficeState(layout);
+  const lan = new LanAgents(os);
+  lan.applyPeople([
+    { peerId: 'p1', account: 'yoo', nickname: 'kim', palette: 2, hueShift: 30, self: true },
+  ]);
+  const step = (secs: number) => {
+    for (let t = 0; t < secs; t += 0.05) os.update(0.05);
+  };
+  step(2);
+  const av = os.characters.get(os.myAvatarId!)!;
+  const parent = agent('a', 'lounge', { act: 'delegate' });
+  lan.apply([parent, child('s1', 'a', 'library')]);
+  step(120);
+  assert.equal(os.characters.has(lan.idFor('p1:a')!), false, 'folded into the avatar');
+  const kid = os.characters.get(lan.idFor('p1:s1')!)!;
+
+  lan.apply([parent, child('s1', 'a', 'library', { talk: true })]);
+  const p = os.characters.get(lan.idFor('p1:a')!)!;
+  assert.ok(p, 'the talking parent steps out of the avatar');
+  assert.deepEqual([p.tileCol, p.tileRow], [av.tileCol, av.tileRow]);
+  assert.equal(kid.seatId, null, 'the child stands up');
+  step(120);
+  assert.equal(Math.max(Math.abs(p.tileCol - kid.tileCol), Math.abs(p.tileRow - kid.tileRow)), 1);
+  assert.equal(p.state, CharacterState.IDLE);
+  assert.equal(kid.state, CharacterState.IDLE);
+  const facing = (a: Character, b: Character) =>
+    b.tileCol > a.tileCol
+      ? Direction.RIGHT
+      : b.tileCol < a.tileCol
+        ? Direction.LEFT
+        : b.tileRow > a.tileRow
+          ? Direction.DOWN
+          : Direction.UP;
+  assert.equal(p.dir, facing(p, kid));
+  assert.equal(kid.dir, facing(kid, p));
+  assert.ok(os.nextFrameIn(0) < 1, 'the bob keeps frames coming');
+
+  lan.apply([parent, child('s1', 'a', 'library')]);
+  assert.equal(p.talkWith, undefined);
+  assert.equal(kid.talkWith, undefined);
+  assert.equal(p.mergeInto, av.id, 'the parent walks back into the avatar');
+  assert.equal(kid.homeArea, '자료실');
 });
 
 test('without an avatar (tour demos, older peers) lounge agents still show in the lounge', () => {

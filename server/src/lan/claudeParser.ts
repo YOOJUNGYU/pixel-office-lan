@@ -96,6 +96,7 @@ function onAssistant(s: SessionState, content: Block[], now: number): void {
         s.shells.delete(str(input.shell_id ?? input.task_id));
         continue;
       }
+      if (b.name === 'SendMessage' && str(input.to)) s.talkTo = { to: str(input.to), at: now };
       const [room, act, target, exempt, brief = target] = describe(b.name, input);
       const clipped = clip(target, 120);
       const briefClipped = clip(brief, 120);

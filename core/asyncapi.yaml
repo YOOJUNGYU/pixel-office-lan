@@ -739,6 +739,9 @@ components:
         hidden:
           type: boolean
           description: The owner hides its work (act idle, no target/reason); room and kind stay.
+        talk:
+          type: boolean
+          description: Children only, true for a few seconds while it talks with its parent (task handed over, result reported, SendMessage).
         peer:
           $ref: '#/components/schemas/PeerInfoMessage'
 

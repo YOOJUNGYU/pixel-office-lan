@@ -248,6 +248,15 @@ export class LanAgents {
     const seen = new Set<string>();
     /** Keys shown as characters (an agent in the lounge is folded into its PC's avatar). */
     const shown = new Set<string>();
+    // A child talking with its parent (`talk`): the pair stands face to face, never folded.
+    // ponytail: one talk per parent (the first child); parallel ones wait for the next snapshot.
+    const talkOf = new Map<string, string>();
+    for (const a of agents) {
+      const p = a.talk && a.parentKey !== undefined ? a.parentKey : undefined;
+      if (p === undefined || talkOf.has(p) || !agents.some((x) => x.key === p)) continue;
+      talkOf.set(p, a.key);
+      talkOf.set(a.key, p);
+    }
 
     for (const a of agents) {
       seen.add(a.key);
@@ -259,7 +268,8 @@ export class LanAgents {
       this.byId.set(id, a);
       const avatarId = this.avatarIds.get(a.peer.id);
       const ch = os.characters.get(id);
-      if (a.room === 'lounge' && avatarId !== undefined) {
+      if (ch?.talkWith !== undefined && !talkOf.has(a.key)) os.endTalk(id);
+      if (a.room === 'lounge' && avatarId !== undefined && !talkOf.has(a.key)) {
         if (ch) os.mergeAgent(id, avatarId);
         continue;
       }
@@ -294,6 +304,12 @@ export class LanAgents {
     for (const a of agents) {
       if (!shown.has(a.key)) continue;
       const id = this.ids.get(a.key)!;
+      const partner = talkOf.get(a.key);
+      if (partner !== undefined) {
+        // The parent walks over to its child, wherever the child stands.
+        if (a.kind !== 'main') os.setTalk(this.ids.get(partner)!, id);
+        continue;
+      }
       const parent = a.parentKey !== undefined ? byKey.get(a.parentKey) : undefined;
       if (parent?.room === a.room && shown.has(parent.key)) {
         os.setFollowTarget(id, this.ids.get(parent.key)!);

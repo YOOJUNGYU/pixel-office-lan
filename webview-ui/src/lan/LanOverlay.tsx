@@ -200,6 +200,8 @@ export function LanOverlay({
       </div>,
     );
   };
+  // My profile's tag colours also go on my own agents' tags (peers' agents keep the default).
+  const mine = lan.avatars().find((v) => v.self);
   const waiting = lan.waitingPeers();
   for (const v of avatarTags) {
     const ch = officeState.characters.get(v.id);
@@ -229,15 +231,17 @@ export function LanOverlay({
     const { a, ch, text } = tags[i];
     const x = boxes[i].x;
     const lit = a.peer.id === lan.highlightPeer;
+    const own = !lit && a.peer.id === mine?.peerId ? mine.tagColors : undefined;
     if (tags[i].show)
       nodes.push(
         <div
           key={a.key}
           data-agent-key={a.key}
-          className={`absolute -translate-x-1/2 flex items-center gap-4 whitespace-nowrap text-sm leading-none px-3 py-1 pointer-events-none ${lit ? 'bg-accent text-on-accent outline-2 outline-accent-bright' : 'bg-bg/75 text-text'}`}
+          className={`absolute -translate-x-1/2 flex items-center gap-4 whitespace-nowrap text-sm leading-none px-3 py-1 pointer-events-none ${lit ? 'bg-accent text-on-accent outline-2 outline-accent-bright' : own ? '' : 'bg-bg/75 text-text'}`}
           style={{
             left: x,
             top: tops[i],
+            ...(own && { background: own.bg, color: own.fg }),
             zIndex: lit ? LAN_PERMISSION_Z_INDEX : LAN_TAG_Z_INDEX,
           }}
         >
