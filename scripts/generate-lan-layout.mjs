@@ -63,7 +63,8 @@ const V = PERSONAL
       coding: { cols: 5, rows: 5, chairs: [0, 1, 2] },
       library: { cols: 4, rows: 4 },
       server: { cols: 8, rows: 4 },
-      lounge: { cols: 4, rows: 2 },
+      // A centred block with one gap both ways (spread to the walls it looked scattered).
+      lounge: { cols: 4, rows: 2, gap: 5 },
       extraDoors: true,
       wallDeco: {
         coding: [
@@ -169,9 +170,16 @@ if (V.extraDoors) {
   }
 }
 
-/** n groups of `size` tiles spread over `inner` tiles: first at 0, last at the far end,
- *  gaps as even as possible and mirror-symmetric (one group: centred). */
-function spread(n, size, inner) {
+/** n groups of `size` tiles over `inner` tiles: `gap` given → that gap, the block centred;
+ *  else first at 0, last at the far end, gaps as even as possible and mirror-symmetric
+ *  (one group: centred). */
+function spread(n, size, inner, gap) {
+  if (gap !== undefined) {
+    const start = Math.floor((inner - n * size - (n - 1) * gap) / 2);
+    if (start < 0)
+      throw new Error(`${String(n)} groups of ${String(size)} do not fit ${String(inner)}`);
+    return Array.from({ length: n }, (_, i) => start + i * (size + gap));
+  }
   const span = inner - size;
   if (span < (n - 1) * size)
     throw new Error(`${String(n)} groups of ${String(size)} do not fit ${String(inner)}`);
@@ -184,13 +192,14 @@ function spread(n, size, inner) {
 }
 
 /**
- * A cols × rows grid of furniture groups in `room`, `pad` tiles from every wall.
+ * A cols × rows grid of furniture groups in `room`, at least `pad` tiles from every wall
+ * (exactly, unless a fixed `gap` centres a smaller block).
  * `unit` = the group's footprint (w × h) and where its anchor sits inside it (ox, oy);
  * `place(col, row, k)` puts one group at its anchor (k = index in reading order).
  */
-function roomGrid(room, pad, unit, cols, rows, place) {
-  const xs = spread(cols, unit.w, room.w - 2 * pad);
-  const ys = spread(rows, unit.h, room.h - 2 * pad);
+function roomGrid(room, pad, unit, cols, rows, place, gap) {
+  const xs = spread(cols, unit.w, room.w - 2 * pad, gap);
+  const ys = spread(rows, unit.h, room.h - 2 * pad, gap);
   let k = 0;
   for (const y of ys) {
     for (const x of xs) place(room.x + pad + x + unit.ox, room.y + pad + y + unit.oy, k++);
@@ -241,14 +250,22 @@ roomGrid(SERVER, pad.server, { w: 5, h: 4, ox: 1, oy: 0 }, sv.cols, sv.rows, (c,
 for (const [type, x] of V.wallDeco.server) put(type, SERVER.x + x, TOP_WALL - 1);
 
 // ── 대기실: sofa lounges around a coffee table, 8 seats each (group 4×4); open floor between ──
-roomGrid(LOUNGE, pad.lounge, { w: 4, h: 4, ox: 1, oy: 1 }, lg.cols, lg.rows, (c, y, k) => {
-  put('COFFEE_TABLE', c, y);
-  put('COFFEE', c + (k % 2), y + 1);
-  put('SOFA_FRONT', c, y - 1);
-  put('SOFA_BACK', c, y + 2);
-  put('SOFA_SIDE', c - 1, y);
-  put('SOFA_SIDE:left', c + 2, y);
-});
+roomGrid(
+  LOUNGE,
+  pad.lounge,
+  { w: 4, h: 4, ox: 1, oy: 1 },
+  lg.cols,
+  lg.rows,
+  (c, y, k) => {
+    put('COFFEE_TABLE', c, y);
+    put('COFFEE', c + (k % 2), y + 1);
+    put('SOFA_FRONT', c, y - 1);
+    put('SOFA_BACK', c, y + 2);
+    put('SOFA_SIDE', c - 1, y);
+    put('SOFA_SIDE:left', c + 2, y);
+  },
+  lg.gap,
+);
 
 const layout = {
   version: 1,

@@ -23,8 +23,6 @@ interface SettingsModalProps {
   onExportLayout: () => void;
   /** Browser-native layout import from a chosen file. */
   onImportLayout: (file: File) => void;
-  /** Replace the layout with the bundled default office (absent = not offered). */
-  onResetToDefaultLayout?: () => void;
   /** Start at login on this PC; hidden when null or unsupported (dev run, Linux). */
   autostart: AutostartState | null;
   /** OS notifications (kept by the server); hidden until settingsLoaded. */
@@ -45,7 +43,6 @@ export function SettingsModal({
   onOpenProfile,
   onExportLayout,
   onImportLayout,
-  onResetToDefaultLayout,
   autostart,
   notify,
   onNotifyChange,
@@ -149,16 +146,6 @@ export function SettingsModal({
           }
         }}
       />
-      {onResetToDefaultLayout && (
-        <MenuItem
-          onClick={() => {
-            onClose();
-            onResetToDefaultLayout();
-          }}
-        >
-          {t('settings.resetDefaultLayout')}
-        </MenuItem>
-      )}
       {autostart?.supported && (
         // Not optimistic: the server answers with the real state (autostartState).
         <div data-tour="settings-autostart">

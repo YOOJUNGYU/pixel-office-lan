@@ -3329,290 +3329,290 @@
     {
       "uid": "lan-535",
       "type": "COFFEE_TABLE",
-      "col": 34,
-      "row": 33
+      "col": 42,
+      "row": 36
     },
     {
       "uid": "lan-536",
       "type": "COFFEE",
-      "col": 34,
-      "row": 34
+      "col": 42,
+      "row": 37
     },
     {
       "uid": "lan-537",
       "type": "SOFA_FRONT",
-      "col": 34,
-      "row": 32
+      "col": 42,
+      "row": 35
     },
     {
       "uid": "lan-538",
       "type": "SOFA_BACK",
-      "col": 34,
-      "row": 35
+      "col": 42,
+      "row": 38
     },
     {
       "uid": "lan-539",
       "type": "SOFA_SIDE",
-      "col": 33,
-      "row": 33
+      "col": 41,
+      "row": 36
     },
     {
       "uid": "lan-540",
       "type": "SOFA_SIDE:left",
-      "col": 36,
-      "row": 33
+      "col": 44,
+      "row": 36
     },
     {
       "uid": "lan-541",
       "type": "COFFEE_TABLE",
-      "col": 48,
-      "row": 33
+      "col": 51,
+      "row": 36
     },
     {
       "uid": "lan-542",
       "type": "COFFEE",
-      "col": 49,
-      "row": 34
+      "col": 52,
+      "row": 37
     },
     {
       "uid": "lan-543",
       "type": "SOFA_FRONT",
-      "col": 48,
-      "row": 32
+      "col": 51,
+      "row": 35
     },
     {
       "uid": "lan-544",
       "type": "SOFA_BACK",
-      "col": 48,
-      "row": 35
+      "col": 51,
+      "row": 38
     },
     {
       "uid": "lan-545",
       "type": "SOFA_SIDE",
-      "col": 47,
-      "row": 33
+      "col": 50,
+      "row": 36
     },
     {
       "uid": "lan-546",
       "type": "SOFA_SIDE:left",
-      "col": 50,
-      "row": 33
+      "col": 53,
+      "row": 36
     },
     {
       "uid": "lan-547",
       "type": "COFFEE_TABLE",
-      "col": 63,
-      "row": 33
+      "col": 60,
+      "row": 36
     },
     {
       "uid": "lan-548",
       "type": "COFFEE",
-      "col": 63,
-      "row": 34
+      "col": 60,
+      "row": 37
     },
     {
       "uid": "lan-549",
       "type": "SOFA_FRONT",
-      "col": 63,
-      "row": 32
+      "col": 60,
+      "row": 35
     },
     {
       "uid": "lan-550",
       "type": "SOFA_BACK",
-      "col": 63,
-      "row": 35
+      "col": 60,
+      "row": 38
     },
     {
       "uid": "lan-551",
       "type": "SOFA_SIDE",
-      "col": 62,
-      "row": 33
+      "col": 59,
+      "row": 36
     },
     {
       "uid": "lan-552",
       "type": "SOFA_SIDE:left",
-      "col": 65,
-      "row": 33
+      "col": 62,
+      "row": 36
     },
     {
       "uid": "lan-553",
       "type": "COFFEE_TABLE",
-      "col": 77,
-      "row": 33
+      "col": 69,
+      "row": 36
     },
     {
       "uid": "lan-554",
       "type": "COFFEE",
-      "col": 78,
-      "row": 34
+      "col": 70,
+      "row": 37
     },
     {
       "uid": "lan-555",
       "type": "SOFA_FRONT",
-      "col": 77,
-      "row": 32
+      "col": 69,
+      "row": 35
     },
     {
       "uid": "lan-556",
       "type": "SOFA_BACK",
-      "col": 77,
-      "row": 35
+      "col": 69,
+      "row": 38
     },
     {
       "uid": "lan-557",
       "type": "SOFA_SIDE",
-      "col": 76,
-      "row": 33
+      "col": 68,
+      "row": 36
     },
     {
       "uid": "lan-558",
       "type": "SOFA_SIDE:left",
-      "col": 79,
-      "row": 33
+      "col": 71,
+      "row": 36
     },
     {
       "uid": "lan-559",
       "type": "COFFEE_TABLE",
-      "col": 34,
-      "row": 48
+      "col": 42,
+      "row": 45
     },
     {
       "uid": "lan-560",
       "type": "COFFEE",
-      "col": 34,
-      "row": 49
+      "col": 42,
+      "row": 46
     },
     {
       "uid": "lan-561",
       "type": "SOFA_FRONT",
-      "col": 34,
-      "row": 47
+      "col": 42,
+      "row": 44
     },
     {
       "uid": "lan-562",
       "type": "SOFA_BACK",
-      "col": 34,
-      "row": 50
+      "col": 42,
+      "row": 47
     },
     {
       "uid": "lan-563",
       "type": "SOFA_SIDE",
-      "col": 33,
-      "row": 48
+      "col": 41,
+      "row": 45
     },
     {
       "uid": "lan-564",
       "type": "SOFA_SIDE:left",
-      "col": 36,
-      "row": 48
+      "col": 44,
+      "row": 45
     },
     {
       "uid": "lan-565",
       "type": "COFFEE_TABLE",
-      "col": 48,
-      "row": 48
+      "col": 51,
+      "row": 45
     },
     {
       "uid": "lan-566",
       "type": "COFFEE",
-      "col": 49,
-      "row": 49
+      "col": 52,
+      "row": 46
     },
     {
       "uid": "lan-567",
       "type": "SOFA_FRONT",
-      "col": 48,
-      "row": 47
+      "col": 51,
+      "row": 44
     },
     {
       "uid": "lan-568",
       "type": "SOFA_BACK",
-      "col": 48,
-      "row": 50
+      "col": 51,
+      "row": 47
     },
     {
       "uid": "lan-569",
       "type": "SOFA_SIDE",
-      "col": 47,
-      "row": 48
+      "col": 50,
+      "row": 45
     },
     {
       "uid": "lan-570",
       "type": "SOFA_SIDE:left",
-      "col": 50,
-      "row": 48
+      "col": 53,
+      "row": 45
     },
     {
       "uid": "lan-571",
       "type": "COFFEE_TABLE",
-      "col": 63,
-      "row": 48
+      "col": 60,
+      "row": 45
     },
     {
       "uid": "lan-572",
       "type": "COFFEE",
-      "col": 63,
-      "row": 49
+      "col": 60,
+      "row": 46
     },
     {
       "uid": "lan-573",
       "type": "SOFA_FRONT",
-      "col": 63,
-      "row": 47
+      "col": 60,
+      "row": 44
     },
     {
       "uid": "lan-574",
       "type": "SOFA_BACK",
-      "col": 63,
-      "row": 50
+      "col": 60,
+      "row": 47
     },
     {
       "uid": "lan-575",
       "type": "SOFA_SIDE",
-      "col": 62,
-      "row": 48
+      "col": 59,
+      "row": 45
     },
     {
       "uid": "lan-576",
       "type": "SOFA_SIDE:left",
-      "col": 65,
-      "row": 48
+      "col": 62,
+      "row": 45
     },
     {
       "uid": "lan-577",
       "type": "COFFEE_TABLE",
-      "col": 77,
-      "row": 48
+      "col": 69,
+      "row": 45
     },
     {
       "uid": "lan-578",
       "type": "COFFEE",
-      "col": 78,
-      "row": 49
+      "col": 70,
+      "row": 46
     },
     {
       "uid": "lan-579",
       "type": "SOFA_FRONT",
-      "col": 77,
-      "row": 47
+      "col": 69,
+      "row": 44
     },
     {
       "uid": "lan-580",
       "type": "SOFA_BACK",
-      "col": 77,
-      "row": 50
+      "col": 69,
+      "row": 47
     },
     {
       "uid": "lan-581",
       "type": "SOFA_SIDE",
-      "col": 76,
-      "row": 48
+      "col": 68,
+      "row": 45
     },
     {
       "uid": "lan-582",
       "type": "SOFA_SIDE:left",
-      "col": 79,
-      "row": 48
+      "col": 71,
+      "row": 45
     }
   ],
   "areas": [

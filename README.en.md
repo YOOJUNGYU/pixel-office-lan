@@ -85,7 +85,7 @@ Each tab shows how many people are online there (you included; in personal mode,
   - Edits stay on this screen until **[Save]**. Buttons: **[Reset]** (the default layout, applied on save) · **[Undo]** (Ctrl+Z) · **[Redo]** (Ctrl+Y) · **[Save]** (save, share and close) · **[Cancel]** (drop every change and close; Esc too).
   - **Public and team offices**: anyone can edit; a save is shared with everyone in that office (public = the LAN, team = members only, encrypted). Concurrent edits: **the last save wins**. PCs on 1.0.13 or older do not get it, and the per-PC layout saved before (`layout.json`) is no longer used (import it to share it).
   - **🏠 Personal**: saved on this PC only.
-  - Files and reset: **Settings → Export / Import layout / Reset to the default office**.
+  - Back to the default: **[Reset]** in the editor, then **[Save]**. Files: **Settings → Export / Import layout**.
 - **Install as an app (PWA)**: in Edge · Chrome, the popup at the top right → a tab-less app window. Opening the app while the server is off shows **[Start]**.
 - **Automatic updates**: checked at start and every 6 hours, downloaded silently and restarted into; open windows reload into the new version. They cannot be turned off. A version that fails to start is rolled back. Only releases that change Node need the installer (the **Update** button at the top right).
 - **Replay tour**: in Settings.

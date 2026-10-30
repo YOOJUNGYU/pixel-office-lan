@@ -77,9 +77,6 @@ const ko = {
   'app.readOnly': '보기 전용',
   'app.rotateHint': '회전 (R)',
   'app.importConfirm': '현재 레이아웃을 바꿀까요? 저장하지 않은 편집은 사라집니다.',
-  'app.resetDefaultConfirm':
-    '기본 사무실로 바꿀까요? 지금 배치는 사라집니다(공개·팀 오피스에서는 접속한 모두에게 적용. 먼저 내보내기로 저장해 둘 수 있습니다).',
-  'settings.resetDefaultLayout': '기본 사무실로 되돌리기',
   'app.resetEditorConfirm':
     '기본 레이아웃으로 초기화할까요? [저장]을 눌러야 적용되고, [실행 취소]나 [취소]로 되돌릴 수 있습니다.',
   'app.importInvalid': '올바른 레이아웃 파일이 아닙니다.',
@@ -422,9 +419,6 @@ const en: Record<Key, string> = {
   'app.readOnly': 'View only',
   'app.rotateHint': 'Rotate (R)',
   'app.importConfirm': 'Replace the current layout? Unsaved edits will be lost.',
-  'app.resetDefaultConfirm':
-    'Switch to the default office? The current layout will be lost (in the public and team offices, for everyone there; export it first to keep a copy).',
-  'settings.resetDefaultLayout': 'Reset to the default office',
   'app.resetEditorConfirm':
     'Reset to the default layout? It is applied only on [Save]; [Undo] or [Cancel] bring yours back.',
   'app.importInvalid': 'This is not a valid layout file.',

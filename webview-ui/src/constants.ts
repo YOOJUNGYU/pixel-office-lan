@@ -21,8 +21,8 @@ export const FLOOR_CHUNK_MIN_TILES = 4;
 export const FREE_TILE_PROBES = 16;
 
 // ── Character Animation ─────────────────────────────────────
-export const WALK_SPEED_PX_PER_SEC = 48;
-export const WALK_FRAME_DURATION_SEC = 0.15;
+export const WALK_SPEED_PX_PER_SEC = 72;
+export const WALK_FRAME_DURATION_SEC = 0.1;
 export const TYPE_FRAME_DURATION_SEC = 0.3;
 /** A follower that found no free tile beside its parent retries after this long. */
 export const FOLLOW_RETRY_SEC = 1.0;

@@ -469,15 +469,6 @@ function App() {
     reader.readAsText(file);
   };
 
-  /** Settings → the bundled default office, saved (and shared) at once; leaves edit mode. */
-  const handleResetToDefaultLayout = () => {
-    if (!window.confirm(t('app.resetDefaultConfirm'))) return;
-    fetchDefaultLayout()
-      .then(applyLayout)
-      .then(editor.handleExitEditMode)
-      .catch(() => window.alert(t('app.importFailed')));
-  };
-
   /** The editor's [Reset]: the bundled default as one more (undoable) edit; [Save] keeps it. */
   const handleEditorReset = () => {
     if (!window.confirm(t('app.resetEditorConfirm'))) return;
@@ -766,7 +757,6 @@ function App() {
           onOpenProfile={profile?.canEdit ? () => setIsProfileOpen(true) : null}
           onExportLayout={handleExportLayout}
           onImportLayout={handleImportLayout}
-          onResetToDefaultLayout={officeReadOnly ? undefined : handleResetToDefaultLayout}
           autostart={autostart}
           notify={notify}
           onNotifyChange={setNotify}
